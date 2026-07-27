@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { resolveAudioAssets } from '@/game/config/audioAssets';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -11,12 +12,43 @@ export class BootScene extends Phaser.Scene {
       '/assets/player/player.png',
       '/assets/player/player.json',
     );
+
+    const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
+
+    for (const asset of assets) {
+      this.load.audio(asset.key, asset.url);
+    }
+
+    this.reportAudioGaps(missingKeys, unusedFiles);
   }
 
   create() {
     this.createRuntimeTextures();
     this.createAnimations();
     this.scene.start('title');
+  }
+
+  /**
+   * Sound files arrive one at a time and a cue without a file simply stays
+   * quiet, so the run always plays end to end. This reports what is still
+   * open: cues with no sound, and files whose name matched no cue.
+   */
+  private reportAudioGaps(missingKeys: string[], unusedFiles: string[]) {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    if (missingKeys.length > 0) {
+      console.warn(
+        `[audio] ${missingKeys.length} cue(s) still have no file: ${missingKeys.join(', ')}`,
+      );
+    }
+
+    if (unusedFiles.length > 0) {
+      console.warn(
+        `[audio] file(s) matched no cue, check the name: ${unusedFiles.join(', ')}`,
+      );
+    }
   }
 
   private createRuntimeTextures() {
