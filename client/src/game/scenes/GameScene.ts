@@ -3,22 +3,25 @@ import {
   PLAYER_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
+import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import { FIRST_ROOM_CONFIG } from '@/game/config/roomConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
-import { GAME_HEIGHT, GAME_WIDTH } from '@/game/gameConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
+import type { RoomState } from '@/game/state/roomState';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
+import { RoomDirector } from '@/game/systems/RoomDirector';
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
-  private enemy!: RangedEnemy;
+  private enemies: RangedEnemy[] = [];
+  private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
   private playerProjectiles!: ProjectilePool;
   private enemyProjectiles!: ProjectilePool;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
-  private enemyStateText!: Phaser.GameObjects.Text;
   private deathOverlay!: Phaser.GameObjects.Container;
   private playerHealth: number = PLAYER_COMBAT_CONFIG.maxHealth;
   private phase: GamePhase = 'boot';
@@ -36,7 +39,7 @@ export class GameScene extends Phaser.Scene {
     this.createBackdrop();
     const floor = this.createFloor();
     this.createPlayer(floor);
-    this.createEnemy(floor);
+    this.createRoom(floor);
     this.createCombatSystems();
     this.createCombatUi();
     this.bindInputHandlers();
@@ -55,11 +58,17 @@ export class GameScene extends Phaser.Scene {
     ) as Phaser.Math.Vector2;
     this.drawAimGuide(aimPoint);
 
-    if (pointer.leftButtonDown() && time >= this.nextFireAt) {
+    if (
+      this.phase === 'playing' &&
+      pointer.leftButtonDown() &&
+      time >= this.nextFireAt
+    ) {
       this.fireBullet(aimPoint, time);
     }
 
-    this.updateEnemyCombat(time);
+    if (this.phase === 'playing') {
+      this.updateEnemyCombat(time);
+    }
   }
 
   private createFloor() {
@@ -85,24 +94,36 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, floor);
   }
 
-  private createEnemy(floor: Phaser.Physics.Arcade.StaticGroup) {
-    this.enemy = new RangedEnemy(
+  private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
+    this.roomDirector = new RoomDirector(
       this,
-      900,
-      GAME_HEIGHT - 120,
-      'enemy-placeholder',
-      {
-        health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
-        aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
-        fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval,
-      },
+      this.player,
+      FIRST_ROOM_CONFIG,
+      (state) => this.handleRoomStateChanged(state),
     );
-    this.physics.add.collider(this.enemy, floor);
-    gameEvents.emit(
-      'enemy-health-changed',
-      this.enemy.currentHealth,
-      this.enemy.maxHealth,
-    );
+    this.enemies = FIRST_ROOM_CONFIG.rangedEnemySpawns.map((spawn) => {
+      const enemy = new RangedEnemy(
+        this,
+        spawn.x,
+        spawn.y,
+        'enemy-placeholder',
+        {
+          health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
+          aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
+          fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval,
+        },
+      );
+      enemy.setAlpha(0);
+      this.physics.add.collider(enemy, floor);
+      this.tweens.add({
+        targets: enemy,
+        alpha: 1,
+        duration: 260,
+      });
+      return enemy;
+    });
+    this.roomDirector.start(this.enemies);
+    this.emitEnemyHealth();
   }
 
   private createCombatSystems() {
@@ -121,7 +142,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.physics.add.overlap(
       this.playerProjectiles.group,
-      this.enemy,
+      this.enemies,
       this.handleEnemyHit,
       undefined,
       this,
@@ -138,14 +159,6 @@ export class GameScene extends Phaser.Scene {
   private createCombatUi() {
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
-    this.enemyStateText = this.add
-      .text(this.enemy.x, this.enemy.y - 52, 'SCANNING', {
-        color: '#9aafb5',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-      })
-      .setOrigin(0.5)
-      .setDepth(6);
     this.createDeathOverlay();
 
     this.add
@@ -181,11 +194,22 @@ export class GameScene extends Phaser.Scene {
       this.playerHealth,
       PLAYER_COMBAT_CONFIG.maxHealth,
     );
+    gameEvents.emit('room-state-changed', 'idle');
   }
 
   private setPhase(phase: GamePhase) {
     this.phase = phase;
     gameEvents.emit('phase-changed', phase);
+  }
+
+  private handleRoomStateChanged(state: RoomState) {
+    gameEvents.emit('room-state-changed', state);
+
+    if (state === 'cleared') {
+      this.setPhase('room-cleared');
+      this.enemyProjectiles.clear();
+      this.enemyRangeGraphics.clear();
+    }
   }
 
   private handleRestartInput() {
@@ -195,7 +219,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
-    if (this.phase !== 'playing') {
+    if (this.phase === 'dead') {
       return;
     }
 
@@ -204,7 +228,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (pointer.button !== 0 || this.time.now < this.nextFireAt) {
+    if (
+      this.phase !== 'playing' ||
+      pointer.button !== 0 ||
+      this.time.now < this.nextFireAt
+    ) {
       return;
     }
 
@@ -236,37 +264,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateEnemyCombat(time: number) {
-    if (!this.enemy.active) {
-      this.enemyRangeGraphics.clear();
-      this.enemyStateText
-        .setPosition(this.enemy.x, this.enemy.y - 52)
-        .setText('NEUTRALIZED')
-        .setColor('#6c777b');
-      return;
-    }
-
-    const targetInRange = this.enemy.updateCombat(
-      time,
-      this.player,
-      (enemy, target) => this.fireEnemyBullet(enemy, target),
-    );
-
-    this.enemyStateText
-      .setPosition(this.enemy.x, this.enemy.y - 52)
-      .setText(targetInRange ? 'TARGET LOCKED' : 'SCANNING')
-      .setColor(targetInRange ? '#ff7180' : '#9aafb5');
-
     this.enemyRangeGraphics.clear();
-    this.enemyRangeGraphics.lineStyle(
-      targetInRange ? 2 : 1,
-      targetInRange ? 0xff5263 : 0x6d7b80,
-      targetInRange ? 0.28 : 0.12,
-    );
-    this.enemyRangeGraphics.strokeCircle(
-      this.enemy.x,
-      this.enemy.y,
-      this.enemy.aggroRadius,
-    );
+
+    for (const enemy of this.enemies) {
+      if (!enemy.active) {
+        continue;
+      }
+
+      const targetInRange = enemy.updateCombat(
+        time,
+        this.player,
+        (attacker, target) => this.fireEnemyBullet(attacker, target),
+      );
+      this.enemyRangeGraphics.lineStyle(
+        targetInRange ? 2 : 1,
+        targetInRange ? 0xff5263 : 0x6d7b80,
+        targetInRange ? 0.28 : 0.12,
+      );
+      this.enemyRangeGraphics.strokeCircle(enemy.x, enemy.y, enemy.aggroRadius);
+    }
   }
 
   private fireEnemyBullet(
@@ -288,11 +304,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleEnemyHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
-    enemyObject,
-    bulletObject,
+    firstObject,
+    secondObject,
   ) => {
-    const bullet = bulletObject as Phaser.Physics.Arcade.Image;
-    const enemy = enemyObject as RangedEnemy;
+    const enemy =
+      firstObject instanceof RangedEnemy
+        ? firstObject
+        : (secondObject as RangedEnemy);
+    const bullet =
+      firstObject instanceof RangedEnemy
+        ? (secondObject as Phaser.Physics.Arcade.Image)
+        : (firstObject as Phaser.Physics.Arcade.Image);
 
     if (!bullet.active || !enemy.active) {
       return;
@@ -300,11 +322,7 @@ export class GameScene extends Phaser.Scene {
 
     bullet.disableBody(true, true);
     const defeated = enemy.takeDamage(PLAYER_COMBAT_CONFIG.projectile.damage);
-    gameEvents.emit(
-      'enemy-health-changed',
-      enemy.currentHealth,
-      enemy.maxHealth,
-    );
+    this.emitEnemyHealth();
 
     enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.time.delayedCall(70, () => {
@@ -315,16 +333,34 @@ export class GameScene extends Phaser.Scene {
 
     if (defeated) {
       enemy.disableBody(true, true);
-      this.enemyRangeGraphics.clear();
+      this.roomDirector.markEnemyDefeated(enemy);
     }
   };
 
+  private emitEnemyHealth() {
+    const current = this.enemies.reduce(
+      (total, enemy) => total + enemy.currentHealth,
+      0,
+    );
+    const max = this.enemies.reduce(
+      (total, enemy) => total + enemy.maxHealth,
+      0,
+    );
+    gameEvents.emit('enemy-health-changed', current, max);
+  }
+
   private handlePlayerHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
-    playerObject,
-    bulletObject,
+    firstObject,
+    secondObject,
   ) => {
-    const bullet = bulletObject as Phaser.Physics.Arcade.Image;
-    const player = playerObject as Phaser.Physics.Arcade.Sprite;
+    const player =
+      firstObject === this.player
+        ? this.player
+        : (secondObject as Phaser.Physics.Arcade.Sprite);
+    const bullet =
+      firstObject === this.player
+        ? (secondObject as Phaser.Physics.Arcade.Image)
+        : (firstObject as Phaser.Physics.Arcade.Image);
 
     if (!bullet.active) {
       return;
@@ -368,7 +404,6 @@ export class GameScene extends Phaser.Scene {
     this.enemyProjectiles.clear();
     this.aimGraphics.clear();
     this.enemyRangeGraphics.clear();
-    this.enemyStateText.setText('STANDBY').setColor('#6c777b');
     this.deathOverlay.setVisible(true);
     this.cameras.main.shake(180, 0.008);
   }

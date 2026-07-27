@@ -4,13 +4,25 @@ import { PhaserGame } from '@/game/PhaserGame';
 import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
-  const { health, maxHealth, enemyHealth, enemyMaxHealth, scene, phase } =
-    useGameUiStore();
+  const {
+    health,
+    maxHealth,
+    enemyHealth,
+    enemyMaxHealth,
+    scene,
+    phase,
+    roomState,
+  } = useGameUiStore();
 
   useGameUiEvents();
 
   return (
-    <main className="game-shell" data-phase={phase} data-scene={scene}>
+    <main
+      className="game-shell"
+      data-phase={phase}
+      data-room-state={roomState}
+      data-scene={scene}
+    >
       <PhaserGame />
       {scene === 'game' && (
         <div className="hud-layer">

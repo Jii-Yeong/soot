@@ -10,6 +10,7 @@ describe('gameUiStore', () => {
       enemyMaxHealth: 100,
       scene: 'boot',
       phase: 'boot',
+      roomState: 'idle',
     });
   });
 
@@ -32,5 +33,11 @@ describe('gameUiStore', () => {
     useGameUiStore.getState().setPhase('dead');
 
     expect(useGameUiStore.getState().phase).toBe('dead');
+  });
+
+  it('tracks room lock and clear states for React overlays', () => {
+    useGameUiStore.getState().setRoomState('locked');
+
+    expect(useGameUiStore.getState().roomState).toBe('locked');
   });
 });

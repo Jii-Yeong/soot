@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH } from '@/game/gameConfig';
+import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import { gameEvents } from '@/game/events/gameEvents';
 
 export class TitleScene extends Phaser.Scene {
@@ -32,4 +32,3 @@ export class TitleScene extends Phaser.Scene {
     });
   }
 }
-

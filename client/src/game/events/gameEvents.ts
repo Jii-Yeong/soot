@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
+import type { RoomState } from '@/game/state/roomState';
 
 type GameEventMap = {
   'health-changed': [current: number, max: number];
   'enemy-health-changed': [current: number, max: number];
   'phase-changed': [phase: GamePhase];
+  'room-state-changed': [state: RoomState];
   'scene-changed': [scene: GameSceneKey];
 };
 
