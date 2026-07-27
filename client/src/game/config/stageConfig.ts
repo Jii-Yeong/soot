@@ -1,3 +1,4 @@
+import type { MusicKey } from '@/game/config/audioConfig';
 import {
   ALLEY_ROOM_ONE,
   ALLEY_ROOM_TWO,
@@ -20,6 +21,7 @@ export type StageConfig = {
   id: string;
   label: string;
   palette: StagePalette;
+  music: MusicKey;
   rooms: RoomConfig[];
 };
 
@@ -33,6 +35,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     accentPrimary: 0xf0a35b,
     accentSecondary: 0xb6ffe4,
   },
+  music: 'bgm-city',
   rooms: [CITY_ROOM_ONE, CITY_ROOM_TWO],
 };
 
@@ -47,6 +50,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     accentSecondary: 0x3b4a6b,
     neonFlicker: true,
   },
+  music: 'bgm-alley',
   rooms: [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO],
 };
 
