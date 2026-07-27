@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Enemy, type EnemyCombatUpdate } from '@/game/entities/Enemy';
+import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
 
 export type RangedEnemyConfig = {
   health: number;
@@ -9,6 +9,7 @@ export type RangedEnemyConfig = {
 
 export class RangedEnemy extends Enemy {
   readonly aggroRadius: number;
+  readonly aggroIndicatorColor = 0xff5263;
   readonly fireInterval: number;
 
   private nextFireAt = 0;
@@ -29,9 +30,10 @@ export class RangedEnemy extends Enemy {
   updateCombat(
     time: number,
     target: Phaser.Physics.Arcade.Sprite,
-  ): EnemyCombatUpdate {
+    fireProjectile: EnemyProjectileAttack,
+  ) {
     if (!this.active) {
-      return { targetInRange: false, shouldFireProjectile: false };
+      return false;
     }
 
     const distance = Phaser.Math.Distance.Between(
@@ -45,10 +47,10 @@ export class RangedEnemy extends Enemy {
     this.setFlipX(target.x < this.x);
 
     if (targetInRange && time >= this.nextFireAt) {
+      fireProjectile(this, target);
       this.nextFireAt = time + this.fireInterval;
-      return { targetInRange, shouldFireProjectile: true };
     }
 
-    return { targetInRange, shouldFireProjectile: false };
+    return targetInRange;
   }
 }

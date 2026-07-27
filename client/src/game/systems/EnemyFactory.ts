@@ -33,6 +33,7 @@ export class EnemyFactory {
         health: MELEE_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: MELEE_ENEMY_COMBAT_CONFIG.aggroRadius,
         moveSpeed: MELEE_ENEMY_COMBAT_CONFIG.moveSpeed,
+        contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
       },
     );

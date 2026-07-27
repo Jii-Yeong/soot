@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import {
-  MELEE_ENEMY_COMBAT_CONFIG,
   PLAYER_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
@@ -8,8 +7,6 @@ import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import { FIRST_ROOM_CONFIG } from '@/game/config/roomConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
 import { Enemy } from '@/game/entities/Enemy';
-import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
-import { RangedEnemy } from '@/game/entities/RangedEnemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { RoomState } from '@/game/state/roomState';
@@ -269,32 +266,25 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
 
-      const { targetInRange, shouldFireProjectile } = enemy.updateCombat(
+      const targetInRange = enemy.updateCombat(
         time,
         this.player,
+        this.fireEnemyProjectile,
       );
-
-      if (shouldFireProjectile && enemy instanceof RangedEnemy) {
-        this.fireEnemyBullet(enemy, this.player);
-      }
 
       this.enemyRangeGraphics.lineStyle(
         targetInRange ? 2 : 1,
-        targetInRange
-          ? enemy instanceof MeleeEnemy
-            ? 0xf08b52
-            : 0xff5263
-          : 0x6d7b80,
+        targetInRange ? enemy.aggroIndicatorColor : 0x6d7b80,
         targetInRange ? 0.28 : 0.12,
       );
       this.enemyRangeGraphics.strokeCircle(enemy.x, enemy.y, enemy.aggroRadius);
     }
   }
 
-  private fireEnemyBullet(
-    enemy: RangedEnemy,
+  private fireEnemyProjectile = (
+    enemy: Enemy,
     target: Phaser.Physics.Arcade.Sprite,
-  ) {
+  ) => {
     const angle = Phaser.Math.Angle.Between(
       enemy.x,
       enemy.y,
@@ -307,20 +297,19 @@ export class GameScene extends Phaser.Scene {
       enemy.y + Math.sin(angle) * muzzleOffset,
       angle,
     );
-  }
+  };
 
   private handleEnemyHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
     firstObject,
     secondObject,
   ) => {
-    const enemy =
-      firstObject instanceof Enemy ? firstObject : (secondObject as Enemy);
+    const enemy = this.findEnemy(firstObject, secondObject);
     const bullet =
       firstObject instanceof Enemy
         ? (secondObject as Phaser.Physics.Arcade.Image)
         : (firstObject as Phaser.Physics.Arcade.Image);
 
-    if (!bullet.active || !enemy.active) {
+    if (!enemy || !bullet.active || !enemy.active) {
       return;
     }
 
@@ -343,24 +332,30 @@ export class GameScene extends Phaser.Scene {
 
   private handleEnemyContact: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
     (firstObject, secondObject) => {
-      const enemy =
-        firstObject instanceof MeleeEnemy
-          ? firstObject
-          : secondObject instanceof MeleeEnemy
-            ? secondObject
-            : null;
+      const enemy = this.findEnemy(firstObject, secondObject);
 
       if (
         !enemy ||
         this.phase !== 'playing' ||
-        this.playerController.isInvulnerable ||
-        !enemy.tryContactDamage(this.time.now)
+        this.playerController.isInvulnerable
       ) {
         return;
       }
 
-      this.applyPlayerDamage(MELEE_ENEMY_COMBAT_CONFIG.contactDamage);
+      const damage = enemy.tryContactAttack(this.time.now);
+
+      if (damage !== null) {
+        this.applyPlayerDamage(damage);
+      }
     };
+
+  private findEnemy(firstObject: unknown, secondObject: unknown) {
+    if (firstObject instanceof Enemy) {
+      return firstObject;
+    }
+
+    return secondObject instanceof Enemy ? secondObject : null;
+  }
 
   private emitEnemyHealth() {
     const current = this.enemies.reduce(

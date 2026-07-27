@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 
-export type EnemyCombatUpdate = {
-  targetInRange: boolean;
-  shouldFireProjectile: boolean;
-};
+export type EnemyProjectileAttack = (
+  enemy: Enemy,
+  target: Phaser.Physics.Arcade.Sprite,
+) => void;
 
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
+  abstract readonly aggroIndicatorColor: number;
   readonly maxHealth: number;
 
   private health: number;
@@ -31,7 +32,12 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract updateCombat(
     time: number,
     target: Phaser.Physics.Arcade.Sprite,
-  ): EnemyCombatUpdate;
+    fireProjectile: EnemyProjectileAttack,
+  ): boolean;
+
+  tryContactAttack(_time: number): number | null {
+    return null;
+  }
 
   takeDamage(amount: number) {
     if (!this.active) {

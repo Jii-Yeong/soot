@@ -18,6 +18,17 @@ async function getCanvasBounds(page: Page) {
   return bounds;
 }
 
+function getCanvasPoint(
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+  x: number,
+  y: number,
+) {
+  return {
+    x: bounds.x + bounds.width * (x / 1280),
+    y: bounds.y + bounds.height * (y / 720),
+  };
+}
+
 async function fireAt(
   page: Page,
   bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
@@ -25,10 +36,8 @@ async function fireAt(
   y: number,
   duration: number,
 ) {
-  await page.mouse.move(
-    bounds.x + bounds.width * (x / 1280),
-    bounds.y + bounds.height * (y / 720),
-  );
+  const point = getCanvasPoint(bounds, x, y);
+  await page.mouse.move(point.x, point.y);
   await page.mouse.down();
   await page.waitForTimeout(duration);
   await page.mouse.up();
@@ -41,17 +50,12 @@ async function fireShotsAt(
   y: number,
   count: number,
 ) {
-  await page.mouse.move(
-    bounds.x + bounds.width * (x / 1280),
-    bounds.y + bounds.height * (y / 720),
-  );
+  const point = getCanvasPoint(bounds, x, y);
+  await page.mouse.move(point.x, point.y);
 
   for (let shot = 0; shot < count; shot += 1) {
-    await page.mouse.click(
-      bounds.x + bounds.width * (x / 1280),
-      bounds.y + bounds.height * (y / 720),
-    );
-    await page.waitForTimeout(120);
+    await page.mouse.click(point.x, point.y);
+    await page.waitForTimeout(160);
   }
 }
 
@@ -177,11 +181,7 @@ test('player fire damages the enemy without stopping combat', async ({
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-
-  await page.mouse.click(
-    bounds.x + bounds.width * (900 / 1280),
-    bounds.y + bounds.height * (630 / 720),
-  );
+  await fireShotsAt(page, bounds, 640, 630, 1);
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),

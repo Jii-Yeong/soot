@@ -1,17 +1,20 @@
 import Phaser from 'phaser';
-import { Enemy, type EnemyCombatUpdate } from '@/game/entities/Enemy';
+import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
 
 export type MeleeEnemyConfig = {
   health: number;
   aggroRadius: number;
   moveSpeed: number;
+  contactDamage: number;
   contactDamageCooldown: number;
 };
 
 export class MeleeEnemy extends Enemy {
   readonly aggroRadius: number;
+  readonly aggroIndicatorColor = 0xf08b52;
 
   private readonly moveSpeed: number;
+  private readonly contactDamage: number;
   private readonly contactDamageCooldown: number;
   private contactDamageReadyAt = 0;
 
@@ -26,15 +29,17 @@ export class MeleeEnemy extends Enemy {
 
     this.aggroRadius = config.aggroRadius;
     this.moveSpeed = config.moveSpeed;
+    this.contactDamage = config.contactDamage;
     this.contactDamageCooldown = config.contactDamageCooldown;
   }
 
   updateCombat(
     _time: number,
     target: Phaser.Physics.Arcade.Sprite,
-  ): EnemyCombatUpdate {
+    _fireProjectile: EnemyProjectileAttack,
+  ) {
     if (!this.active) {
-      return { targetInRange: false, shouldFireProjectile: false };
+      return false;
     }
 
     const distance = Phaser.Math.Distance.Between(
@@ -47,22 +52,22 @@ export class MeleeEnemy extends Enemy {
 
     if (!targetInRange) {
       this.setVelocityX(0);
-      return { targetInRange, shouldFireProjectile: false };
+      return false;
     }
 
     const direction = Math.sign(target.x - this.x);
     this.setFlipX(direction < 0);
     this.setVelocityX(direction * this.moveSpeed);
 
-    return { targetInRange, shouldFireProjectile: false };
+    return true;
   }
 
-  tryContactDamage(time: number) {
+  override tryContactAttack(time: number) {
     if (!this.active || time < this.contactDamageReadyAt) {
-      return false;
+      return null;
     }
 
     this.contactDamageReadyAt = time + this.contactDamageCooldown;
-    return true;
+    return this.contactDamage;
   }
 }

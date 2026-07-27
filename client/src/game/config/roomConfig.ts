@@ -1,19 +1,10 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 
-type EnemySpawnPosition = {
+export type EnemySpawnConfig = {
+  type: 'melee' | 'ranged';
   x: number;
   y: number;
 };
-
-export type EnemySpawnConfig = EnemySpawnPosition &
-  (
-    | {
-        type: 'ranged';
-      }
-    | {
-        type: 'melee';
-      }
-  );
 
 export type RoomConfig = {
   id: string;
