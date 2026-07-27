@@ -10,6 +10,7 @@ import { RangedEnemy } from '@/game/entities/RangedEnemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { RoomState } from '@/game/state/roomState';
+import { EnemyFactory } from '@/game/systems/EnemyFactory';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 
@@ -43,6 +44,7 @@ export class GameScene extends Phaser.Scene {
     this.createCombatSystems();
     this.createCombatUi();
     this.bindInputHandlers();
+    this.startRoomEncounter();
   }
 
   update(time: number) {
@@ -101,29 +103,15 @@ export class GameScene extends Phaser.Scene {
       FIRST_ROOM_CONFIG,
       (state) => this.handleRoomStateChanged(state),
     );
-    this.enemies = FIRST_ROOM_CONFIG.rangedEnemySpawns.map((spawn) => {
-      const enemy = new RangedEnemy(
-        this,
-        spawn.x,
-        spawn.y,
-        'enemy-placeholder',
-        {
-          health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
-          aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
-          fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval,
-        },
-      );
-      enemy.setAlpha(0);
-      this.physics.add.collider(enemy, floor);
-      this.tweens.add({
-        targets: enemy,
-        alpha: 1,
-        duration: 260,
-      });
-      return enemy;
-    });
-    this.roomDirector.start(this.enemies);
+    const enemyFactory = new EnemyFactory(this, floor);
+    this.enemies = FIRST_ROOM_CONFIG.enemySpawns.map((spawn) =>
+      enemyFactory.create(spawn),
+    );
     this.emitEnemyHealth();
+  }
+
+  private startRoomEncounter() {
+    this.roomDirector.beginEncounter(this.enemies);
   }
 
   private createCombatSystems() {
@@ -333,7 +321,7 @@ export class GameScene extends Phaser.Scene {
 
     if (defeated) {
       enemy.disableBody(true, true);
-      this.roomDirector.markEnemyDefeated(enemy);
+      this.roomDirector.notifyEnemyDefeated(enemy);
     }
   };
 

@@ -1,6 +1,7 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 
-export type RangedEnemySpawn = {
+export type EnemySpawnConfig = {
+  type: 'ranged';
   x: number;
   y: number;
 };
@@ -15,7 +16,7 @@ export type RoomConfig = {
     width: number;
     height: number;
   };
-  rangedEnemySpawns: RangedEnemySpawn[];
+  enemySpawns: EnemySpawnConfig[];
 };
 
 export const FIRST_ROOM_CONFIG: RoomConfig = {
@@ -28,8 +29,8 @@ export const FIRST_ROOM_CONFIG: RoomConfig = {
     width: 32,
     height: 180,
   },
-  rangedEnemySpawns: [
-    { x: 900, y: GAME_HEIGHT - 120 },
-    { x: 1080, y: GAME_HEIGHT - 120 },
+  enemySpawns: [
+    { type: 'ranged', x: 900, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1080, y: GAME_HEIGHT - 120 },
   ],
 };

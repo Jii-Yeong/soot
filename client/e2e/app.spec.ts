@@ -1,4 +1,38 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function enterGame(page: Page) {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+}
+
+async function getCanvasBounds(page: Page) {
+  const canvas = page.locator('#game-root canvas');
+  const bounds = await canvas.boundingBox();
+
+  if (!bounds) {
+    throw new Error('Phaser canvas bounds are unavailable');
+  }
+
+  return bounds;
+}
+
+async function fireAt(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+  x: number,
+  y: number,
+  duration: number,
+) {
+  await page.mouse.move(
+    bounds.x + bounds.width * (x / 1280),
+    bounds.y + bounds.height * (y / 720),
+  );
+  await page.mouse.down();
+  await page.waitForTimeout(duration);
+  await page.mouse.up();
+}
 
 test('boots the Phaser canvas', async ({ page }) => {
   await page.goto('/');
@@ -10,9 +44,7 @@ test('boots the Phaser canvas', async ({ page }) => {
 });
 
 test('enters the game and shows the React HUD', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
+  await enterGame(page);
 
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
   await expect(page.locator('main')).toHaveAttribute(
@@ -31,21 +63,14 @@ test('accepts WASD movement and mouse fire input', async ({ page }) => {
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await enterGame(page);
 
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(180);
   await page.keyboard.up('KeyD');
   await page.keyboard.press('KeyW');
 
-  const canvas = page.locator('#game-root canvas');
-  const bounds = await canvas.boundingBox();
-  if (!bounds) {
-    throw new Error('Phaser canvas bounds are unavailable');
-  }
+  const bounds = await getCanvasBounds(page);
 
   await page.mouse.move(
     bounds.x + bounds.width * 0.75,
@@ -62,9 +87,7 @@ test('supports alternate controls and dash input', async ({ page }) => {
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
+  await enterGame(page);
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
 
   await page.keyboard.down('ArrowRight');
@@ -73,11 +96,7 @@ test('supports alternate controls and dash input', async ({ page }) => {
   await page.keyboard.up('ArrowRight');
   await page.keyboard.press('Space');
 
-  const canvas = page.locator('#game-root canvas');
-  const bounds = await canvas.boundingBox();
-  if (!bounds) {
-    throw new Error('Phaser canvas bounds are unavailable');
-  }
+  const bounds = await getCanvasBounds(page);
 
   await page.mouse.click(
     bounds.x + bounds.width * 0.7,
@@ -89,9 +108,7 @@ test('supports alternate controls and dash input', async ({ page }) => {
 });
 
 test('enemy detects the player and deals ranged damage', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
+  await enterGame(page);
 
   const healthMeter = page.getByRole('meter', { name: 'Player health' });
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
@@ -111,17 +128,10 @@ test('player fire damages the enemy without stopping combat', async ({
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await enterGame(page);
   await page.waitForTimeout(1000);
 
-  const canvas = page.locator('#game-root canvas');
-  const bounds = await canvas.boundingBox();
-  if (!bounds) {
-    throw new Error('Phaser canvas bounds are unavailable');
-  }
+  const bounds = await getCanvasBounds(page);
 
   await page.mouse.click(
     bounds.x + bounds.width * (900 / 1280),
@@ -140,36 +150,16 @@ test('locks the room until every spawned enemy is defeated', async ({
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
+  await enterGame(page);
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
   );
   await page.waitForTimeout(1000);
 
-  const canvas = page.locator('#game-root canvas');
-  const bounds = await canvas.boundingBox();
-  if (!bounds) {
-    throw new Error('Phaser canvas bounds are unavailable');
-  }
-
-  await page.mouse.move(
-    bounds.x + bounds.width * (900 / 1280),
-    bounds.y + bounds.height * (630 / 720),
-  );
-  await page.mouse.down();
-  await page.waitForTimeout(2000);
-  await page.mouse.up();
-
-  await page.mouse.move(
-    bounds.x + bounds.width * (1080 / 1280),
-    bounds.y + bounds.height * (630 / 720),
-  );
-  await page.mouse.down();
-  await page.waitForTimeout(2500);
-  await page.mouse.up();
+  const bounds = await getCanvasBounds(page);
+  await fireAt(page, bounds, 900, 630, 2000);
+  await fireAt(page, bounds, 1080, 630, 2500);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
@@ -191,9 +181,7 @@ test('player death stops combat and supports a fast restart', async ({
 }) => {
   test.setTimeout(45_000);
 
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  await page.keyboard.press('Enter');
+  await enterGame(page);
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
 
   const healthMeter = page.getByRole('meter', { name: 'Player health' });

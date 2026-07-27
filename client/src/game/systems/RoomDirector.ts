@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import type { RoomConfig } from '@/game/config/roomConfig';
-import type { RangedEnemy } from '@/game/entities/RangedEnemy';
 import type { RoomState } from '@/game/state/roomState';
 
 type RoomDoor = {
@@ -9,7 +8,7 @@ type RoomDoor = {
 };
 
 export class RoomDirector {
-  private readonly enemies = new Set<RangedEnemy>();
+  private readonly enemies = new Set<Phaser.GameObjects.GameObject>();
   private readonly exit: RoomDoor;
   private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
@@ -33,7 +32,7 @@ export class RoomDirector {
       .setDepth(20);
   }
 
-  start(enemies: RangedEnemy[]) {
+  beginEncounter(enemies: Phaser.GameObjects.GameObject[]) {
     this.enemies.clear();
 
     for (const enemy of enemies) {
@@ -49,7 +48,7 @@ export class RoomDirector {
     }
   }
 
-  markEnemyDefeated(enemy: RangedEnemy) {
+  notifyEnemyDefeated(enemy: Phaser.GameObjects.GameObject) {
     if (!this.enemies.delete(enemy) || this.state !== 'locked') {
       return;
     }
@@ -59,9 +58,7 @@ export class RoomDirector {
       return;
     }
 
-    this.statusText.setText(
-      `${this.config.label}  //  ${this.enemies.size} HOSTILE REMAINING`,
-    );
+    this.updateStatusText();
   }
 
   private createDoor(x: number): RoomDoor {
@@ -96,17 +93,25 @@ export class RoomDirector {
   }
 
   private setState(state: RoomState) {
+    if (this.state === state) {
+      return;
+    }
+
     this.state = state;
     this.onStateChanged(state);
+    this.updateStatusText();
+  }
 
-    if (state === 'locked') {
+  private updateStatusText() {
+    if (this.state === 'locked') {
+      const suffix = this.enemies.size === 1 ? 'HOSTILE' : 'HOSTILES';
       this.statusText.setText(
-        `${this.config.label}  //  LOCKDOWN  //  ${this.enemies.size} HOSTILES`,
+        `${this.config.label}  //  LOCKDOWN  //  ${this.enemies.size} ${suffix}`,
       );
       return;
     }
 
-    if (state === 'cleared') {
+    if (this.state === 'cleared') {
       this.statusText
         .setText(`${this.config.label}  //  CLEAR  //  EXIT UNLOCKED`)
         .setColor('#b6ffe4');
