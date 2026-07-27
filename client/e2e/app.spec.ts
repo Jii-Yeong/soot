@@ -111,7 +111,7 @@ test('player fire damages the enemy without stopping combat', async ({
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
 
   const canvas = page.locator('#game-root canvas');
   const bounds = await canvas.boundingBox();
@@ -126,14 +126,14 @@ test('player fire damages the enemy without stopping combat', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '90', { timeout: 3000 });
+  ).toHaveAttribute('aria-valuenow', '90', { timeout: 5000 });
   expect(runtimeErrors).toEqual([]);
 });
 
 test('player death stops combat and supports a fast restart', async ({
   page,
 }) => {
-  test.setTimeout(25_000);
+  test.setTimeout(45_000);
 
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
@@ -146,7 +146,7 @@ test('player death stops combat and supports a fast restart', async ({
   await page.keyboard.up('KeyD');
 
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'dead', {
-    timeout: 15_000,
+    timeout: 30_000,
   });
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '0');
 

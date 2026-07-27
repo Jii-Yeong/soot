@@ -1,51 +1,28 @@
 import Phaser from 'phaser';
+import {
+  PLAYER_COMBAT_CONFIG,
+  RANGED_ENEMY_COMBAT_CONFIG,
+} from '@/game/config/combatConfig';
+import { PlayerController } from '@/game/controllers/PlayerController';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/gameConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
-
-const MOVE_SPEED = 300;
-const JUMP_SPEED = 560;
-const FAST_FALL_SPEED = 720;
-const DASH_SPEED = 760;
-const DASH_DURATION = 170;
-const DASH_COOLDOWN = 800;
-const BULLET_SPEED = 950;
-const FIRE_INTERVAL = 110;
-const BULLET_LIFETIME = 900;
-const PLAYER_BULLET_DAMAGE = 10;
-const PLAYER_MAX_HEALTH = 100;
-const ENEMY_AGGRO_RADIUS = 520;
-const ENEMY_FIRE_INTERVAL = 900;
-const ENEMY_BULLET_SPEED = 430;
-const ENEMY_BULLET_LIFETIME = 1800;
-const ENEMY_BULLET_DAMAGE = 10;
-const ENEMY_MAX_HEALTH = 100;
-
-type MovementKeys = Record<
-  'left' | 'right' | 'jump' | 'down' | 'dash' | 'restart' | 'confirm',
-  Phaser.Input.Keyboard.Key
->;
+import { ProjectilePool } from '@/game/systems/ProjectilePool';
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemy!: RangedEnemy;
-  private movementKeys!: MovementKeys;
-  private cursorKeys!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private playerBullets!: Phaser.Physics.Arcade.Group;
-  private enemyBullets!: Phaser.Physics.Arcade.Group;
+  private playerController!: PlayerController;
+  private playerProjectiles!: ProjectilePool;
+  private enemyProjectiles!: ProjectilePool;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
   private enemyStateText!: Phaser.GameObjects.Text;
   private deathOverlay!: Phaser.GameObjects.Container;
-  private playerHealth = PLAYER_MAX_HEALTH;
+  private playerHealth: number = PLAYER_COMBAT_CONFIG.maxHealth;
   private phase: GamePhase = 'boot';
   private nextFireAt = 0;
-  private dashReadyAt = 0;
-  private dashEndsAt = 0;
-  private dashDirection = 1;
-  private isDashing = false;
-  private isInvulnerable = false;
 
   constructor() {
     super('game');
@@ -57,12 +34,45 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('playing');
 
     this.createBackdrop();
+    const floor = this.createFloor();
+    this.createPlayer(floor);
+    this.createEnemy(floor);
+    this.createCombatSystems();
+    this.createCombatUi();
+    this.bindInputHandlers();
+  }
+
+  update(time: number) {
+    if (this.phase === 'dead') {
+      return;
+    }
+
+    this.playerController.update(time);
+
+    const pointer = this.input.activePointer;
+    const aimPoint = pointer.positionToCamera(
+      this.cameras.main,
+    ) as Phaser.Math.Vector2;
+    this.drawAimGuide(aimPoint);
+
+    if (pointer.leftButtonDown() && time >= this.nextFireAt) {
+      this.fireBullet(aimPoint, time);
+    }
+
+    this.updateEnemyCombat(time);
+  }
+
+  private createFloor() {
     const floor = this.physics.add.staticGroup();
 
     for (let x = 32; x < GAME_WIDTH; x += 64) {
       floor.create(x, GAME_HEIGHT - 32, 'floor-placeholder');
     }
 
+    return floor;
+  }
+
+  private createPlayer(floor: Phaser.Physics.Arcade.StaticGroup) {
     this.player = this.physics.add.sprite(
       180,
       GAME_HEIGHT - 120,
@@ -73,16 +83,18 @@ export class GameScene extends Phaser.Scene {
     this.player.play('player-idle');
     this.player.setCollideWorldBounds(true);
     this.physics.add.collider(this.player, floor);
+  }
 
+  private createEnemy(floor: Phaser.Physics.Arcade.StaticGroup) {
     this.enemy = new RangedEnemy(
       this,
       900,
       GAME_HEIGHT - 120,
       'enemy-placeholder',
       {
-        health: ENEMY_MAX_HEALTH,
-        aggroRadius: ENEMY_AGGRO_RADIUS,
-        fireInterval: ENEMY_FIRE_INTERVAL,
+        health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
+        aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
+        fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval,
       },
     );
     this.physics.add.collider(this.enemy, floor);
@@ -91,44 +103,39 @@ export class GameScene extends Phaser.Scene {
       this.enemy.currentHealth,
       this.enemy.maxHealth,
     );
+  }
 
-    this.movementKeys = this.input.keyboard!.addKeys({
-      left: Phaser.Input.Keyboard.KeyCodes.A,
-      right: Phaser.Input.Keyboard.KeyCodes.D,
-      jump: Phaser.Input.Keyboard.KeyCodes.W,
-      down: Phaser.Input.Keyboard.KeyCodes.S,
-      dash: Phaser.Input.Keyboard.KeyCodes.SHIFT,
-      restart: Phaser.Input.Keyboard.KeyCodes.R,
-      confirm: Phaser.Input.Keyboard.KeyCodes.ENTER,
-    }) as MovementKeys;
-    this.cursorKeys = this.input.keyboard!.createCursorKeys();
-    this.input.mouse?.disableContextMenu();
-
-    this.playerBullets = this.physics.add.group({
-      classType: Phaser.Physics.Arcade.Image,
-      maxSize: 80,
-      allowGravity: false,
-    });
-    this.enemyBullets = this.physics.add.group({
-      classType: Phaser.Physics.Arcade.Image,
-      maxSize: 40,
-      allowGravity: false,
-    });
+  private createCombatSystems() {
+    this.playerController = new PlayerController(
+      this,
+      this.player,
+      PLAYER_COMBAT_CONFIG,
+    );
+    this.playerProjectiles = new ProjectilePool(
+      this,
+      PLAYER_COMBAT_CONFIG.projectile,
+    );
+    this.enemyProjectiles = new ProjectilePool(
+      this,
+      RANGED_ENEMY_COMBAT_CONFIG.projectile,
+    );
     this.physics.add.overlap(
-      this.playerBullets,
+      this.playerProjectiles.group,
       this.enemy,
       this.handleEnemyHit,
       undefined,
       this,
     );
     this.physics.add.overlap(
-      this.enemyBullets,
+      this.enemyProjectiles.group,
       this.player,
       this.handlePlayerHit,
       undefined,
       this,
     );
+  }
 
+  private createCombatUi() {
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.enemyStateText = this.add
@@ -140,14 +147,6 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(6);
     this.createDeathOverlay();
-    this.input.on('pointerdown', this.handlePointerDown, this);
-    this.input.keyboard?.on('keydown-R', this.handleRestartInput, this);
-    this.input.keyboard?.on('keydown-ENTER', this.handleRestartInput, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.input.off('pointerdown', this.handlePointerDown, this);
-      this.input.keyboard?.off('keydown-R', this.handleRestartInput, this);
-      this.input.keyboard?.off('keydown-ENTER', this.handleRestartInput, this);
-    });
 
     this.add
       .text(
@@ -163,83 +162,25 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(1, 0.5);
   }
 
-  update(time: number) {
-    if (this.phase === 'dead') {
-      if (
-        Phaser.Input.Keyboard.JustDown(this.movementKeys.restart) ||
-        Phaser.Input.Keyboard.JustDown(this.movementKeys.confirm)
-      ) {
-        this.scene.restart();
-      }
-      return;
-    }
-
-    const movingLeft =
-      this.movementKeys.left.isDown || this.cursorKeys.left.isDown;
-    const movingRight =
-      this.movementKeys.right.isDown || this.cursorKeys.right.isDown;
-
-    if (
-      Phaser.Input.Keyboard.JustDown(this.movementKeys.dash) &&
-      time >= this.dashReadyAt
-    ) {
-      this.startDash(time, movingLeft, movingRight);
-    }
-
-    if (this.isDashing && time >= this.dashEndsAt) {
-      this.finishDash();
-    }
-
-    if (this.isDashing) {
-      this.player.setVelocity(DASH_SPEED * this.dashDirection, 0);
-    } else {
-      if (movingLeft === movingRight) {
-        this.player.setVelocityX(0);
-      } else {
-        this.player.setVelocityX(movingLeft ? -MOVE_SPEED : MOVE_SPEED);
-        this.player.setFlipX(movingLeft);
-      }
-
-      const jumpPressed =
-        Phaser.Input.Keyboard.JustDown(this.movementKeys.jump) ||
-        Phaser.Input.Keyboard.JustDown(this.cursorKeys.up) ||
-        Phaser.Input.Keyboard.JustDown(this.cursorKeys.space);
-
-      if (jumpPressed && this.player.body?.blocked.down) {
-        this.player.setVelocityY(-JUMP_SPEED);
-      }
-
-      if (
-        (this.movementKeys.down.isDown || this.cursorKeys.down.isDown) &&
-        !this.player.body?.blocked.down &&
-        this.player.body!.velocity.y < FAST_FALL_SPEED
-      ) {
-        this.player.setVelocityY(FAST_FALL_SPEED);
-      }
-    }
-
-    const pointer = this.input.activePointer;
-    const aimPoint = pointer.positionToCamera(
-      this.cameras.main,
-    ) as Phaser.Math.Vector2;
-    this.drawAimGuide(aimPoint);
-
-    if (pointer.leftButtonDown() && time >= this.nextFireAt) {
-      this.fireBullet(aimPoint, time);
-    }
-
-    this.updateEnemyCombat(time);
+  private bindInputHandlers() {
+    this.input.on('pointerdown', this.handlePointerDown, this);
+    this.input.keyboard?.on('keydown-R', this.handleRestartInput, this);
+    this.input.keyboard?.on('keydown-ENTER', this.handleRestartInput, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.off('pointerdown', this.handlePointerDown, this);
+      this.input.keyboard?.off('keydown-R', this.handleRestartInput, this);
+      this.input.keyboard?.off('keydown-ENTER', this.handleRestartInput, this);
+    });
   }
 
   private resetRunState() {
-    this.playerHealth = PLAYER_MAX_HEALTH;
+    this.playerHealth = PLAYER_COMBAT_CONFIG.maxHealth;
     this.nextFireAt = 0;
-    this.dashReadyAt = 0;
-    this.dashEndsAt = 0;
-    this.dashDirection = 1;
-    this.isDashing = false;
-    this.isInvulnerable = false;
-    gameEvents.emit('health-changed', this.playerHealth, PLAYER_MAX_HEALTH);
+    gameEvents.emit(
+      'health-changed',
+      this.playerHealth,
+      PLAYER_COMBAT_CONFIG.maxHealth,
+    );
   }
 
   private setPhase(phase: GamePhase) {
@@ -259,11 +200,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (pointer.button === 2) {
-      this.startDash(
-        this.time.now,
-        this.movementKeys.left.isDown || this.cursorKeys.left.isDown,
-        this.movementKeys.right.isDown || this.cursorKeys.right.isDown,
-      );
+      this.playerController.tryDash(this.time.now);
       return;
     }
 
@@ -277,43 +214,6 @@ export class GameScene extends Phaser.Scene {
     this.fireBullet(aimPoint, this.time.now);
   }
 
-  private startDash(time: number, movingLeft: boolean, movingRight: boolean) {
-    if (this.phase !== 'playing' || this.isDashing || time < this.dashReadyAt) {
-      return;
-    }
-
-    this.dashDirection =
-      movingLeft === movingRight
-        ? this.player.flipX
-          ? -1
-          : 1
-        : movingLeft
-          ? -1
-          : 1;
-    this.isDashing = true;
-    this.isInvulnerable = true;
-    this.dashEndsAt = time + DASH_DURATION;
-    this.dashReadyAt = time + DASH_COOLDOWN;
-
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false);
-    this.player
-      .setVelocity(DASH_SPEED * this.dashDirection, 0)
-      .setTint(0xb6ffe4);
-  }
-
-  private finishDash() {
-    if (!this.isDashing) {
-      return;
-    }
-
-    this.isDashing = false;
-    this.isInvulnerable = false;
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(true);
-    this.player.setVelocityX(0).clearTint();
-  }
-
   private fireBullet(aimPoint: Phaser.Math.Vector2, time: number) {
     const angle = Phaser.Math.Angle.Between(
       this.player.x,
@@ -321,27 +221,18 @@ export class GameScene extends Phaser.Scene {
       aimPoint.x,
       aimPoint.y,
     );
-    const muzzleOffset = 28;
-    const bullet = this.playerBullets.get(
+    const { muzzleOffset, fireInterval } = PLAYER_COMBAT_CONFIG.projectile;
+    const projectile = this.playerProjectiles.fire(
       this.player.x + Math.cos(angle) * muzzleOffset,
       this.player.y + Math.sin(angle) * muzzleOffset,
-      'bullet-placeholder',
-    ) as Phaser.Physics.Arcade.Image | null;
+      angle,
+    );
 
-    if (!bullet) {
+    if (!projectile) {
       return;
     }
 
-    bullet.enableBody(true, bullet.x, bullet.y, true, true);
-    bullet.setActive(true).setVisible(true).setRotation(angle).setDepth(8);
-    this.physics.velocityFromRotation(
-      angle,
-      BULLET_SPEED,
-      bullet.body!.velocity,
-    );
-    this.scheduleProjectileExpiry(bullet, BULLET_LIFETIME);
-
-    this.nextFireAt = time + FIRE_INTERVAL;
+    this.nextFireAt = time + fireInterval;
   }
 
   private updateEnemyCombat(time: number) {
@@ -388,39 +279,12 @@ export class GameScene extends Phaser.Scene {
       target.x,
       target.y,
     );
-    const muzzleOffset = 36;
-    const bullet = this.enemyBullets.get(
+    const { muzzleOffset } = RANGED_ENEMY_COMBAT_CONFIG.projectile;
+    this.enemyProjectiles.fire(
       enemy.x + Math.cos(angle) * muzzleOffset,
       enemy.y + Math.sin(angle) * muzzleOffset,
-      'enemy-bullet-placeholder',
-    ) as Phaser.Physics.Arcade.Image | null;
-
-    if (!bullet) {
-      return;
-    }
-
-    bullet.enableBody(true, bullet.x, bullet.y, true, true);
-    bullet.setActive(true).setVisible(true).setRotation(angle).setDepth(8);
-    this.physics.velocityFromRotation(
       angle,
-      ENEMY_BULLET_SPEED,
-      bullet.body!.velocity,
     );
-    this.scheduleProjectileExpiry(bullet, ENEMY_BULLET_LIFETIME);
-  }
-
-  private scheduleProjectileExpiry(
-    bullet: Phaser.Physics.Arcade.Image,
-    lifetime: number,
-  ) {
-    const launchId = (bullet.getData('launchId') ?? 0) + 1;
-    bullet.setData('launchId', launchId);
-
-    this.time.delayedCall(lifetime, () => {
-      if (bullet.active && bullet.getData('launchId') === launchId) {
-        bullet.disableBody(true, true);
-      }
-    });
   }
 
   private handleEnemyHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
@@ -435,7 +299,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     bullet.disableBody(true, true);
-    const defeated = enemy.takeDamage(PLAYER_BULLET_DAMAGE);
+    const defeated = enemy.takeDamage(PLAYER_COMBAT_CONFIG.projectile.damage);
     gameEvents.emit(
       'enemy-health-changed',
       enemy.currentHealth,
@@ -468,12 +332,19 @@ export class GameScene extends Phaser.Scene {
 
     bullet.disableBody(true, true);
 
-    if (this.phase !== 'playing' || this.isInvulnerable) {
+    if (this.phase !== 'playing' || this.playerController.isInvulnerable) {
       return;
     }
 
-    this.playerHealth = Math.max(0, this.playerHealth - ENEMY_BULLET_DAMAGE);
-    gameEvents.emit('health-changed', this.playerHealth, PLAYER_MAX_HEALTH);
+    this.playerHealth = Math.max(
+      0,
+      this.playerHealth - RANGED_ENEMY_COMBAT_CONFIG.projectile.damage,
+    );
+    gameEvents.emit(
+      'health-changed',
+      this.playerHealth,
+      PLAYER_COMBAT_CONFIG.maxHealth,
+    );
 
     player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.cameras.main.shake(90, 0.004);
@@ -489,23 +360,17 @@ export class GameScene extends Phaser.Scene {
   };
 
   private handlePlayerDeath() {
-    this.finishDash();
+    this.playerController.stop();
     this.setPhase('dead');
     this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-    this.clearProjectiles(this.playerBullets);
-    this.clearProjectiles(this.enemyBullets);
+    this.playerProjectiles.clear();
+    this.enemyProjectiles.clear();
     this.aimGraphics.clear();
     this.enemyRangeGraphics.clear();
     this.enemyStateText.setText('STANDBY').setColor('#6c777b');
     this.deathOverlay.setVisible(true);
     this.cameras.main.shake(180, 0.008);
-  }
-
-  private clearProjectiles(group: Phaser.Physics.Arcade.Group) {
-    for (const child of group.getChildren()) {
-      (child as Phaser.Physics.Arcade.Image).disableBody(true, true);
-    }
   }
 
   private createDeathOverlay() {

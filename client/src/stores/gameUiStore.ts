@@ -1,16 +1,17 @@
 import { create } from 'zustand';
 import type { GamePhase } from '@/game/state/gamePhase';
+import type { GameSceneKey } from '@/game/state/gameSceneKey';
 
 type GameUiState = {
   health: number;
   maxHealth: number;
   enemyHealth: number;
   enemyMaxHealth: number;
-  scene: string;
+  scene: GameSceneKey;
   phase: GamePhase;
   setHealth: (health: number, maxHealth: number) => void;
   setEnemyHealth: (health: number, maxHealth: number) => void;
-  setScene: (scene: string) => void;
+  setScene: (scene: GameSceneKey) => void;
   setPhase: (phase: GamePhase) => void;
 };
 
