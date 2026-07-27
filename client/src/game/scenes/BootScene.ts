@@ -40,6 +40,18 @@ export class BootScene extends Phaser.Scene {
     graphics.generateTexture('enemy-placeholder', 44, 52);
 
     graphics.clear();
+    graphics.fillStyle(0xf08b52);
+    graphics.fillRect(0, 8, 48, 44);
+    graphics.fillStyle(0x6b2c20);
+    graphics.fillRect(5, 14, 38, 11);
+    graphics.fillStyle(0xffd29f);
+    graphics.fillTriangle(8, 14, 16, 2, 20, 14);
+    graphics.fillTriangle(28, 14, 32, 2, 40, 14);
+    graphics.fillStyle(0xffe0ba);
+    graphics.fillRect(9, 18, 30, 3);
+    graphics.generateTexture('melee-enemy-placeholder', 48, 52);
+
+    graphics.clear();
     graphics.fillStyle(0xff5263);
     graphics.fillRect(0, 0, 14, 5);
     graphics.fillStyle(0xffd0d5);
