@@ -1,12 +1,15 @@
 import Phaser from 'phaser';
 import {
+  FLYING_ENEMY_COMBAT_CONFIG,
   PLAYER_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
-import { FIRST_ROOM_CONFIG } from '@/game/config/roomConfig';
+import type { RoomConfig } from '@/game/config/roomConfig';
+import { STAGE_ONE_CONFIG } from '@/game/config/stageConfig';
+import { WEAPON_CONFIGS, type WeaponConfig } from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
-import { Enemy } from '@/game/entities/Enemy';
+import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { RoomState } from '@/game/state/roomState';
@@ -14,22 +17,44 @@ import { EnemyFactory } from '@/game/systems/EnemyFactory';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 
+type WeaponRuntime = {
+  config: WeaponConfig;
+  pool: ProjectilePool;
+  nextFireAt: number;
+};
+
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemies: Enemy[] = [];
+  private floorGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private readonly stage = STAGE_ONE_CONFIG;
+  private currentRoomIndex = 0;
   private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
-  private playerProjectiles!: ProjectilePool;
+  private weapons: WeaponRuntime[] = [];
+  private activeWeaponIndex = 0;
   private enemyProjectiles!: ProjectilePool;
+  private flyingEnemyProjectiles!: ProjectilePool;
+  private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
   private deathOverlay!: Phaser.GameObjects.Container;
+  private stageClearOverlay!: Phaser.GameObjects.Container;
+  private weaponLabelText!: Phaser.GameObjects.Text;
+  private stageLabelText!: Phaser.GameObjects.Text;
   private playerHealth: number = PLAYER_COMBAT_CONFIG.maxHealth;
   private phase: GamePhase = 'boot';
-  private nextFireAt = 0;
 
   constructor() {
     super('game');
+  }
+
+  private get activeWeapon(): WeaponRuntime {
+    return this.weapons[this.activeWeaponIndex];
+  }
+
+  private get currentRoomConfig() {
+    return this.stage.rooms[this.currentRoomIndex];
   }
 
   create() {
@@ -48,8 +73,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time: number) {
-    if (this.phase === 'dead') {
+    if (this.phase === 'dead' || this.phase === 'ending') {
       return;
+    }
+
+    if (
+      this.phase === 'room-cleared' &&
+      this.player.x > this.currentRoomConfig.exitX + 20
+    ) {
+      this.advanceToNextRoom();
     }
 
     this.playerController.update(time);
@@ -63,7 +95,7 @@ export class GameScene extends Phaser.Scene {
     if (
       this.phase === 'playing' &&
       pointer.leftButtonDown() &&
-      time >= this.nextFireAt
+      time >= this.activeWeapon.nextFireAt
     ) {
       this.fireBullet(aimPoint, time);
     }
@@ -97,21 +129,73 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
-    this.roomDirector = new RoomDirector(
-      this,
-      this.player,
-      FIRST_ROOM_CONFIG,
-      (state) => this.handleRoomStateChanged(state),
+    this.floorGroup = floor;
+    this.currentRoomIndex = 0;
+    this.buildRoom(this.currentRoomConfig);
+  }
+
+  private buildRoom(roomConfig: RoomConfig) {
+    this.roomDirector?.destroy();
+    this.roomDirector = new RoomDirector(this, this.player, roomConfig, (state) =>
+      this.handleRoomStateChanged(state),
     );
-    const enemyFactory = new EnemyFactory(this, floor);
-    this.enemies = FIRST_ROOM_CONFIG.enemySpawns.map((spawn) =>
+
+    for (const enemy of this.enemies) {
+      enemy.destroy();
+    }
+
+    const enemyFactory = new EnemyFactory(this, this.floorGroup);
+    const spawned = roomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
+    this.replaceEnemies(spawned);
     this.emitEnemyHealth();
+    this.updateStageLabel();
+  }
+
+  /**
+   * Mutates `this.enemies` in place instead of reassigning it: the physics
+   * overlaps set up in createCombatSystems() were registered against this
+   * exact array reference, so reassigning it here would silently stop
+   * player bullets and contact damage from hitting the next room's enemies.
+   */
+  private replaceEnemies(spawned: Enemy[]) {
+    this.enemies.splice(0, this.enemies.length, ...spawned);
   }
 
   private startRoomEncounter() {
     this.roomDirector.beginEncounter(this.enemies);
+  }
+
+  private advanceToNextRoom() {
+    const nextIndex = this.currentRoomIndex + 1;
+
+    if (nextIndex >= this.stage.rooms.length) {
+      this.handleStageCleared();
+      return;
+    }
+
+    this.currentRoomIndex = nextIndex;
+    this.buildRoom(this.currentRoomConfig);
+    this.startRoomEncounter();
+    this.setPhase('playing');
+    this.player.setPosition(this.currentRoomConfig.entranceX + 90, this.player.y);
+  }
+
+  private handleStageCleared() {
+    this.setPhase('ending');
+    this.enemyRangeGraphics.clear();
+    this.stageClearOverlay.setVisible(true);
+  }
+
+  private updateStageLabel() {
+    if (!this.stageLabelText) {
+      return;
+    }
+
+    this.stageLabelText.setText(
+      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${this.stage.rooms.length}`,
+    );
   }
 
   private createCombatSystems() {
@@ -120,25 +204,51 @@ export class GameScene extends Phaser.Scene {
       this.player,
       PLAYER_COMBAT_CONFIG,
     );
-    this.playerProjectiles = new ProjectilePool(
-      this,
-      PLAYER_COMBAT_CONFIG.projectile,
-    );
+    this.weapons = WEAPON_CONFIGS.map((config) => {
+      const weapon: WeaponRuntime = {
+        config,
+        pool: new ProjectilePool(this, {
+          texture: config.texture,
+          speed: config.projectileSpeed,
+          lifetime: config.projectileLifetime,
+          maxSize: config.maxPoolSize,
+        }),
+        nextFireAt: 0,
+      };
+
+      this.physics.add.overlap(
+        weapon.pool.group,
+        this.enemies,
+        this.createEnemyHitHandler(weapon),
+        undefined,
+        this,
+      );
+
+      return weapon;
+    });
     this.enemyProjectiles = new ProjectilePool(
       this,
       RANGED_ENEMY_COMBAT_CONFIG.projectile,
     );
+    this.flyingEnemyProjectiles = new ProjectilePool(
+      this,
+      FLYING_ENEMY_COMBAT_CONFIG.projectile,
+    );
+    this.enemyProjectilePools = {
+      ranged: this.enemyProjectiles,
+      flying: this.flyingEnemyProjectiles,
+    };
     this.physics.add.overlap(
-      this.playerProjectiles.group,
-      this.enemies,
-      this.handleEnemyHit,
+      this.enemyProjectiles.group,
+      this.player,
+      this.createPlayerHitHandler(RANGED_ENEMY_COMBAT_CONFIG.projectile.damage),
       undefined,
       this,
     );
     this.physics.add.overlap(
-      this.enemyProjectiles.group,
+      this.flyingEnemyProjectiles.group,
       this.player,
-      this.handlePlayerHit,
+      this.createPlayerHitHandler(FLYING_ENEMY_COMBAT_CONFIG.projectile.damage),
       undefined,
       this,
     );
@@ -154,13 +264,44 @@ export class GameScene extends Phaser.Scene {
   private createCombatUi() {
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
-    this.createDeathOverlay();
+    this.deathOverlay = this.createOverlay(
+      0xe45d68,
+      '#ff7180',
+      'SYSTEM FAILURE',
+      'PRESS R OR ENTER TO RESTART',
+    );
+    this.stageClearOverlay = this.createOverlay(
+      0xb6ffe4,
+      '#b6ffe4',
+      'STAGE CLEAR',
+      'TO BE CONTINUED  //  PRESS R OR ENTER TO REPLAY',
+    );
+
+    this.stageLabelText = this.add
+      .text(GAME_WIDTH / 2, 96, '', {
+        color: '#879197',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
+      })
+      .setOrigin(0.5)
+      .setDepth(20);
+    this.updateStageLabel();
+
+    this.weaponLabelText = this.add
+      .text(32, GAME_HEIGHT - 96, '', {
+        color: '#b6ffe4',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '15px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0.5);
+    this.updateWeaponLabel();
 
     this.add
       .text(
         GAME_WIDTH - 32,
         GAME_HEIGHT - 96,
-        'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE',
+        'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    1/2  WEAPON',
         {
           color: '#879197',
           fontFamily: 'Arial, sans-serif',
@@ -171,19 +312,45 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bindInputHandlers() {
+    const switchToSmg = () => this.switchWeapon(0);
+    const switchToShotgun = () => this.switchWeapon(1);
+
     this.input.on('pointerdown', this.handlePointerDown, this);
     this.input.keyboard?.on('keydown-R', this.handleRestartInput, this);
     this.input.keyboard?.on('keydown-ENTER', this.handleRestartInput, this);
+    this.input.keyboard?.on('keydown-ONE', switchToSmg);
+    this.input.keyboard?.on('keydown-TWO', switchToShotgun);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.handlePointerDown, this);
       this.input.keyboard?.off('keydown-R', this.handleRestartInput, this);
       this.input.keyboard?.off('keydown-ENTER', this.handleRestartInput, this);
+      this.input.keyboard?.off('keydown-ONE', switchToSmg);
+      this.input.keyboard?.off('keydown-TWO', switchToShotgun);
     });
+  }
+
+  private switchWeapon(index: number) {
+    if (
+      this.phase !== 'playing' ||
+      index < 0 ||
+      index >= this.weapons.length ||
+      index === this.activeWeaponIndex
+    ) {
+      return;
+    }
+
+    this.activeWeaponIndex = index;
+    this.updateWeaponLabel();
+  }
+
+  private updateWeaponLabel() {
+    this.weaponLabelText.setText(`WEAPON // ${this.activeWeapon.config.label}`);
   }
 
   private resetRunState() {
     this.playerHealth = PLAYER_COMBAT_CONFIG.maxHealth;
-    this.nextFireAt = 0;
+    this.activeWeaponIndex = 0;
     gameEvents.emit(
       'health-changed',
       this.playerHealth,
@@ -203,18 +370,19 @@ export class GameScene extends Phaser.Scene {
     if (state === 'cleared') {
       this.setPhase('room-cleared');
       this.enemyProjectiles.clear();
+      this.flyingEnemyProjectiles.clear();
       this.enemyRangeGraphics.clear();
     }
   }
 
   private handleRestartInput() {
-    if (this.phase === 'dead') {
+    if (this.phase === 'dead' || this.phase === 'ending') {
       this.scene.restart();
     }
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
-    if (this.phase === 'dead') {
+    if (this.phase === 'dead' || this.phase === 'ending') {
       return;
     }
 
@@ -226,7 +394,7 @@ export class GameScene extends Phaser.Scene {
     if (
       this.phase !== 'playing' ||
       pointer.button !== 0 ||
-      this.time.now < this.nextFireAt
+      this.time.now < this.activeWeapon.nextFireAt
     ) {
       return;
     }
@@ -238,24 +406,50 @@ export class GameScene extends Phaser.Scene {
   }
 
   private fireBullet(aimPoint: Phaser.Math.Vector2, time: number) {
-    const angle = Phaser.Math.Angle.Between(
+    const weapon = this.activeWeapon;
+    const { config } = weapon;
+    const baseAngle = Phaser.Math.Angle.Between(
       this.player.x,
       this.player.y,
       aimPoint.x,
       aimPoint.y,
     );
-    const { muzzleOffset, fireInterval } = PLAYER_COMBAT_CONFIG.projectile;
-    const projectile = this.playerProjectiles.fire(
-      this.player.x + Math.cos(angle) * muzzleOffset,
-      this.player.y + Math.sin(angle) * muzzleOffset,
-      angle,
-    );
 
-    if (!projectile) {
-      return;
+    for (const angle of this.computePelletAngles(
+      baseAngle,
+      config.pelletCount,
+      config.spreadDegrees,
+    )) {
+      const { x, y } = this.muzzlePosition(
+        this.player.x,
+        this.player.y,
+        angle,
+        config.muzzleOffset,
+      );
+      weapon.pool.fire(x, y, angle, { pierce: config.pierce });
     }
 
-    this.nextFireAt = time + fireInterval;
+    weapon.nextFireAt = time + config.fireInterval;
+  }
+
+  private computePelletAngles(
+    baseAngle: number,
+    pelletCount: number,
+    spreadDegrees: number,
+  ) {
+    if (pelletCount <= 1) {
+      return [baseAngle];
+    }
+
+    const spreadRad = Phaser.Math.DegToRad(spreadDegrees);
+    const angles: number[] = [];
+
+    for (let i = 0; i < pelletCount; i++) {
+      const t = i / (pelletCount - 1) - 0.5;
+      angles.push(baseAngle + t * spreadRad);
+    }
+
+    return angles;
   }
 
   private updateEnemyCombat(time: number) {
@@ -285,50 +479,69 @@ export class GameScene extends Phaser.Scene {
     enemy: Enemy,
     target: Phaser.Physics.Arcade.Sprite,
   ) => {
+    if (!enemy.projectile) {
+      return;
+    }
+
+    const pool = this.enemyProjectilePools[enemy.projectile.kind];
     const angle = Phaser.Math.Angle.Between(
       enemy.x,
       enemy.y,
       target.x,
       target.y,
     );
-    const { muzzleOffset } = RANGED_ENEMY_COMBAT_CONFIG.projectile;
-    this.enemyProjectiles.fire(
-      enemy.x + Math.cos(angle) * muzzleOffset,
-      enemy.y + Math.sin(angle) * muzzleOffset,
+    const { x, y } = this.muzzlePosition(
+      enemy.x,
+      enemy.y,
       angle,
+      enemy.projectile.muzzleOffset,
     );
+    pool.fire(x, y, angle);
   };
 
-  private handleEnemyHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
-    firstObject,
-    secondObject,
-  ) => {
-    const enemy = this.findEnemy(firstObject, secondObject);
-    const bullet =
-      firstObject instanceof Enemy
-        ? (secondObject as Phaser.Physics.Arcade.Image)
-        : (firstObject as Phaser.Physics.Arcade.Image);
+  private muzzlePosition(
+    originX: number,
+    originY: number,
+    angle: number,
+    offset: number,
+  ) {
+    return {
+      x: originX + Math.cos(angle) * offset,
+      y: originY + Math.sin(angle) * offset,
+    };
+  }
 
-    if (!enemy || !bullet.active || !enemy.active) {
-      return;
-    }
+  private createEnemyHitHandler(
+    weapon: WeaponRuntime,
+  ): Phaser.Types.Physics.Arcade.ArcadePhysicsCallback {
+    return (firstObject, secondObject) => {
+      const enemy = this.findEnemy(firstObject, secondObject);
+      const bullet =
+        firstObject instanceof Enemy
+          ? (secondObject as Phaser.Physics.Arcade.Image)
+          : (firstObject as Phaser.Physics.Arcade.Image);
 
-    bullet.disableBody(true, true);
-    const defeated = enemy.takeDamage(PLAYER_COMBAT_CONFIG.projectile.damage);
-    this.emitEnemyHealth();
-
-    enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-    this.time.delayedCall(70, () => {
-      if (enemy.active) {
-        enemy.clearTint();
+      if (!enemy || !bullet.active || !enemy.active) {
+        return;
       }
-    });
 
-    if (defeated) {
-      enemy.disableBody(true, true);
-      this.roomDirector.notifyEnemyDefeated(enemy);
-    }
-  };
+      weapon.pool.registerHit(bullet);
+      const defeated = enemy.takeDamage(weapon.config.damage);
+      this.emitEnemyHealth();
+
+      enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+      this.time.delayedCall(70, () => {
+        if (enemy.active) {
+          enemy.clearTint();
+        }
+      });
+
+      if (defeated) {
+        enemy.disableBody(true, true);
+        this.roomDirector.notifyEnemyDefeated(enemy);
+      }
+    };
+  }
 
   private handleEnemyContact: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
     (firstObject, secondObject) => {
@@ -369,23 +582,23 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('enemy-health-changed', current, max);
   }
 
-  private handlePlayerHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (
-    firstObject,
-    secondObject,
-  ) => {
-    const bullet =
-      firstObject === this.player
-        ? (secondObject as Phaser.Physics.Arcade.Image)
-        : (firstObject as Phaser.Physics.Arcade.Image);
+  private createPlayerHitHandler(
+    damage: number,
+  ): Phaser.Types.Physics.Arcade.ArcadePhysicsCallback {
+    return (firstObject, secondObject) => {
+      const bullet =
+        firstObject === this.player
+          ? (secondObject as Phaser.Physics.Arcade.Image)
+          : (firstObject as Phaser.Physics.Arcade.Image);
 
-    if (!bullet.active) {
-      return;
-    }
+      if (!bullet.active) {
+        return;
+      }
 
-    bullet.disableBody(true, true);
-
-    this.applyPlayerDamage(RANGED_ENEMY_COMBAT_CONFIG.projectile.damage);
-  };
+      bullet.disableBody(true, true);
+      this.applyPlayerDamage(damage);
+    };
+  }
 
   private applyPlayerDamage(damage: number) {
     if (this.phase !== 'playing' || this.playerController.isInvulnerable) {
@@ -420,40 +633,43 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('dead');
     this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-    this.playerProjectiles.clear();
+    for (const weapon of this.weapons) {
+      weapon.pool.clear();
+    }
     this.enemyProjectiles.clear();
+    this.flyingEnemyProjectiles.clear();
     this.aimGraphics.clear();
     this.enemyRangeGraphics.clear();
     this.deathOverlay.setVisible(true);
     this.cameras.main.shake(180, 0.008);
   }
 
-  private createDeathOverlay() {
+  private createOverlay(
+    strokeColor: number,
+    titleColor: string,
+    titleText: string,
+    promptText: string,
+  ) {
     const panel = this.add
       .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 470, 150, 0x070a0b, 0.92)
-      .setStrokeStyle(2, 0xe45d68);
+      .setStrokeStyle(2, strokeColor);
     const title = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, 'SYSTEM FAILURE', {
-        color: '#ff7180',
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, titleText, {
+        color: titleColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
     const prompt = this.add
-      .text(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2 + 34,
-        'PRESS R OR ENTER TO RESTART',
-        {
-          color: '#e8ece9',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '16px',
-        },
-      )
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 34, promptText, {
+        color: '#e8ece9',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+      })
       .setOrigin(0.5);
 
-    this.deathOverlay = this.add
+    return this.add
       .container(0, 0, [panel, title, prompt])
       .setDepth(100)
       .setVisible(false);

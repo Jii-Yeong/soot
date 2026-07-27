@@ -5,14 +5,15 @@ export type RangedEnemyConfig = {
   health: number;
   aggroRadius: number;
   fireInterval: number;
+  muzzleOffset: number;
 };
 
 export class RangedEnemy extends Enemy {
   readonly aggroRadius: number;
   readonly aggroIndicatorColor = 0xff5263;
-  readonly fireInterval: number;
+  readonly projectile: { kind: 'ranged'; muzzleOffset: number };
 
-  private nextFireAt = 0;
+  private readonly fireInterval: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -25,6 +26,7 @@ export class RangedEnemy extends Enemy {
 
     this.aggroRadius = config.aggroRadius;
     this.fireInterval = config.fireInterval;
+    this.projectile = { kind: 'ranged', muzzleOffset: config.muzzleOffset };
   }
 
   updateCombat(
@@ -36,21 +38,6 @@ export class RangedEnemy extends Enemy {
       return false;
     }
 
-    const distance = Phaser.Math.Distance.Between(
-      this.x,
-      this.y,
-      target.x,
-      target.y,
-    );
-    const targetInRange = distance <= this.aggroRadius;
-
-    this.setFlipX(target.x < this.x);
-
-    if (targetInRange && time >= this.nextFireAt) {
-      fireProjectile(this, target);
-      this.nextFireAt = time + this.fireInterval;
-    }
-
-    return targetInRange;
+    return this.updateRangedAttack(time, target, fireProjectile, this.fireInterval);
   }
 }

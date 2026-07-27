@@ -9,6 +9,7 @@ type RoomDoor = {
 
 export class RoomDirector {
   private readonly enemies = new Set<Phaser.GameObjects.GameObject>();
+  private readonly entrance: RoomDoor;
   private readonly exit: RoomDoor;
   private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
@@ -19,7 +20,7 @@ export class RoomDirector {
     private readonly config: RoomConfig,
     private readonly onStateChanged: (state: RoomState) => void,
   ) {
-    this.createDoor(config.entranceX);
+    this.entrance = this.createDoor(config.entranceX);
     this.exit = this.createDoor(config.exitX);
     this.statusText = scene.add
       .text(scene.scale.width / 2, 154, '', {
@@ -30,6 +31,12 @@ export class RoomDirector {
       })
       .setOrigin(0.5)
       .setDepth(20);
+  }
+
+  destroy() {
+    this.entrance.view.destroy();
+    this.exit.view.destroy();
+    this.statusText.destroy();
   }
 
   beginEncounter(enemies: Phaser.GameObjects.GameObject[]) {

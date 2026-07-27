@@ -5,12 +5,22 @@ export type EnemyProjectileAttack = (
   target: Phaser.Physics.Arcade.Sprite,
 ) => void;
 
+export type EnemyProjectileKind = 'ranged' | 'flying';
+
+export type EnemyProjectileProfile = {
+  kind: EnemyProjectileKind;
+  muzzleOffset: number;
+};
+
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
   abstract readonly aggroIndicatorColor: number;
   readonly maxHealth: number;
+  /** Set by ranged-style subclasses so GameScene can route fire without an instanceof check. */
+  readonly projectile: EnemyProjectileProfile | null = null;
 
   private health: number;
+  private nextFireAt = 0;
 
   protected constructor(
     scene: Phaser.Scene,
@@ -37,6 +47,30 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   tryContactAttack(_time: number): number | null {
     return null;
+  }
+
+  /**
+   * Shared "face the target, fire on cooldown when in range" behavior for
+   * ranged-style enemies. Returns whether the target is within aggro range.
+   */
+  protected updateRangedAttack(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+    fireProjectile: EnemyProjectileAttack,
+    fireInterval: number,
+  ): boolean {
+    const targetInRange =
+      Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
+      this.aggroRadius;
+
+    this.setFlipX(target.x < this.x);
+
+    if (targetInRange && time >= this.nextFireAt) {
+      fireProjectile(this, target);
+      this.nextFireAt = time + fireInterval;
+    }
+
+    return targetInRange;
   }
 
   takeDamage(amount: number) {

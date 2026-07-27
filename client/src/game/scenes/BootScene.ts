@@ -59,6 +59,27 @@ export class BootScene extends Phaser.Scene {
     graphics.generateTexture('enemy-bullet-placeholder', 14, 5);
 
     graphics.clear();
+    graphics.fillStyle(0x6a4bb0);
+    graphics.fillEllipse(24, 20, 44, 20);
+    graphics.fillStyle(0xb884ff);
+    graphics.fillCircle(24, 14, 9);
+    graphics.fillStyle(0x2c1f4d);
+    graphics.fillRect(4, 18, 40, 4);
+    graphics.generateTexture('flying-enemy-placeholder', 48, 40);
+
+    graphics.clear();
+    graphics.fillStyle(0xb884ff);
+    graphics.fillCircle(5, 5, 5);
+    graphics.fillStyle(0xe6d6ff);
+    graphics.fillCircle(5, 5, 2);
+    graphics.generateTexture('flying-enemy-bullet-placeholder', 10, 10);
+
+    graphics.clear();
+    graphics.fillStyle(0xffe1a8);
+    graphics.fillCircle(4, 4, 4);
+    graphics.generateTexture('shotgun-pellet-placeholder', 8, 8);
+
+    graphics.clear();
     graphics.fillStyle(0x202629);
     graphics.fillRect(0, 0, 64, 64);
     graphics.lineStyle(2, 0x445056);

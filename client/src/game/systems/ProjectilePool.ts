@@ -7,6 +7,10 @@ export type ProjectilePoolConfig = {
   maxSize: number;
 };
 
+export type FireOptions = {
+  pierce?: number;
+};
+
 export class ProjectilePool {
   readonly group: Phaser.Physics.Arcade.Group;
 
@@ -21,7 +25,7 @@ export class ProjectilePool {
     });
   }
 
-  fire(x: number, y: number, angle: number) {
+  fire(x: number, y: number, angle: number, options: FireOptions = {}) {
     const projectile = this.group.get(
       x,
       y,
@@ -33,7 +37,12 @@ export class ProjectilePool {
     }
 
     projectile.enableBody(true, x, y, true, true);
-    projectile.setActive(true).setVisible(true).setRotation(angle).setDepth(8);
+    projectile
+      .setActive(true)
+      .setVisible(true)
+      .setRotation(angle)
+      .setDepth(8);
+    projectile.setData('pierceRemaining', options.pierce ?? 0);
     this.scene.physics.velocityFromRotation(
       angle,
       this.config.speed,
@@ -42,6 +51,19 @@ export class ProjectilePool {
     this.scheduleExpiry(projectile);
 
     return projectile;
+  }
+
+  /** Returns true if the projectile should be deactivated after this hit. */
+  registerHit(projectile: Phaser.Physics.Arcade.Image) {
+    const pierceRemaining = (projectile.getData('pierceRemaining') as number) ?? 0;
+
+    if (pierceRemaining <= 0) {
+      projectile.disableBody(true, true);
+      return true;
+    }
+
+    projectile.setData('pierceRemaining', pierceRemaining - 1);
+    return false;
   }
 
   clear() {

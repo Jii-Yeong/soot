@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import {
+  FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import type { Enemy } from '@/game/entities/Enemy';
+import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 
@@ -20,6 +22,8 @@ export class EnemyFactory {
         return this.createMeleeEnemy(spawn);
       case 'ranged':
         return this.createRangedEnemy(spawn);
+      case 'flying':
+        return this.createFlyingEnemy(spawn);
     }
   }
 
@@ -51,14 +55,40 @@ export class EnemyFactory {
         health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
         fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval,
+        muzzleOffset: RANGED_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
       },
     );
     return this.finishSpawn(enemy);
   }
 
-  private finishSpawn<EnemyType extends Enemy>(enemy: EnemyType) {
+  private createFlyingEnemy(spawn: EnemySpawnConfig) {
+    const enemy = new FlyingEnemy(
+      this.scene,
+      spawn.x,
+      spawn.y,
+      'flying-enemy-placeholder',
+      {
+        health: FLYING_ENEMY_COMBAT_CONFIG.maxHealth,
+        aggroRadius: FLYING_ENEMY_COMBAT_CONFIG.aggroRadius,
+        hoverY: spawn.y,
+        trackSpeed: FLYING_ENEMY_COMBAT_CONFIG.trackSpeed,
+        fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval,
+        muzzleOffset: FLYING_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
+      },
+    );
+    return this.finishSpawn(enemy, { collidesWithFloor: false });
+  }
+
+  private finishSpawn<EnemyType extends Enemy>(
+    enemy: EnemyType,
+    options: { collidesWithFloor: boolean } = { collidesWithFloor: true },
+  ) {
     enemy.setAlpha(0);
-    this.scene.physics.add.collider(enemy, this.floor);
+
+    if (options.collidesWithFloor) {
+      this.scene.physics.add.collider(enemy, this.floor);
+    }
+
     this.scene.tweens.add({
       targets: enemy,
       alpha: 1,

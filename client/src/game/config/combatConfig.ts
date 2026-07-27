@@ -8,15 +8,6 @@ export const PLAYER_COMBAT_CONFIG = {
     duration: 170,
     cooldown: 800,
   },
-  projectile: {
-    texture: 'bullet-placeholder',
-    speed: 950,
-    fireInterval: 110,
-    lifetime: 1200,
-    damage: 10,
-    maxSize: 80,
-    muzzleOffset: 28,
-  },
 } as const;
 
 export const RANGED_ENEMY_COMBAT_CONFIG = {
@@ -39,4 +30,20 @@ export const MELEE_ENEMY_COMBAT_CONFIG = {
   moveSpeed: 190,
   contactDamage: 15,
   contactDamageCooldown: 700,
+} as const;
+
+export const FLYING_ENEMY_COMBAT_CONFIG = {
+  maxHealth: 45,
+  aggroRadius: 560,
+  hoverHeight: 150,
+  trackSpeed: 150,
+  fireInterval: 1300,
+  projectile: {
+    texture: 'flying-enemy-bullet-placeholder',
+    speed: 360,
+    lifetime: 2000,
+    damage: 8,
+    maxSize: 30,
+    muzzleOffset: 20,
+  },
 } as const;

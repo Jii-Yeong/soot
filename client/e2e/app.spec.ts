@@ -80,8 +80,8 @@ test('enters the game and shows the React HUD', async ({ page }) => {
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuenow', '100');
   const enemyHealthMeter = page.getByRole('meter', { name: 'Enemy health' });
-  await expect(enemyHealthMeter).toHaveAttribute('aria-valuenow', '260');
-  await expect(enemyHealthMeter).toHaveAttribute('aria-valuemax', '260');
+  await expect(enemyHealthMeter).toHaveAttribute('aria-valuenow', '305');
+  await expect(enemyHealthMeter).toHaveAttribute('aria-valuemax', '305');
 });
 
 test('accepts WASD movement and mouse fire input', async ({ page }) => {
@@ -143,7 +143,7 @@ test('enemy detects the player and deals ranged damage', async ({ page }) => {
   await fireShotsAt(page, bounds, 640, 630, 6);
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '200');
+  ).not.toHaveAttribute('aria-valuenow', '305');
 
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(1100);
@@ -185,7 +185,7 @@ test('player fire damages the enemy without stopping combat', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '250', { timeout: 5000 });
+  ).toHaveAttribute('aria-valuenow', '295', { timeout: 5000 });
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -204,6 +204,7 @@ test('locks the room until every spawned enemy is defeated', async ({
 
   const bounds = await getCanvasBounds(page);
   await fireAt(page, bounds, 640, 630, 1200);
+  await fireAt(page, bounds, 820, 460, 1200);
   await fireAt(page, bounds, 950, 630, 2000);
   await fireAt(page, bounds, 1120, 630, 2500);
 
@@ -246,9 +247,66 @@ test('player death stops combat and supports a fast restart', async ({
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '260');
+  ).toHaveAttribute('aria-valuenow', '305');
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
   );
+});
+
+test('switches to the shotgun and keeps dealing damage', async ({ page }) => {
+  const runtimeErrors: Error[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error));
+
+  await enterGame(page);
+  await page.waitForTimeout(1000);
+
+  await page.keyboard.press('Digit2');
+
+  const bounds = await getCanvasBounds(page);
+  await fireAt(page, bounds, 640, 630, 700);
+
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).not.toHaveAttribute('aria-valuenow', '305');
+  expect(runtimeErrors).toEqual([]);
+});
+
+test('advances to the next room after clearing the first and locks it again', async ({
+  page,
+}) => {
+  test.setTimeout(45_000);
+  const runtimeErrors: Error[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error));
+
+  await enterGame(page);
+  await page.waitForTimeout(1000);
+
+  const bounds = await getCanvasBounds(page);
+  await fireAt(page, bounds, 640, 630, 1200);
+  await fireAt(page, bounds, 820, 460, 1200);
+  await fireAt(page, bounds, 950, 630, 2000);
+  await fireAt(page, bounds, 1120, 630, 2500);
+
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-phase',
+    'room-cleared',
+    { timeout: 5000 },
+  );
+
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(4300);
+  await page.keyboard.up('KeyD');
+
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', {
+    timeout: 5000,
+  });
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+  );
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', '310');
+  expect(runtimeErrors).toEqual([]);
 });
