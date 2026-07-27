@@ -1,0 +1,51 @@
+{ "frames": {
+   "shoot-posture 0.aseprite": {
+    "frame": { "x": 59, "y": 92, "w": 57, "h": 89 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 20, "y": 3, "w": 55, "h": 87 },
+    "sourceSize": { "w": 96, "h": 96 },
+    "duration": 450
+   },
+   "shoot-posture 1.aseprite": {
+    "frame": { "x": 60, "y": 1, "w": 57, "h": 90 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 20, "y": 2, "w": 55, "h": 88 },
+    "sourceSize": { "w": 96, "h": 96 },
+    "duration": 300
+   },
+   "shoot-posture 2.aseprite": {
+    "frame": { "x": 1, "y": 1, "w": 58, "h": 89 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 19, "y": 3, "w": 56, "h": 87 },
+    "sourceSize": { "w": 96, "h": 96 },
+    "duration": 450
+   },
+   "shoot-posture 3.aseprite": {
+    "frame": { "x": 1, "y": 91, "w": 57, "h": 90 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 20, "y": 2, "w": 55, "h": 88 },
+    "sourceSize": { "w": 96, "h": 96 },
+    "duration": 300
+   }
+ },
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.18.1-x64",
+  "image": "player.png",
+  "format": "RGBA8888",
+  "size": { "w": 118, "h": 182 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "player_idle_rifle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "Layer", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

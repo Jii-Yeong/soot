@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.local
+.env
+.env.*
+!.env.example
+
+# Local tooling artifacts
+.codex-doc-review/
+.codex-tmp/
+.codex-dev-server.*

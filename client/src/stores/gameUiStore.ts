@@ -1,0 +1,24 @@
+import { create } from 'zustand';
+
+type GameUiState = {
+  health: number;
+  maxHealth: number;
+  enemyHealth: number;
+  enemyMaxHealth: number;
+  scene: string;
+  setHealth: (health: number, maxHealth: number) => void;
+  setEnemyHealth: (health: number, maxHealth: number) => void;
+  setScene: (scene: string) => void;
+};
+
+export const useGameUiStore = create<GameUiState>((set) => ({
+  health: 100,
+  maxHealth: 100,
+  enemyHealth: 100,
+  enemyMaxHealth: 100,
+  scene: 'boot',
+  setHealth: (health, maxHealth) => set({ health, maxHealth }),
+  setEnemyHealth: (enemyHealth, enemyMaxHealth) =>
+    set({ enemyHealth, enemyMaxHealth }),
+  setScene: (scene) => set({ scene }),
+}));

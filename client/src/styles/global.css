@@ -1,0 +1,125 @@
+:root {
+  color: #e8ece9;
+  background: #060708;
+  font-family: Arial, Helvetica, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    linear-gradient(rgba(182, 255, 228, 0.025) 1px, transparent 1px),
+    #060708;
+  background-size: 100% 4px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.game-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.game-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.game-canvas canvas {
+  display: block;
+}
+
+.hud-layer {
+  position: absolute;
+  top: clamp(16px, 3vw, 32px);
+  left: clamp(16px, 3vw, 32px);
+  right: clamp(16px, 3vw, 32px);
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  pointer-events: none;
+}
+
+.hud {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 240px) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(360px, calc(50vw - 40px));
+  padding: 9px 12px;
+  background: rgba(7, 10, 11, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.hud--player {
+  border-left: 3px solid #f0a35b;
+}
+
+.hud--enemy {
+  border-right: 3px solid #e45d68;
+}
+
+.hud__label,
+.hud__value {
+  color: #d8dfdc;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.hud__label {
+  font-weight: 700;
+}
+
+.hud__value {
+  min-width: 48px;
+  text-align: right;
+}
+
+.hud__meter {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid #4f5b5f;
+  background: #151a1c;
+}
+
+.hud__meter-fill {
+  display: block;
+  height: 100%;
+  background: #b6ffe4;
+  transition: width 120ms ease-out;
+}
+
+.hud__meter-fill--enemy {
+  background: #ff7180;
+}
+
+@media (max-width: 520px) {
+  .hud-layer {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .hud {
+    grid-template-columns: auto minmax(80px, 1fr) auto;
+    width: 100%;
+  }
+}
