@@ -14,6 +14,7 @@ export class EnemyFactory {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
+    private readonly intensity: number = 1,
   ) {}
 
   create(spawn: EnemySpawnConfig): Enemy {
@@ -36,7 +37,7 @@ export class EnemyFactory {
       {
         health: MELEE_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: MELEE_ENEMY_COMBAT_CONFIG.aggroRadius,
-        moveSpeed: MELEE_ENEMY_COMBAT_CONFIG.moveSpeed,
+        moveSpeed: MELEE_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
         contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
       },
@@ -54,7 +55,7 @@ export class EnemyFactory {
       {
         health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
-        fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval,
+        fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: RANGED_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
       },
     );
@@ -71,8 +72,8 @@ export class EnemyFactory {
         health: FLYING_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: FLYING_ENEMY_COMBAT_CONFIG.aggroRadius,
         hoverY: spawn.y,
-        trackSpeed: FLYING_ENEMY_COMBAT_CONFIG.trackSpeed,
-        fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval,
+        trackSpeed: FLYING_ENEMY_COMBAT_CONFIG.trackSpeed * this.intensity,
+        fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: FLYING_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
       },
     );

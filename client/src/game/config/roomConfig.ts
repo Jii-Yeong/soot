@@ -17,6 +17,8 @@ export type RoomConfig = {
     height: number;
   };
   enemySpawns: EnemySpawnConfig[];
+  /** Multiplies enemy move speed and divides fire interval. 1 = baseline pace. */
+  intensity?: number;
 };
 
 const ROOM_DOOR = {
@@ -51,5 +53,39 @@ export const CITY_ROOM_TWO: RoomConfig = {
     { type: 'flying', x: 750, y: GAME_HEIGHT - 260 },
     { type: 'flying', x: 1050, y: GAME_HEIGHT - 300 },
     { type: 'ranged', x: 1160, y: GAME_HEIGHT - 120 },
+  ],
+};
+
+// Stage 2 reuses the same enemy AI but leans on ambush placement near the
+// entrance and a higher intensity (speed/fire-rate) to raise the felt
+// difficulty, per the concept doc's "뒷골목" design note.
+export const ALLEY_ROOM_ONE: RoomConfig = {
+  id: 'alley-01',
+  label: 'ROOM 01',
+  entranceX: 64,
+  exitX: 1216,
+  door: ROOM_DOOR,
+  intensity: 1.25,
+  enemySpawns: [
+    { type: 'melee', x: 200, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 300, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 750, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 950, y: GAME_HEIGHT - 280 },
+  ],
+};
+
+export const ALLEY_ROOM_TWO: RoomConfig = {
+  id: 'alley-02',
+  label: 'ROOM 02',
+  entranceX: 64,
+  exitX: 1216,
+  door: ROOM_DOOR,
+  intensity: 1.35,
+  enemySpawns: [
+    { type: 'melee', x: 450, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 700, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 950, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 600, y: GAME_HEIGHT - 320 },
+    { type: 'ranged', x: 1100, y: GAME_HEIGHT - 120 },
   ],
 };

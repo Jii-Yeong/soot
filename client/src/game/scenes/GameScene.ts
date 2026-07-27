@@ -6,7 +6,7 @@ import {
 } from '@/game/config/combatConfig';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import type { RoomConfig } from '@/game/config/roomConfig';
-import { STAGE_ONE_CONFIG } from '@/game/config/stageConfig';
+import { STAGES } from '@/game/config/stageConfig';
 import { WEAPON_CONFIGS, type WeaponConfig } from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
@@ -27,7 +27,7 @@ export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemies: Enemy[] = [];
   private floorGroup!: Phaser.Physics.Arcade.StaticGroup;
-  private readonly stage = STAGE_ONE_CONFIG;
+  private currentStageIndex = 0;
   private currentRoomIndex = 0;
   private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
@@ -38,6 +38,9 @@ export class GameScene extends Phaser.Scene {
   private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
+  private backdropGraphics!: Phaser.GameObjects.Graphics;
+  private neonAccent?: Phaser.GameObjects.Rectangle;
+  private neonFlickerTimer?: Phaser.Time.TimerEvent;
   private deathOverlay!: Phaser.GameObjects.Container;
   private stageClearOverlay!: Phaser.GameObjects.Container;
   private weaponLabelText!: Phaser.GameObjects.Text;
@@ -53,6 +56,10 @@ export class GameScene extends Phaser.Scene {
     return this.weapons[this.activeWeaponIndex];
   }
 
+  private get stage() {
+    return STAGES[this.currentStageIndex];
+  }
+
   private get currentRoomConfig() {
     return this.stage.rooms[this.currentRoomIndex];
   }
@@ -62,7 +69,7 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('scene-changed', 'game');
     this.setPhase('playing');
 
-    this.createBackdrop();
+    this.drawBackdrop();
     const floor = this.createFloor();
     this.createPlayer(floor);
     this.createRoom(floor);
@@ -130,7 +137,6 @@ export class GameScene extends Phaser.Scene {
 
   private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
     this.floorGroup = floor;
-    this.currentRoomIndex = 0;
     this.buildRoom(this.currentRoomConfig);
   }
 
@@ -144,7 +150,11 @@ export class GameScene extends Phaser.Scene {
       enemy.destroy();
     }
 
-    const enemyFactory = new EnemyFactory(this, this.floorGroup);
+    const enemyFactory = new EnemyFactory(
+      this,
+      this.floorGroup,
+      roomConfig.intensity,
+    );
     const spawned = roomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
@@ -168,21 +178,36 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceToNextRoom() {
-    const nextIndex = this.currentRoomIndex + 1;
-
-    if (nextIndex >= this.stage.rooms.length) {
-      this.handleStageCleared();
+    if (this.currentRoomIndex + 1 < this.stage.rooms.length) {
+      this.currentRoomIndex += 1;
+      this.enterCurrentRoom();
       return;
     }
 
-    this.currentRoomIndex = nextIndex;
+    this.advanceToNextStage();
+  }
+
+  private advanceToNextStage() {
+    if (this.currentStageIndex + 1 >= STAGES.length) {
+      // No stage 3+ yet — the run ends here rather than the run failing to progress.
+      this.handleRunCleared();
+      return;
+    }
+
+    this.currentStageIndex += 1;
+    this.currentRoomIndex = 0;
+    this.drawBackdrop();
+    this.enterCurrentRoom();
+  }
+
+  private enterCurrentRoom() {
     this.buildRoom(this.currentRoomConfig);
     this.startRoomEncounter();
     this.setPhase('playing');
     this.player.setPosition(this.currentRoomConfig.entranceX + 90, this.player.y);
   }
 
-  private handleStageCleared() {
+  private handleRunCleared() {
     this.setPhase('ending');
     this.enemyRangeGraphics.clear();
     this.stageClearOverlay.setVisible(true);
@@ -351,6 +376,8 @@ export class GameScene extends Phaser.Scene {
   private resetRunState() {
     this.playerHealth = PLAYER_COMBAT_CONFIG.maxHealth;
     this.activeWeaponIndex = 0;
+    this.currentStageIndex = 0;
+    this.currentRoomIndex = 0;
     gameEvents.emit(
       'health-changed',
       this.playerHealth,
@@ -708,12 +735,21 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private createBackdrop() {
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x111719, 0x111719, 0x080a0b, 0x080a0b);
+  private drawBackdrop() {
+    const { palette } = this.stage;
+
+    this.backdropGraphics ??= this.add.graphics();
+    const graphics = this.backdropGraphics.clear();
+
+    graphics.fillGradientStyle(
+      palette.backgroundTop,
+      palette.backgroundTop,
+      palette.backgroundBottom,
+      palette.backgroundBottom,
+    );
     graphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    graphics.lineStyle(1, 0x243036, 0.55);
+    graphics.lineStyle(1, palette.gridLine, 0.55);
     for (let x = 64; x < GAME_WIDTH; x += 64) {
       graphics.lineBetween(x, 0, x, GAME_HEIGHT - 64);
     }
@@ -721,9 +757,23 @@ export class GameScene extends Phaser.Scene {
       graphics.lineBetween(0, y, GAME_WIDTH, y);
     }
 
-    graphics.fillStyle(0xf0a35b, 0.8);
+    graphics.fillStyle(palette.accentPrimary, 0.8);
     graphics.fillRect(0, 110, GAME_WIDTH, 3);
-    graphics.fillStyle(0xb6ffe4, 0.7);
-    graphics.fillRect(0, 116, GAME_WIDTH * 0.36, 1);
+
+    this.neonAccent?.destroy();
+    this.neonAccent = this.add
+      .rectangle(0, 116, GAME_WIDTH * 0.36, 1, palette.accentSecondary, 0.7)
+      .setOrigin(0, 0.5);
+
+    this.neonFlickerTimer?.remove();
+    this.neonFlickerTimer = palette.neonFlicker
+      ? this.time.addEvent({
+          delay: 90,
+          loop: true,
+          callback: () => {
+            this.neonAccent?.setAlpha(Math.random() < 0.15 ? 0.15 : 0.7);
+          },
+        })
+      : undefined;
   }
 }

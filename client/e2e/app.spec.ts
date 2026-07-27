@@ -59,6 +59,52 @@ async function fireShotsAt(
   }
 }
 
+type FireTarget = [x: number, y: number, durationMs: number];
+
+const CITY_ROOM_ONE_TARGETS: FireTarget[] = [
+  [640, 630, 1200],
+  [820, 460, 1200],
+  [950, 630, 2000],
+  [1120, 630, 2500],
+];
+
+const CITY_ROOM_TWO_TARGETS: FireTarget[] = [
+  [560, 630, 1500],
+  [940, 630, 1500],
+  [750, 460, 1500],
+  [1050, 420, 1500],
+  [1160, 630, 2200],
+];
+
+async function clearRoom(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+  targets: FireTarget[],
+) {
+  for (const [x, y, duration] of targets) {
+    await fireAt(page, bounds, x, y, duration);
+  }
+}
+
+async function advanceThroughDoor(page: Page) {
+  await page.keyboard.down('KeyD');
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', {
+    timeout: 6000,
+  });
+  await page.keyboard.up('KeyD');
+}
+
+/**
+ * Room 2's first melee sits just inside its own aggro radius from the
+ * post-door spawn point, so it starts charging immediately unless the
+ * player backs off toward the entrance first.
+ */
+async function retreatToEntrance(page: Page) {
+  await page.keyboard.down('KeyA');
+  await page.waitForTimeout(800);
+  await page.keyboard.up('KeyA');
+}
+
 test('boots the Phaser canvas', async ({ page }) => {
   await page.goto('/');
 
@@ -203,10 +249,7 @@ test('locks the room until every spawned enemy is defeated', async ({
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-  await fireAt(page, bounds, 640, 630, 1200);
-  await fireAt(page, bounds, 820, 460, 1200);
-  await fireAt(page, bounds, 950, 630, 2000);
-  await fireAt(page, bounds, 1120, 630, 2500);
+  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
@@ -283,10 +326,7 @@ test('advances to the next room after clearing the first and locks it again', as
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-  await fireAt(page, bounds, 640, 630, 1200);
-  await fireAt(page, bounds, 820, 460, 1200);
-  await fireAt(page, bounds, 950, 630, 2000);
-  await fireAt(page, bounds, 1120, 630, 2500);
+  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-phase',
@@ -294,13 +334,8 @@ test('advances to the next room after clearing the first and locks it again', as
     { timeout: 5000 },
   );
 
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(4300);
-  await page.keyboard.up('KeyD');
+  await advanceThroughDoor(page);
 
-  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', {
-    timeout: 5000,
-  });
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
@@ -308,5 +343,47 @@ test('advances to the next room after clearing the first and locks it again', as
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
   ).toHaveAttribute('aria-valuenow', '310');
+  expect(runtimeErrors).toEqual([]);
+});
+
+test('clears every room in stage 1 and advances into stage 2', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const runtimeErrors: Error[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error));
+
+  await enterGame(page);
+  await page.waitForTimeout(1000);
+
+  const bounds = await getCanvasBounds(page);
+
+  // Stage 1, room 1 (city-01): melee, ranged x2, flying.
+  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-phase',
+    'room-cleared',
+    { timeout: 5000 },
+  );
+  await advanceThroughDoor(page);
+  await retreatToEntrance(page);
+
+  // Stage 1, room 2 (city-02): melee x2, flying x2, ranged.
+  await clearRoom(page, bounds, CITY_ROOM_TWO_TARGETS);
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-phase',
+    'room-cleared',
+    { timeout: 5000 },
+  );
+  await advanceThroughDoor(page);
+
+  // Stage 2, room 1 (alley-01): melee x2, ranged, flying = 265 total health.
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+  );
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', '265');
   expect(runtimeErrors).toEqual([]);
 });
