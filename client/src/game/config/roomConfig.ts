@@ -65,10 +65,15 @@ export const ALLEY_ROOM_ONE: RoomConfig = {
   entranceX: 64,
   exitX: 1216,
   door: ROOM_DOOR,
-  intensity: 1.25,
+  intensity: 1.15,
   enemySpawns: [
-    { type: 'melee', x: 200, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 300, y: GAME_HEIGHT - 120 },
+    // Close enough to still read as an ambush (both are inside their own
+    // aggro radius from the post-door spawn point) but far enough that the
+    // player has a beat to react before the first hit lands — they used to
+    // spawn at x=200/300, only ~50px from the entrance, which put them at
+    // point-blank contact range the instant the door unlocked.
+    { type: 'melee', x: 420, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 520, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 750, y: GAME_HEIGHT - 120 },
     { type: 'flying', x: 950, y: GAME_HEIGHT - 280 },
   ],
@@ -80,7 +85,7 @@ export const ALLEY_ROOM_TWO: RoomConfig = {
   entranceX: 64,
   exitX: 1216,
   door: ROOM_DOOR,
-  intensity: 1.35,
+  intensity: 1.2,
   enemySpawns: [
     { type: 'melee', x: 450, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 700, y: GAME_HEIGHT - 120 },

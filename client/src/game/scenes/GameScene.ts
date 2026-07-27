@@ -127,11 +127,15 @@ export class GameScene extends Phaser.Scene {
       180,
       GAME_HEIGHT - 120,
       'player',
-      'shoot-posture 0.aseprite',
+      'shoot-posture-refined 0.png',
     );
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(36, 76, true);
     this.player.play('player-idle');
     this.player.setCollideWorldBounds(true);
+    // Enemies default to the same depth (0) and are added to the display
+    // list after the player, so without this they render on top of the
+    // player whenever a melee enemy closes to contact range.
+    this.player.setDepth(8);
     this.physics.add.collider(this.player, floor);
   }
 
@@ -160,7 +164,6 @@ export class GameScene extends Phaser.Scene {
     );
     this.replaceEnemies(spawned);
     this.emitEnemyHealth();
-    this.updateStageLabel();
   }
 
   /**
@@ -202,6 +205,7 @@ export class GameScene extends Phaser.Scene {
 
   private enterCurrentRoom() {
     this.buildRoom(this.currentRoomConfig);
+    this.updateStageLabel();
     this.startRoomEncounter();
     this.setPhase('playing');
     this.player.setPosition(this.currentRoomConfig.entranceX + 90, this.player.y);
@@ -214,10 +218,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateStageLabel() {
-    if (!this.stageLabelText) {
-      return;
-    }
-
     this.stageLabelText.setText(
       `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${this.stage.rooms.length}`,
     );
@@ -738,8 +738,12 @@ export class GameScene extends Phaser.Scene {
   private drawBackdrop() {
     const { palette } = this.stage;
 
-    this.backdropGraphics ??= this.add.graphics();
-    const graphics = this.backdropGraphics.clear();
+    // Always rebuild rather than reusing a cached reference: on a scene
+    // restart this field still points at the previous life's (destroyed)
+    // Graphics object, which must not be drawn into again.
+    this.backdropGraphics?.destroy();
+    this.backdropGraphics = this.add.graphics();
+    const graphics = this.backdropGraphics;
 
     graphics.fillGradientStyle(
       palette.backgroundTop,

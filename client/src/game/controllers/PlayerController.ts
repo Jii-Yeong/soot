@@ -16,6 +16,14 @@ type MovementKeys = Record<
   Phaser.Input.Keyboard.Key
 >;
 
+// player_jump_down tag (frames 4-6 of the atlas): 4 covers both rise and
+// fall, 5 is the apex hang, 6 is a brief landing pose before returning to idle.
+const JUMP_RISE_FALL_FRAME = 'shoot-posture-refined 4.png';
+const JUMP_APEX_FRAME = 'shoot-posture-refined 5.png';
+const JUMP_LANDING_FRAME = 'shoot-posture-refined 6.png';
+const JUMP_APEX_VELOCITY_THRESHOLD = 150;
+const LANDING_POSE_DURATION = 260;
+
 export class PlayerController {
   private readonly movementKeys: MovementKeys;
   private readonly cursorKeys: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -24,6 +32,9 @@ export class PlayerController {
   private dashDirection = 1;
   private dashing = false;
   private invulnerable = false;
+  private wasGrounded = true;
+  private landingPoseUntil = 0;
+  private currentPose: string | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -89,6 +100,48 @@ export class PlayerController {
     ) {
       this.player.setVelocityY(this.config.fastFallSpeed);
     }
+
+    this.updateAnimation(time);
+  }
+
+  private updateAnimation(time: number) {
+    const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
+    const grounded = body?.blocked.down ?? false;
+
+    if (!this.wasGrounded && grounded) {
+      this.landingPoseUntil = time + LANDING_POSE_DURATION;
+    }
+    this.wasGrounded = grounded;
+
+    if (!grounded) {
+      const velocityY = body?.velocity.y ?? 0;
+      this.setPose(
+        Math.abs(velocityY) < JUMP_APEX_VELOCITY_THRESHOLD
+          ? JUMP_APEX_FRAME
+          : JUMP_RISE_FALL_FRAME,
+      );
+      return;
+    }
+
+    if (time < this.landingPoseUntil) {
+      this.setPose(JUMP_LANDING_FRAME);
+      return;
+    }
+
+    if (this.currentPose !== 'player-idle') {
+      this.currentPose = 'player-idle';
+      this.player.play('player-idle', true);
+    }
+  }
+
+  private setPose(frameName: string) {
+    if (this.currentPose === frameName) {
+      return;
+    }
+
+    this.currentPose = frameName;
+    this.player.anims.stop();
+    this.player.setFrame(frameName);
   }
 
   tryDash(time: number) {

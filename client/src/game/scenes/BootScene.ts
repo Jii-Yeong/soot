@@ -94,7 +94,7 @@ export class BootScene extends Phaser.Scene {
       key: 'player-idle',
       frames: [0, 1, 2, 3].map((index) => ({
         key: 'player',
-        frame: `shoot-posture ${index}.aseprite`,
+        frame: `shoot-posture-refined ${index}.png`,
       })),
       duration: 1500,
       repeat: -1,

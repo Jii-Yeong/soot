@@ -387,3 +387,53 @@ test('clears every room in stage 1 and advances into stage 2', async ({
   ).toHaveAttribute('aria-valuenow', '265');
   expect(runtimeErrors).toEqual([]);
 });
+
+test('restarts cleanly after dying in stage 2', async ({ page }) => {
+  test.setTimeout(60_000);
+  const runtimeErrors: Error[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error));
+
+  await enterGame(page);
+  await page.waitForTimeout(1000);
+
+  const bounds = await getCanvasBounds(page);
+
+  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-phase',
+    'room-cleared',
+    { timeout: 5000 },
+  );
+  await advanceThroughDoor(page);
+  await retreatToEntrance(page);
+
+  await clearRoom(page, bounds, CITY_ROOM_TWO_TARGETS);
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-phase',
+    'room-cleared',
+    { timeout: 5000 },
+  );
+  await advanceThroughDoor(page);
+
+  // Stage 2's stage/room label now differs from stage 1's — restarting must
+  // rebuild it before combat systems are wired up, otherwise the scene dies
+  // mid-`create()` and R/Enter silently stop doing anything.
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'dead', {
+    timeout: 30_000,
+  });
+
+  await page.keyboard.press('KeyR');
+
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuenow', '100');
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', '305');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+  );
+  expect(runtimeErrors).toEqual([]);
+});
