@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { PhaserGame } from '@/game/PhaserGame';
 import { gameEvents } from '@/game/events/gameEvents';
+import type { GamePhase } from '@/game/state/gamePhase';
 import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
@@ -10,8 +11,10 @@ export function App() {
     enemyHealth,
     enemyMaxHealth,
     scene,
+    phase,
     setHealth,
     setEnemyHealth,
+    setPhase,
     setScene,
   } = useGameUiStore();
 
@@ -25,20 +28,25 @@ export function App() {
     const handleEnemyHealthChanged = (current: number, max: number) => {
       setEnemyHealth(current, max);
     };
+    const handlePhaseChanged = (nextPhase: GamePhase) => {
+      setPhase(nextPhase);
+    };
 
     gameEvents.on('health-changed', handleHealthChanged);
     gameEvents.on('enemy-health-changed', handleEnemyHealthChanged);
+    gameEvents.on('phase-changed', handlePhaseChanged);
     gameEvents.on('scene-changed', handleSceneChanged);
 
     return () => {
       gameEvents.off('health-changed', handleHealthChanged);
       gameEvents.off('enemy-health-changed', handleEnemyHealthChanged);
+      gameEvents.off('phase-changed', handlePhaseChanged);
       gameEvents.off('scene-changed', handleSceneChanged);
     };
-  }, [setEnemyHealth, setHealth, setScene]);
+  }, [setEnemyHealth, setHealth, setPhase, setScene]);
 
   return (
-    <main className="game-shell" data-scene={scene}>
+    <main className="game-shell" data-phase={phase} data-scene={scene}>
       <PhaserGame />
       {scene === 'game' && (
         <div className="hud-layer">

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { GamePhase } from '@/game/state/gamePhase';
 
 type GameUiState = {
   health: number;
@@ -6,9 +7,11 @@ type GameUiState = {
   enemyHealth: number;
   enemyMaxHealth: number;
   scene: string;
+  phase: GamePhase;
   setHealth: (health: number, maxHealth: number) => void;
   setEnemyHealth: (health: number, maxHealth: number) => void;
   setScene: (scene: string) => void;
+  setPhase: (phase: GamePhase) => void;
 };
 
 export const useGameUiStore = create<GameUiState>((set) => ({
@@ -17,8 +20,10 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   enemyHealth: 100,
   enemyMaxHealth: 100,
   scene: 'boot',
+  phase: 'boot',
   setHealth: (health, maxHealth) => set({ health, maxHealth }),
   setEnemyHealth: (enemyHealth, enemyMaxHealth) =>
     set({ enemyHealth, enemyMaxHealth }),
   setScene: (scene) => set({ scene }),
+  setPhase: (phase) => set({ phase }),
 }));

@@ -6,7 +6,10 @@ describe('gameUiStore', () => {
     useGameUiStore.setState({
       health: 100,
       maxHealth: 100,
+      enemyHealth: 100,
+      enemyMaxHealth: 100,
       scene: 'boot',
+      phase: 'boot',
     });
   });
 
@@ -24,5 +27,10 @@ describe('gameUiStore', () => {
 
     expect(useGameUiStore.getState().scene).toBe('game');
   });
-});
 
+  it('tracks gameplay phases without owning the game simulation', () => {
+    useGameUiStore.getState().setPhase('dead');
+
+    expect(useGameUiStore.getState().phase).toBe('dead');
+  });
+});
