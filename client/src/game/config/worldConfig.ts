@@ -1,7 +1,18 @@
 import { GAME_WIDTH } from '@/game/config/gameDimensions';
 
-/** Each combat room spans two 1280px viewports horizontally. */
-export const ROOM_WORLD_WIDTH = GAME_WIDTH * 2;
+export const VIEWPORT_LENGTH_UNITS = 70;
+export const ROOM_LENGTH_UNITS = 100;
+export const STAGE_LENGTH_UNITS = 300;
+export const ROOMS_PER_STAGE = STAGE_LENGTH_UNITS / ROOM_LENGTH_UNITS;
+
+/**
+ * A 100-unit room is roughly 1.43 screens wide when the 1280px viewport
+ * represents 70 units. Three adjacent rooms form one continuous stage.
+ */
+export const ROOM_WORLD_WIDTH = Math.round(
+  GAME_WIDTH * (ROOM_LENGTH_UNITS / VIEWPORT_LENGTH_UNITS),
+);
+export const STAGE_WORLD_WIDTH = ROOM_WORLD_WIDTH * ROOMS_PER_STAGE;
 export const ROOM_CAMERA_FOLLOW_LERP_X = 0.12;
 
 /**
@@ -12,7 +23,7 @@ export const ROOM_CAMERA_FOLLOW_LERP_X = 0.12;
  */
 export function getParallaxScrollFactor(
   layerWidth: number,
-  worldWidth = ROOM_WORLD_WIDTH,
+  worldWidth = STAGE_WORLD_WIDTH,
   viewportWidth = GAME_WIDTH,
 ) {
   const cameraTravel = Math.max(0, worldWidth - viewportWidth);
@@ -28,7 +39,7 @@ export function getParallaxScrollFactor(
 /** Returns the minimum layer width needed to cover the camera at a factor. */
 export function getParallaxLayerWidth(
   scrollFactor: number,
-  worldWidth = ROOM_WORLD_WIDTH,
+  worldWidth = STAGE_WORLD_WIDTH,
   viewportWidth = GAME_WIDTH,
 ) {
   const cameraTravel = Math.max(0, worldWidth - viewportWidth);

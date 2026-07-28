@@ -1,14 +1,21 @@
 import Phaser from 'phaser';
+import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
+import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
+
+type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
+  EnemySpawnConfig,
+  { type: Type }
+>;
 
 export class EnemyFactory {
   constructor(
@@ -25,10 +32,12 @@ export class EnemyFactory {
         return this.createRangedEnemy(spawn);
       case 'flying':
         return this.createFlyingEnemy(spawn);
+      case 'boss':
+        return this.createBossEnemy(spawn);
     }
   }
 
-  private createMeleeEnemy(spawn: EnemySpawnConfig) {
+  private createMeleeEnemy(spawn: SpawnOf<'melee'>) {
     const enemy = new MeleeEnemy(
       this.scene,
       spawn.x,
@@ -46,7 +55,7 @@ export class EnemyFactory {
     return this.finishSpawn(enemy);
   }
 
-  private createRangedEnemy(spawn: EnemySpawnConfig) {
+  private createRangedEnemy(spawn: SpawnOf<'ranged'>) {
     const enemy = new RangedEnemy(
       this.scene,
       spawn.x,
@@ -62,7 +71,7 @@ export class EnemyFactory {
     return this.finishSpawn(enemy);
   }
 
-  private createFlyingEnemy(spawn: EnemySpawnConfig) {
+  private createFlyingEnemy(spawn: SpawnOf<'flying'>) {
     const enemy = new FlyingEnemy(
       this.scene,
       spawn.x,
@@ -78,6 +87,18 @@ export class EnemyFactory {
       },
     );
     return this.finishSpawn(enemy, { collidesWithFloor: false });
+  }
+
+  private createBossEnemy(spawn: SpawnOf<'boss'>) {
+    const config = BOSS_COMBAT_CONFIGS[spawn.variant];
+    const enemy = new BossEnemy(
+      this.scene,
+      spawn.x,
+      spawn.y,
+      config.texture,
+      config,
+    );
+    return this.finishSpawn(enemy);
   }
 
   private finishSpawn<EnemyType extends Enemy>(

@@ -1,9 +1,12 @@
 import type { MusicKey } from '@/game/config/audioConfig';
 import {
+  ALLEY_BOSS_ROOM,
   ALLEY_ROOM_ONE,
   ALLEY_ROOM_TWO,
+  CITY_BOSS_ROOM,
   CITY_ROOM_ONE,
   CITY_ROOM_TWO,
+  UNDERGROUND_BOSS_ROOM,
   UNDERGROUND_ROOM_ONE,
   UNDERGROUND_ROOM_TWO,
   type RoomConfig,
@@ -37,7 +40,7 @@ export type StageConfig = {
   label: string;
   palette: StagePalette;
   music: MusicKey;
-  rooms: readonly RoomConfig[];
+  rooms: readonly [RoomConfig, RoomConfig, RoomConfig];
   endEvent?: StageEndEvent;
   background?: StageBackground;
 };
@@ -57,7 +60,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     key: 'stage-01-bg',
     path: '/assets/backgrounds/stage-01.png',
   },
-  rooms: [CITY_ROOM_ONE, CITY_ROOM_TWO],
+  rooms: [CITY_ROOM_ONE, CITY_ROOM_TWO, CITY_BOSS_ROOM],
 };
 
 export const STAGE_TWO_CONFIG: StageConfig = {
@@ -72,7 +75,11 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     neonFlicker: true,
   },
   music: 'bgm-alley',
-  rooms: [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO],
+  background: {
+    key: 'stage-02-bg',
+    path: '/assets/backgrounds/stage-02.png',
+  },
+  rooms: [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO, ALLEY_BOSS_ROOM],
 };
 
 export const STAGE_THREE_CONFIG: StageConfig = {
@@ -86,7 +93,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     accentSecondary: 0xa8b84a,
     neonFlicker: true,
   },
-  rooms: [UNDERGROUND_ROOM_ONE, UNDERGROUND_ROOM_TWO],
+  rooms: [UNDERGROUND_ROOM_ONE, UNDERGROUND_ROOM_TWO, UNDERGROUND_BOSS_ROOM],
   endEvent: 'siege',
 };
 

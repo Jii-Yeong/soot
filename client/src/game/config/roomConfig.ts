@@ -1,15 +1,34 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import type { BossVariant } from '@/game/config/bossConfig';
 import { ROOM_WORLD_WIDTH } from '@/game/config/worldConfig';
 
-export type EnemySpawnConfig = {
-  type: 'melee' | 'ranged' | 'flying';
-  x: number;
-  y: number;
-};
+export type EnemySpawnConfig =
+  | {
+      type: 'melee';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'ranged';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'flying';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'boss';
+      variant: BossVariant;
+      x: number;
+      y: number;
+    };
 
 export type RoomConfig = {
   id: string;
   label: string;
+  kind: 'combat' | 'boss';
   entranceX: number;
   exitX: number;
   door: {
@@ -28,14 +47,41 @@ const ROOM_DOOR = {
   height: 180,
 };
 
-type RoomDefinition = Omit<RoomConfig, 'entranceX' | 'exitX' | 'door'>;
+type RoomDefinition = Omit<
+  RoomConfig,
+  'kind' | 'entranceX' | 'exitX' | 'door'
+> & {
+  kind?: RoomConfig['kind'];
+};
 
 const defineRoom = (definition: RoomDefinition): RoomConfig => ({
+  kind: 'combat',
   entranceX: 64,
   exitX: ROOM_WORLD_WIDTH - 64,
   door: ROOM_DOOR,
   ...definition,
 });
+
+type BossRoomDefinition = Pick<RoomDefinition, 'id' | 'label' | 'intensity'> & {
+  variant: BossVariant;
+};
+
+const defineBossRoom = ({
+  variant,
+  ...definition
+}: BossRoomDefinition): RoomConfig =>
+  defineRoom({
+    ...definition,
+    kind: 'boss',
+    enemySpawns: [
+      {
+        type: 'boss',
+        variant,
+        x: ROOM_WORLD_WIDTH - 760,
+        y: GAME_HEIGHT - 180,
+      },
+    ],
+  });
 
 export const CITY_ROOM_ONE = defineRoom({
   id: 'city-01',
@@ -58,6 +104,12 @@ export const CITY_ROOM_TWO = defineRoom({
     { type: 'flying', x: 1050, y: GAME_HEIGHT - 300 },
     { type: 'ranged', x: 1160, y: GAME_HEIGHT - 120 },
   ],
+});
+
+export const CITY_BOSS_ROOM = defineBossRoom({
+  id: 'city-boss',
+  label: 'CITY WARDEN',
+  variant: 'city-warden',
 });
 
 // Stage 2 reuses the same enemy AI but leans on ambush placement near the
@@ -93,6 +145,13 @@ export const ALLEY_ROOM_TWO = defineRoom({
   ],
 });
 
+export const ALLEY_BOSS_ROOM = defineBossRoom({
+  id: 'alley-boss',
+  label: 'ALLEY HUNTER',
+  variant: 'alley-hunter',
+  intensity: 1.2,
+});
+
 // Stage 3 (지하도시): cramped rooms with heavier melee pressure leading into
 // the siege event that ends the act. Same enemy AI, higher intensity.
 export const UNDERGROUND_ROOM_ONE = defineRoom({
@@ -119,4 +178,11 @@ export const UNDERGROUND_ROOM_TWO = defineRoom({
     { type: 'flying', x: 560, y: GAME_HEIGHT - 320 },
     { type: 'flying', x: 980, y: GAME_HEIGHT - 280 },
   ],
+});
+
+export const UNDERGROUND_BOSS_ROOM = defineBossRoom({
+  id: 'underground-boss',
+  label: 'UNDERGROUND GUARDIAN',
+  variant: 'underground-guardian',
+  intensity: 1.35,
 });

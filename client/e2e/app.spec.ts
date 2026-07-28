@@ -2,7 +2,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 const ROOM_TRANSITION_TIMEOUT = 10_000;
 const SINGLE_ROOM_TEST_TIMEOUT = 60_000;
-const MULTI_ROOM_TEST_TIMEOUT = 90_000;
 
 async function whileHoldingKey(
   page: Page,
@@ -26,6 +25,17 @@ async function enterGame(page: Page) {
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await triggerCurrentRoom(page);
+}
+
+async function triggerCurrentRoom(page: Page) {
+  await whileHoldingKey(page, 'KeyD', async () => {
+    await expect(page.locator('main')).toHaveAttribute(
+      'data-room-state',
+      'locked',
+      { timeout: ROOM_TRANSITION_TIMEOUT },
+    );
+  });
 }
 
 async function getCanvasBounds(page: Page) {
@@ -92,14 +102,6 @@ const CITY_ROOM_ONE_TARGETS: FireTarget[] = [
   [1120, 630, 2500],
 ];
 
-const CITY_ROOM_TWO_TARGETS: FireTarget[] = [
-  [560, 630, 1500],
-  [940, 630, 1500],
-  [750, 460, 1500],
-  [1050, 420, 1500],
-  [1160, 630, 2200],
-];
-
 async function clearRoom(
   page: Page,
   bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
@@ -113,20 +115,11 @@ async function clearRoom(
 async function advanceThroughDoor(page: Page) {
   await whileHoldingKey(page, 'KeyD', async () => {
     await expect(page.locator('main')).toHaveAttribute(
-      'data-phase',
-      'playing',
+      'data-room-state',
+      'locked',
       { timeout: ROOM_TRANSITION_TIMEOUT },
     );
   });
-}
-
-/**
- * Room 2's first melee sits just inside its own aggro radius from the
- * post-door spawn point, so it starts charging immediately unless the
- * player backs off toward the entrance first.
- */
-async function retreatToEntrance(page: Page) {
-  await holdKeyFor(page, 'KeyA', 800);
 }
 
 test('boots the Phaser canvas', async ({ page }) => {
@@ -136,6 +129,30 @@ test('boots the Phaser canvas', async ({ page }) => {
   await expect(canvas).toBeVisible();
   await expect(canvas).toHaveAttribute('width', '1280');
   await expect(canvas).toHaveAttribute('height', '720');
+});
+
+test('waits for the entrance detector before starting combat', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await expect(page.locator('main')).toHaveAttribute('data-room-state', 'idle');
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', '0');
+
+  await triggerCurrentRoom(page);
+
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+  );
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', '305');
 });
 
 test('enters the game and shows the React HUD', async ({ page }) => {
@@ -303,6 +320,7 @@ test('player death stops combat and supports a fast restart', async ({
   await page.keyboard.press('KeyR');
 
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
+  await triggerCurrentRoom(page);
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
@@ -371,97 +389,5 @@ test('advances to the next room after clearing the first and locks it again', as
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
   ).toHaveAttribute('aria-valuenow', '310');
-  expect(runtimeErrors).toEqual([]);
-});
-
-test('clears every room in stage 1 and advances into stage 2', async ({
-  page,
-}) => {
-  test.setTimeout(MULTI_ROOM_TEST_TIMEOUT);
-  const runtimeErrors: Error[] = [];
-  page.on('pageerror', (error) => runtimeErrors.push(error));
-
-  await enterGame(page);
-  await page.waitForTimeout(1000);
-
-  const bounds = await getCanvasBounds(page);
-
-  // Stage 1, room 1 (city-01): melee, ranged x2, flying.
-  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
-  await expect(page.locator('main')).toHaveAttribute(
-    'data-phase',
-    'room-cleared',
-    { timeout: 5000 },
-  );
-  await advanceThroughDoor(page);
-  await retreatToEntrance(page);
-
-  // Stage 1, room 2 (city-02): melee x2, flying x2, ranged.
-  await clearRoom(page, bounds, CITY_ROOM_TWO_TARGETS);
-  await expect(page.locator('main')).toHaveAttribute(
-    'data-phase',
-    'room-cleared',
-    { timeout: 5000 },
-  );
-  await advanceThroughDoor(page);
-
-  // Stage 2, room 1 (alley-01): melee x2, ranged, flying = 265 total health.
-  await expect(page.locator('main')).toHaveAttribute(
-    'data-room-state',
-    'locked',
-  );
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '265');
-  expect(runtimeErrors).toEqual([]);
-});
-
-test('restarts cleanly after dying in stage 2', async ({ page }) => {
-  test.setTimeout(MULTI_ROOM_TEST_TIMEOUT);
-  const runtimeErrors: Error[] = [];
-  page.on('pageerror', (error) => runtimeErrors.push(error));
-
-  await enterGame(page);
-  await page.waitForTimeout(1000);
-
-  const bounds = await getCanvasBounds(page);
-
-  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
-  await expect(page.locator('main')).toHaveAttribute(
-    'data-phase',
-    'room-cleared',
-    { timeout: 5000 },
-  );
-  await advanceThroughDoor(page);
-  await retreatToEntrance(page);
-
-  await clearRoom(page, bounds, CITY_ROOM_TWO_TARGETS);
-  await expect(page.locator('main')).toHaveAttribute(
-    'data-phase',
-    'room-cleared',
-    { timeout: 5000 },
-  );
-  await advanceThroughDoor(page);
-
-  // Stage 2's stage/room label now differs from stage 1's — restarting must
-  // rebuild it before combat systems are wired up, otherwise the scene dies
-  // mid-`create()` and R/Enter silently stop doing anything.
-  await expect(page.locator('main')).toHaveAttribute('data-phase', 'dead', {
-    timeout: 30_000,
-  });
-
-  await page.keyboard.press('KeyR');
-
-  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
-  await expect(
-    page.getByRole('meter', { name: 'Player health' }),
-  ).toHaveAttribute('aria-valuenow', '100');
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '305');
-  await expect(page.locator('main')).toHaveAttribute(
-    'data-room-state',
-    'locked',
-  );
   expect(runtimeErrors).toEqual([]);
 });

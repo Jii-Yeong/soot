@@ -144,6 +144,36 @@ export class BootScene extends Phaser.Scene {
     graphics.fillCircle(5, 5, 2);
     graphics.generateTexture('flying-enemy-bullet-placeholder', 10, 10);
 
+    const createBossPlaceholder = (
+      key: string,
+      bodyColor: number,
+      accentColor: number,
+    ) => {
+      graphics.clear();
+      graphics.fillStyle(0x111719);
+      graphics.fillRect(8, 18, 80, 78);
+      graphics.fillStyle(bodyColor);
+      graphics.fillRect(13, 23, 70, 66);
+      graphics.fillStyle(0x070a0b);
+      graphics.fillRect(23, 35, 50, 18);
+      graphics.fillStyle(accentColor);
+      graphics.fillRect(28, 40, 40, 7);
+      graphics.fillTriangle(8, 31, 8, 70, 0, 55);
+      graphics.fillTriangle(88, 31, 88, 70, 96, 55);
+      graphics.fillStyle(0xdbe8ec);
+      graphics.fillRect(18, 89, 22, 15);
+      graphics.fillRect(56, 89, 22, 15);
+      graphics.generateTexture(key, 96, 104);
+    };
+
+    createBossPlaceholder('city-warden-placeholder', 0x286783, 0x8ee3ff);
+    createBossPlaceholder('alley-hunter-placeholder', 0x7a3821, 0xffb06f);
+    createBossPlaceholder(
+      'underground-guardian-placeholder',
+      0x3f5c28,
+      0xc5ec72,
+    );
+
     graphics.clear();
     graphics.fillStyle(0xffe1a8);
     graphics.fillCircle(4, 4, 4);

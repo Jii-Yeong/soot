@@ -11,10 +11,11 @@ import {
   PLAYER_INITIAL_FRAME,
 } from '@/game/config/playerAnimationConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
+import { placeRoomInStage } from '@/game/config/roomPlacement';
 import { STAGES } from '@/game/config/stageConfig';
 import {
   ROOM_CAMERA_FOLLOW_LERP_X,
-  ROOM_WORLD_WIDTH,
+  STAGE_WORLD_WIDTH,
 } from '@/game/config/worldConfig';
 import {
   STARTING_WEAPON_ID,
@@ -40,6 +41,7 @@ export class GameScene extends Phaser.Scene {
   private floorGroup!: Phaser.Physics.Arcade.StaticGroup;
   private currentStageIndex = 0;
   private currentRoomIndex = 0;
+  private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
   private lootDirector!: LootDirector;
@@ -92,7 +94,6 @@ export class GameScene extends Phaser.Scene {
     this.stageEndEventDirector = new StageEndEventDirector(this);
     this.createCombatUi();
     this.bindInputHandlers();
-    this.startRoomEncounter();
   }
 
   update(time: number, delta: number) {
@@ -106,7 +107,7 @@ export class GameScene extends Phaser.Scene {
 
     if (
       this.phase === 'room-cleared' &&
-      this.player.x > this.currentRoomConfig.exitX + 20
+      this.player.x > this.activeRoomConfig.exitX + 20
     ) {
       this.advanceToNextRoom();
     }
@@ -133,7 +134,7 @@ export class GameScene extends Phaser.Scene {
   private createFloor() {
     const floor = this.physics.add.staticGroup();
 
-    for (let x = 32; x < ROOM_WORLD_WIDTH; x += 64) {
+    for (let x = 32; x < STAGE_WORLD_WIDTH; x += 64) {
       floor.create(x, GAME_HEIGHT - 32, 'floor-placeholder');
     }
 
@@ -158,9 +159,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private configureHorizontalWorld() {
-    this.physics.world.setBounds(0, 0, ROOM_WORLD_WIDTH, GAME_HEIGHT);
+    this.physics.world.setBounds(0, 0, STAGE_WORLD_WIDTH, GAME_HEIGHT);
     this.cameras.main
-      .setBounds(0, 0, ROOM_WORLD_WIDTH, GAME_HEIGHT)
+      .setBounds(0, 0, STAGE_WORLD_WIDTH, GAME_HEIGHT)
       .setRoundPixels(true);
   }
 
@@ -181,35 +182,41 @@ export class GameScene extends Phaser.Scene {
 
   private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
     this.floorGroup = floor;
-    this.buildRoom(this.currentRoomConfig);
+    this.buildRoom(
+      placeRoomInStage(this.currentRoomConfig, this.currentRoomIndex),
+    );
   }
 
   private buildRoom(roomConfig: RoomConfig) {
     this.lootDirector?.clear();
     this.roomDirector?.destroy();
-    this.roomDirector = new RoomDirector(
-      this,
-      this.player,
-      roomConfig,
-      (state) => this.handleRoomStateChanged(state),
-    );
+    this.activeRoomConfig = roomConfig;
+    this.roomDirector = new RoomDirector({
+      scene: this,
+      player: this.player,
+      config: roomConfig,
+      onStateChanged: (state) => this.handleRoomStateChanged(state),
+      onEntranceDetected: () => this.startRoomEncounter(),
+    });
 
     for (const enemy of this.enemies) {
       enemy.destroy();
     }
+    this.replaceEnemies([]);
+    this.emitEnemyHealth();
 
     // A stage with real backdrop art shows its own ground, so the placeholder
-    // tiles are hidden (their invisible collision bodies stay active). Done
-    // here — where floorGroup is always the current, valid group — rather than
-    // in drawBackdrop, which runs before the floor is (re)created on restart.
+    // tiles are hidden while their collision bodies stay active.
     this.floorGroup.setVisible(!this.stage.background);
+  }
 
+  private spawnRoomEnemies() {
     const enemyFactory = new EnemyFactory(
       this,
       this.floorGroup,
-      roomConfig.intensity,
+      this.activeRoomConfig.intensity,
     );
-    const spawned = roomConfig.enemySpawns.map((spawn) =>
+    const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
     this.replaceEnemies(spawned);
@@ -227,6 +234,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startRoomEncounter() {
+    if (this.enemies.some((enemy) => enemy.active)) {
+      return;
+    }
+
+    this.spawnRoomEnemies();
     this.lootDirector.beginRoom();
     this.roomDirector.beginEncounter(this.enemies);
   }
@@ -255,19 +267,23 @@ export class GameScene extends Phaser.Scene {
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
     this.backdropDirector.draw(this.stage);
-    this.enterCurrentRoom();
+    this.enterCurrentRoom(true);
   }
 
-  private enterCurrentRoom() {
-    this.player.setPosition(
-      this.currentRoomConfig.entranceX + 90,
-      this.player.y,
+  private enterCurrentRoom(resetToStageEntrance = false) {
+    if (resetToStageEntrance) {
+      this.player.setPosition(
+        this.currentRoomConfig.entranceX + 90,
+        this.player.y,
+      );
+      this.player.setVelocity(0);
+      this.resetCameraToRoomEntrance();
+    }
+
+    this.buildRoom(
+      placeRoomInStage(this.currentRoomConfig, this.currentRoomIndex),
     );
-    this.player.setVelocity(0);
-    this.resetCameraToRoomEntrance();
-    this.buildRoom(this.currentRoomConfig);
     this.updateStageLabel();
-    this.startRoomEncounter();
     this.setPhase('playing');
   }
 
@@ -302,7 +318,9 @@ export class GameScene extends Phaser.Scene {
 
   private updateStageLabel() {
     this.stageLabelText.setText(
-      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${this.stage.rooms.length}`,
+      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${
+        this.stage.rooms.length
+      }`,
     );
   }
 
