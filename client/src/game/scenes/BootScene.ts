@@ -1,5 +1,11 @@
 import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
+import {
+  PLAYER_ANIMATIONS,
+  PLAYER_ATLAS_KEY,
+  PLAYER_IDLE_FRAMES,
+  PLAYER_RUN_FRAMES,
+} from '@/game/config/playerAnimationConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,7 +14,7 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.atlas(
-      'player',
+      PLAYER_ATLAS_KEY,
       '/assets/player/player.png',
       '/assets/player/player.json',
     );
@@ -186,12 +192,21 @@ export class BootScene extends Phaser.Scene {
 
   private createAnimations() {
     this.anims.create({
-      key: 'player-idle',
-      frames: [0, 1, 2, 3].map((index) => ({
-        key: 'player',
-        frame: `shoot-posture-refined ${index}.png`,
+      key: PLAYER_ANIMATIONS.idle,
+      frames: PLAYER_IDLE_FRAMES.map((frame) => ({
+        key: PLAYER_ATLAS_KEY,
+        frame,
       })),
       duration: 1500,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: PLAYER_ANIMATIONS.run,
+      frames: PLAYER_RUN_FRAMES.map((frame) => ({
+        key: PLAYER_ATLAS_KEY,
+        frame,
+      })),
+      duration: 480,
       repeat: -1,
     });
   }

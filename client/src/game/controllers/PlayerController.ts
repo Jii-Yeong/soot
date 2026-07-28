@@ -1,4 +1,8 @@
 import Phaser from 'phaser';
+import {
+  PLAYER_ANIMATIONS,
+  PLAYER_JUMP_FRAMES,
+} from '@/game/config/playerAnimationConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 
 export type PlayerMovementConfig = {
@@ -17,11 +21,6 @@ type MovementKeys = Record<
   Phaser.Input.Keyboard.Key
 >;
 
-// player_jump_down tag (frames 4-6 of the atlas): 4 covers both rise and
-// fall, 5 is the apex hang, 6 is a brief landing pose before returning to idle.
-const JUMP_RISE_FALL_FRAME = 'shoot-posture-refined 4.png';
-const JUMP_APEX_FRAME = 'shoot-posture-refined 5.png';
-const JUMP_LANDING_FRAME = 'shoot-posture-refined 6.png';
 const JUMP_APEX_VELOCITY_THRESHOLD = 150;
 const LANDING_POSE_DURATION = 260;
 
@@ -118,21 +117,21 @@ export class PlayerController {
       const velocityY = body?.velocity.y ?? 0;
       this.setPose(
         Math.abs(velocityY) < JUMP_APEX_VELOCITY_THRESHOLD
-          ? JUMP_APEX_FRAME
-          : JUMP_RISE_FALL_FRAME,
+          ? PLAYER_JUMP_FRAMES.apex
+          : PLAYER_JUMP_FRAMES.airborne,
       );
       return;
     }
 
     if (time < this.landingPoseUntil) {
-      this.setPose(JUMP_LANDING_FRAME);
+      this.setPose(PLAYER_JUMP_FRAMES.landing);
       return;
     }
 
-    if (this.currentPose !== 'player-idle') {
-      this.currentPose = 'player-idle';
-      this.player.play('player-idle', true);
-    }
+    const isRunning = Math.abs(body?.velocity.x ?? 0) > 1;
+    this.playAnimation(
+      isRunning ? PLAYER_ANIMATIONS.run : PLAYER_ANIMATIONS.idle,
+    );
   }
 
   private setPose(frameName: string) {
@@ -143,6 +142,15 @@ export class PlayerController {
     this.currentPose = frameName;
     this.player.anims.stop();
     this.player.setFrame(frameName);
+  }
+
+  private playAnimation(animationKey: string) {
+    if (this.currentPose === animationKey) {
+      return;
+    }
+
+    this.currentPose = animationKey;
+    this.player.play(animationKey, true);
   }
 
   tryDash(time: number) {

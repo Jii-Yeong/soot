@@ -5,6 +5,11 @@ import {
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import {
+  PLAYER_ANIMATIONS,
+  PLAYER_ATLAS_KEY,
+  PLAYER_INITIAL_FRAME,
+} from '@/game/config/playerAnimationConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import {
@@ -133,11 +138,11 @@ export class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(
       180,
       GAME_HEIGHT - 120,
-      'player',
-      'shoot-posture-refined 0.png',
+      PLAYER_ATLAS_KEY,
+      PLAYER_INITIAL_FRAME,
     );
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(36, 76, true);
-    this.player.play('player-idle');
+    this.player.play(PLAYER_ANIMATIONS.idle);
     this.player.setCollideWorldBounds(true);
     // Enemies default to the same depth (0) and are added to the display
     // list after the player, so without this they render on top of the
