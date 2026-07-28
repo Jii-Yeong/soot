@@ -17,8 +17,15 @@ describe('getStageExitPlan', () => {
     });
   });
 
-  it('finishes the run after the final stage', () => {
+  it('advances from stage 4 into stage 5', () => {
     expect(getStageExitPlan(STAGES, 3)).toEqual({
+      event: undefined,
+      nextStageIndex: 4,
+    });
+  });
+
+  it('finishes the run after stage 5', () => {
+    expect(getStageExitPlan(STAGES, 4)).toEqual({
       event: undefined,
       nextStageIndex: null,
     });

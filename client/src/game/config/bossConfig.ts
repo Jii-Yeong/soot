@@ -95,6 +95,24 @@ export const BOSS_COMBAT_CONFIGS = {
     contactDamage: 28,
     contactDamageCooldown: 560,
   },
+  'returning-architect': {
+    texture: 'returning-architect-placeholder',
+    placeholder: {
+      bodyColor: 0x46306f,
+      accentColor: 0xf0c8ff,
+    },
+    maxHealth: 1200,
+    aggroRadius: 1900,
+    aggroIndicatorColor: 0xd89cff,
+    moveSpeed: 185,
+    enragedMoveSpeed: 270,
+    enrageHealthRatio: 0.7,
+    chargeSpeed: 640,
+    chargeDuration: 560,
+    chargeInterval: 1550,
+    contactDamage: 32,
+    contactDamageCooldown: 520,
+  },
 } satisfies Record<string, BossCombatConfig>;
 
 export type BossVariant = keyof typeof BOSS_COMBAT_CONFIGS;

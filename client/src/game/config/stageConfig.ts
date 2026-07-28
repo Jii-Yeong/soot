@@ -1,19 +1,10 @@
 import type { MusicKey } from '@/game/config/audioConfig';
-import {
-  ALLEY_BOSS_ROOM,
-  ALLEY_ROOM_ONE,
-  ALLEY_ROOM_TWO,
-  CITY_BOSS_ROOM,
-  CITY_ROOM_ONE,
-  CITY_ROOM_TWO,
-  INFERNO_BOSS_ROOM,
-  INFERNO_ROOM_ONE,
-  INFERNO_ROOM_TWO,
-  UNDERGROUND_BOSS_ROOM,
-  UNDERGROUND_ROOM_ONE,
-  UNDERGROUND_ROOM_TWO,
-  type RoomConfig,
-} from '@/game/config/roomConfig';
+import type { StageRooms } from '@/game/config/roomConfig';
+import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
+import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
+import { UNDERGROUND_ROOMS } from '@/game/config/rooms/stageThreeRooms';
+import { INFERNO_ROOMS } from '@/game/config/rooms/stageFourRooms';
+import { RETURN_ROOMS } from '@/game/config/rooms/stageFiveRooms';
 
 export type StagePalette = {
   backgroundTop: number;
@@ -43,7 +34,7 @@ export type StageConfig = {
   label: string;
   palette: StagePalette;
   music: MusicKey;
-  rooms: readonly [RoomConfig, RoomConfig, RoomConfig];
+  rooms: StageRooms;
   endEvent?: StageEndEvent;
   background?: StageBackground;
 };
@@ -63,7 +54,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     key: 'stage-01-bg',
     path: '/assets/backgrounds/stage-01.png',
   },
-  rooms: [CITY_ROOM_ONE, CITY_ROOM_TWO, CITY_BOSS_ROOM],
+  rooms: CITY_ROOMS,
 };
 
 export const STAGE_TWO_CONFIG: StageConfig = {
@@ -82,7 +73,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     key: 'stage-02-bg',
     path: '/assets/backgrounds/stage-02.png',
   },
-  rooms: [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO, ALLEY_BOSS_ROOM],
+  rooms: ALLEY_ROOMS,
 };
 
 export const STAGE_THREE_CONFIG: StageConfig = {
@@ -100,7 +91,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     key: 'stage-03-bg',
     path: '/assets/backgrounds/stage-03.png',
   },
-  rooms: [UNDERGROUND_ROOM_ONE, UNDERGROUND_ROOM_TWO, UNDERGROUND_BOSS_ROOM],
+  rooms: UNDERGROUND_ROOMS,
   endEvent: 'siege',
 };
 
@@ -119,7 +110,25 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
     key: 'stage-04-bg',
     path: '/assets/backgrounds/stage-04.png',
   },
-  rooms: [INFERNO_ROOM_ONE, INFERNO_ROOM_TWO, INFERNO_BOSS_ROOM],
+  rooms: INFERNO_ROOMS,
+};
+
+export const STAGE_FIVE_CONFIG: StageConfig = {
+  id: 'stage-05',
+  label: 'STAGE 5 // THE RETURN',
+  palette: {
+    backgroundTop: 0x171027,
+    backgroundBottom: 0x07040c,
+    gridLine: 0x3d2a5e,
+    accentPrimary: 0xd89cff,
+    accentSecondary: 0x9eeeff,
+    neonFlicker: true,
+  },
+  background: {
+    key: 'stage-05-bg',
+    path: '/assets/backgrounds/stage-05.png',
+  },
+  rooms: RETURN_ROOMS,
 };
 
 export const STAGES: readonly StageConfig[] = [
@@ -127,4 +136,5 @@ export const STAGES: readonly StageConfig[] = [
   STAGE_TWO_CONFIG,
   STAGE_THREE_CONFIG,
   STAGE_FOUR_CONFIG,
+  STAGE_FIVE_CONFIG,
 ];

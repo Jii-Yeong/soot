@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   STAGES,
+  STAGE_FIVE_CONFIG,
   STAGE_FOUR_CONFIG,
   STAGE_THREE_CONFIG,
   STAGE_TWO_CONFIG,
@@ -33,7 +34,7 @@ describe('stage room progression', () => {
   });
 
   it('continues from the stage 3 siege into a three-room hell stage', () => {
-    expect(STAGES).toHaveLength(4);
+    expect(STAGES).toHaveLength(5);
     expect(STAGE_THREE_CONFIG.endEvent).toBe('siege');
     expect(STAGE_FOUR_CONFIG).toMatchObject({
       id: 'stage-04',
@@ -46,6 +47,21 @@ describe('stage room progression', () => {
     expect(STAGE_FOUR_CONFIG.rooms.at(-1)?.enemySpawns[0]).toMatchObject({
       type: 'boss',
       variant: 'infernal-executioner',
+    });
+  });
+
+  it('ends with a three-room return stage and final boss', () => {
+    expect(STAGE_FIVE_CONFIG).toMatchObject({
+      id: 'stage-05',
+      label: 'STAGE 5 // THE RETURN',
+      background: {
+        key: 'stage-05-bg',
+        path: '/assets/backgrounds/stage-05.png',
+      },
+    });
+    expect(STAGE_FIVE_CONFIG.rooms.at(-1)?.enemySpawns[0]).toMatchObject({
+      type: 'boss',
+      variant: 'returning-architect',
     });
   });
 });

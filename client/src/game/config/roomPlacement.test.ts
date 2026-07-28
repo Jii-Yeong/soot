@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CITY_BOSS_ROOM, CITY_ROOM_ONE } from '@/game/config/roomConfig';
 import { placeRoomInStage } from '@/game/config/roomPlacement';
+import {
+  CITY_BOSS_ROOM,
+  CITY_ROOM_ONE,
+} from '@/game/config/rooms/stageOneRooms';
 import { ROOM_WORLD_WIDTH } from '@/game/config/worldConfig';
 
 describe('placeRoomInStage', () => {
