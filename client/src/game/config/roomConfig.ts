@@ -1,4 +1,5 @@
-import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import { ROOM_WORLD_WIDTH } from '@/game/config/worldConfig';
 
 export type EnemySpawnConfig = {
   type: 'melee' | 'ranged' | 'flying';
@@ -31,7 +32,7 @@ type RoomDefinition = Omit<RoomConfig, 'entranceX' | 'exitX' | 'door'>;
 
 const defineRoom = (definition: RoomDefinition): RoomConfig => ({
   entranceX: 64,
-  exitX: GAME_WIDTH - 64,
+  exitX: ROOM_WORLD_WIDTH - 64,
   door: ROOM_DOOR,
   ...definition,
 });

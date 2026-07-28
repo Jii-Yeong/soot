@@ -26,7 +26,7 @@ export type StagePalette = {
  */
 export type StageEndEvent = 'siege';
 
-/** Full-screen backdrop art that replaces the procedural gradient for a stage. */
+/** Backdrop art whose source width determines its horizontal parallax speed. */
 export type StageBackground = {
   key: string;
   path: string;

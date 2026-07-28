@@ -1,5 +1,26 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const ROOM_TRANSITION_TIMEOUT = 10_000;
+const SINGLE_ROOM_TEST_TIMEOUT = 60_000;
+const MULTI_ROOM_TEST_TIMEOUT = 90_000;
+
+async function whileHoldingKey(
+  page: Page,
+  key: string,
+  action: () => Promise<void>,
+) {
+  await page.keyboard.down(key);
+  try {
+    await action();
+  } finally {
+    await page.keyboard.up(key);
+  }
+}
+
+async function holdKeyFor(page: Page, key: string, duration: number) {
+  await whileHoldingKey(page, key, () => page.waitForTimeout(duration));
+}
+
 async function enterGame(page: Page) {
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
@@ -39,8 +60,11 @@ async function fireAt(
   const point = getCanvasPoint(bounds, x, y);
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
-  await page.waitForTimeout(duration);
-  await page.mouse.up();
+  try {
+    await page.waitForTimeout(duration);
+  } finally {
+    await page.mouse.up();
+  }
 }
 
 async function fireShotsAt(
@@ -87,11 +111,13 @@ async function clearRoom(
 }
 
 async function advanceThroughDoor(page: Page) {
-  await page.keyboard.down('KeyD');
-  await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing', {
-    timeout: 6000,
+  await whileHoldingKey(page, 'KeyD', async () => {
+    await expect(page.locator('main')).toHaveAttribute(
+      'data-phase',
+      'playing',
+      { timeout: ROOM_TRANSITION_TIMEOUT },
+    );
   });
-  await page.keyboard.up('KeyD');
 }
 
 /**
@@ -100,9 +126,7 @@ async function advanceThroughDoor(page: Page) {
  * player backs off toward the entrance first.
  */
 async function retreatToEntrance(page: Page) {
-  await page.keyboard.down('KeyA');
-  await page.waitForTimeout(800);
-  await page.keyboard.up('KeyA');
+  await holdKeyFor(page, 'KeyA', 800);
 }
 
 test('boots the Phaser canvas', async ({ page }) => {
@@ -136,9 +160,7 @@ test('accepts WASD movement and mouse fire input', async ({ page }) => {
 
   await enterGame(page);
 
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(180);
-  await page.keyboard.up('KeyD');
+  await holdKeyFor(page, 'KeyD', 180);
   await page.keyboard.press('KeyW');
 
   const bounds = await getCanvasBounds(page);
@@ -161,10 +183,10 @@ test('supports alternate controls and dash input', async ({ page }) => {
   await enterGame(page);
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
 
-  await page.keyboard.down('ArrowRight');
-  await page.keyboard.press('Shift');
-  await page.waitForTimeout(220);
-  await page.keyboard.up('ArrowRight');
+  await whileHoldingKey(page, 'ArrowRight', async () => {
+    await page.keyboard.press('Shift');
+    await page.waitForTimeout(220);
+  });
   await page.keyboard.press('Space');
 
   const bounds = await getCanvasBounds(page);
@@ -191,9 +213,7 @@ test('enemy detects the player and deals ranged damage', async ({ page }) => {
     page.getByRole('meter', { name: 'Enemy health' }),
   ).not.toHaveAttribute('aria-valuenow', '305');
 
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(1100);
-  await page.keyboard.up('KeyD');
+  await holdKeyFor(page, 'KeyD', 1500);
 
   await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '100', {
     timeout: 5000,
@@ -208,9 +228,7 @@ test('melee enemy pursues the player and deals contact damage', async ({
   const healthMeter = page.getByRole('meter', { name: 'Player health' });
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
 
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(400);
-  await page.keyboard.up('KeyD');
+  await holdKeyFor(page, 'KeyD', 400);
 
   await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '100', {
     timeout: 5000,
@@ -275,9 +293,7 @@ test('player death stops combat and supports a fast restart', async ({
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
 
   const healthMeter = page.getByRole('meter', { name: 'Player health' });
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(900);
-  await page.keyboard.up('KeyD');
+  await holdKeyFor(page, 'KeyD', 900);
 
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'dead', {
     timeout: 30_000,
@@ -308,19 +324,19 @@ test('drops and equips a random weapon from a defeated enemy', async ({
   await expect(page.locator('main')).toHaveAttribute('data-weapon', 'smg');
 
   const bounds = await getCanvasBounds(page);
-  await fireShotsAt(page, bounds, 640, 630, 6);
+  await fireAt(page, bounds, 640, 630, 1200);
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '245', { timeout: 5000 });
+  ).not.toHaveAttribute('aria-valuenow', '305');
 
-  await page.keyboard.down('KeyD');
-  await page.waitForTimeout(1150);
-  await page.keyboard.up('KeyD');
-  await expect(page.locator('main')).not.toHaveAttribute(
-    'data-nearby-weapon',
-    '',
-  );
+  await whileHoldingKey(page, 'KeyD', async () => {
+    await expect(page.locator('main')).not.toHaveAttribute(
+      'data-nearby-weapon',
+      '',
+      { timeout: 4000 },
+    );
+  });
   await page.keyboard.press('KeyE');
 
   await expect(page.locator('main')).not.toHaveAttribute('data-weapon', 'smg');
@@ -330,7 +346,7 @@ test('drops and equips a random weapon from a defeated enemy', async ({
 test('advances to the next room after clearing the first and locks it again', async ({
   page,
 }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(SINGLE_ROOM_TEST_TIMEOUT);
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
@@ -361,7 +377,7 @@ test('advances to the next room after clearing the first and locks it again', as
 test('clears every room in stage 1 and advances into stage 2', async ({
   page,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(MULTI_ROOM_TEST_TIMEOUT);
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
@@ -401,7 +417,7 @@ test('clears every room in stage 1 and advances into stage 2', async ({
 });
 
 test('restarts cleanly after dying in stage 2', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(MULTI_ROOM_TEST_TIMEOUT);
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 

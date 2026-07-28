@@ -21,6 +21,7 @@ export class StageEndEventDirector {
   }
 
   private playSiege(onComplete: () => void) {
+    const viewportLeft = this.scene.cameras.main.scrollX;
     const statusText = this.scene.add
       .text(GAME_WIDTH / 2, 154, 'CONTAINMENT PROTOCOL', {
         color: '#ff7180',
@@ -29,19 +30,21 @@ export class StageEndEventDirector {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
-      .setDepth(20);
+      .setDepth(20)
+      .setScrollFactor(0);
 
     SIEGE_SILHOUETTE_X_POSITIONS.forEach((x, index) => {
+      const worldX = viewportLeft + x;
       const body = this.scene.add
-        .rectangle(x, GAME_HEIGHT - 116, 36, 98, 0x1b2332, 0.98)
+        .rectangle(worldX, GAME_HEIGHT - 116, 36, 98, 0x1b2332, 0.98)
         .setDepth(6)
         .setAlpha(0);
       const eye = this.scene.add
-        .rectangle(x, GAME_HEIGHT - 150, 24, 6, 0xff4657, 1)
+        .rectangle(worldX, GAME_HEIGHT - 150, 24, 6, 0xff4657, 1)
         .setDepth(6)
         .setAlpha(0);
       const eyeGlow = this.scene.add
-        .rectangle(x, GAME_HEIGHT - 150, 40, 16, 0xff4657, 0.28)
+        .rectangle(worldX, GAME_HEIGHT - 150, 40, 16, 0xff4657, 0.28)
         .setDepth(5)
         .setAlpha(0);
 
@@ -72,7 +75,8 @@ export class StageEndEventDirector {
           1,
         )
         .setDepth(95)
-        .setAlpha(0);
+        .setAlpha(0)
+        .setScrollFactor(0);
       this.scene.tweens.add({
         targets: blackout,
         alpha: 1,

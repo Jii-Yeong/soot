@@ -30,7 +30,8 @@ export class RoomDirector {
         fontStyle: 'bold',
       })
       .setOrigin(0.5)
-      .setDepth(20);
+      .setDepth(20)
+      .setScrollFactor(0);
   }
 
   destroy() {

@@ -13,6 +13,10 @@ import {
 import type { RoomConfig } from '@/game/config/roomConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import {
+  ROOM_CAMERA_FOLLOW_LERP_X,
+  ROOM_WORLD_WIDTH,
+} from '@/game/config/worldConfig';
+import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
   type WeaponConfig,
@@ -22,6 +26,7 @@ import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { RoomState } from '@/game/state/roomState';
+import { BackdropDirector } from '@/game/systems/BackdropDirector';
 import { EnemyFactory } from '@/game/systems/EnemyFactory';
 import { LootDirector } from '@/game/systems/LootDirector';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
@@ -48,10 +53,7 @@ export class GameScene extends Phaser.Scene {
   private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
-  private backdropGraphics?: Phaser.GameObjects.Graphics;
-  private backdropImage?: Phaser.GameObjects.Image;
-  private neonAccent?: Phaser.GameObjects.Rectangle;
-  private neonFlickerTimer?: Phaser.Time.TimerEvent;
+  private backdropDirector!: BackdropDirector;
   private deathOverlay!: Phaser.GameObjects.Container;
   private stageClearOverlay!: Phaser.GameObjects.Container;
   private stageEndOverlay!: Phaser.GameObjects.Container;
@@ -79,9 +81,12 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('stage-changed', this.stage.id);
     this.setPhase('playing');
 
-    this.drawBackdrop();
+    this.configureHorizontalWorld();
+    this.backdropDirector = new BackdropDirector(this);
+    this.backdropDirector.draw(this.stage);
     const floor = this.createFloor();
     this.createPlayer(floor);
+    this.configureCamera();
     this.createRoom(floor);
     this.createCombatSystems();
     this.stageEndEventDirector = new StageEndEventDirector(this);
@@ -128,7 +133,7 @@ export class GameScene extends Phaser.Scene {
   private createFloor() {
     const floor = this.physics.add.staticGroup();
 
-    for (let x = 32; x < GAME_WIDTH; x += 64) {
+    for (let x = 32; x < ROOM_WORLD_WIDTH; x += 64) {
       floor.create(x, GAME_HEIGHT - 32, 'floor-placeholder');
     }
 
@@ -150,6 +155,28 @@ export class GameScene extends Phaser.Scene {
     // player whenever a melee enemy closes to contact range.
     this.player.setDepth(8);
     this.physics.add.collider(this.player, floor);
+  }
+
+  private configureHorizontalWorld() {
+    this.physics.world.setBounds(0, 0, ROOM_WORLD_WIDTH, GAME_HEIGHT);
+    this.cameras.main
+      .setBounds(0, 0, ROOM_WORLD_WIDTH, GAME_HEIGHT)
+      .setRoundPixels(true);
+  }
+
+  private configureCamera() {
+    this.cameras.main.startFollow(
+      this.player,
+      true,
+      ROOM_CAMERA_FOLLOW_LERP_X,
+      1,
+    );
+  }
+
+  private resetCameraToRoomEntrance() {
+    this.cameras.main.stopFollow();
+    this.cameras.main.setScroll(0, 0);
+    this.configureCamera();
   }
 
   private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
@@ -227,19 +254,21 @@ export class GameScene extends Phaser.Scene {
     this.currentStageIndex += 1;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
-    this.drawBackdrop();
+    this.backdropDirector.draw(this.stage);
     this.enterCurrentRoom();
   }
 
   private enterCurrentRoom() {
-    this.buildRoom(this.currentRoomConfig);
-    this.updateStageLabel();
-    this.startRoomEncounter();
-    this.setPhase('playing');
     this.player.setPosition(
       this.currentRoomConfig.entranceX + 90,
       this.player.y,
     );
+    this.player.setVelocity(0);
+    this.resetCameraToRoomEntrance();
+    this.buildRoom(this.currentRoomConfig);
+    this.updateStageLabel();
+    this.startRoomEncounter();
+    this.setPhase('playing');
   }
 
   private handleRunCleared() {
@@ -362,7 +391,8 @@ export class GameScene extends Phaser.Scene {
         fontSize: '14px',
       })
       .setOrigin(0.5)
-      .setDepth(20);
+      .setDepth(20)
+      .setScrollFactor(0);
     this.updateStageLabel();
 
     this.weaponLabelText = this.add
@@ -372,7 +402,9 @@ export class GameScene extends Phaser.Scene {
         fontSize: '15px',
         fontStyle: 'bold',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0.5)
+      .setDepth(20)
+      .setScrollFactor(0);
     this.updateWeaponLabel();
 
     this.weaponEquippedText = this.add
@@ -386,6 +418,7 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(30)
+      .setScrollFactor(0)
       .setVisible(false);
 
     this.add
@@ -399,7 +432,9 @@ export class GameScene extends Phaser.Scene {
           fontSize: '15px',
         },
       )
-      .setOrigin(1, 0.5);
+      .setOrigin(1, 0.5)
+      .setDepth(20)
+      .setScrollFactor(0);
   }
 
   private bindInputHandlers() {
@@ -737,6 +772,7 @@ export class GameScene extends Phaser.Scene {
     return this.add
       .container(0, 0, [panel, title, prompt])
       .setDepth(100)
+      .setScrollFactor(0)
       .setVisible(false);
   }
 
@@ -771,66 +807,5 @@ export class GameScene extends Phaser.Scene {
       aimPoint.x,
       aimPoint.y + 12,
     );
-  }
-
-  private drawBackdrop() {
-    const { palette, background } = this.stage;
-
-    // Always rebuild from scratch: on a stage change or scene restart these
-    // fields still point at destroyed objects that must not be reused.
-    this.backdropGraphics?.destroy();
-    this.backdropGraphics = undefined;
-    this.backdropImage?.destroy();
-    this.backdropImage = undefined;
-    this.neonAccent?.destroy();
-    this.neonAccent = undefined;
-    this.neonFlickerTimer?.remove();
-    this.neonFlickerTimer = undefined;
-
-    // Real backdrop art replaces the procedural gradient/grid; the floor tiles
-    // are hidden in buildRoom (floorGroup isn't valid this early on restart).
-    if (background) {
-      this.backdropImage = this.add
-        .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, background.key)
-        .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
-        .setDepth(-10);
-      return;
-    }
-
-    const graphics = this.add.graphics();
-    this.backdropGraphics = graphics;
-
-    graphics.fillGradientStyle(
-      palette.backgroundTop,
-      palette.backgroundTop,
-      palette.backgroundBottom,
-      palette.backgroundBottom,
-    );
-    graphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    graphics.lineStyle(1, palette.gridLine, 0.55);
-    for (let x = 64; x < GAME_WIDTH; x += 64) {
-      graphics.lineBetween(x, 0, x, GAME_HEIGHT - 64);
-    }
-    for (let y = 80; y < GAME_HEIGHT - 64; y += 64) {
-      graphics.lineBetween(0, y, GAME_WIDTH, y);
-    }
-
-    graphics.fillStyle(palette.accentPrimary, 0.8);
-    graphics.fillRect(0, 110, GAME_WIDTH, 3);
-
-    this.neonAccent = this.add
-      .rectangle(0, 116, GAME_WIDTH * 0.36, 1, palette.accentSecondary, 0.7)
-      .setOrigin(0, 0.5);
-
-    this.neonFlickerTimer = palette.neonFlicker
-      ? this.time.addEvent({
-          delay: 90,
-          loop: true,
-          callback: () => {
-            this.neonAccent?.setAlpha(Math.random() < 0.15 ? 0.15 : 0.7);
-          },
-        })
-      : undefined;
   }
 }
