@@ -93,6 +93,10 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     accentSecondary: 0xa8b84a,
     neonFlicker: true,
   },
+  background: {
+    key: 'stage-03-bg',
+    path: '/assets/backgrounds/stage-03.png',
+  },
   rooms: [UNDERGROUND_ROOM_ONE, UNDERGROUND_ROOM_TWO, UNDERGROUND_BOSS_ROOM],
   endEvent: 'siege',
 };

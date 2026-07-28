@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { STAGES, STAGE_TWO_CONFIG } from '@/game/config/stageConfig';
+import {
+  STAGES,
+  STAGE_THREE_CONFIG,
+  STAGE_TWO_CONFIG,
+} from '@/game/config/stageConfig';
 
 describe('stage room progression', () => {
   it('ends every stage with one dedicated boss room', () => {
@@ -17,6 +21,13 @@ describe('stage room progression', () => {
     expect(STAGE_TWO_CONFIG.background).toEqual({
       key: 'stage-02-bg',
       path: '/assets/backgrounds/stage-02.png',
+    });
+  });
+
+  it('loads the supplied stage 3 background with the same structure', () => {
+    expect(STAGE_THREE_CONFIG.background).toEqual({
+      key: 'stage-03-bg',
+      path: '/assets/backgrounds/stage-03.png',
     });
   });
 });
