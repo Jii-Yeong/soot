@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
+import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
@@ -166,13 +167,13 @@ export class BootScene extends Phaser.Scene {
       graphics.generateTexture(key, 96, 104);
     };
 
-    createBossPlaceholder('city-warden-placeholder', 0x286783, 0x8ee3ff);
-    createBossPlaceholder('alley-hunter-placeholder', 0x7a3821, 0xffb06f);
-    createBossPlaceholder(
-      'underground-guardian-placeholder',
-      0x3f5c28,
-      0xc5ec72,
-    );
+    for (const config of Object.values(BOSS_COMBAT_CONFIGS)) {
+      createBossPlaceholder(
+        config.texture,
+        config.placeholder.bodyColor,
+        config.placeholder.accentColor,
+      );
+    }
 
     graphics.clear();
     graphics.fillStyle(0xffe1a8);

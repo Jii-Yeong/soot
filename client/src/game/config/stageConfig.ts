@@ -6,6 +6,9 @@ import {
   CITY_BOSS_ROOM,
   CITY_ROOM_ONE,
   CITY_ROOM_TWO,
+  INFERNO_BOSS_ROOM,
+  INFERNO_ROOM_ONE,
+  INFERNO_ROOM_TWO,
   UNDERGROUND_BOSS_ROOM,
   UNDERGROUND_ROOM_ONE,
   UNDERGROUND_ROOM_TWO,
@@ -101,8 +104,27 @@ export const STAGE_THREE_CONFIG: StageConfig = {
   endEvent: 'siege',
 };
 
+export const STAGE_FOUR_CONFIG: StageConfig = {
+  id: 'stage-04',
+  label: 'STAGE 4 // HELL',
+  palette: {
+    backgroundTop: 0x210b0a,
+    backgroundBottom: 0x080303,
+    gridLine: 0x4a1712,
+    accentPrimary: 0xff5a36,
+    accentSecondary: 0xffb347,
+    neonFlicker: true,
+  },
+  background: {
+    key: 'stage-04-bg',
+    path: '/assets/backgrounds/stage-04.png',
+  },
+  rooms: [INFERNO_ROOM_ONE, INFERNO_ROOM_TWO, INFERNO_BOSS_ROOM],
+};
+
 export const STAGES: readonly StageConfig[] = [
   STAGE_ONE_CONFIG,
   STAGE_TWO_CONFIG,
   STAGE_THREE_CONFIG,
+  STAGE_FOUR_CONFIG,
 ];

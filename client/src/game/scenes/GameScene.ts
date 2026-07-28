@@ -12,7 +12,8 @@ import {
 } from '@/game/config/playerAnimationConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import { placeRoomInStage } from '@/game/config/roomPlacement';
-import { STAGES } from '@/game/config/stageConfig';
+import { STAGES, type StageEndEvent } from '@/game/config/stageConfig';
+import { getStageExitPlan } from '@/game/config/stageProgression';
 import {
   ROOM_CAMERA_FOLLOW_LERP_X,
   STAGE_WORLD_WIDTH,
@@ -254,16 +255,23 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceToNextStage() {
-    if (this.currentStageIndex + 1 >= STAGES.length) {
-      if (this.stage.endEvent) {
-        this.playStageEndEvent();
-      } else {
-        this.handleRunCleared();
-      }
+    const plan = getStageExitPlan(STAGES, this.currentStageIndex);
+
+    if (plan.event) {
+      this.playStageEndEvent(plan.event, plan.nextStageIndex);
       return;
     }
 
-    this.currentStageIndex += 1;
+    this.completeStageExit(plan.nextStageIndex);
+  }
+
+  private completeStageExit(nextStageIndex: number | null) {
+    if (nextStageIndex === null) {
+      this.handleRunCleared();
+      return;
+    }
+
+    this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
     this.backdropDirector.draw(this.stage);
@@ -294,13 +302,10 @@ export class GameScene extends Phaser.Scene {
     this.stageClearOverlay.setVisible(true);
   }
 
-  private playStageEndEvent() {
-    const { endEvent } = this.stage;
-    if (!endEvent) {
-      this.handleRunCleared();
-      return;
-    }
-
+  private playStageEndEvent(
+    event: StageEndEvent,
+    nextStageIndex: number | null,
+  ) {
     this.setPhase('transitioning');
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
@@ -309,10 +314,14 @@ export class GameScene extends Phaser.Scene {
     this.lootDirector.clear();
     this.aimGraphics.clear();
     this.enemyRangeGraphics.clear();
-    this.roomDirector.destroy();
-    this.stageEndEventDirector.play(endEvent, () => {
-      this.setPhase('ending');
-      this.stageEndOverlay.setVisible(true);
+    this.stageEndEventDirector.play(event, () => {
+      if (nextStageIndex === null) {
+        this.setPhase('ending');
+        this.stageEndOverlay.setVisible(true);
+        return;
+      }
+
+      this.completeStageExit(nextStageIndex);
     });
   }
 

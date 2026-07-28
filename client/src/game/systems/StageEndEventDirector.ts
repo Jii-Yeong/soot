@@ -8,10 +8,10 @@ const SIEGE_REVEAL_INTERVAL = 200;
 export class StageEndEventDirector {
   constructor(private readonly scene: Phaser.Scene) {}
 
-  play(event: StageEndEvent, onComplete: () => void) {
+  play(event: StageEndEvent, onBlackout: () => void) {
     switch (event) {
       case 'siege':
-        this.playSiege(onComplete);
+        this.playSiege(onBlackout);
         return;
       default: {
         const unhandledEvent: never = event;
@@ -20,8 +20,9 @@ export class StageEndEventDirector {
     }
   }
 
-  private playSiege(onComplete: () => void) {
+  private playSiege(onBlackout: () => void) {
     const viewportLeft = this.scene.cameras.main.scrollX;
+    const silhouettes: Phaser.GameObjects.GameObject[] = [];
     const statusText = this.scene.add
       .text(GAME_WIDTH / 2, 154, 'CONTAINMENT PROTOCOL', {
         color: '#ff7180',
@@ -47,6 +48,7 @@ export class StageEndEventDirector {
         .rectangle(worldX, GAME_HEIGHT - 150, 40, 16, 0xff4657, 0.28)
         .setDepth(5)
         .setAlpha(0);
+      silhouettes.push(body, eye, eyeGlow);
 
       this.scene.time.delayedCall(SIEGE_REVEAL_INTERVAL * index, () => {
         this.scene.tweens.add({ targets: body, alpha: 1, duration: 260 });
@@ -81,7 +83,20 @@ export class StageEndEventDirector {
         targets: blackout,
         alpha: 1,
         duration: 520,
-        onComplete,
+        onComplete: () => {
+          onBlackout();
+          this.scene.tweens.add({
+            targets: blackout,
+            alpha: 0,
+            duration: 520,
+            onComplete: () => {
+              blackout.destroy();
+              for (const silhouette of silhouettes) {
+                silhouette.destroy();
+              }
+            },
+          });
+        },
       });
     });
   }

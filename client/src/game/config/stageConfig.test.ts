@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   STAGES,
+  STAGE_FOUR_CONFIG,
   STAGE_THREE_CONFIG,
   STAGE_TWO_CONFIG,
 } from '@/game/config/stageConfig';
@@ -28,6 +29,23 @@ describe('stage room progression', () => {
     expect(STAGE_THREE_CONFIG.background).toEqual({
       key: 'stage-03-bg',
       path: '/assets/backgrounds/stage-03.png',
+    });
+  });
+
+  it('continues from the stage 3 siege into a three-room hell stage', () => {
+    expect(STAGES).toHaveLength(4);
+    expect(STAGE_THREE_CONFIG.endEvent).toBe('siege');
+    expect(STAGE_FOUR_CONFIG).toMatchObject({
+      id: 'stage-04',
+      label: 'STAGE 4 // HELL',
+      background: {
+        key: 'stage-04-bg',
+        path: '/assets/backgrounds/stage-04.png',
+      },
+    });
+    expect(STAGE_FOUR_CONFIG.rooms.at(-1)?.enemySpawns[0]).toMatchObject({
+      type: 'boss',
+      variant: 'infernal-executioner',
     });
   });
 });
