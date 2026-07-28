@@ -53,6 +53,31 @@ export class BootScene extends Phaser.Scene {
 
   private createRuntimeTextures() {
     const graphics = this.make.graphics({ x: 0, y: 0 }, false);
+    const createWeaponPlaceholder = (
+      key: string,
+      width: number,
+      accent: number,
+      options: { longBarrel?: boolean; wideMuzzle?: boolean } = {},
+    ) => {
+      graphics.clear();
+      graphics.fillStyle(0x161b1d);
+      graphics.fillRect(2, 3, width - 7, 7);
+      graphics.fillStyle(0x3a454a);
+      graphics.fillRect(5, 1, Math.floor(width * 0.42), 4);
+      graphics.fillStyle(accent);
+      graphics.fillRect(8, 4, Math.floor(width * 0.38), 2);
+      graphics.fillStyle(0x0b0d0e);
+      graphics.fillRect(10, 10, 6, 4);
+      graphics.fillRect(0, 5, 6, 5);
+      graphics.fillStyle(0x79878d);
+      graphics.fillRect(
+        width - (options.longBarrel ? 9 : 7),
+        options.wideMuzzle ? 3 : 5,
+        options.longBarrel ? 9 : 7,
+        options.wideMuzzle ? 6 : 3,
+      );
+      graphics.generateTexture(key, width, 14);
+    };
 
     graphics.fillStyle(0xf4c66d);
     graphics.fillRect(0, 0, 16, 4);
@@ -110,6 +135,24 @@ export class BootScene extends Phaser.Scene {
     graphics.fillStyle(0xffe1a8);
     graphics.fillCircle(4, 4, 4);
     graphics.generateTexture('shotgun-pellet-placeholder', 8, 8);
+
+    graphics.clear();
+    graphics.fillStyle(0xd5a8ff);
+    graphics.fillRect(0, 1, 20, 3);
+    graphics.fillStyle(0xffffff);
+    graphics.fillRect(14, 0, 6, 5);
+    graphics.generateTexture('rail-bolt-placeholder', 20, 5);
+
+    createWeaponPlaceholder('weapon-smg-placeholder', 34, 0xb6ffe4);
+    createWeaponPlaceholder('weapon-shotgun-placeholder', 42, 0xf0a35b, {
+      wideMuzzle: true,
+    });
+    createWeaponPlaceholder('weapon-burst-placeholder', 39, 0x8fb8ff, {
+      longBarrel: true,
+    });
+    createWeaponPlaceholder('weapon-rail-placeholder', 48, 0xd5a8ff, {
+      longBarrel: true,
+    });
 
     graphics.clear();
     graphics.fillStyle(0x202629);

@@ -297,21 +297,33 @@ test('player death stops combat and supports a fast restart', async ({
   );
 });
 
-test('switches to the shotgun and keeps dealing damage', async ({ page }) => {
+test('drops and equips a random weapon from a defeated enemy', async ({
+  page,
+}) => {
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
   await enterGame(page);
   await page.waitForTimeout(1000);
-
-  await page.keyboard.press('Digit2');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'smg');
 
   const bounds = await getCanvasBounds(page);
-  await fireAt(page, bounds, 640, 630, 700);
+  await fireShotsAt(page, bounds, 640, 630, 6);
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).not.toHaveAttribute('aria-valuenow', '305');
+  ).toHaveAttribute('aria-valuenow', '245', { timeout: 5000 });
+
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(1150);
+  await page.keyboard.up('KeyD');
+  await expect(page.locator('main')).not.toHaveAttribute(
+    'data-nearby-weapon',
+    '',
+  );
+  await page.keyboard.press('KeyE');
+
+  await expect(page.locator('main')).not.toHaveAttribute('data-weapon', 'smg');
   expect(runtimeErrors).toEqual([]);
 });
 
