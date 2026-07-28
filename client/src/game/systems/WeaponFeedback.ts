@@ -127,12 +127,7 @@ export class WeaponFeedback {
       onComplete: () => sparks.destroy(),
     });
 
-    enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-    this.scene.time.delayedCall(70, () => {
-      if (enemy.active) {
-        enemy.clearTint();
-      }
-    });
+    this.flashEnemyHit(enemy, 0xffffff);
     this.applyHitStop(feedback.hitStopMs);
   }
 
@@ -167,6 +162,49 @@ export class WeaponFeedback {
         ring.destroy();
         sparks.destroy();
       },
+    });
+  }
+
+  playExplosion(x: number, y: number, radius: number, weapon: WeaponConfig) {
+    const { feedback } = weapon;
+    const ring = this.scene.add
+      .circle(x, y, radius * 0.4, feedback.hitColor, 0.28)
+      .setStrokeStyle(3, feedback.hitColor, 0.95)
+      .setDepth(13);
+    const core = this.scene.add
+      .circle(x, y, radius * 0.22, 0xffffff, 0.85)
+      .setDepth(13);
+
+    this.scene.tweens.add({
+      targets: ring,
+      scale: radius / (radius * 0.4),
+      alpha: 0,
+      duration: 260,
+      ease: 'Quad.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+    this.scene.tweens.add({
+      targets: core,
+      scale: 2.1,
+      alpha: 0,
+      duration: 180,
+      ease: 'Quad.easeOut',
+      onComplete: () => core.destroy(),
+    });
+
+    this.scene.cameras.main.shake(
+      feedback.shakeDuration + 40,
+      feedback.shakeIntensity + 0.004,
+    );
+    this.applyHitStop(feedback.hitStopMs);
+  }
+
+  flashEnemyHit(enemy: Phaser.Physics.Arcade.Sprite, color: number) {
+    enemy.setTint(color).setTintMode(Phaser.TintModes.FILL);
+    this.scene.time.delayedCall(70, () => {
+      if (enemy.active) {
+        enemy.clearTint();
+      }
     });
   }
 

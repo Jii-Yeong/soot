@@ -13,6 +13,9 @@ type WeaponRuntime = {
 
 type EnemyHitListener = (enemy: Enemy, defeated: boolean) => void;
 
+/** Max distance a ricochet bolt will arc to find its next target. */
+const RICOCHET_RANGE = 600;
+
 export class WeaponSystem {
   private readonly weapons: WeaponRuntime[];
   private readonly feedback: WeaponFeedback;
@@ -21,7 +24,7 @@ export class WeaponSystem {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly player: Phaser.Physics.Arcade.Sprite,
-    enemies: Enemy[],
+    private readonly enemies: Enemy[],
     weaponConfigs: readonly WeaponConfig[],
     startingWeaponId: string,
     private readonly canFire: () => boolean,
@@ -150,7 +153,10 @@ export class WeaponSystem {
         angle,
         config.muzzleOffset,
       );
-      weapon.pool.fire(x, y, angle, { pierce: config.pierce });
+      weapon.pool.fire(x, y, angle, {
+        pierce: config.pierce,
+        ricochet: config.effects?.ricochet,
+      });
     }
 
     this.feedback.playFire(config, baseAngle, angles);
@@ -186,11 +192,95 @@ export class WeaponSystem {
         return;
       }
 
-      weapon.pool.registerHit(bullet);
-      const defeated = enemy.takeDamage(weapon.config.damage);
-      this.feedback.playEnemyHit(enemy, weapon.config);
+      const { config } = weapon;
+      const effects = config.effects;
+      const time = this.scene.time.now;
+
+      // Explosive rounds resolve as an area blast at the impact point rather
+      // than a single-target hit.
+      if (effects?.explosionRadius && effects.explosionDamage) {
+        bullet.disableBody(true, true);
+        this.detonate(bullet.x, bullet.y, config, time);
+        return;
+      }
+
+      const defeated = enemy.takeDamage(config.damage);
+      this.feedback.playEnemyHit(enemy, config);
+      if (effects?.knockback) {
+        // A projectile flies straight, so its rotation is its heading.
+        enemy.applyKnockback(bullet.rotation, effects.knockback, time);
+      }
       this.onEnemyHit(enemy, defeated);
+
+      // Lifecycle: bounce to the next enemy if it can, otherwise pierce/expire.
+      if (effects?.ricochet && this.tryRicochet(weapon, bullet, enemy)) {
+        return;
+      }
+      weapon.pool.registerHit(bullet);
     };
+  }
+
+  private detonate(x: number, y: number, config: WeaponConfig, time: number) {
+    const effects = config.effects;
+    if (!effects?.explosionRadius || !effects.explosionDamage) {
+      return;
+    }
+    const { explosionRadius: radius, explosionDamage: damage, knockback } =
+      effects;
+    this.feedback.playExplosion(x, y, radius, config);
+
+    for (const enemy of this.enemies) {
+      if (
+        !enemy.active ||
+        Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y) > radius
+      ) {
+        continue;
+      }
+
+      const defeated = enemy.takeDamage(damage);
+      this.feedback.flashEnemyHit(enemy, config.feedback.hitColor);
+      if (knockback) {
+        enemy.applyKnockback(
+          Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y),
+          knockback,
+          time,
+        );
+      }
+      this.onEnemyHit(enemy, defeated);
+    }
+  }
+
+  private tryRicochet(
+    weapon: WeaponRuntime,
+    bullet: Phaser.Physics.Arcade.Image,
+    hitEnemy: Enemy,
+  ) {
+    const next = this.findNearestOtherEnemy(bullet.x, bullet.y, hitEnemy);
+    if (!next) {
+      return false;
+    }
+
+    const angle = Phaser.Math.Angle.Between(bullet.x, bullet.y, next.x, next.y);
+    return weapon.pool.redirect(bullet, angle);
+  }
+
+  private findNearestOtherEnemy(x: number, y: number, exclude: Enemy) {
+    let nearest: Enemy | null = null;
+    let nearestDistance = RICOCHET_RANGE;
+
+    for (const enemy of this.enemies) {
+      if (!enemy.active || enemy === exclude) {
+        continue;
+      }
+
+      const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
+      if (distance <= nearestDistance) {
+        nearest = enemy;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
   }
 
   private findEnemy(firstObject: unknown, secondObject: unknown) {

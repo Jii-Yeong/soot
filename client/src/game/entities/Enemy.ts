@@ -21,6 +21,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   private health: number;
   private nextFireAt = 0;
+  private staggeredUntil = 0;
 
   protected constructor(
     scene: Phaser.Scene,
@@ -37,6 +38,27 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setCollideWorldBounds(true);
+    // Lets a knockback impulse decay to rest instead of sliding forever;
+    // enemies that drive their own velocity each frame overwrite it anyway.
+    this.setDragX(520);
+  }
+
+  /**
+   * Shoves the enemy along `angle` and briefly stuns it so its own movement
+   * doesn't immediately cancel the push. A grounded enemy also pops upward a
+   * little so the hit reads.
+   */
+  applyKnockback(angle: number, force: number, time: number, durationMs = 160) {
+    if (!this.active || force <= 0) {
+      return;
+    }
+
+    this.setVelocity(Math.cos(angle) * force, -Math.abs(force) * 0.18);
+    this.staggeredUntil = time + durationMs;
+  }
+
+  isStaggered(time: number) {
+    return time < this.staggeredUntil;
   }
 
   abstract updateCombat(
@@ -65,7 +87,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.setFlipX(target.x < this.x);
 
-    if (targetInRange && time >= this.nextFireAt) {
+    if (targetInRange && !this.isStaggered(time) && time >= this.nextFireAt) {
       fireProjectile(this, target);
       this.nextFireAt = time + fireInterval;
     }
