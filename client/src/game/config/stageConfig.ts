@@ -26,6 +26,12 @@ export type StagePalette = {
  */
 export type StageEndEvent = 'siege';
 
+/** Full-screen backdrop art that replaces the procedural gradient for a stage. */
+export type StageBackground = {
+  key: string;
+  path: string;
+};
+
 export type StageConfig = {
   id: string;
   label: string;
@@ -33,6 +39,7 @@ export type StageConfig = {
   music: MusicKey;
   rooms: readonly RoomConfig[];
   endEvent?: StageEndEvent;
+  background?: StageBackground;
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -46,6 +53,10 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     accentSecondary: 0xb6ffe4,
   },
   music: 'bgm-city',
+  background: {
+    key: 'stage-01-bg',
+    path: '/assets/backgrounds/stage-01.png',
+  },
   rooms: [CITY_ROOM_ONE, CITY_ROOM_TWO],
 };
 

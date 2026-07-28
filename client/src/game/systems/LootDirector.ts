@@ -30,7 +30,10 @@ export class LootDirector {
   tryDrop(x: number, y: number, activeWeaponId: string): WeaponPickup | null {
     this.killsSinceDrop += 1;
 
+    // The first kill of every room always drops (an early weapon choice each
+    // room), as does the pity timer; other kills roll the base chance.
     const guaranteed =
+      !this.droppedThisRoom ||
       this.killsSinceDrop >= WEAPON_DROP_CONFIG.guaranteedAfterKills;
     if (!guaranteed && this.random() >= WEAPON_DROP_CONFIG.baseChance) {
       return null;

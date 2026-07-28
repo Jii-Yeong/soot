@@ -48,7 +48,8 @@ export class GameScene extends Phaser.Scene {
   private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
-  private backdropGraphics!: Phaser.GameObjects.Graphics;
+  private backdropGraphics?: Phaser.GameObjects.Graphics;
+  private backdropImage?: Phaser.GameObjects.Image;
   private neonAccent?: Phaser.GameObjects.Rectangle;
   private neonFlickerTimer?: Phaser.Time.TimerEvent;
   private deathOverlay!: Phaser.GameObjects.Container;
@@ -169,6 +170,12 @@ export class GameScene extends Phaser.Scene {
     for (const enemy of this.enemies) {
       enemy.destroy();
     }
+
+    // A stage with real backdrop art shows its own ground, so the placeholder
+    // tiles are hidden (their invisible collision bodies stay active). Done
+    // here — where floorGroup is always the current, valid group — rather than
+    // in drawBackdrop, which runs before the floor is (re)created on restart.
+    this.floorGroup.setVisible(!this.stage.background);
 
     const enemyFactory = new EnemyFactory(
       this,
@@ -767,14 +774,31 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawBackdrop() {
-    const { palette } = this.stage;
+    const { palette, background } = this.stage;
 
-    // Always rebuild rather than reusing a cached reference: on a scene
-    // restart this field still points at the previous life's (destroyed)
-    // Graphics object, which must not be drawn into again.
+    // Always rebuild from scratch: on a stage change or scene restart these
+    // fields still point at destroyed objects that must not be reused.
     this.backdropGraphics?.destroy();
-    this.backdropGraphics = this.add.graphics();
-    const graphics = this.backdropGraphics;
+    this.backdropGraphics = undefined;
+    this.backdropImage?.destroy();
+    this.backdropImage = undefined;
+    this.neonAccent?.destroy();
+    this.neonAccent = undefined;
+    this.neonFlickerTimer?.remove();
+    this.neonFlickerTimer = undefined;
+
+    // Real backdrop art replaces the procedural gradient/grid; the floor tiles
+    // are hidden in buildRoom (floorGroup isn't valid this early on restart).
+    if (background) {
+      this.backdropImage = this.add
+        .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, background.key)
+        .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+        .setDepth(-10);
+      return;
+    }
+
+    const graphics = this.add.graphics();
+    this.backdropGraphics = graphics;
 
     graphics.fillGradientStyle(
       palette.backgroundTop,
@@ -795,12 +819,10 @@ export class GameScene extends Phaser.Scene {
     graphics.fillStyle(palette.accentPrimary, 0.8);
     graphics.fillRect(0, 110, GAME_WIDTH, 3);
 
-    this.neonAccent?.destroy();
     this.neonAccent = this.add
       .rectangle(0, 116, GAME_WIDTH * 0.36, 1, palette.accentSecondary, 0.7)
       .setOrigin(0, 0.5);
 
-    this.neonFlickerTimer?.remove();
     this.neonFlickerTimer = palette.neonFlicker
       ? this.time.addEvent({
           delay: 90,
