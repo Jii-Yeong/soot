@@ -36,6 +36,8 @@ export class GameScene extends Phaser.Scene {
   private weaponSystem!: WeaponSystem;
   private stageEndEventDirector!: StageEndEventDirector;
   private equipKey!: Phaser.Input.Keyboard.Key;
+  private lastDefeatX = 0;
+  private lastDefeatY = 0;
   private enemyProjectiles!: ProjectilePool;
   private flyingEnemyProjectiles!: ProjectilePool;
   private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
@@ -186,6 +188,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startRoomEncounter() {
+    this.lootDirector.beginRoom();
     this.roomDirector.beginEncounter(this.enemies);
   }
 
@@ -469,6 +472,11 @@ export class GameScene extends Phaser.Scene {
 
     if (state === 'cleared') {
       this.setPhase('room-cleared');
+      this.lootDirector.ensureRoomDrop(
+        this.lastDefeatX,
+        this.lastDefeatY,
+        this.weaponSystem.activeConfig.id,
+      );
       this.enemyProjectiles.clear();
       this.flyingEnemyProjectiles.clear();
       this.enemyRangeGraphics.clear();
@@ -573,6 +581,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
+    // Remember where the last kill fell so a room-clear guarantee drop (if one
+    // is needed) lands on the body rather than at an arbitrary spot.
+    this.lastDefeatX = enemy.x;
+    this.lastDefeatY = enemy.y;
     this.lootDirector.tryDrop(
       enemy.x,
       enemy.y,

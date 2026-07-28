@@ -8,7 +8,8 @@ type RandomSource = () => number;
 export class LootDirector {
   private readonly pickups = new Set<WeaponPickup>();
   private killsSinceDrop = 0;
-  private hasDroppedWeapon = false;
+  private droppedThisRoom = false;
+  private lastDroppedId: string | null = null;
   private highlightedPickup: WeaponPickup | null = null;
 
   constructor(
@@ -21,31 +22,70 @@ export class LootDirector {
     private readonly random: RandomSource = Math.random,
   ) {}
 
+  /** Resets the per-room "at least one swap" guarantee. Call on room entry. */
+  beginRoom() {
+    this.droppedThisRoom = false;
+  }
+
   tryDrop(x: number, y: number, activeWeaponId: string): WeaponPickup | null {
     this.killsSinceDrop += 1;
 
     const guaranteed =
-      !this.hasDroppedWeapon ||
       this.killsSinceDrop >= WEAPON_DROP_CONFIG.guaranteedAfterKills;
     if (!guaranteed && this.random() >= WEAPON_DROP_CONFIG.baseChance) {
       return null;
     }
 
-    const candidates = this.weapons.filter(
-      (weapon) => weapon.id !== activeWeaponId,
+    return this.dropWeapon(x, y, activeWeaponId);
+  }
+
+  /**
+   * Guarantees at least one swap opportunity per room: if nothing dropped
+   * while clearing it, force a drop (called when the room is cleared).
+   */
+  ensureRoomDrop(
+    x: number,
+    y: number,
+    activeWeaponId: string,
+  ): WeaponPickup | null {
+    if (this.droppedThisRoom) {
+      return null;
+    }
+
+    return this.dropWeapon(x, y, activeWeaponId);
+  }
+
+  private dropWeapon(x: number, y: number, activeWeaponId: string) {
+    const weapon = this.selectDropWeapon(activeWeaponId);
+    if (!weapon) {
+      return null;
+    }
+
+    const pickup = this.spawnPickup(weapon, x, y);
+    this.killsSinceDrop = 0;
+    this.droppedThisRoom = true;
+    this.lastDroppedId = weapon.id;
+    return pickup;
+  }
+
+  /**
+   * Excludes the equipped gun (never a swap) and the gun dropped last (so the
+   * same weapon doesn't appear twice in a row), keeping runs varied. Falls
+   * back to allowing a repeat only if that would otherwise leave no options.
+   */
+  private selectDropWeapon(activeWeaponId: string) {
+    let candidates = this.weapons.filter(
+      (weapon) =>
+        weapon.id !== activeWeaponId && weapon.id !== this.lastDroppedId,
     );
+    if (candidates.length === 0) {
+      candidates = this.weapons.filter((weapon) => weapon.id !== activeWeaponId);
+    }
     if (candidates.length === 0) {
       return null;
     }
 
-    const pickup = this.spawnPickup(
-      this.selectWeightedWeapon(candidates),
-      x,
-      y,
-    );
-    this.killsSinceDrop = 0;
-    this.hasDroppedWeapon = true;
-    return pickup;
+    return this.selectWeightedWeapon(candidates);
   }
 
   update(player: Phaser.Physics.Arcade.Sprite, activeWeapon: WeaponConfig) {
