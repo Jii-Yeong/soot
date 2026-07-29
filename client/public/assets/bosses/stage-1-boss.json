@@ -1,0 +1,67 @@
+{ "frames": {
+   "stage-1-boss 0.aseprite": {
+    "frame": { "x": 1, "y": 1, "w": 186, "h": 158 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 450
+   },
+   "stage-1-boss 1.aseprite": {
+    "frame": { "x": 188, "y": 1, "w": 186, "h": 158 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 300
+   },
+   "stage-1-boss 2.aseprite": {
+    "frame": { "x": 375, "y": 1, "w": 186, "h": 158 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 450
+   },
+   "stage-1-boss 3.aseprite": {
+    "frame": { "x": 1, "y": 160, "w": 186, "h": 158 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 300
+   },
+   "stage-1-boss 4.aseprite": {
+    "frame": { "x": 188, "y": 160, "w": 186, "h": 158 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.18.1-arm64",
+  "image": "stage-1-boss.png",
+  "format": "RGBA8888",
+  "size": { "w": 562, "h": 319 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "stage_1_boss_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "stage_1_boss_battle", "from": 4, "to": 4, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 2", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 3", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 4", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 5", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 6", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 7", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 8", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

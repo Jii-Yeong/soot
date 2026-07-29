@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
 import { MUSIC_CONFIG } from '@/game/config/audioConfig';
+import {
+  STAGE_ONE_BOSS_ANIMATIONS,
+  STAGE_ONE_BOSS_ATLAS_JSON,
+  STAGE_ONE_BOSS_ATLAS_KEY,
+  STAGE_ONE_BOSS_ATLAS_PNG,
+  STAGE_ONE_BOSS_IDLE_FRAMES,
+} from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
   PLAYER_ANIMATIONS,
@@ -19,6 +26,11 @@ export class BootScene extends Phaser.Scene {
       PLAYER_ATLAS_KEY,
       '/assets/player/player.png',
       '/assets/player/player.json',
+    );
+    this.load.atlas(
+      STAGE_ONE_BOSS_ATLAS_KEY,
+      STAGE_ONE_BOSS_ATLAS_PNG,
+      STAGE_ONE_BOSS_ATLAS_JSON,
     );
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
@@ -169,6 +181,11 @@ export class BootScene extends Phaser.Scene {
     };
 
     for (const config of Object.values(BOSS_COMBAT_CONFIGS)) {
+      // Bosses with a real atlas (loaded in preload) keep it; only the rest
+      // fall back to a generated placeholder.
+      if (this.textures.exists(config.texture)) {
+        continue;
+      }
       createBossPlaceholder(
         config.texture,
         config.placeholder.bodyColor,
@@ -225,6 +242,15 @@ export class BootScene extends Phaser.Scene {
         frame,
       })),
       duration: 480,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: STAGE_ONE_BOSS_ANIMATIONS.idle,
+      frames: STAGE_ONE_BOSS_IDLE_FRAMES.map((frame) => ({
+        key: STAGE_ONE_BOSS_ATLAS_KEY,
+        frame,
+      })),
+      duration: 1500,
       repeat: -1,
     });
   }

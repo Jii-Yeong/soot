@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import {
   BOSS_COMBAT_CONFIGS,
+  BOSS_SPRITES,
   hasBossPattern,
 } from '@/game/config/bossConfig';
 import {
@@ -115,6 +116,7 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
+          BOSS_SPRITES[spawn.variant],
         ),
       );
     }

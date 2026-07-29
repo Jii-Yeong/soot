@@ -1,3 +1,9 @@
+import {
+  STAGE_ONE_BOSS_ANIMATIONS,
+  STAGE_ONE_BOSS_ATLAS_KEY,
+  STAGE_ONE_BOSS_BATTLE_FRAME,
+} from '@/game/config/bossAnimationConfig';
+
 export type ChargeBossPatternConfig = {
   type: 'charge';
   moveSpeed: number;
@@ -83,6 +89,19 @@ export type BossPatternConfig =
   | LaserCannonPatternConfig
   | HoundBossPatternConfig;
 
+/**
+ * When a boss has a real sprite atlas (rather than a generated placeholder), it
+ * idles on a looping animation and snaps to a single battle frame while firing.
+ * The physics body is sized to the character since the atlas frame is padded.
+ */
+export type BossSpriteConfig = {
+  idleAnimation: string;
+  battleFrame: string;
+  scale: number;
+  bodyWidth: number;
+  bodyHeight: number;
+};
+
 export type BossCombatConfig<
   Pattern extends BossPatternConfig = BossPatternConfig,
 > = {
@@ -117,7 +136,7 @@ export const hasBossPattern = <Type extends BossPatternConfig['type']>(
  */
 export const BOSS_COMBAT_CONFIGS = {
   'city-warden': {
-    texture: 'city-warden-placeholder',
+    texture: STAGE_ONE_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x286783,
       accentColor: 0x8ee3ff,
@@ -145,8 +164,10 @@ export const BOSS_COMBAT_CONFIGS = {
       range: 1700,
       width: 30,
       damage: 20,
-      muzzleOffset: 48,
-      muzzleOffsetY: -18,
+      // Battle-pose cannon muzzle sits at source (+64, +10) from the sprite
+      // centre, so the beam leaves the barrel rather than the chest.
+      muzzleOffset: 64,
+      muzzleOffsetY: 10,
       telegraphColor: 0x8ee3ff,
       beamColor: 0xc8f7ff,
     },
@@ -265,3 +286,18 @@ export const BOSS_COMBAT_CONFIGS = {
 } satisfies Record<string, BossCombatConfig>;
 
 export type BossVariant = keyof typeof BOSS_COMBAT_CONFIGS;
+
+/**
+ * Real-atlas rendering for bosses that have one, kept apart from combat tuning
+ * so the combat-config union stays uniform (and its pattern-type exhaustiveness
+ * intact). Bosses absent here fall back to the generated placeholder.
+ */
+export const BOSS_SPRITES: Partial<Record<BossVariant, BossSpriteConfig>> = {
+  'city-warden': {
+    idleAnimation: STAGE_ONE_BOSS_ANIMATIONS.idle,
+    battleFrame: STAGE_ONE_BOSS_BATTLE_FRAME,
+    scale: 1,
+    bodyWidth: 72,
+    bodyHeight: 132,
+  },
+};
