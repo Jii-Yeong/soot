@@ -52,8 +52,10 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-player-hit': { volume: 0.8 },
   'sfx-player-dash': { volume: 0.5, rateJitter: 0.06 },
   'sfx-player-death': { volume: 0.9 },
-  'sfx-room-locked': { volume: 0.7 },
-  'sfx-room-cleared': { volume: 0.7 },
+  // Both fire once per room, so they are trimmed below the combat cues: a
+  // sound heard on every transition wears out faster than one heard mid-fight.
+  'sfx-room-locked': { volume: 0.6 },
+  'sfx-room-cleared': { volume: 0.45 },
 };
 
 /**

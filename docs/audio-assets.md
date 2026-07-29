@@ -103,8 +103,8 @@
 | `sfx-player-hit` | `player-hit_impact-punch-medium-001.ogg` | impact / `impactPunch_medium_001` | 0.402초 | 둔탁한 몸통 타격 |
 | `sfx-player-dash` | `player-dash_phase-jump-2.ogg` | digital / `phaseJump2` | 0.392초 | 세 팩에 whoosh가 없어 대체품 |
 | `sfx-player-death` | `player-death_low-frequency-explosion-001.ogg` | sci-fi / `lowFrequency_explosion_001` | 1.000초 | 저역으로 무너지는 느낌 |
-| `sfx-room-locked` | `room-locked_door-close-000.ogg` | sci-fi / `doorClose_000` | 0.532초 | 도시의 기계음. 셔터 내려가는 소리 |
-| `sfx-room-cleared` | `room-cleared_door-open-000.ogg` | sci-fi / `doorOpen_000` | 0.532초 | 해제음인데 밝지 않다. 호러 톤을 안 깬다 |
+| `sfx-room-locked` | `room-locked_impact-metal-004.ogg` | sci-fi / `impactMetal_004` | 0.390초 | 아래 "방 큐를 갈아엎었다" 참고 |
+| `sfx-room-cleared` | `room-cleared_impact-soft-heavy-000.ogg` | impact / `impactSoft_heavy_000` | 0.504초 | 〃 |
 
 **규격에서 벗어난 항목과 그 이유:**
 
@@ -116,6 +116,41 @@
 
 디코딩 후 피크가 1.0을 살짝 넘는 파일이 있어도(교체 전 `laserRetro_000`이 +0.9dBFS였다)
 실제 재생 게인은 `볼륨 × sfx 0.8 × master 0.9`라 클리핑되지 않는다.
+
+### 방 큐를 갈아엎었다 — 몸통 없는 고역, 그리고 같은 소리 두 개
+
+"방 처음 입장이랑 클리어 소리가 거슬린다"는 피드백. 원인이 둘이었고 두 번째가 더 나쁘다.
+
+| | 길이 | 중심 | 저 | 중저 | 중 | 고 4~8k | 초고 8~16k |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `doorClose_000` (교체 전 잠김) | 0.532초 | 5869Hz | -26.0 | -18.3 | -9.1 | -1.5 | **+3.2** |
+| `doorOpen_000` (교체 전 해제) | 0.532초 | 5865Hz | -26.0 | -18.3 | -9.1 | -1.5 | **+3.2** |
+
+**하나. 몸통이 없다.** 저역이 -26dB로 비어 있고 8~16kHz가 가장 센 대역이다. 순수한 고역
+히스가 0.53초간 나는 셈인데, 이런 소리는 한 번은 괜찮아도 **방마다 반복되면 가장 먼저
+피로해진다.** 고역은 귀가 민감한 대역이라 누적이 빠르다.
+
+**둘. 두 파일이 사실상 같은 소리다.** 위 표에서 보듯 측정값이 소수점까지 일치한다.
+`doorOpen`은 `doorClose`를 뒤집은 것이라 스펙트럼이 동일하다. 잠김과 해제는 **정반대
+사건인데 같은 소리를 쓰고 있었다.** 플레이어가 소리만으로 구분할 정보가 0이다.
+
+교체 기준은 **서로 다른 축에서 갈리게** 하는 것이다. 같은 계열에서 밝기만 바꾸면 또
+헷갈린다.
+
+| 큐 | 파일 | 길이 | 중심 | 성격 |
+| --- | --- | --- | --- | --- |
+| `sfx-room-locked` | `impactMetal_004` | 0.390초 | 230Hz | **금속.** 단단하고 울린다. 셔터가 내려와 갇힌다 |
+| `sfx-room-cleared` | `impactSoft_heavy_000` | 0.504초 | 123Hz | **무연질.** 금속기가 전혀 없이 먹먹하다. 압력이 풀린다 |
+
+재질이 갈리므로 길이나 음높이를 기억하지 않아도 즉시 구분된다. 둘 다 저역 중심이라
+교체 전처럼 고역으로 찌르지 않는다.
+
+**볼륨도 낮췄다.** `room-locked` 0.7 → 0.6, `room-cleared` 0.7 → 0.45. 방 전환마다
+들리는 소리는 전투 중에 묻혀 지나가는 소리보다 빨리 질린다. 특히 해제음은 전투가 끝나
+조용해진 직후에 울리므로 체감이 더 크다.
+
+대안은 `candidates/sfx/`에 `room-locked-1` ~ `-3`, `room-cleared-1` ~ `-3`으로 뒀고
+교체 전 둘은 `room-x_*_rejected`로 남겼다.
 
 ### 총소리는 세 번 갈아엎었다 — 뿅뿅, 실로폰, 그리고 합성
 
@@ -603,8 +638,8 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 | `sfx-player-hit` | `player-hit_impact-punch-medium-001.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-player-dash` | `player-dash_phase-jump-2.ogg` | Kenney — Digital Audio | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-player-death` | `player-death_low-frequency-explosion-001.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
-| `sfx-room-locked` | `room-locked_door-close-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
-| `sfx-room-cleared` | `room-cleared_door-open-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
+| `sfx-room-locked` | `room-locked_impact-metal-004.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
+| `sfx-room-cleared` | `room-cleared_impact-soft-heavy-000.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 
 **SFX는 전부 정리됐다.** 팩 3종의 `License.txt`를 직접 열어 확인했고 셋 다 CC0 1.0이며
 개인·교육·상업 이용을 명시적으로 허용한다. 표기는 의무가 아니지만 크레딧에 한 줄
