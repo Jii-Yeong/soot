@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import type { WeaponConfig } from '@/game/config/weaponConfig';
+import {
+  getWeaponTriggerDamage,
+  type WeaponConfig,
+} from '@/game/config/weaponConfig';
 
 export class WeaponPickup extends Phaser.Physics.Arcade.Sprite {
   private readonly label: Phaser.GameObjects.Text;
@@ -80,8 +83,8 @@ export class WeaponPickup extends Phaser.Physics.Arcade.Sprite {
   }
 
   private updateComparison(currentWeapon: WeaponConfig) {
-    const damage = this.totalTriggerDamage(this.weapon);
-    const currentDamage = this.totalTriggerDamage(currentWeapon);
+    const damage = getWeaponTriggerDamage(this.weapon);
+    const currentDamage = getWeaponTriggerDamage(currentWeapon);
     const damageArrow = this.arrowFor(damage, currentDamage);
     const fireRateArrow = this.arrowFor(
       currentWeapon.fireInterval,
@@ -98,10 +101,6 @@ export class WeaponPickup extends Phaser.Physics.Arcade.Sprite {
     this.comparison.setText(
       `DMG ${damageArrow}   RATE ${fireRateArrow}   PIERCE ${pierceText}`,
     );
-  }
-
-  private totalTriggerDamage(weapon: WeaponConfig) {
-    return weapon.damage * weapon.pelletCount * weapon.burstCount;
   }
 
   private arrowFor(value: number, currentValue: number) {

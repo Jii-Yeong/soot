@@ -266,7 +266,7 @@ test('player fire damages the enemy without stopping combat', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '295', { timeout: 5000 });
+  ).toHaveAttribute('aria-valuenow', '294', { timeout: 5000 });
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -331,7 +331,7 @@ test('player death stops combat and supports a fast restart', async ({
   );
 });
 
-test('drops and equips a random weapon from a defeated enemy', async ({
+test('does not offer a weapon drop from a standard enemy', async ({
   page,
 }) => {
   const runtimeErrors: Error[] = [];
@@ -347,17 +347,12 @@ test('drops and equips a random weapon from a defeated enemy', async ({
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
   ).not.toHaveAttribute('aria-valuenow', '305');
-
-  await whileHoldingKey(page, 'KeyD', async () => {
-    await expect(page.locator('main')).not.toHaveAttribute(
-      'data-nearby-weapon',
-      '',
-      { timeout: 4000 },
-    );
-  });
-  await page.keyboard.press('KeyE');
-
-  await expect(page.locator('main')).not.toHaveAttribute('data-weapon', 'smg');
+  await holdKeyFor(page, 'KeyD', 700);
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-nearby-weapon',
+    '',
+  );
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'smg');
   expect(runtimeErrors).toEqual([]);
 });
 

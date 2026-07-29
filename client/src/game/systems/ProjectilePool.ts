@@ -9,7 +9,6 @@ export type ProjectilePoolConfig = {
 
 export type FireOptions = {
   pierce?: number;
-  ricochet?: number;
 };
 
 export class ProjectilePool {
@@ -44,7 +43,6 @@ export class ProjectilePool {
       .setRotation(angle)
       .setDepth(8);
     projectile.setData('pierceRemaining', options.pierce ?? 0);
-    projectile.setData('ricochetRemaining', options.ricochet ?? 0);
     this.scene.physics.velocityFromRotation(
       angle,
       this.config.speed,
@@ -66,31 +64,6 @@ export class ProjectilePool {
 
     projectile.setData('pierceRemaining', pierceRemaining - 1);
     return false;
-  }
-
-  /**
-   * Consumes one ricochet charge and re-aims the projectile at `angle`,
-   * nudging it out of the enemy it just struck. Returns false when no charges
-   * remain (caller should fall back to normal hit handling).
-   */
-  redirect(projectile: Phaser.Physics.Arcade.Image, angle: number) {
-    const remaining = (projectile.getData('ricochetRemaining') as number) ?? 0;
-    if (remaining <= 0) {
-      return false;
-    }
-
-    projectile.setData('ricochetRemaining', remaining - 1);
-    projectile.setRotation(angle);
-    projectile.setPosition(
-      projectile.x + Math.cos(angle) * 18,
-      projectile.y + Math.sin(angle) * 18,
-    );
-    this.scene.physics.velocityFromRotation(
-      angle,
-      this.config.speed,
-      projectile.body!.velocity,
-    );
-    return true;
   }
 
   clear() {

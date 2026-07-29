@@ -187,22 +187,6 @@ export class BootScene extends Phaser.Scene {
     graphics.fillRect(14, 0, 6, 5);
     graphics.generateTexture('rail-bolt-placeholder', 20, 5);
 
-    graphics.clear();
-    graphics.fillStyle(0x5a3521);
-    graphics.fillCircle(7, 7, 7);
-    graphics.fillStyle(0xff8a5c);
-    graphics.fillCircle(7, 7, 4);
-    graphics.fillStyle(0xffe0c2);
-    graphics.fillCircle(7, 7, 2);
-    graphics.generateTexture('mortar-shell-placeholder', 14, 14);
-
-    graphics.clear();
-    graphics.fillStyle(0x7cf5d3);
-    graphics.fillRect(0, 2, 16, 3);
-    graphics.fillStyle(0xffffff);
-    graphics.fillRect(11, 0, 5, 7);
-    graphics.generateTexture('arc-bolt-placeholder', 16, 7);
-
     createWeaponPlaceholder('weapon-smg-placeholder', 34, 0xb6ffe4);
     createWeaponPlaceholder('weapon-shotgun-placeholder', 42, 0xf0a35b, {
       wideMuzzle: true,
@@ -213,11 +197,6 @@ export class BootScene extends Phaser.Scene {
     createWeaponPlaceholder('weapon-rail-placeholder', 48, 0xd5a8ff, {
       longBarrel: true,
     });
-    createWeaponPlaceholder('weapon-mortar-placeholder', 40, 0xff8a5c, {
-      wideMuzzle: true,
-    });
-    createWeaponPlaceholder('weapon-arc-placeholder', 36, 0x7cf5d3);
-
     graphics.clear();
     graphics.fillStyle(0x202629);
     graphics.fillRect(0, 0, 64, 64);

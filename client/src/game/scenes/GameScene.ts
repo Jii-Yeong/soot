@@ -24,16 +24,17 @@ import {
   type WeaponConfig,
 } from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
+import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { RoomState } from '@/game/state/roomState';
 import { BackdropDirector } from '@/game/systems/BackdropDirector';
 import { EnemyFactory } from '@/game/systems/EnemyFactory';
-import { LootDirector } from '@/game/systems/LootDirector';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
+import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
 
 export class GameScene extends Phaser.Scene {
@@ -45,12 +46,10 @@ export class GameScene extends Phaser.Scene {
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
-  private lootDirector!: LootDirector;
+  private weaponDropDirector!: WeaponDropDirector;
   private weaponSystem!: WeaponSystem;
   private stageEndEventDirector!: StageEndEventDirector;
   private equipKey!: Phaser.Input.Keyboard.Key;
-  private lastDefeatX = 0;
-  private lastDefeatY = 0;
   private enemyProjectiles!: ProjectilePool;
   private flyingEnemyProjectiles!: ProjectilePool;
   private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
@@ -114,7 +113,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.playerController.update(time);
-    this.lootDirector.update(this.player, this.weaponSystem.activeConfig);
+    this.weaponDropDirector.update(
+      this.player,
+      this.weaponSystem.activeConfig,
+    );
 
     const pointer = this.input.activePointer;
     const aimPoint = pointer.positionToCamera(
@@ -189,7 +191,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildRoom(roomConfig: RoomConfig) {
-    this.lootDirector?.clear();
+    this.weaponDropDirector?.clear();
     this.roomDirector?.destroy();
     this.activeRoomConfig = roomConfig;
     this.roomDirector = new RoomDirector({
@@ -240,7 +242,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.spawnRoomEnemies();
-    this.lootDirector.beginRoom();
     this.roomDirector.beginEncounter(this.enemies);
   }
 
@@ -311,7 +312,7 @@ export class GameScene extends Phaser.Scene {
     this.playerController.stop();
     this.player.setVelocity(0);
     this.weaponSystem.hide();
-    this.lootDirector.clear();
+    this.weaponDropDirector.clear();
     this.aimGraphics.clear();
     this.enemyRangeGraphics.clear();
     this.stageEndEventDirector.play(event, () => {
@@ -348,7 +349,7 @@ export class GameScene extends Phaser.Scene {
       () => this.phase === 'playing',
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
     );
-    this.lootDirector = new LootDirector(
+    this.weaponDropDirector = new WeaponDropDirector(
       this,
       this.floorGroup,
       WEAPON_CONFIGS,
@@ -489,7 +490,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const weapon = this.lootDirector.takeNearest(
+    const weapon = this.weaponDropDirector.takeNearest(
       this.player,
       this.weaponSystem.activeConfig,
     );
@@ -546,11 +547,6 @@ export class GameScene extends Phaser.Scene {
 
     if (state === 'cleared') {
       this.setPhase('room-cleared');
-      this.lootDirector.ensureRoomDrop(
-        this.lastDefeatX,
-        this.lastDefeatY,
-        this.weaponSystem.activeConfig.id,
-      );
       this.enemyProjectiles.clear();
       this.flyingEnemyProjectiles.clear();
       this.enemyRangeGraphics.clear();
@@ -655,15 +651,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
-    // Remember where the last kill fell so a room-clear guarantee drop (if one
-    // is needed) lands on the body rather than at an arbitrary spot.
-    this.lastDefeatX = enemy.x;
-    this.lastDefeatY = enemy.y;
-    this.lootDirector.tryDrop(
-      enemy.x,
-      enemy.y,
-      this.weaponSystem.activeConfig.id,
-    );
+    if (enemy instanceof BossEnemy) {
+      this.weaponDropDirector.dropBossReward(
+        enemy.x,
+        enemy.y,
+        this.weaponSystem.activeConfig.id,
+      );
+    }
     enemy.disableBody(true, true);
     this.roomDirector.notifyEnemyDefeated(enemy);
   }
@@ -760,7 +754,7 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('dead');
     this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
     this.weaponSystem.hide();
-    this.lootDirector.clear();
+    this.weaponDropDirector.clear();
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.weaponSystem.clearProjectiles();
     this.enemyProjectiles.clear();
