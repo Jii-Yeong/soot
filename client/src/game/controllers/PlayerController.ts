@@ -23,6 +23,10 @@ type MovementKeys = Record<
 
 const JUMP_APEX_VELOCITY_THRESHOLD = 150;
 const LANDING_POSE_DURATION = 260;
+/** Grace window to still jump just after walking off a ledge. */
+const COYOTE_TIME = 90;
+/** A jump pressed this long before landing still fires on touchdown. */
+const JUMP_BUFFER_TIME = 110;
 
 export class PlayerController {
   private readonly movementKeys: MovementKeys;
@@ -32,6 +36,8 @@ export class PlayerController {
   private dashDirection = 1;
   private dashing = false;
   private invulnerable = false;
+  private lastGroundedAt = 0;
+  private jumpBufferedUntil = 0;
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
@@ -84,13 +90,26 @@ export class PlayerController {
       this.player.setFlipX(movingLeft);
     }
 
+    if (this.player.body?.blocked.down) {
+      this.lastGroundedAt = time;
+    }
+
     const jumpPressed =
       Phaser.Input.Keyboard.JustDown(this.movementKeys.jump) ||
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.up) ||
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.space);
 
-    if (jumpPressed && this.player.body?.blocked.down) {
+    if (jumpPressed) {
+      this.jumpBufferedUntil = time + JUMP_BUFFER_TIME;
+    }
+
+    // Coyote time + jump buffer: forgive a jump pressed slightly early or a
+    // step after leaving the ledge, so platforming over pits feels responsive.
+    const withinCoyoteWindow = time - this.lastGroundedAt <= COYOTE_TIME;
+    if (time <= this.jumpBufferedUntil && withinCoyoteWindow) {
       this.player.setVelocityY(-this.config.jumpSpeed);
+      this.jumpBufferedUntil = 0;
+      this.lastGroundedAt = time - COYOTE_TIME - 1;
     }
 
     if (

@@ -681,9 +681,31 @@ export class GameScene extends Phaser.Scene {
         enemy.y,
         this.weaponSystem.activeConfig.id,
       );
+    } else {
+      this.spawnDeathPop(enemy);
     }
     enemy.defeat();
     this.roomDirector.notifyEnemyDefeated(enemy);
+  }
+
+  /** A fading, expanding ghost of the enemy so a kill has a beat of weight. */
+  private spawnDeathPop(enemy: Enemy) {
+    const pop = this.add
+      .image(enemy.x, enemy.y, enemy.texture.key, enemy.frame.name)
+      .setFlipX(enemy.flipX)
+      .setScale(enemy.scaleX, enemy.scaleY)
+      .setDepth(enemy.depth)
+      .setTint(0xffffff)
+      .setTintMode(Phaser.TintModes.FILL);
+    this.tweens.add({
+      targets: pop,
+      scaleX: enemy.scaleX * 1.6,
+      scaleY: enemy.scaleY * 1.6,
+      alpha: 0,
+      duration: 180,
+      ease: 'Quad.easeOut',
+      onComplete: () => pop.destroy(),
+    });
   }
 
   private handleEnemyContact: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
