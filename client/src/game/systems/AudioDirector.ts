@@ -50,10 +50,11 @@ export class AudioDirector {
   private music?: Phaser.Sound.BaseSound;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
+  /** Tracks already fetched, so a revisited stage does not download twice. */
+  private readonly requested = new Set<MusicKey>();
 
   constructor(private readonly game: Phaser.Game) {
     this.game.sound.on(Phaser.Sound.Events.DECODED, this.handleDecoded);
-    this.loadMusic();
 
     gameEvents.on('scene-changed', this.handleSceneChanged);
     gameEvents.on('stage-changed', this.handleStageChanged);
@@ -81,35 +82,58 @@ export class AudioDirector {
     this.playedAt.clear();
   }
 
+  /** Built once; the glob behind it is resolved at build time. */
+  private musicUrls?: Map<string, string>;
+
+  private urlFor(key: MusicKey) {
+    if (!this.musicUrls) {
+      this.musicUrls = new Map(
+        resolveAudioAssets()
+          .assets.filter((asset) => asset.key in MUSIC_CONFIG)
+          .map((asset) => [asset.key, asset.url]),
+      );
+    }
+
+    return this.musicUrls.get(key);
+  }
+
   /**
-   * Music is fetched after boot rather than during it. The city track alone is
-   * 3.8MB against 113KB for every sound effect combined, so loading it in
-   * BootScene meant the title screen waited on a file nothing needs yet — and
-   * every track added later would have piled onto that same wait.
+   * Music is fetched after boot rather than during it. Sound effects total
+   * 113KB while one track is over a megabyte, so loading music in BootScene
+   * meant the title screen waited on a file nothing needs yet.
+   *
+   * Only the track that is about to be needed is fetched, plus the one for the
+   * stage after it. Fetching every track up front would mean a player who
+   * quits during stage 1 still pays for the stage 5 music, and that download
+   * would compete with the stage 1 background the player is actually waiting
+   * on. The one-stage lead is 2~3 minutes of play against roughly a second of
+   * transfer, which is what keeps the handover silent-gap free.
    *
    * Decoding goes through the sound manager instead of a Scene loader because
    * no Scene outlives the boot to title to game handover; a loader started in
    * one is torn down with it.
    */
-  private loadMusic() {
+  private requestMusic(key: MusicKey | undefined) {
     const manager = this.game.sound;
 
-    if (!canDecode(manager)) {
+    if (!key || this.requested.has(key) || !canDecode(manager)) {
       return;
     }
 
-    for (const asset of resolveAudioAssets().assets) {
-      if (!(asset.key in MUSIC_CONFIG)) {
-        continue;
-      }
+    const url = this.urlFor(key);
 
-      // A track that fails to arrive leaves its cue silent, which is the same
-      // outcome as a cue whose file was never produced.
-      void fetch(asset.url)
-        .then((response) => response.arrayBuffer())
-        .then((data) => manager.decodeAudio(asset.key, data))
-        .catch(() => undefined);
+    if (!url) {
+      return;
     }
+
+    this.requested.add(key);
+
+    // A track that fails to arrive leaves its cue silent, which is the same
+    // outcome as a cue whose file was never produced.
+    void fetch(url)
+      .then((response) => response.arrayBuffer())
+      .then((data) => manager.decodeAudio(key, data))
+      .catch(() => undefined);
   }
 
   private readonly handleDecoded = (key: string) => {
@@ -119,17 +143,27 @@ export class AudioDirector {
   };
 
   private readonly handleSceneChanged = (scene: GameSceneKey) => {
-    if (scene === 'title') {
-      this.playMusic('bgm-title');
+    if (scene !== 'title') {
+      return;
     }
+
+    this.requestMusic('bgm-title');
+    // The title is where the player reads and presses ENTER, which is the only
+    // free moment stage one's track ever gets.
+    this.requestMusic(STAGES[0]?.music);
+    this.playMusic('bgm-title');
   };
 
   private readonly handleStageChanged = (stageId: string) => {
-    const stage = STAGES.find((candidate) => candidate.id === stageId);
+    const index = STAGES.findIndex((candidate) => candidate.id === stageId);
 
-    if (stage) {
-      this.playMusic(stage.music);
+    if (index < 0) {
+      return;
     }
+
+    this.requestMusic(STAGES[index].music);
+    this.requestMusic(STAGES[index + 1]?.music);
+    this.playMusic(STAGES[index].music);
   };
 
   private readonly handlePhaseChanged = (phase: GamePhase) => {
