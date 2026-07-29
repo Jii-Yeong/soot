@@ -1,6 +1,9 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 import type { BossVariant } from '@/game/config/bossConfig';
-import { ROOM_WORLD_WIDTH } from '@/game/config/worldConfig';
+import {
+  BOSS_ROOM_WORLD_WIDTH,
+  ROOM_WORLD_WIDTH,
+} from '@/game/config/worldConfig';
 
 export type EnemySpawnConfig =
   | {
@@ -38,6 +41,15 @@ export type TerrainPiece = {
   height: number;
 };
 
+/**
+ * A gap in the floor. `x` is the left edge (room-local). The floor is solid
+ * everywhere except across this span; falling in costs the player health.
+ */
+export type PitSpan = {
+  x: number;
+  width: number;
+};
+
 export type RoomConfig = {
   id: string;
   label: string;
@@ -51,6 +63,7 @@ export type RoomConfig = {
   };
   enemySpawns: EnemySpawnConfig[];
   terrain?: TerrainPiece[];
+  pits?: PitSpan[];
   /** Multiplies enemy move speed and divides fire interval. 1 = baseline pace. */
   intensity?: number;
 };
@@ -68,12 +81,17 @@ export type RoomDefinition = Omit<
   'kind' | 'entranceX' | 'exitX' | 'door'
 > & {
   kind?: RoomConfig['kind'];
+  /** Room segment width; the exit door sits near its right edge. */
+  worldWidth?: number;
 };
 
-export const defineRoom = (definition: RoomDefinition): RoomConfig => ({
+export const defineRoom = ({
+  worldWidth = ROOM_WORLD_WIDTH,
+  ...definition
+}: RoomDefinition): RoomConfig => ({
   kind: 'combat',
   entranceX: 64,
-  exitX: ROOM_WORLD_WIDTH - 64,
+  exitX: worldWidth - 64,
   door: ROOM_DOOR,
   ...definition,
 });
@@ -92,11 +110,13 @@ export const defineBossRoom = ({
   defineRoom({
     ...definition,
     kind: 'boss',
+    // Shorter than a combat room so the boss appears after a brief walk in.
+    worldWidth: BOSS_ROOM_WORLD_WIDTH,
     enemySpawns: [
       {
         type: 'boss',
         variant,
-        x: ROOM_WORLD_WIDTH - 760,
+        x: BOSS_ROOM_WORLD_WIDTH - 760,
         y: GAME_HEIGHT - 180,
       },
     ],

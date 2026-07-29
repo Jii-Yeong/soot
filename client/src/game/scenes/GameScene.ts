@@ -32,6 +32,11 @@ import { PlayerHealthState } from '@/game/state/playerHealthState';
 import type { RoomState } from '@/game/state/roomState';
 import { BackdropDirector } from '@/game/systems/BackdropDirector';
 import { EnemyFactory } from '@/game/systems/EnemyFactory';
+import {
+  FLOOR_SURFACE_Y,
+  FLOOR_TILE,
+  FloorBuilder,
+} from '@/game/systems/FloorBuilder';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
@@ -41,10 +46,16 @@ import { WeaponSystem } from '@/game/systems/WeaponSystem';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 
+/** How far the feet must sink past the floor surface to count as a pit fall. */
+const PIT_FALL_TRIGGER_DEPTH = 22;
+const PIT_FALL_DAMAGE = 12;
+/** Height above the floor the player is placed at after climbing out of a pit. */
+const PIT_RESPAWN_LIFT = 60;
+
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemies: Enemy[] = [];
-  private floorGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
   private currentStageIndex = 0;
   private currentRoomIndex = 0;
@@ -95,12 +106,13 @@ export class GameScene extends Phaser.Scene {
     this.configureHorizontalWorld();
     this.backdropDirector = new BackdropDirector(this);
     this.backdropDirector.draw(this.stage);
-    const floor = this.createFloor();
-    this.createPlayer(floor);
+    this.floorBuilder = new FloorBuilder(this);
+    this.rebuildFloorForStage();
+    this.createPlayer();
     this.terrainBuilder = new TerrainBuilder(this);
     this.physics.add.collider(this.player, this.terrainBuilder.group);
     this.configureCamera();
-    this.createRoom(floor);
+    this.createRoom();
     this.createCombatSystems();
     this.stageEndEventDirector = new StageEndEventDirector(this);
     this.createCombatUi();
@@ -115,6 +127,8 @@ export class GameScene extends Phaser.Scene {
     ) {
       return;
     }
+
+    this.handlePitFall();
 
     if (
       this.phase === 'room-cleared' &&
@@ -145,17 +159,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private createFloor() {
-    const floor = this.physics.add.staticGroup();
-
-    for (let x = 32; x < STAGE_WORLD_WIDTH; x += 64) {
-      floor.create(x, GAME_HEIGHT - 32, 'floor-placeholder');
-    }
-
-    return floor;
+  private rebuildFloorForStage() {
+    this.floorBuilder.build(this.stage.rooms, Boolean(this.stage.background));
   }
 
-  private createPlayer(floor: Phaser.Physics.Arcade.StaticGroup) {
+  private createPlayer() {
     this.player = this.physics.add.sprite(
       180,
       GAME_HEIGHT - 120,
@@ -169,7 +177,7 @@ export class GameScene extends Phaser.Scene {
     // list after the player, so without this they render on top of the
     // player whenever a melee enemy closes to contact range.
     this.player.setDepth(8);
-    this.physics.add.collider(this.player, floor);
+    this.physics.add.collider(this.player, this.floorBuilder.group);
   }
 
   private configureHorizontalWorld() {
@@ -194,8 +202,7 @@ export class GameScene extends Phaser.Scene {
     this.configureCamera();
   }
 
-  private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
-    this.floorGroup = floor;
+  private createRoom() {
     this.buildRoom(
       placeRoomInStage(this.currentRoomConfig, this.currentRoomIndex),
     );
@@ -220,16 +227,12 @@ export class GameScene extends Phaser.Scene {
     this.emitEnemyHealth();
 
     this.terrainBuilder.build(roomConfig.terrain);
-
-    // A stage with real backdrop art shows its own ground, so the placeholder
-    // tiles are hidden while their collision bodies stay active.
-    this.floorGroup.setVisible(!this.stage.background);
   }
 
   private spawnRoomEnemies() {
     const enemyFactory = new EnemyFactory(
       this,
-      this.floorGroup,
+      this.floorBuilder.group,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
     );
@@ -291,6 +294,7 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('stage-changed', this.stage.id);
     this.restorePlayerHealthForStage();
     this.backdropDirector.draw(this.stage);
+    this.rebuildFloorForStage();
     this.enterCurrentRoom(true);
   }
 
@@ -369,7 +373,7 @@ export class GameScene extends Phaser.Scene {
     );
     this.weaponDropDirector = new WeaponDropDirector(
       this,
-      this.floorGroup,
+      this.floorBuilder.group,
       WEAPON_CONFIGS,
       (weapon) => gameEvents.emit('nearby-weapon-changed', weapon?.id ?? null),
     );
@@ -734,6 +738,25 @@ export class GameScene extends Phaser.Scene {
       bullet.disableBody(true, true);
       this.applyPlayerDamage(damage);
     };
+  }
+
+  /**
+   * When the player's feet sink past the floor surface they have dropped into a
+   * pit (the floor collider stops them everywhere else). Lift them out onto the
+   * far ledge and dock health — the pit is a hazard, not a dead end.
+   */
+  private handlePitFall() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body.bottom <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
+      return;
+    }
+
+    const pit = this.floorBuilder.findPitAt(this.player.x, FLOOR_TILE);
+    const targetX = pit ? pit.end + FLOOR_TILE / 2 : this.player.x;
+    this.player.setPosition(targetX, FLOOR_SURFACE_Y - PIT_RESPAWN_LIFT);
+    body.setVelocity(0, 0);
+
+    this.applyPlayerDamage(PIT_FALL_DAMAGE);
   }
 
   private applyPlayerDamage(damage: number) {

@@ -4,7 +4,10 @@ import {
   CITY_BOSS_ROOM,
   CITY_ROOM_ONE,
 } from '@/game/config/rooms/stageOneRooms';
-import { ROOM_WORLD_WIDTH } from '@/game/config/worldConfig';
+import {
+  BOSS_ROOM_WORLD_WIDTH,
+  ROOM_WORLD_WIDTH,
+} from '@/game/config/worldConfig';
 
 describe('placeRoomInStage', () => {
   it('keeps the first room in local coordinates', () => {
@@ -20,6 +23,9 @@ describe('placeRoomInStage', () => {
     expect(placed.enemySpawns.map(({ x }) => x)).toEqual(
       CITY_ROOM_ONE.enemySpawns.map(({ x }) => x + offsetX),
     );
+    expect(placed.pits?.map(({ x }) => x)).toEqual(
+      CITY_ROOM_ONE.pits?.map(({ x }) => x + offsetX),
+    );
   });
 
   it('preserves boss variant data without mutating the source room', () => {
@@ -29,6 +35,6 @@ describe('placeRoomInStage', () => {
       type: 'boss',
       variant: 'city-warden',
     });
-    expect(CITY_BOSS_ROOM.enemySpawns[0]?.x).toBe(ROOM_WORLD_WIDTH - 760);
+    expect(CITY_BOSS_ROOM.enemySpawns[0]?.x).toBe(BOSS_ROOM_WORLD_WIDTH - 760);
   });
 });

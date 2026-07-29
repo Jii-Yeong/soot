@@ -20,5 +20,9 @@ export function placeRoomInStage(
       ...piece,
       x: piece.x + offsetX,
     })),
+    pits: roomConfig.pits?.map((pit) => ({
+      ...pit,
+      x: pit.x + offsetX,
+    })),
   };
 }
