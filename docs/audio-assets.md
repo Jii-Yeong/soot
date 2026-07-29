@@ -96,7 +96,7 @@
 
 | 큐 | 파일 | 출처 팩 / 원본 | 길이 | 고른 이유 |
 | --- | --- | --- | --- | --- |
-| `sfx-smg-fire` | `smg-fire_impact-plate-light-002.ogg` | impact / `impactPlate_light_002` | 0.489초 | 아래 "총소리는 두 번 갈아엎었다" 참고 |
+| `sfx-smg-fire` | `smg-fire_synth-dry.wav` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.16초 | 아래 "총소리는 세 번 갈아엎었다" 참고 |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | sci-fi / `laserLarge_000` | 0.677초 | 저역이 지배적이라 SMG와 대비된다 |
 | `sfx-enemy-hit` | `enemy-hit_impact-metal-medium-004.ogg` | impact / `impactMetal_medium_004` | 0.107초 | 연타되는 큐라 가장 짧은 금속 타격 |
 | `sfx-enemy-down` | `enemy-down_explosion-crunch-000.ogg` | sci-fi / `explosionCrunch_000` | 0.777초 | 파편 섞인 파괴음. 안드로이드에 맞는다 |
@@ -111,17 +111,16 @@
 | 항목 | 어긋난 파일 | 판단 |
 | --- | --- | --- |
 | 길이 0.6초 이하 | `player-death`(1.0초), `enemy-down`(0.78초), `shotgun-fire`(0.68초) | 이 기준은 **연사로 쌓이는 큐**를 막으려는 것이다. 죽음은 판당 한 번, 샷건은 발사 간격이 620ms라 겹치지 않는다 |
-| 연사 무기 0.2초 이하 | `smg-fire`(0.49초) | 겹침이 문제가 되는 건 **음정이 있는 소리**다. 잡음은 겹쳐도 연속된 잡음, 즉 연사음이 된다 |
 | SFX 모노 | impact 팩 3개가 스테레오 | Phaser가 그대로 재생한다. 용량 차이도 수십 KB라 변환할 이유가 없다 |
 | 피크 -3dBFS 이하 | 잰 파일이 -0.3 ~ -1.2dBFS | Kenney 팩은 전 파일이 0dBFS 근처로 통일돼 있다. **상대 밸런스가 이미 맞으므로** 절대 레벨은 `SFX_CONFIG`의 큐별 볼륨으로 잡는다 |
 
 디코딩 후 피크가 1.0을 살짝 넘는 파일이 있어도(교체 전 `laserRetro_000`이 +0.9dBFS였다)
 실제 재생 게인은 `볼륨 × sfx 0.8 × master 0.9`라 클리핑되지 않는다.
 
-### 총소리는 두 번 갈아엎었다 — 뿅뿅, 그리고 실로폰
+### 총소리는 세 번 갈아엎었다 — 뿅뿅, 실로폰, 그리고 합성
 
-`sfx-smg-fire`만 세 번 골랐다. 두 번 틀렸고, **두 번 다 지표가 잘못돼 있었다.** 과정을
-남겨 두는 이유는 다음에 같은 함정을 밟지 않기 위해서다.
+`sfx-smg-fire` 하나에 네 번 손댔다. 세 번 틀렸고 원인이 매번 달랐다. 과정을 남겨 두는
+이유는 다음에 같은 함정을 밟지 않기 위해서다.
 
 **1차 — `laserRetro_000`.** "너무 뿅뿅거린다." 재보니 원인이 둘이었다. 이 파일은 스펙트럼
 중심이 5.2kHz에 앉은 사각파 톤이라 얇고 장난감스럽다. 대안이던 `laserSmall_000`은 0.24초
@@ -141,7 +140,7 @@
 
 | 파일 | 길이 | 음정감 | 어택 | 피크 뒤 에너지 |
 | --- | --- | --- | --- | --- |
-| **`impactPlate_light_002`** (채택) | 0.489초 | **24.5dB** | 3.1ms | 82% |
+| **`impactPlate_light_002`** (3차, 팩 최선) | 0.489초 | **24.5dB** | 3.1ms | 82% |
 | `impactPlate_light_000` | 0.542초 | 26.9dB | 1.6ms | 92% |
 | `impactPlate_medium_004` | 0.534초 | 27.7dB | 5.3ms | 70% |
 | `impactPlate_heavy_001` | 0.349초 | 41.4dB | 3.5ms | 90% |
@@ -150,18 +149,48 @@
 
 2차 채택본이 132개 중 음정감 최상위권이었다. 실로폰이라는 말이 정확했다.
 
-채택본은 **어택 3.1ms에 에너지의 82%가 피크 뒤로 간다.** 순간적으로 때리고 잡음으로
-흩어지는 구조이고, 이게 총성의 형태다.
+여기서 얻은 것 하나. **1차 때 세운 "짧아야 한다"는 원칙은 음정이 있는 소리에만 맞는다.**
+음정이 겹치면 화음이나 울림으로 뭉치지만, 잡음이 겹치면 그냥 연속된 잡음 — 즉 연사음이
+된다. 실총 연사도 그렇게 들린다. 그래서 3차에서는 0.489초짜리도 후보로 뒀다.
 
-**길이 0.489초는 발사 간격 110ms에서 4.4발이 겹친다는 뜻이다.** 1차 때는 겹침을 피하려고
-짧은 파일을 골랐는데, 그 판단은 **음정이 있는 소리에만 맞는다.** 음정이 겹치면 화음이나
-울림으로 뭉치지만 잡음이 겹치면 그냥 연속된 잡음, 즉 연사음이 된다. 실총 연사도 그렇게
-들린다.
+**3차 — 팩을 포기하고 합성했다.** 3차 후보(`impactPlate_light_002`, 24.5dB)도 여전히
+뿅뿅거린다는 피드백이 나왔다. 그런데 그 파일은 **세 팩 132개 중 잡음도 최저였다.** 더
+고를 수 있는 게 남아 있지 않다는 뜻이다. 케니 팩은 아케이드용이라 총기 계열 녹음이 애초에
+없다.
+
+그래서 `tools/make-gunshot.mjs`로 직접 만들었다. 총성은 음이 아니라 **압력 계단**이므로
+합성이 오히려 정공법이다.
+
+첫 시도는 **더 나빠졌다(36.9dB).** 저역 펀치를 사인파로 넣었는데, 순음이야말로 음정감의
+극단이다. 밴드패스의 Q도 공진을 만들었다. 전 대역을 잡음으로 바꾸고 필터를 전부
+버터워스(Q=1/√2)로 고정하니 19.8dB까지 떨어졌다.
+
+| | 길이 | 음정감 | 중심 | 어택 | 꼬리 |
+| --- | --- | --- | --- | --- | --- |
+| **합성 A 건조** (채택) | 0.16초 | **19.8dB** | 3209Hz | 2.5ms | 61% |
+| 합성 B 개방 | 0.24초 | 17.8dB | 3422Hz | 1.9ms | 77% |
+| 합성 C 묵직 | 0.20초 | 30.2dB | 2265Hz | 0.9ms | 91% |
+| 팩 최선 `impactPlate_light_002` | 0.489초 | 24.5dB | 2774Hz | 3.1ms | 82% |
+| 실로폰 `impactGeneric_light_000` | 0.138초 | 70.6dB | 946Hz | 1.3ms | 57% |
+
+B가 수치상 가장 낮지만 **A를 채택했다.** 무기가 탄알 발사식이고 SMG 발사 간격이 110ms라
+꼬리가 짧은 쪽이 맞는다. B는 0.24초에 꼬리 77%라 연사 시 계속 겹친다.
+
+**소리의 정체는 스펙트럼이 아니라 감쇠 시간 비율이다.** 고역은 7ms, 중역은 16ms, 저역은
+38ms에 걸쳐 죽는다. 고역이 먼저 사라지는 이 순서가 귀에 "단단한 게 터졌다"로 들린다.
+합성이 아니라 이 비율이 핵심이므로, 마음에 안 들면 `make-gunshot.mjs`의 `topTau`,
+`midTau`, `lowTau`만 만져도 성격이 크게 바뀐다.
+
+시드를 고정해 두었으므로 **다시 돌리면 바이트 단위로 같은 파일이 나온다.** 들어 본 것과
+저장소에 있는 것이 어긋날 일이 없다.
 
 **그래도 안 맞으면 `candidates/sfx/`에 음정감 낮은 순으로 담아 뒀다.** `smg-fire-1` ~
-`smg-fire-6`이고 뒤로 갈수록 짧고 음정감이 크다. 탈락한 셋은 `smg-fire-x_*_rejected`로
-남겨 비교할 수 있다. 교체는 `sfx/`의 파일을 지우고 원하는 것을 `smg-fire_`로 시작하게
-복사하면 끝이다.
+`smg-fire-3`이 합성 셋, `smg-fire-4` ~ `smg-fire-6`이 팩에서 건진 것들이다. 탈락한 셋은
+`smg-fire-x_*_rejected`로 남겨 비교할 수 있다. 교체는 `sfx/`의 파일을 지우고 원하는 것을
+`smg-fire_`로 시작하게 복사하면 끝이다.
+
+**여기서 더 나아가려면 실총 녹음이 필요하다.** Freesound에서 CC0 필터로 `gunshot dry`,
+`9mm indoor`를 받는 편이 합성보다 확실히 낫다. 지금 것은 그때까지의 대체품이다.
 
 **`player-hit` 복선용 재료를 같이 받아 뒀다.** `candidates/sfx/monitor-tone_tone1.ogg`
 (digital 팩 `tone1`, 0.661초). 심전도 모니터 비프에 가장 가깝다. `player-hit`가 저역에만
@@ -294,7 +323,7 @@ opening, starts immediately at full level, loopable background bed,
 
 | | 250Hz~1k | **1~4k** | 4~8k | 8~16k |
 | --- | --- | --- | --- | --- |
-| `sfx-smg-fire` (`impactPlate_light_002`) | **+0.8** | -1.4 | -5.5 | -10.5 |
+| `sfx-smg-fire` (`synth-dry`) | **+0.8** | -1.4 | -5.5 | -10.5 |
 | `bgm-city` (`The_Center_of_the_Room`) | **+2.2** | -5.5 | -16.8 | -21.9 |
 
 각 파일의 자기 평균 대비 dB다. **총소리는 특정 대역에 앉지 않는다.** 채택본은 250Hz에서
@@ -567,7 +596,7 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 | 에셋 키 | 파일 | 출처 | 라이선스 | 저작자 표기 필요 | 표기 문구 |
 | --- | --- | --- | --- | --- | --- |
 | `bgm-city` | `city_the-center-of-the-room.mp3` | Gemini 웹 앱(gemini.google.com)의 Lyria로 생성 | **확인 필요** | **확인 필요** | |
-| `sfx-smg-fire` | `smg-fire_impact-plate-light-002.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | Sound effects by Kenney (kenney.nl) |
+| `sfx-smg-fire` | `smg-fire_synth-dry.wav` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-enemy-hit` | `enemy-hit_impact-metal-medium-004.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-enemy-down` | `enemy-down_explosion-crunch-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
