@@ -71,7 +71,16 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     return null;
   }
 
-  onDefeated() {
+  defeat() {
+    if (!this.active) {
+      return;
+    }
+
+    this.onDefeated();
+    this.disableBody(true, true);
+  }
+
+  protected onDefeated() {
     this.setVelocity(0);
   }
 

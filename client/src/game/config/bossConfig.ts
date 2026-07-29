@@ -32,11 +32,60 @@ export type LaserCannonPatternConfig = {
   beamColor: number;
 };
 
+/** Visual-only fields a beam effect needs; shared by any beam-firing boss. */
+export type BeamVisualConfig = {
+  range: number;
+  width: number;
+  telegraphColor: number;
+  beamColor: number;
+};
+
+/**
+ * Stage-2 hound: a mobile searchlight predator. Alternates a player-tracking
+ * lock-on beam (the headlamp lance) with a lunging pounce, and adds a wide
+ * sweeping beam once enraged.
+ */
+export type HoundBossPatternConfig = {
+  type: 'hound';
+  moveSpeed: number;
+  enragedMoveSpeed: number;
+  enrageHealthRatio: number;
+  preferredDistance: number;
+  distanceTolerance: number;
+  firstAttackDelay: number;
+  recoveryDuration: number;
+  enragedRecoveryDuration: number;
+  beam: BeamVisualConfig & {
+    damage: number;
+    muzzleOffset: number;
+    muzzleOffsetY: number;
+  };
+  lance: {
+    chargeDuration: number;
+    enragedChargeDuration: number;
+    aimLockDuration: number;
+    fireDuration: number;
+  };
+  pounce: {
+    telegraphDuration: number;
+    chargeSpeed: number;
+    chargeDuration: number;
+  };
+  sweep: {
+    chargeDuration: number;
+    fireDuration: number;
+    arcDegrees: number;
+  };
+};
+
 export type BossPatternConfig =
   | ChargeBossPatternConfig
-  | LaserCannonPatternConfig;
+  | LaserCannonPatternConfig
+  | HoundBossPatternConfig;
 
-export type BossCombatConfig = {
+export type BossCombatConfig<
+  Pattern extends BossPatternConfig = BossPatternConfig,
+> = {
   texture: string;
   placeholder: {
     bodyColor: number;
@@ -47,8 +96,20 @@ export type BossCombatConfig = {
   aggroIndicatorColor: number;
   contactDamage: number;
   contactDamageCooldown: number;
-  pattern: BossPatternConfig;
+  pattern: Pattern;
 };
+
+export type ChargingBossCombatConfig =
+  BossCombatConfig<ChargeBossPatternConfig>;
+export type LaserBossCombatConfig =
+  BossCombatConfig<LaserCannonPatternConfig>;
+export type HoundBossCombatConfig = BossCombatConfig<HoundBossPatternConfig>;
+
+export const hasBossPattern = <Type extends BossPatternConfig['type']>(
+  config: BossCombatConfig,
+  type: Type,
+): config is BossCombatConfig<Extract<BossPatternConfig, { type: Type }>> =>
+  config.pattern.type === type;
 
 /**
  * Boss stats and pattern tuning live together while their runtime behavior is
@@ -102,13 +163,40 @@ export const BOSS_COMBAT_CONFIGS = {
     contactDamage: 22,
     contactDamageCooldown: 650,
     pattern: {
-      type: 'charge',
-      moveSpeed: 135,
-      enragedMoveSpeed: 195,
+      type: 'hound',
+      moveSpeed: 130,
+      enragedMoveSpeed: 190,
       enrageHealthRatio: 0.55,
-      chargeSpeed: 470,
-      chargeDuration: 460,
-      chargeInterval: 2200,
+      preferredDistance: 470,
+      distanceTolerance: 90,
+      firstAttackDelay: 800,
+      recoveryDuration: 1100,
+      enragedRecoveryDuration: 820,
+      beam: {
+        range: 1700,
+        width: 26,
+        damage: 20,
+        muzzleOffset: 48,
+        muzzleOffsetY: -14,
+        telegraphColor: 0x8ee3ff,
+        beamColor: 0xc8f7ff,
+      },
+      lance: {
+        chargeDuration: 850,
+        enragedChargeDuration: 640,
+        aimLockDuration: 260,
+        fireDuration: 200,
+      },
+      pounce: {
+        telegraphDuration: 360,
+        chargeSpeed: 480,
+        chargeDuration: 440,
+      },
+      sweep: {
+        chargeDuration: 720,
+        fireDuration: 900,
+        arcDegrees: 68,
+      },
     },
   },
   'underground-guardian': {

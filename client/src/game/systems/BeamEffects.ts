@@ -1,19 +1,19 @@
 import Phaser from 'phaser';
-import type { LaserCannonPatternConfig } from '@/game/config/bossConfig';
+import type { BeamVisualConfig } from '@/game/config/bossConfig';
 
 type Point = {
   x: number;
   y: number;
 };
 
-export class LaserCannonEffects {
+export class BeamEffects {
   private readonly telegraph: Phaser.GameObjects.Graphics;
   private readonly beamGlow: Phaser.GameObjects.Rectangle;
   private readonly beamCore: Phaser.GameObjects.Rectangle;
 
   constructor(
     private readonly scene: Phaser.Scene,
-    private readonly pattern: LaserCannonPatternConfig,
+    private readonly pattern: BeamVisualConfig,
   ) {
     this.telegraph = scene.add.graphics().setDepth(11);
     this.beamGlow = scene.add

@@ -1,15 +1,18 @@
 import Phaser from 'phaser';
-import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import {
+  BOSS_COMBAT_CONFIGS,
+  hasBossPattern,
+} from '@/game/config/bossConfig';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
-import { BossEnemy } from '@/game/entities/BossEnemy';
 import { ChargingBossEnemy } from '@/game/entities/ChargingBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
@@ -18,6 +21,10 @@ type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   EnemySpawnConfig,
   { type: Type }
 >;
+
+const assertUnhandledBossConfig = (_config: never): never => {
+  throw new Error('Unsupported boss pattern');
+};
 
 export class EnemyFactory {
   private readonly intensity: number;
@@ -98,33 +105,46 @@ export class EnemyFactory {
 
   private createBossEnemy(spawn: SpawnOf<'boss'>) {
     const config = BOSS_COMBAT_CONFIGS[spawn.variant];
-    let enemy: BossEnemy;
 
-    switch (config.pattern.type) {
-      case 'laser-cannon':
-        enemy = new LaserBossEnemy(
+    if (hasBossPattern(config, 'laser-cannon')) {
+      return this.finishSpawn(
+        new LaserBossEnemy(
           this.scene,
           spawn.x,
           spawn.y,
           config.texture,
           config,
-          config.pattern,
           this.damagePlayer,
-        );
-        break;
-      case 'charge':
-        enemy = new ChargingBossEnemy(
-          this.scene,
-          spawn.x,
-          spawn.y,
-          config.texture,
-          config,
-          config.pattern,
-        );
-        break;
+        ),
+      );
     }
 
-    return this.finishSpawn(enemy);
+    if (hasBossPattern(config, 'hound')) {
+      return this.finishSpawn(
+        new HoundBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+        ),
+      );
+    }
+
+    if (hasBossPattern(config, 'charge')) {
+      return this.finishSpawn(
+        new ChargingBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+        ),
+      );
+    }
+
+    return assertUnhandledBossConfig(config);
   }
 
   private finishSpawn<EnemyType extends Enemy>(

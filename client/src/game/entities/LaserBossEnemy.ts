@@ -1,28 +1,21 @@
 import Phaser from 'phaser';
 import type {
-  BossCombatConfig,
   LaserCannonPatternConfig,
+  LaserBossCombatConfig,
 } from '@/game/config/bossConfig';
 import { isPointInsideLaser } from '@/game/combat/laserGeometry';
-import {
-  getLaserChargeWindow,
-  getLaserPatternTuning,
-} from '@/game/combat/laserPattern';
+import { LaserAttackCycle } from '@/game/combat/LaserAttackCycle';
+import { getLaserPatternTuning } from '@/game/combat/laserPattern';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
-import { LaserCannonEffects } from '@/game/systems/LaserCannonEffects';
+import { BeamEffects } from '@/game/systems/BeamEffects';
 
-type LaserState = 'repositioning' | 'charging' | 'firing';
 type PlayerDamageHandler = (damage: number) => void;
 
-export class LaserBossEnemy extends BossEnemy {
-  private readonly effects: LaserCannonEffects;
-  private attackState: LaserState = 'repositioning';
-  private stateEndsAt: number;
-  private chargeStartedAt = 0;
-  private aimLocksAt = 0;
+export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
+  private readonly effects: BeamEffects;
+  private readonly attackCycle: LaserAttackCycle;
   private aimAngle = 0;
-  private shotsRemaining = 0;
   private laserHit = false;
 
   constructor(
@@ -30,14 +23,13 @@ export class LaserBossEnemy extends BossEnemy {
     x: number,
     y: number,
     texture: string,
-    config: BossCombatConfig,
-    private readonly pattern: LaserCannonPatternConfig,
+    config: LaserBossCombatConfig,
     private readonly damagePlayer: PlayerDamageHandler,
   ) {
     super(scene, x, y, texture, config);
 
-    this.stateEndsAt = scene.time.now + pattern.firstAttackDelay;
-    this.effects = new LaserCannonEffects(scene, pattern);
+    this.attackCycle = new LaserAttackCycle(config.pattern, scene.time.now);
+    this.effects = new BeamEffects(scene, config.pattern);
   }
 
   updateCombat(
@@ -59,7 +51,7 @@ export class LaserBossEnemy extends BossEnemy {
       return false;
     }
 
-    switch (this.attackState) {
+    switch (this.attackCycle.state) {
       case 'repositioning':
         this.updateRepositioning(time, target);
         break;
@@ -74,7 +66,7 @@ export class LaserBossEnemy extends BossEnemy {
     return true;
   }
 
-  override onDefeated() {
+  protected override onDefeated() {
     super.onDefeated();
     this.effects.hideAll();
   }
@@ -91,9 +83,9 @@ export class LaserBossEnemy extends BossEnemy {
     this.effects.hideAll();
     this.moveToPreferredDistance(time, target);
 
-    if (time >= this.stateEndsAt) {
-      this.shotsRemaining = this.tuning.volleySize;
-      this.beginCharge(time, target, false);
+    if (this.attackCycle.isComplete(time)) {
+      this.attackCycle.beginVolley(time, this.isEnraged);
+      this.lockAimOn(target);
     }
   }
 
@@ -103,22 +95,17 @@ export class LaserBossEnemy extends BossEnemy {
   ) {
     this.setVelocityX(0);
 
-    if (time < this.aimLocksAt) {
-      this.aimAngle = Phaser.Math.Angle.Between(
-        this.x,
-        this.y + this.pattern.muzzleOffsetY,
-        target.x,
-        target.y,
-      );
+    if (this.attackCycle.shouldTrackAim(time)) {
+      this.lockAimOn(target);
     }
     this.setFlipX(Math.cos(this.aimAngle) < 0);
     this.effects.drawTelegraph(
       this.getMuzzlePosition(),
       this.aimAngle,
-      this.getChargeProgress(time),
+      this.attackCycle.getChargeProgress(time),
     );
 
-    if (time >= this.stateEndsAt) {
+    if (this.attackCycle.isComplete(time)) {
       this.beginFiring(time);
     }
   }
@@ -136,48 +123,18 @@ export class LaserBossEnemy extends BossEnemy {
       this.damagePlayer(this.pattern.damage);
     }
 
-    if (time < this.stateEndsAt) {
+    if (!this.attackCycle.isComplete(time)) {
       return;
     }
 
     this.effects.hideBeam();
-    if (this.shotsRemaining > 0) {
-      this.beginCharge(time, target, true);
-      return;
+    if (this.attackCycle.finishFiring(time, this.isEnraged)) {
+      this.lockAimOn(target);
     }
-
-    this.attackState = 'repositioning';
-    this.stateEndsAt = time + this.tuning.recoveryDuration;
-  }
-
-  private beginCharge(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-    followUp: boolean,
-  ) {
-    const { duration, aimLockDuration } = getLaserChargeWindow(
-      this.pattern,
-      this.isEnraged,
-      followUp,
-    );
-
-    this.attackState = 'charging';
-    this.chargeStartedAt = time;
-    this.stateEndsAt = time + duration;
-    this.aimLocksAt = this.stateEndsAt - aimLockDuration;
-    this.aimAngle = Phaser.Math.Angle.Between(
-      this.x,
-      this.y + this.pattern.muzzleOffsetY,
-      target.x,
-      target.y,
-    );
-    this.effects.hideBeam();
   }
 
   private beginFiring(time: number) {
-    this.attackState = 'firing';
-    this.stateEndsAt = time + this.pattern.fireDuration;
-    this.shotsRemaining -= 1;
+    this.attackCycle.beginFiring(time);
     this.laserHit = false;
     this.effects.showBeam(this.getMuzzlePosition(), this.aimAngle);
   }
@@ -213,12 +170,12 @@ export class LaserBossEnemy extends BossEnemy {
     this.setVelocityX(0);
   }
 
-  private getChargeProgress(time: number) {
-    return Phaser.Math.Clamp(
-      (time - this.chargeStartedAt) /
-        (this.stateEndsAt - this.chargeStartedAt),
-      0,
-      1,
+  private lockAimOn(target: Phaser.Physics.Arcade.Sprite) {
+    this.aimAngle = Phaser.Math.Angle.Between(
+      this.x,
+      this.y + this.pattern.muzzleOffsetY,
+      target.x,
+      target.y,
     );
   }
 
@@ -260,5 +217,9 @@ export class LaserBossEnemy extends BossEnemy {
 
   private get tuning() {
     return getLaserPatternTuning(this.pattern, this.isEnraged);
+  }
+
+  private get pattern() {
+    return this.config.pattern;
   }
 }

@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import type {
-  BossCombatConfig,
   ChargeBossPatternConfig,
+  ChargingBossCombatConfig,
 } from '@/game/config/bossConfig';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
 
-export class ChargingBossEnemy extends BossEnemy {
+export class ChargingBossEnemy extends BossEnemy<ChargeBossPatternConfig> {
   private nextChargeAt = 0;
   private chargeEndsAt = 0;
   private chargeDirection = 1;
@@ -16,8 +16,7 @@ export class ChargingBossEnemy extends BossEnemy {
     x: number,
     y: number,
     texture: string,
-    config: BossCombatConfig,
-    private readonly pattern: ChargeBossPatternConfig,
+    config: ChargingBossCombatConfig,
   ) {
     super(scene, x, y, texture, config);
   }
@@ -49,7 +48,9 @@ export class ChargingBossEnemy extends BossEnemy {
     }
 
     if (time < this.chargeEndsAt) {
-      this.setVelocityX(this.chargeDirection * this.pattern.chargeSpeed);
+      this.setVelocityX(
+        this.chargeDirection * this.config.pattern.chargeSpeed,
+      );
       return true;
     }
 
@@ -58,17 +59,17 @@ export class ChargingBossEnemy extends BossEnemy {
 
     if (time >= this.nextChargeAt) {
       this.chargeDirection = direction;
-      this.chargeEndsAt = time + this.pattern.chargeDuration;
-      this.nextChargeAt = time + this.pattern.chargeInterval;
-      this.setVelocityX(direction * this.pattern.chargeSpeed);
+      this.chargeEndsAt = time + this.config.pattern.chargeDuration;
+      this.nextChargeAt = time + this.config.pattern.chargeInterval;
+      this.setVelocityX(direction * this.config.pattern.chargeSpeed);
       return true;
     }
 
     const healthRatio = this.currentHealth / this.maxHealth;
     const moveSpeed =
-      healthRatio <= this.pattern.enrageHealthRatio
-        ? this.pattern.enragedMoveSpeed
-        : this.pattern.moveSpeed;
+      healthRatio <= this.config.pattern.enrageHealthRatio
+        ? this.config.pattern.enragedMoveSpeed
+        : this.config.pattern.moveSpeed;
     this.setVelocityX(direction * moveSpeed);
     return true;
   }

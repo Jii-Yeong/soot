@@ -15,16 +15,30 @@ describe('boss combat configuration', () => {
     expect(pattern.damage).toBe(20);
   });
 
-  it('keeps the remaining bosses on their existing charge pattern', () => {
-    const remainingPatterns = Object.entries(BOSS_COMBAT_CONFIGS)
-      .filter(([variant]) => variant !== 'city-warden')
+  it('gives the alley hunter a searchlight hound pattern', () => {
+    const { pattern } = BOSS_COMBAT_CONFIGS['alley-hunter'];
+
+    expect(pattern.type).toBe('hound');
+    if (pattern.type !== 'hound') {
+      throw new Error('Alley hunter must use the hound pattern');
+    }
+
+    // The lock-on must resolve before the beam fires, and the beam must reach
+    // across the arena.
+    expect(pattern.lance.chargeDuration).toBeGreaterThan(
+      pattern.lance.aimLockDuration,
+    );
+    expect(pattern.beam.range).toBeGreaterThanOrEqual(1280);
+    expect(pattern.sweep.arcDegrees).toBeGreaterThan(0);
+  });
+
+  it('keeps the deeper bosses on the charge pattern', () => {
+    const chargePatterns = Object.entries(BOSS_COMBAT_CONFIGS)
+      .filter(
+        ([variant]) => variant !== 'city-warden' && variant !== 'alley-hunter',
+      )
       .map(([, config]) => config.pattern.type);
 
-    expect(remainingPatterns).toEqual([
-      'charge',
-      'charge',
-      'charge',
-      'charge',
-    ]);
+    expect(chargePatterns).toEqual(['charge', 'charge', 'charge']);
   });
 });

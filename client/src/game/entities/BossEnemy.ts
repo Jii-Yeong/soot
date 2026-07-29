@@ -1,8 +1,13 @@
 import Phaser from 'phaser';
-import type { BossCombatConfig } from '@/game/config/bossConfig';
+import type {
+  BossCombatConfig,
+  BossPatternConfig,
+} from '@/game/config/bossConfig';
 import { Enemy } from '@/game/entities/Enemy';
 
-export abstract class BossEnemy extends Enemy {
+export abstract class BossEnemy<
+  Pattern extends BossPatternConfig = BossPatternConfig,
+> extends Enemy {
   readonly aggroRadius: number;
   readonly aggroIndicatorColor: number;
 
@@ -13,7 +18,7 @@ export abstract class BossEnemy extends Enemy {
     x: number,
     y: number,
     texture: string,
-    protected readonly config: BossCombatConfig,
+    protected readonly config: BossCombatConfig<Pattern>,
   ) {
     super(scene, x, y, texture, config.maxHealth);
 

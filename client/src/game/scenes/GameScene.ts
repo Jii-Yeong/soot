@@ -666,8 +666,7 @@ export class GameScene extends Phaser.Scene {
         this.weaponSystem.activeConfig.id,
       );
     }
-    enemy.onDefeated();
-    enemy.disableBody(true, true);
+    enemy.defeat();
     this.roomDirector.notifyEnemyDefeated(enemy);
   }
 
