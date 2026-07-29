@@ -34,7 +34,7 @@ export class MeleeEnemy extends Enemy {
   }
 
   updateCombat(
-    _time: number,
+    time: number,
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
@@ -49,6 +49,12 @@ export class MeleeEnemy extends Enemy {
       target.y,
     );
     const targetInRange = distance <= this.aggroRadius;
+
+    // While staggered, let the knockback impulse carry it instead of
+    // immediately resuming the chase.
+    if (this.isStaggered(time)) {
+      return targetInRange;
+    }
 
     if (!targetInRange) {
       this.setVelocityX(0);

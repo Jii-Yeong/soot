@@ -22,6 +22,8 @@ type GameEventMap = {
   'player-dashed': [x: number, y: number];
   'enemy-damaged': [x: number, y: number];
   'enemy-defeated': [x: number, y: number];
+  'weapon-changed': [id: string, label: string];
+  'nearby-weapon-changed': [id: string | null];
 };
 
 type GameEventName = keyof GameEventMap;

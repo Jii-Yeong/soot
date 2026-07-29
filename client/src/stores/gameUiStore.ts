@@ -11,11 +11,16 @@ type GameUiState = {
   scene: GameSceneKey;
   phase: GamePhase;
   roomState: RoomState;
+  weaponId: string;
+  weaponLabel: string;
+  nearbyWeaponId: string | null;
   setHealth: (health: number, maxHealth: number) => void;
   setEnemyHealth: (health: number, maxHealth: number) => void;
   setScene: (scene: GameSceneKey) => void;
   setPhase: (phase: GamePhase) => void;
   setRoomState: (roomState: RoomState) => void;
+  setWeapon: (weaponId: string, weaponLabel: string) => void;
+  setNearbyWeapon: (nearbyWeaponId: string | null) => void;
 };
 
 export const useGameUiStore = create<GameUiState>((set) => ({
@@ -26,10 +31,15 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   scene: 'boot',
   phase: 'boot',
   roomState: 'idle',
+  weaponId: 'smg',
+  weaponLabel: 'SMG',
+  nearbyWeaponId: null,
   setHealth: (health, maxHealth) => set({ health, maxHealth }),
   setEnemyHealth: (enemyHealth, enemyMaxHealth) =>
     set({ enemyHealth, enemyMaxHealth }),
   setScene: (scene) => set({ scene }),
   setPhase: (phase) => set({ phase }),
   setRoomState: (roomState) => set({ roomState }),
+  setWeapon: (weaponId, weaponLabel) => set({ weaponId, weaponLabel }),
+  setNearbyWeapon: (nearbyWeaponId) => set({ nearbyWeaponId }),
 }));

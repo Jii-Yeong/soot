@@ -11,6 +11,9 @@ describe('gameUiStore', () => {
       scene: 'boot',
       phase: 'boot',
       roomState: 'idle',
+      weaponId: 'smg',
+      weaponLabel: 'SMG',
+      nearbyWeaponId: null,
     });
   });
 
@@ -39,5 +42,20 @@ describe('gameUiStore', () => {
     useGameUiStore.getState().setRoomState('locked');
 
     expect(useGameUiStore.getState().roomState).toBe('locked');
+  });
+
+  it('tracks the equipped weapon for the HUD and integration tests', () => {
+    useGameUiStore.getState().setWeapon('rail-rifle', 'RAIL RIFLE');
+
+    expect(useGameUiStore.getState()).toMatchObject({
+      weaponId: 'rail-rifle',
+      weaponLabel: 'RAIL RIFLE',
+    });
+  });
+
+  it('tracks when a dropped weapon is close enough to equip', () => {
+    useGameUiStore.getState().setNearbyWeapon('shotgun');
+
+    expect(useGameUiStore.getState().nearbyWeaponId).toBe('shotgun');
   });
 });
