@@ -19,6 +19,9 @@ export const CITY_ROOM_ONE = defineRoom({
     { type: 'ranged', x: 950, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 1120, y: GAME_HEIGHT - 120 },
     { type: 'flying', x: 820, y: GAME_HEIGHT - 260 },
+    { type: 'melee', x: 1750, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 2920, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3200, y: GAME_HEIGHT - 360 },
   ],
   terrain: [
     // Three broad second-floor runs echo the lower half of the reference map.
@@ -42,6 +45,9 @@ export const CITY_ROOM_TWO = defineRoom({
     { type: 'flying', x: 750, y: GAME_HEIGHT - 260 },
     { type: 'flying', x: 1050, y: GAME_HEIGHT - 300 },
     { type: 'ranged', x: 1160, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 1780, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 2180, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 2980, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
     // Stagger the same three-piece rhythm so the second room feels related

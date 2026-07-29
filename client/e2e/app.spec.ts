@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const ROOM_TRANSITION_TIMEOUT = 10_000;
-const SINGLE_ROOM_TEST_TIMEOUT = 60_000;
+const SINGLE_ROOM_TEST_TIMEOUT = 75_000;
+const CITY_ROOM_ONE_MAX_HEALTH = 470;
+const CITY_ROOM_TWO_MAX_HEALTH = 530;
 
 async function whileHoldingKey(
   page: Page,
@@ -93,6 +95,23 @@ async function fireShotsAt(
   }
 }
 
+async function runAndFireAt(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+  x: number,
+  y: number,
+  duration: number,
+) {
+  const point = getCanvasPoint(bounds, x, y);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  try {
+    await holdKeyFor(page, 'KeyD', duration);
+  } finally {
+    await page.mouse.up();
+  }
+}
+
 type FireTarget = [x: number, y: number, durationMs: number];
 
 const CITY_ROOM_ONE_GROUND_TARGETS: FireTarget[] = [
@@ -128,6 +147,16 @@ async function clearCityRoomOne(
     await page.waitForTimeout(650);
   });
   await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
+
+  // Continue through the mid and far clusters while firing along the ground,
+  // then sweep the upper screen for the flying enemy that follows from the
+  // middle and can finish on either side of the player.
+  await runAndFireAt(page, bounds, 1120, 630, 8000);
+  await holdKeyFor(page, 'KeyD', 1300);
+  await fireAt(page, bounds, 300, 360, 1200);
+  await fireAt(page, bounds, 450, 360, 1200);
+  await fireAt(page, bounds, 600, 360, 1200);
+  await fireAt(page, bounds, 640, 360, 1200);
 }
 
 async function advanceThroughDoor(page: Page) {
@@ -211,7 +240,10 @@ test('waits for the entrance detector before starting combat', async ({
   );
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '305');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 });
 
 test('enters the game and shows the React HUD', async ({ page }) => {
@@ -226,8 +258,14 @@ test('enters the game and shows the React HUD', async ({ page }) => {
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuenow', '100');
   const enemyHealthMeter = page.getByRole('meter', { name: 'Enemy health' });
-  await expect(enemyHealthMeter).toHaveAttribute('aria-valuenow', '305');
-  await expect(enemyHealthMeter).toHaveAttribute('aria-valuemax', '305');
+  await expect(enemyHealthMeter).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
+  await expect(enemyHealthMeter).toHaveAttribute(
+    'aria-valuemax',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 });
 
 test('accepts WASD movement and mouse fire input', async ({ page }) => {
@@ -287,7 +325,10 @@ test('enemy detects the player and deals ranged damage', async ({ page }) => {
   await fireShotsAt(page, bounds, 640, 630, 6);
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).not.toHaveAttribute('aria-valuenow', '305');
+  ).not.toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 
   await holdKeyFor(page, 'KeyD', 1500);
 
@@ -325,7 +366,7 @@ test('player fire damages the enemy without stopping combat', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '294', { timeout: 5000 });
+  ).toHaveAttribute('aria-valuenow', '459', { timeout: 5000 });
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -338,7 +379,10 @@ test('platforms block player projectiles', async ({ page }) => {
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '305');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 });
 
 test('locks the room until every spawned enemy is defeated', async ({
@@ -396,7 +440,10 @@ test('player death stops combat and supports a fast restart', async ({
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '305');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
@@ -418,7 +465,10 @@ test('does not offer a weapon drop from a standard enemy', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).not.toHaveAttribute('aria-valuenow', '305');
+  ).not.toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
   await holdKeyFor(page, 'KeyD', 700);
   await expect(page.locator('main')).toHaveAttribute(
     'data-nearby-weapon',
@@ -455,6 +505,9 @@ test('advances to the next room after clearing the first and locks it again', as
   );
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '310');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_TWO_MAX_HEALTH.toString(),
+  );
   expect(runtimeErrors).toEqual([]);
 });

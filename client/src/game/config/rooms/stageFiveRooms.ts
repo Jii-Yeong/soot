@@ -11,11 +11,16 @@ export const RETURN_ROOM_ONE = defineRoom({
   intensity: 1.6,
   enemySpawns: [
     { type: 'melee', x: 410, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 620, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 820, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 1080, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 650, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 900, y: GAME_HEIGHT - 120 },
     { type: 'flying', x: 560, y: GAME_HEIGHT - 320 },
-    { type: 'flying', x: 980, y: GAME_HEIGHT - 280 },
+    { type: 'melee', x: 1400, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1750, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 2050, y: GAME_HEIGHT - 300 },
+    { type: 'melee', x: 2200, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 2700, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 3000, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3250, y: GAME_HEIGHT - 280 },
   ],
 });
 
@@ -25,12 +30,17 @@ export const RETURN_ROOM_TWO = defineRoom({
   intensity: 1.7,
   enemySpawns: [
     { type: 'melee', x: 390, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 570, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 760, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 930, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 1150, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 600, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 820, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1050, y: GAME_HEIGHT - 120 },
     { type: 'flying', x: 520, y: GAME_HEIGHT - 330 },
-    { type: 'flying', x: 1020, y: GAME_HEIGHT - 310 },
+    { type: 'melee', x: 1450, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1750, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 2050, y: GAME_HEIGHT - 310 },
+    { type: 'melee', x: 2250, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 2750, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 3050, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3280, y: GAME_HEIGHT - 290 },
   ],
 });
 
