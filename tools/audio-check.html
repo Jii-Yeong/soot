@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>ASH//ERROR 음원 점검</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: #0b0e10;
+        color: #d7dee2;
+        font: 14px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 18px;
+        letter-spacing: 0.08em;
+      }
+      .lead {
+        margin: 0 0 24px;
+        color: #7d8b93;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      button {
+        padding: 9px 18px;
+        border: 1px solid #33424a;
+        border-radius: 5px;
+        background: #161e22;
+        color: #b6ffe4;
+        font: inherit;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #b6ffe4;
+      }
+      .hint {
+        color: #7d8b93;
+        font-size: 13px;
+      }
+      .filter {
+        margin: 0;
+        padding: 12px 14px;
+        border-top: 1px solid #1e272c;
+      }
+      .filter button {
+        padding: 5px 14px;
+        font-size: 13px;
+        color: #7d8b93;
+      }
+      .filter button.on {
+        border-color: #b6ffe4;
+        color: #b6ffe4;
+      }
+      .card {
+        margin-top: 28px;
+        border: 1px solid #1e272c;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .card h2 {
+        margin: 0;
+        padding: 10px 14px;
+        background: #131a1e;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      td {
+        padding: 7px 14px;
+        border-top: 1px solid #1e272c;
+        vertical-align: top;
+      }
+      td:first-child {
+        width: 190px;
+        color: #7d8b93;
+      }
+      td:last-child {
+        color: #7d8b93;
+      }
+      .val {
+        color: #d7dee2;
+        white-space: nowrap;
+      }
+      .ok {
+        color: #6fd6a6;
+      }
+      .warn {
+        color: #f0a35b;
+      }
+      .fail {
+        color: #e45d68;
+      }
+      .plain {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 14px;
+        border-top: 1px solid #1e272c;
+      }
+      .chip {
+        padding: 4px 10px;
+        border: 1px solid #26323a;
+        border-radius: 999px;
+        color: #7d8b93;
+        font-size: 13px;
+      }
+      .chip.ok {
+        border-color: #2c5645;
+        color: #6fd6a6;
+      }
+      .chip.warn {
+        border-color: #5c4526;
+        color: #f0a35b;
+      }
+      .progress {
+        height: 4px;
+        background: #1e272c;
+      }
+      .progress div {
+        height: 100%;
+        background: #b6ffe4;
+        transition: width 0.2s;
+      }
+      button:disabled {
+        border-color: #1e272c;
+        color: #3f4a52;
+        cursor: default;
+      }
+      details {
+        border-top: 1px solid #1e272c;
+      }
+      summary {
+        padding: 9px 14px;
+        color: #7d8b93;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      summary:hover {
+        color: #b6ffe4;
+      }
+      /* Wide comparison tables scroll inside the card instead of the page. */
+      .scroll {
+        overflow-x: auto;
+      }
+      .scroll td:first-child {
+        width: auto;
+        white-space: nowrap;
+        color: #d7dee2;
+      }
+      .scroll td:last-child {
+        width: 1%;
+        white-space: nowrap;
+      }
+      .scroll button {
+        padding: 6px 12px;
+        font-size: 13px;
+      }
+      .scroll tr:not(:first-child) {
+        cursor: pointer;
+      }
+      .scroll tr:not(:first-child):hover td {
+        background: #131a1e;
+      }
+      .scroll tr.selected td {
+        background: #16211d;
+      }
+      .scroll tr.selected td:first-child {
+        box-shadow: inset 3px 0 0 #b6ffe4;
+      }
+      audio {
+        display: block;
+        width: 100%;
+        min-width: 160px;
+        height: 32px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ASH//ERROR 음원 점검</h1>
+    <p class="lead">후보를 듣고 고르는 페이지.</p>
+
+    <!--
+      Measurements are baked into this file instead of being recomputed. The
+      numbers never change for a given take, and a page opened from the file
+      system cannot read the audio bytes anyway — only play them.
+    -->
+    <script src="audio-candidates.js"></script>
+
+    <div id="compare"></div>
+    <div id="detail"></div>
+    <div id="out"></div>
+
+    <!--
+      A classic script, not a module. Modules are fetched even when written
+      inline-adjacent, and this page is meant to be opened straight off the
+      file system where that check is unforgiving. Nothing here needs imports.
+    -->
+    <script>
+      /**
+       * Acceptance thresholds. Keep these in sync with docs/audio-assets.md —
+       * the doc states the rule in prose, this states it in numbers.
+       */
+      const SPEC = {
+        peakDbfs: -3,
+        bgmMinSeconds: 60,
+        bgmMaxSeconds: 200,
+        sfxMaxSeconds: 0.6,
+        /** A fade longer than this cannot be trimmed away by eye. */
+        fadeSeconds: 0.15,
+        /** Loop seam: level step between the tail and the head. */
+        seamDb: 2,
+        /** Loop seam: sample jump across the wrap, which reads as a click. */
+        seamJump: 0.05,
+        /** Level spread across the track. Larger means the loop breathes too much. */
+        arcSpreadDb: 3,
+        /** Last third louder than the first third means it builds to a climax. */
+        arcBuildDb: 1.5,
+        /** Air, relative to the track's own level. Below this reads as dull. */
+        airRelDb: -24,
+        /** Where gunfire lives. Above this and the music crowds the shots. */
+        midRelDb: -8,
+      };
+
+      const BANDS = [
+        { key: 'low', label: '저역 <250Hz', chain: [['lowpass', 250]] },
+        {
+          key: 'lowMid',
+          label: '중저역 250Hz~1kHz',
+          chain: [
+            ['highpass', 250],
+            ['lowpass', 1000],
+          ],
+        },
+        {
+          key: 'mid',
+          label: '중역 1~4kHz',
+          chain: [
+            ['highpass', 1000],
+            ['lowpass', 4000],
+          ],
+        },
+        {
+          key: 'high',
+          label: '고역 4~8kHz',
+          chain: [
+            ['highpass', 4000],
+            ['lowpass', 8000],
+          ],
+        },
+        {
+          key: 'air',
+          label: '공기감 8~16kHz',
+          chain: [
+            ['highpass', 8000],
+            ['lowpass', 16000],
+          ],
+        },
+      ];
+
+      const output = document.getElementById('out');
+      const compare = document.getElementById('compare');
+      const detail = document.getElementById('detail');
+      const results = [];
+      let selected = 0;
+
+      /**
+       * One player for the whole page. The comparison rows only point it at a
+       * different file, so switching between takes never means hunting for
+       * which of a dozen players is the live one.
+       */
+      const player = document.createElement('audio');
+      player.controls = true;
+      /**
+       * Off by default. A take that misses a measured threshold can still be
+       * the one someone likes, so nothing is hidden until it is asked for.
+       */
+      let onlyRecommended = false;
+
+      function toDb(value) {
+        return value > 0 ? 20 * Math.log10(value) : -Infinity;
+      }
+
+      function formatDb(value) {
+        if (value === -Infinity) {
+          return '-inf dB';
+        }
+        return `${value >= 0 ? '+' : ''}${value.toFixed(1)} dB`;
+      }
+
+      const MPEG_RATES = {
+        3: [44100, 48000, 32000],
+        2: [22050, 24000, 16000],
+        0: [11025, 12000, 8000],
+      };
+
+      /**
+       * `decodeAudioData` resamples to the output device rate, so the decoded
+       * buffer cannot answer what the file itself holds. Read it off the
+       * container instead. Returns null for formats not worth parsing.
+       */
+      function containerSampleRate(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const view = new DataView(arrayBuffer);
+        const tag = (offset, text) =>
+          [...text].every((char, index) => bytes[offset + index] === char.charCodeAt(0));
+
+        if (tag(0, 'RIFF') && tag(8, 'WAVE')) {
+          let offset = 12;
+          while (offset + 8 < bytes.length) {
+            const size = view.getUint32(offset + 4, true);
+            if (tag(offset, 'fmt ')) {
+              return view.getUint32(offset + 12, true);
+            }
+            offset += 8 + size + (size % 2);
+          }
+          return null;
+        }
+
+        if (tag(0, 'OggS')) {
+          const limit = Math.min(bytes.length - 12, 4096);
+          for (let offset = 0; offset < limit; offset += 1) {
+            if (bytes[offset] === 0x01 && tag(offset + 1, 'vorbis')) {
+              return view.getUint32(offset + 12, true);
+            }
+            if (tag(offset, 'OpusHead')) {
+              return view.getUint32(offset + 12, true);
+            }
+          }
+          return null;
+        }
+
+        // MP3: step over an ID3v2 tag, then read the first frame header.
+        let offset = 0;
+        if (tag(0, 'ID3')) {
+          offset =
+            10 +
+            ((bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) | bytes[9]);
+        }
+
+        const limit = Math.min(bytes.length - 4, offset + 8192);
+        for (; offset < limit; offset += 1) {
+          if (bytes[offset] !== 0xff || (bytes[offset + 1] & 0xe0) !== 0xe0) {
+            continue;
+          }
+          const version = (bytes[offset + 1] >> 3) & 0x03;
+          const index = (bytes[offset + 2] >> 2) & 0x03;
+          const rates = MPEG_RATES[version];
+          if (rates && index < 3) {
+            return rates[index];
+          }
+        }
+
+        return null;
+      }
+
+      function rms(samples, from = 0, to = samples.length) {
+        let total = 0;
+        for (let index = from; index < to; index += 1) {
+          total += samples[index] * samples[index];
+        }
+        return Math.sqrt(total / Math.max(1, to - from));
+      }
+
+      /** Averages every channel down to one array so the checks see one signal. */
+      function toMono(buffer) {
+        const mono = new Float32Array(buffer.length);
+
+        for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+          const data = buffer.getChannelData(channel);
+          for (let index = 0; index < data.length; index += 1) {
+            mono[index] += data[index] / buffer.numberOfChannels;
+          }
+        }
+
+        return mono;
+      }
+
+      /** RMS in dB per window, used for fades, the overall arc and the seam. */
+      function envelope(mono, sampleRate, windowSeconds) {
+        const size = Math.max(1, Math.round(sampleRate * windowSeconds));
+        const frames = [];
+
+        for (let start = 0; start + size <= mono.length; start += size) {
+          frames.push(toDb(rms(mono, start, start + size)));
+        }
+
+        return frames;
+      }
+
+      function median(values) {
+        const finite = values.filter(Number.isFinite).sort((a, b) => a - b);
+        return finite.length === 0
+          ? -Infinity
+          : finite[Math.floor(finite.length / 2)];
+      }
+
+      /**
+       * A fade reads as the envelope starting far below the track's own level
+       * and climbing into it. Reports how long it takes to arrive.
+       */
+      function fadeSeconds(frames, windowSeconds, reversed) {
+        const ordered = reversed ? [...frames].reverse() : frames;
+        const target = median(ordered) - 6;
+
+        for (let index = 0; index < ordered.length; index += 1) {
+          if (ordered[index] >= target) {
+            return index * windowSeconds;
+          }
+        }
+
+        return ordered.length * windowSeconds;
+      }
+
+      /**
+       * Level per segment across `from`..`to`. Leftover fades sit outside that
+       * span on purpose: a fade is trimmed later anyway, and leaving it in
+       * makes every take look like it has a huge arc.
+       */
+      function arc(mono, from, to, segments = 12) {
+        const size = Math.floor((to - from) / segments);
+        const levels = [];
+
+        for (let index = 0; index < segments; index += 1) {
+          levels.push(
+            toDb(rms(mono, from + index * size, from + (index + 1) * size)),
+          );
+        }
+
+        const finite = levels.filter(Number.isFinite);
+        const third = Math.floor(segments / 3);
+        const average = (list) =>
+          list.reduce((sum, value) => sum + value, 0) / Math.max(1, list.length);
+
+        return {
+          levels,
+          spread: Math.max(...finite) - Math.min(...finite),
+          build:
+            average(levels.slice(-third).filter(Number.isFinite)) -
+            average(levels.slice(0, third).filter(Number.isFinite)),
+        };
+      }
+
+      /**
+       * Renders the buffer through a filter chain offline and measures what is
+       * left, which gives a per-band split without hand-rolling an FFT.
+       *
+       * Measured over `from`..`to` only, so leftover fades do not drag the
+       * numbers, and reported relative to the track's own level over the same
+       * span. Two takes can then be compared even when one was mastered louder.
+       */
+      async function bandEnergy(buffer, mono, from, to) {
+        const reference = toDb(rms(mono, from, to));
+        const powers = {};
+        const relative = {};
+        const length = to - from;
+
+        for (const band of BANDS) {
+          const context = new OfflineAudioContext(
+            1,
+            length,
+            buffer.sampleRate,
+          );
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+
+          let node = source;
+          // Two biquads per edge, so the skirt is steep enough to trust.
+          for (const [type, frequency] of band.chain) {
+            for (let pass = 0; pass < 2; pass += 1) {
+              const filter = context.createBiquadFilter();
+              filter.type = type;
+              filter.frequency.value = frequency;
+              node.connect(filter);
+              node = filter;
+            }
+          }
+
+          node.connect(context.destination);
+          // Only the measured span is rendered, not the whole track.
+          source.start(0, from / buffer.sampleRate, length / buffer.sampleRate);
+
+          const rendered = await context.startRendering();
+          const level = rms(rendered.getChannelData(0));
+          powers[band.key] = level * level;
+          relative[band.key] = toDb(level) - reference;
+        }
+
+        const total = Object.values(powers).reduce((sum, p) => sum + p, 0) || 1;
+        const shares = {};
+
+        for (const band of BANDS) {
+          shares[band.key] = powers[band.key] / total;
+        }
+
+        return { shares, relative };
+      }
+
+      /**
+       * Rough tempo from the onset envelope. Reported as a hint only — it is
+       * there to catch a track that came back at a wildly different tempo, not
+       * to be trusted to the decimal.
+       */
+      function estimateBpm(mono, sampleRate, from, to) {
+        const hop = 512;
+        const rate = sampleRate / hop;
+        const onsets = [];
+        let previous = 0;
+
+        for (let start = from; start + hop <= to; start += hop) {
+          const level = rms(mono, start, start + hop);
+          onsets.push(Math.max(0, level - previous));
+          previous = level;
+        }
+
+        const minLag = Math.floor((60 / 200) * rate);
+        const maxLag = Math.ceil((60 / 60) * rate);
+        const scores = [];
+
+        for (let lag = minLag; lag <= maxLag; lag += 1) {
+          let total = 0;
+          for (let index = 0; index + lag < onsets.length; index += 1) {
+            total += onsets[index] * onsets[index + lag];
+          }
+          scores.push({ bpm: (60 * rate) / lag, score: total });
+        }
+
+        // Autocorrelation locks onto double and half time just as readily as
+        // the real pulse, so fold every candidate into one octave first.
+        const fold = (bpm) => {
+          let folded = bpm;
+          while (folded >= 140) {
+            folded /= 2;
+          }
+          while (folded < 70) {
+            folded *= 2;
+          }
+          return Math.round(folded);
+        };
+
+        const merged = new Map();
+        for (const entry of scores) {
+          const bpm = fold(entry.bpm);
+          merged.set(bpm, (merged.get(bpm) ?? 0) + entry.score);
+        }
+
+        return [...merged]
+          .sort((first, second) => second[1] - first[1])
+          .slice(0, 3)
+          .map(([bpm]) => bpm);
+      }
+
+      function channelsIdentical(buffer) {
+        if (buffer.numberOfChannels < 2) {
+          return false;
+        }
+
+        const left = buffer.getChannelData(0);
+        const right = buffer.getChannelData(1);
+        const step = Math.max(1, Math.floor(left.length / 20000));
+
+        for (let index = 0; index < left.length; index += step) {
+          if (Math.abs(left[index] - right[index]) > 1e-4) {
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      async function analyze(name, buffer, mono, containerRate) {
+        const duration = buffer.duration;
+        const isSfx = /(^|\/)sfx|sfx-/i.test(name) || duration <= 5;
+
+        let peak = 0;
+        let clipped = 0;
+        for (let index = 0; index < mono.length; index += 1) {
+          const value = Math.abs(mono[index]);
+          if (value > peak) {
+            peak = value;
+          }
+          if (value >= 0.999) {
+            clipped += 1;
+          }
+        }
+
+        const windowSeconds = 0.05;
+        const frames = envelope(mono, buffer.sampleRate, windowSeconds);
+        const headFade = fadeSeconds(frames, windowSeconds, false);
+        const tailFade = fadeSeconds(frames, windowSeconds, true);
+
+        // Half a second of margin, because a fade does not end on a clean edge.
+        const from = Math.min(
+          mono.length - 1,
+          Math.round((headFade + 0.5) * buffer.sampleRate),
+        );
+        const to = Math.max(
+          from + 1,
+          mono.length - Math.round((tailFade + 0.5) * buffer.sampleRate),
+        );
+        const shape = arc(mono, from, to);
+        const { shares, relative } = await bandEnergy(buffer, mono, from, to);
+        const bpm = estimateBpm(mono, buffer.sampleRate, from, to);
+
+        const edge = Math.round(buffer.sampleRate * 0.2);
+        const headDb = toDb(rms(mono, 0, edge));
+        const tailDb = toDb(rms(mono, mono.length - edge, mono.length));
+        const seamStep = Math.abs(tailDb - headDb);
+        const seamJump = Math.abs(mono[0] - mono[mono.length - 1]);
+
+        const round = (value) => Math.round(value * 1000) / 1000;
+
+        return {
+          duration: round(duration),
+          isSfx,
+          containerRate,
+          channels: buffer.numberOfChannels,
+          duplicated: channelsIdentical(buffer),
+          peak: round(toDb(peak)),
+          clipped,
+          level: round(toDb(rms(mono))),
+          headFade: round(headFade),
+          tailFade: round(tailFade),
+          build: round(shape.build),
+          spread: round(shape.spread),
+          seamStep: round(seamStep),
+          seamJump: round(seamJump),
+          bpm: bpm,
+          air: round(relative.air),
+          mid: round(relative.mid),
+          bands: Object.fromEntries(
+            BANDS.map((band) => [band.key, round(relative[band.key])]),
+          ),
+          midShare: round(shares.mid),
+        };
+      }
+
+      /**
+       * Formats a measurement set for the detail table. Kept apart from the
+       * measuring so a stored result and a freshly analysed one render through
+       * the same path.
+       */
+      function buildRows(m) {
+        const {
+          duration,
+          isSfx,
+          containerRate,
+          channels,
+          duplicated,
+          peak,
+          clipped,
+          headFade,
+          tailFade,
+          bpm,
+        } = m;
+        const rows = [];
+        const add = (label, value, verdict, note) =>
+          rows.push({ label, value, verdict, note });
+
+        add(
+          '길이',
+          `${duration.toFixed(1)}초`,
+          isSfx
+            ? duration <= SPEC.sfxMaxSeconds
+              ? 'ok'
+              : 'warn'
+            : duration >= SPEC.bgmMinSeconds && duration <= SPEC.bgmMaxSeconds
+              ? 'ok'
+              : 'warn',
+          isSfx
+            ? `SFX 기준 ${SPEC.sfxMaxSeconds}초 이하`
+            : `BGM 기준 ${SPEC.bgmMinSeconds}~${SPEC.bgmMaxSeconds}초`,
+        );
+
+        add(
+          '샘플레이트 / 채널',
+          `${containerRate ? `${containerRate}Hz` : '확인 불가'} / ${channels}ch`,
+          containerRate && containerRate !== 44100 ? 'warn' : 'ok',
+          duplicated
+            ? '두 채널이 동일하다. 스테레오로 저장된 모노다'
+            : containerRate
+              ? '규격 44.1kHz'
+              : '이 컨테이너는 헤더를 읽지 않는다. 재생에는 문제없다',
+        );
+
+        add(
+          '피크',
+          formatDb(peak),
+          clipped > 0 ? 'fail' : peak <= SPEC.peakDbfs ? 'ok' : 'warn',
+          clipped > 0
+            ? `클리핑 ${clipped} 샘플. 마스터를 낮춰야 한다`
+            : `규격 ${SPEC.peakDbfs}dBFS 이하`,
+        );
+
+        add('평균 레벨(RMS)', formatDb(m.level), 'ok', '참고값');
+
+        add(
+          '시작 페이드',
+          `${headFade.toFixed(2)}초`,
+          headFade <= SPEC.fadeSeconds ? 'ok' : 'fail',
+          headFade > SPEC.fadeSeconds
+            ? '페이드가 걸려 있으면 루프가 성립하지 않는다. 마디 경계에서 잘라낼 것'
+            : '페이드 없음',
+        );
+
+        add(
+          '끝 페이드',
+          `${tailFade.toFixed(2)}초`,
+          tailFade <= SPEC.fadeSeconds ? 'ok' : 'fail',
+          tailFade > SPEC.fadeSeconds
+            ? '페이드아웃 구간을 잘라내야 이어붙는다'
+            : '페이드 없음',
+        );
+
+        if (!isSfx) {
+          add(
+            '전체 기승전결',
+            `편차 ${m.spread.toFixed(1)}dB / 후반 ${
+              m.build >= 0 ? '+' : ''
+            }${m.build.toFixed(1)}dB`,
+            m.build > SPEC.arcBuildDb || m.spread > SPEC.arcSpreadDb
+              ? 'warn'
+              : 'ok',
+            m.build > SPEC.arcBuildDb
+              ? '뒤로 갈수록 커진다. 편집으로 못 고치므로 여기서 떨어지면 버린다'
+              : m.spread > SPEC.arcSpreadDb
+                ? '레벨 기복이 크다. 루프 배경으로는 산만하다'
+                : '레벨이 고르게 유지된다. 루프 배경으로 알맞다',
+          );
+
+          add(
+            '루프 이음매',
+            `단차 ${m.seamStep.toFixed(1)}dB / 점프 ${m.seamJump.toFixed(3)}`,
+            m.seamStep > SPEC.seamDb || m.seamJump > SPEC.seamJump
+              ? 'warn'
+              : 'ok',
+            m.seamJump > SPEC.seamJump
+              ? '끝과 시작의 진폭 차가 커서 클릭 노이즈가 난다. 크로스페이드 필요'
+              : m.seamStep > SPEC.seamDb
+                ? '끝과 시작의 음량이 다르다. 루프가 돌 때 단차로 들린다'
+                : '끝에서 처음으로 자연스럽게 넘어간다',
+          );
+
+          add(
+            '추정 BPM',
+            bpm.join(' / '),
+            'ok',
+            '자동 추정이라 참고용. 앞의 값이 유력',
+          );
+        }
+
+        add(
+          '공기감 8~16kHz',
+          formatDb(m.air),
+          m.air >= SPEC.airRelDb ? 'ok' : 'warn',
+          m.air >= SPEC.airRelDb
+            ? '밝은 도시 배경에 어울리는 고역량'
+            : `기준 ${SPEC.airRelDb}dB보다 아래다. 어둡고 답답하게 들린다`,
+        );
+
+        add(
+          '중역 1~4kHz',
+          formatDb(m.mid),
+          m.mid <= SPEC.midRelDb ? 'ok' : 'warn',
+          m.mid <= SPEC.midRelDb
+            ? '총소리가 들어갈 자리가 비어 있다'
+            : `기준 ${SPEC.midRelDb}dB보다 위다. 연사 중 총소리를 덮을 수 있다`,
+        );
+
+        add(
+          '대역 분포',
+          `${(m.midShare * 100).toFixed(0)}% @ 1~4kHz`,
+          'ok',
+          BANDS.map(
+            (band) =>
+              `${band.label} ${formatDb(m.bands[band.key]).replace(' dB', '')}`,
+          ).join(' · '),
+        );
+
+        return rows;
+      }
+
+      /**
+       * Turns the measurements into plain words. The people choosing a track
+       * are not mixing engineers, and "-22.8 dB" tells them nothing about
+       * whether the piece suits a bright city.
+       */
+      function describe(metrics) {
+        const brightness =
+          metrics.air >= -22
+            ? { text: '밝음', tone: 'ok' }
+            : metrics.air >= SPEC.airRelDb
+              ? { text: '보통', tone: 'ok' }
+              : { text: '어두움', tone: 'warn' };
+
+        const motion =
+          metrics.build > SPEC.arcBuildDb
+            ? { text: '뒤로 갈수록 커짐', tone: 'warn' }
+            : metrics.spread > SPEC.arcSpreadDb
+              ? { text: '기복이 큼', tone: 'warn' }
+              : metrics.spread <= 1.5
+                ? { text: '거의 일정', tone: 'ok' }
+                : { text: '조금 움직임', tone: 'ok' };
+
+        const gunfire =
+          metrics.mid <= SPEC.midRelDb
+            ? { text: '잘 비켜줌', tone: 'ok' }
+            : metrics.mid <= -6
+              ? { text: '보통', tone: 'ok' }
+              : { text: '총소리와 겹침', tone: 'warn' };
+
+        const fixes = [];
+        if (metrics.headFade > SPEC.fadeSeconds) {
+          fixes.push(`앞 ${metrics.headFade.toFixed(1)}초 잘라내기`);
+        }
+        if (metrics.tailFade > SPEC.fadeSeconds) {
+          fixes.push(`뒤 ${metrics.tailFade.toFixed(1)}초 잘라내기`);
+        }
+        if (metrics.peak > SPEC.peakDbfs) {
+          fixes.push('음량 낮추기');
+        }
+
+        return {
+          brightness,
+          motion,
+          gunfire,
+          fixes,
+          // Fades and level are always fixable, so they do not decide anything.
+          verdict:
+            motion.tone === 'warn' || brightness.tone === 'warn'
+              ? 'warn'
+              : 'ok',
+        };
+      }
+
+      /**
+       * Candidate comparison. The numbers narrow the field; the final pick is
+       * made by ear, so every row carries its own player.
+       */
+      function renderComparison() {
+        compare.replaceChildren();
+
+        if (results.length < 2) {
+          return;
+        }
+
+        const judged = results.map((entry) => ({
+          ...entry,
+          source: entry,
+          summary: entry.metrics ? describe(entry.metrics) : null,
+        }));
+        const passing = judged.filter(
+          (entry) => entry.summary?.verdict === 'ok',
+        );
+        const shown = onlyRecommended ? passing : judged;
+
+        const columns = [
+          ['밝기', (d) => d.brightness.text, (d) => d.brightness.tone],
+          ['곡의 변화', (d) => d.motion.text, (d) => d.motion.tone],
+          ['총소리와 궁합', (d) => d.gunfire.text, (d) => d.gunfire.tone],
+          [
+            '손볼 것',
+            (d) => (d.fixes.length > 0 ? d.fixes.join(', ') : '없음'),
+            () => 'ok',
+          ],
+        ];
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const heading = document.createElement('h2');
+        heading.textContent = '후보 비교';
+        card.append(heading);
+
+        const bar = document.createElement('div');
+        bar.className = 'actions filter';
+        for (const [label, value] of [
+          [`전체 ${judged.length}개`, false],
+          [`추천 ${passing.length}개`, true],
+        ]) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = label;
+          button.className = onlyRecommended === value ? 'on' : '';
+          button.addEventListener('click', () => {
+            onlyRecommended = value;
+            renderComparison();
+          });
+          bar.append(button);
+        }
+
+        card.append(bar);
+
+        const scroller = document.createElement('div');
+        scroller.className = 'scroll';
+        const table = document.createElement('table');
+        const header = document.createElement('tr');
+        header.append(document.createElement('td'));
+        for (const [label] of columns) {
+          const cell = document.createElement('td');
+          cell.textContent = label;
+          header.append(cell);
+        }
+        const player = document.createElement('td');
+        player.textContent = '듣기';
+        header.append(player);
+        table.append(header);
+
+        for (const entry of shown) {
+          const summary = entry.summary;
+          const row = document.createElement('tr');
+          const label = document.createElement('td');
+          label.textContent = entry.name.split('/').pop();
+
+          if (summary?.verdict === 'ok') {
+            const badge = document.createElement('span');
+            badge.className = 'chip ok';
+            badge.textContent = '추천';
+            badge.style.marginLeft = '8px';
+            label.append(badge);
+          }
+
+          row.append(label);
+
+          for (const [, read, tone] of columns) {
+            const cell = document.createElement('td');
+            cell.className = summary ? `val ${tone(summary)}` : 'val pending';
+            cell.textContent = summary ? read(summary) : '분석 중';
+            row.append(cell);
+          }
+
+          const audioCell = document.createElement('td');
+          const play = document.createElement('button');
+          play.type = 'button';
+          play.textContent = '▶ 듣기';
+          play.disabled = !entry.url;
+          play.addEventListener('click', (event) => {
+            event.stopPropagation();
+            select(results.indexOf(entry.source), true);
+          });
+          audioCell.append(play);
+          row.append(audioCell);
+
+          if (results.indexOf(entry.source) === selected) {
+            row.className = 'selected';
+          }
+          row.addEventListener('click', () =>
+            select(results.indexOf(entry.source), false),
+          );
+          table.append(row);
+        }
+
+        scroller.append(table);
+        card.append(scroller);
+        compare.append(card);
+      }
+
+      function select(index, andPlay) {
+        if (index < 0 || index >= results.length) {
+          return;
+        }
+
+        const changed = index !== selected;
+        selected = index;
+
+        if (changed || !player.src) {
+          player.src = results[index].url;
+        }
+
+        renderComparison();
+        renderDetail();
+
+        if (andPlay) {
+          player.play().catch(() => {});
+        }
+      }
+
+      /** The one detail panel, showing whichever candidate is selected. */
+      function renderDetail() {
+        detail.replaceChildren();
+
+        const entry = results[selected];
+        if (!entry) {
+          return;
+        }
+
+        const { name, metrics } = entry;
+        const rows = buildRows(metrics);
+        const card = document.createElement('div');
+        card.className = 'card';
+        const summary = describe(metrics);
+        const worst = summary.verdict;
+        const mark = { ok: '추천', warn: '기준 미달', fail: '수정 필요' }[worst];
+
+        const heading = document.createElement('h2');
+        heading.innerHTML = `${name.split('/').pop()} <span class="${worst}">— ${mark}</span>`;
+        card.append(heading);
+
+        player.style.cssText = 'width: 100%; padding: 12px 14px';
+        card.append(player);
+
+        {
+          const plain = document.createElement('div');
+          plain.className = 'plain';
+          for (const [label, item] of [
+            ['밝기', summary.brightness],
+            ['곡의 변화', summary.motion],
+            ['총소리와 궁합', summary.gunfire],
+          ]) {
+            const chip = document.createElement('span');
+            chip.className = `chip ${item.tone}`;
+            chip.textContent = `${label} · ${item.text}`;
+            plain.append(chip);
+          }
+
+          const fix = document.createElement('span');
+          fix.className = 'chip';
+          fix.textContent =
+            summary.fixes.length > 0
+              ? `손볼 것 · ${summary.fixes.join(', ')}`
+              : '손볼 것 없음';
+          plain.append(fix);
+          card.append(plain);
+        }
+
+        const details = document.createElement('details');
+        const label = document.createElement('summary');
+        label.textContent = '자세한 수치';
+        details.append(label);
+
+        const table = document.createElement('table');
+        for (const row of rows) {
+          const tr = document.createElement('tr');
+          const cellLabel = document.createElement('td');
+          cellLabel.textContent = row.label;
+          const value = document.createElement('td');
+          value.className = `val ${row.verdict}`;
+          value.textContent = row.value;
+          const note = document.createElement('td');
+          note.textContent = row.note ?? '';
+          tr.append(cellLabel, value, note);
+          table.append(tr);
+        }
+        details.append(table);
+        card.append(details);
+        detail.append(card);
+      }
+
+      /** A file that could not be decoded still needs to say so. */
+      function renderError(name, message) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const heading = document.createElement('h2');
+        heading.innerHTML = `${name} <span class="fail">— 읽지 못함</span>`;
+        const note = document.createElement('div');
+        note.className = 'plain';
+        note.textContent = message;
+        card.append(heading, note);
+        output.append(card);
+      }
+
+      async function run(entry, arrayBuffer, mimeType) {
+        // decodeAudioData detaches the buffer, so take copies of what is
+        // needed off it first.
+        const containerRate = containerSampleRate(arrayBuffer);
+        entry.url = URL.createObjectURL(
+          new Blob([arrayBuffer], { type: mimeType || 'audio/mpeg' }),
+        );
+
+        const context = new AudioContext();
+        const buffer = await context.decodeAudioData(arrayBuffer);
+        await context.close();
+
+        // Mixed down once and shared. Folding a three minute stereo file to
+        // mono walks millions of samples, and it used to happen three times
+        // per track.
+        const mono = toMono(buffer);
+        entry.metrics = await analyze(entry.name, buffer, mono, containerRate);
+
+        // Exposed so the analysis can be read back without the screen.
+        window.__audioCheck = window.__audioCheck ?? {};
+        window.__audioCheck[entry.name] = buildRows(entry.metrics);
+      }
+
+      /**
+       * Runs `worker` over the list a few at a time. Fully sequential meant
+       * staring at a minute of one-by-one loading; fully parallel would hold a
+       * dozen decoded buffers at once, and one three minute stereo track is
+       * about 60MB decoded.
+       */
+      async function pool(items, size, worker) {
+        let next = 0;
+        const runners = Array.from(
+          { length: Math.min(size, items.length) },
+          async () => {
+            while (next < items.length) {
+              const item = items[next];
+              next += 1;
+              await worker(item);
+            }
+          },
+        );
+        await Promise.all(runners);
+      }
+
+      function renderLoading(done, total) {
+        compare.replaceChildren();
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        const heading = document.createElement('h2');
+        heading.textContent = '음원 분석 중';
+        const body = document.createElement('div');
+        body.className = 'plain';
+        const text = document.createElement('span');
+        text.className = 'hint';
+        text.textContent = `${total}개 중 ${done}개 완료`;
+        const track = document.createElement('div');
+        track.className = 'progress';
+        const fill = document.createElement('div');
+        fill.style.width = `${Math.round((done / total) * 100)}%`;
+        track.append(fill);
+        body.append(text);
+        card.append(heading, body, track);
+        compare.append(card);
+      }
+
+      /**
+       * Results are held back until every file is done and then drawn once.
+       * Revealing them one at a time made the table grow and reflow under the
+       * cursor while someone was still reading it.
+       */
+      async function runAll(entries, read) {
+        const first = results.length;
+        let done = 0;
+
+        detail.replaceChildren();
+        renderLoading(0, entries.length);
+
+        await pool(entries, 3, async (entry) => {
+          try {
+            const { buffer, type } = await read(entry);
+            await run(entry, buffer, type);
+          } catch (error) {
+            entry.failed = true;
+            renderError(entry.name, String(error));
+          }
+
+          done += 1;
+          renderLoading(done, entries.length);
+        });
+
+        results.push(...entries.filter((entry) => !entry.failed));
+        renderComparison();
+
+        if (results.length > first) {
+          select(first, false);
+        }
+
+        // Printed so a new take can be pasted into audio-candidates.js and
+        // stop being re-analysed by everyone who opens the page.
+        window.__manifest = entries
+          .filter((entry) => entry.metrics)
+          .map((entry) => ({ file: entry.name, metrics: entry.metrics }));
+        console.log(
+          '[audio-check] manifest',
+          JSON.stringify(window.__manifest),
+        );
+      }
+
+      // `?src=` runs against files the dev server already serves. Comma
+      // separated for a batch, which is how a candidate set is compared.
+      /**
+       * Takes that were already measured. They appear the moment the page
+       * opens; playback needs no permission, only reading the bytes does.
+       */
+      if (window.AUDIO_CANDIDATES) {
+        for (const group of window.AUDIO_CANDIDATES) {
+          results.push(
+            ...group.takes.map((take) => ({
+              name: take.file,
+              url: group.base + take.file,
+              metrics: take.metrics,
+            })),
+          );
+        }
+
+        if (results.length > 0) {
+          renderComparison();
+          select(0, false);
+        }
+      }
+
+      const source = new URLSearchParams(location.search).get('src');
+      if (source) {
+        runAll(
+          source.split(',').map((path) => ({ name: path.split('/').pop() })),
+          async (entry) => ({
+            buffer: await fetch(
+              source
+                .split(',')
+                .find((path) => path.endsWith(entry.name)),
+            ).then((response) => response.arrayBuffer()),
+          }),
+        );
+      }
+    </script>
+  </body>
+</html>
