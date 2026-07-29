@@ -27,7 +27,10 @@ import { PlayerController } from '@/game/controllers/PlayerController';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
-import type { GamePhase } from '@/game/state/gamePhase';
+import {
+  canPlayerFireInPhase,
+  type GamePhase,
+} from '@/game/state/gamePhase';
 import { PlayerHealthState } from '@/game/state/playerHealthState';
 import type { RoomState } from '@/game/state/roomState';
 import { BackdropDirector } from '@/game/systems/BackdropDirector';
@@ -151,7 +154,7 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.update(delta, aimPoint);
     this.drawAimGuide(aimPoint);
 
-    if (this.phase === 'playing' && pointer.leftButtonDown()) {
+    if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
     }
 
@@ -379,9 +382,10 @@ export class GameScene extends Phaser.Scene {
       this.enemies,
       WEAPON_CONFIGS,
       STARTING_WEAPON_ID,
-      () => this.phase === 'playing',
+      () => canPlayerFireInPhase(this.phase),
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
     );
+    this.weaponSystem.blockProjectilesWith(this.terrainBuilder.group);
     this.weaponDropDirector = new WeaponDropDirector(
       this,
       this.floorBuilder.group,
@@ -400,6 +404,8 @@ export class GameScene extends Phaser.Scene {
       ranged: this.enemyProjectiles,
       flying: this.flyingEnemyProjectiles,
     };
+    this.enemyProjectiles.collideWith(this.terrainBuilder.group);
+    this.flyingEnemyProjectiles.collideWith(this.terrainBuilder.group);
     this.physics.add.overlap(
       this.enemyProjectiles.group,
       this.player,
@@ -605,7 +611,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.phase !== 'playing' || pointer.button !== 0) {
+    if (!canPlayerFireInPhase(this.phase) || pointer.button !== 0) {
       return;
     }
 

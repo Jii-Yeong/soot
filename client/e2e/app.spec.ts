@@ -95,12 +95,13 @@ async function fireShotsAt(
 
 type FireTarget = [x: number, y: number, durationMs: number];
 
-const CITY_ROOM_ONE_TARGETS: FireTarget[] = [
+const CITY_ROOM_ONE_GROUND_TARGETS: FireTarget[] = [
   [640, 630, 1200],
-  [820, 460, 1200],
   [950, 630, 2000],
   [1120, 630, 2500],
 ];
+
+const CITY_ROOM_ONE_FLYING_TARGET: FireTarget = [820, 460, 1200];
 
 async function clearRoom(
   page: Page,
@@ -110,6 +111,23 @@ async function clearRoom(
   for (const [x, y, duration] of targets) {
     await fireAt(page, bounds, x, y, duration);
   }
+}
+
+async function clearCityRoomOne(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+) {
+  await clearRoom(page, bounds, CITY_ROOM_ONE_GROUND_TARGETS);
+
+  // The flying enemy is protected by the first platform. Climb onto it before
+  // firing instead of relying on the old through-platform shot path.
+  await whileHoldingKey(page, 'KeyD', async () => {
+    await page.keyboard.down('Space');
+    await page.waitForTimeout(100);
+    await page.keyboard.up('Space');
+    await page.waitForTimeout(650);
+  });
+  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
 }
 
 async function advanceThroughDoor(page: Page) {
@@ -311,6 +329,18 @@ test('player fire damages the enemy without stopping combat', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
+test('platforms block player projectiles', async ({ page }) => {
+  await enterGame(page);
+  await page.waitForTimeout(1000);
+
+  const bounds = await getCanvasBounds(page);
+  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
+
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', '305');
+});
+
 test('locks the room until every spawned enemy is defeated', async ({
   page,
 }) => {
@@ -325,7 +355,7 @@ test('locks the room until every spawned enemy is defeated', async ({
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
+  await clearCityRoomOne(page, bounds);
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
@@ -339,6 +369,7 @@ test('locks the room until every spawned enemy is defeated', async ({
     'data-phase',
     'room-cleared',
   );
+  await fireShotsAt(page, bounds, 1000, 420, 1);
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -408,7 +439,7 @@ test('advances to the next room after clearing the first and locks it again', as
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
+  await clearCityRoomOne(page, bounds);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-phase',
