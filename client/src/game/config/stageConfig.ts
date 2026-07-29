@@ -91,6 +91,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     accentSecondary: 0xa8b84a,
     neonFlicker: true,
   },
+  music: 'bgm-underground',
   background: {
     key: 'stage-03-bg',
     path: '/assets/backgrounds/stage-03.png',
@@ -111,6 +112,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
     accentSecondary: 0xffb347,
     neonFlicker: true,
   },
+  music: 'bgm-inferno',
   background: {
     key: 'stage-04-bg',
     path: '/assets/backgrounds/stage-04.png',
@@ -130,6 +132,7 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
     accentSecondary: 0x9eeeff,
     neonFlicker: true,
   },
+  music: 'bgm-return',
   background: {
     key: 'stage-05-bg',
     path: '/assets/backgrounds/stage-05.png',
