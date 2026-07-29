@@ -54,6 +54,8 @@ export type RoomConfig = {
   id: string;
   label: string;
   kind: 'combat' | 'boss';
+  /** How wide this room's segment is in the continuous stage. */
+  worldWidth: number;
   entranceX: number;
   exitX: number;
   door: {
@@ -78,7 +80,7 @@ const ROOM_DOOR = {
 
 export type RoomDefinition = Omit<
   RoomConfig,
-  'kind' | 'entranceX' | 'exitX' | 'door'
+  'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'door'
 > & {
   kind?: RoomConfig['kind'];
   /** Room segment width; the exit door sits near its right edge. */
@@ -90,6 +92,7 @@ export const defineRoom = ({
   ...definition
 }: RoomDefinition): RoomConfig => ({
   kind: 'combat',
+  worldWidth,
   entranceX: 64,
   exitX: worldWidth - 64,
   door: ROOM_DOOR,

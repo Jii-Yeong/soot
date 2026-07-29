@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 import type { RoomConfig } from '@/game/config/roomConfig';
-import { placeRoomInStage } from '@/game/config/roomPlacement';
-import { STAGE_WORLD_WIDTH } from '@/game/config/worldConfig';
+import {
+  placeRoomInStage,
+  stageWorldWidth,
+} from '@/game/config/roomPlacement';
 
 export const FLOOR_TILE = 64;
 export const FLOOR_SURFACE_Y = GAME_HEIGHT - FLOOR_TILE;
@@ -27,14 +29,15 @@ export class FloorBuilder {
 
   build(rooms: readonly RoomConfig[], backdropSuppliesGround: boolean) {
     this.group.clear(true, true);
-    this.pits = rooms.flatMap((room, index) =>
-      (placeRoomInStage(room, index).pits ?? []).map((pit) => ({
+    this.pits = rooms.flatMap((_, index) =>
+      (placeRoomInStage(rooms, index).pits ?? []).map((pit) => ({
         start: pit.x,
         end: pit.x + pit.width,
       })),
     );
 
-    for (let x = 32; x < STAGE_WORLD_WIDTH; x += FLOOR_TILE) {
+    const width = stageWorldWidth(rooms);
+    for (let x = 32; x < width; x += FLOOR_TILE) {
       if (this.isOverPit(x)) {
         continue;
       }

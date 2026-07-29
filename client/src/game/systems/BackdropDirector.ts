@@ -29,15 +29,15 @@ export class BackdropDirector {
 
   constructor(private readonly scene: Phaser.Scene) {}
 
-  draw({ background, palette }: BackdropConfig) {
+  draw({ background, palette }: BackdropConfig, stageWidth: number) {
     this.clear();
 
     if (background) {
-      this.drawImage(background);
+      this.drawImage(background, stageWidth);
       return;
     }
 
-    this.drawProcedural(palette);
+    this.drawProcedural(palette, stageWidth);
   }
 
   private clear() {
@@ -50,7 +50,7 @@ export class BackdropDirector {
     this.layers = [];
   }
 
-  private drawImage(background: StageBackground) {
+  private drawImage(background: StageBackground, stageWidth: number) {
     const image = this.scene.add
       .image(0, GAME_HEIGHT, background.key)
       .setOrigin(0, 1)
@@ -62,11 +62,14 @@ export class BackdropDirector {
     );
 
     image.setScale(coverScale);
-    image.setScrollFactor(getParallaxScrollFactor(image.displayWidth), 0);
+    image.setScrollFactor(
+      getParallaxScrollFactor(image.displayWidth, stageWidth),
+      0,
+    );
     this.layers.push(image);
   }
 
-  private drawProcedural(palette: StagePalette) {
+  private drawProcedural(palette: StagePalette, stageWidth: number) {
     const farLayer = this.scene.add
       .graphics()
       .setDepth(BACKDROP_DEPTH.far)
@@ -79,7 +82,10 @@ export class BackdropDirector {
     );
     farLayer.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    const gridWidth = getParallaxLayerWidth(PROCEDURAL_PARALLAX.grid);
+    const gridWidth = getParallaxLayerWidth(
+      PROCEDURAL_PARALLAX.grid,
+      stageWidth,
+    );
     const gridLayer = this.scene.add
       .graphics()
       .setDepth(BACKDROP_DEPTH.middle)
@@ -92,7 +98,10 @@ export class BackdropDirector {
       gridLayer.lineBetween(0, y, gridWidth, y);
     }
 
-    const accentWidth = getParallaxLayerWidth(PROCEDURAL_PARALLAX.accent);
+    const accentWidth = getParallaxLayerWidth(
+      PROCEDURAL_PARALLAX.accent,
+      stageWidth,
+    );
     const accentLayer = this.scene.add
       .graphics()
       .setDepth(BACKDROP_DEPTH.near)

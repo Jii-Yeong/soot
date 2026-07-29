@@ -11,13 +11,13 @@ import {
   PLAYER_INITIAL_FRAME,
 } from '@/game/config/playerAnimationConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
-import { placeRoomInStage } from '@/game/config/roomPlacement';
+import {
+  placeRoomInStage,
+  stageWorldWidth,
+} from '@/game/config/roomPlacement';
 import { STAGES, type StageEndEvent } from '@/game/config/stageConfig';
 import { getStageExitPlan } from '@/game/config/stageProgression';
-import {
-  ROOM_CAMERA_FOLLOW_LERP_X,
-  STAGE_WORLD_WIDTH,
-} from '@/game/config/worldConfig';
+import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
@@ -54,6 +54,7 @@ const PIT_RESPAWN_LIFT = 60;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
+  private stageWorldWidth = 0;
   private enemies: Enemy[] = [];
   private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
@@ -105,7 +106,7 @@ export class GameScene extends Phaser.Scene {
 
     this.configureHorizontalWorld();
     this.backdropDirector = new BackdropDirector(this);
-    this.backdropDirector.draw(this.stage);
+    this.backdropDirector.draw(this.stage, this.stageWorldWidth);
     this.floorBuilder = new FloorBuilder(this);
     this.rebuildFloorForStage();
     this.createPlayer();
@@ -181,9 +182,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private configureHorizontalWorld() {
-    this.physics.world.setBounds(0, 0, STAGE_WORLD_WIDTH, GAME_HEIGHT);
+    this.stageWorldWidth = stageWorldWidth(this.stage.rooms);
+    this.physics.world.setBounds(0, 0, this.stageWorldWidth, GAME_HEIGHT);
     this.cameras.main
-      .setBounds(0, 0, STAGE_WORLD_WIDTH, GAME_HEIGHT)
+      .setBounds(0, 0, this.stageWorldWidth, GAME_HEIGHT)
       .setRoundPixels(true);
   }
 
@@ -204,7 +206,7 @@ export class GameScene extends Phaser.Scene {
 
   private createRoom() {
     this.buildRoom(
-      placeRoomInStage(this.currentRoomConfig, this.currentRoomIndex),
+      placeRoomInStage(this.stage.rooms, this.currentRoomIndex),
     );
   }
 
@@ -292,8 +294,9 @@ export class GameScene extends Phaser.Scene {
     this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
+    this.configureHorizontalWorld();
     this.restorePlayerHealthForStage();
-    this.backdropDirector.draw(this.stage);
+    this.backdropDirector.draw(this.stage, this.stageWorldWidth);
     this.rebuildFloorForStage();
     this.enterCurrentRoom(true);
   }
@@ -309,7 +312,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.buildRoom(
-      placeRoomInStage(this.currentRoomConfig, this.currentRoomIndex),
+      placeRoomInStage(this.stage.rooms, this.currentRoomIndex),
     );
     this.updateStageLabel();
     this.setPhase('playing');
