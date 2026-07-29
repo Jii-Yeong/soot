@@ -60,7 +60,7 @@ export class GameScene extends Phaser.Scene {
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
   private backdropDirector!: BackdropDirector;
   private deathOverlay!: Phaser.GameObjects.Container;
-  private stageClearOverlay!: Phaser.GameObjects.Container;
+  private victoryOverlay!: Phaser.GameObjects.Container;
   private stageEndOverlay!: Phaser.GameObjects.Container;
   private weaponLabelText!: Phaser.GameObjects.Text;
   private weaponEquippedText!: Phaser.GameObjects.Text;
@@ -309,7 +309,10 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('ending');
     this.weaponSystem.hide();
     this.enemyRangeGraphics.clear();
-    this.stageClearOverlay.setVisible(true);
+    // Beating the final stage ("The Return") is the true victory — wash the
+    // screen to warm light (waking up) before the ending card resolves.
+    this.cameras.main.flash(700, 255, 240, 210);
+    this.victoryOverlay.setVisible(true);
   }
 
   private playStageEndEvent(
@@ -408,11 +411,11 @@ export class GameScene extends Phaser.Scene {
       'SYSTEM FAILURE',
       'PRESS R OR ENTER TO RESTART',
     );
-    this.stageClearOverlay = this.createOverlay(
-      0xb6ffe4,
-      '#b6ffe4',
-      'STAGE CLEAR',
-      'TO BE CONTINUED  //  PRESS R OR ENTER TO REPLAY',
+    this.victoryOverlay = this.createOverlay(
+      0xffe1a8,
+      '#ffe9c4',
+      'RETURN COMPLETE',
+      "YOU'RE AWAKE  //  PRESS R OR ENTER TO REPLAY",
     );
     this.stageEndOverlay = this.createOverlay(
       0xe45d68,
