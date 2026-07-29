@@ -7,7 +7,6 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
-import { STAGES } from '@/game/config/stageConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -28,12 +27,6 @@ export class BootScene extends Phaser.Scene {
     }
 
     this.reportAudioGaps(missingKeys, unusedFiles);
-
-    for (const stage of STAGES) {
-      if (stage.background) {
-        this.load.image(stage.background.key, stage.background.path);
-      }
-    }
   }
 
   create() {

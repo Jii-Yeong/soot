@@ -9,6 +9,7 @@ import {
   getParallaxLayerWidth,
   getParallaxScrollFactor,
 } from '@/game/config/worldConfig';
+import { StageBackgroundPreloader } from '@/game/systems/StageBackgroundPreloader';
 
 const BACKDROP_DEPTH = {
   far: -12,
@@ -26,19 +27,47 @@ type BackdropConfig = Pick<StageConfig, 'background' | 'palette'>;
 export class BackdropDirector {
   private layers: Phaser.GameObjects.GameObject[] = [];
   private neonFlickerTimer?: Phaser.Time.TimerEvent;
+  private readonly backgroundPreloader: StageBackgroundPreloader;
+  private activeStage?: { config: StageConfig; width: number };
 
-  constructor(private readonly scene: Phaser.Scene) {}
+  constructor(private readonly scene: Phaser.Scene) {
+    this.backgroundPreloader = new StageBackgroundPreloader(
+      scene,
+      this.handleBackgroundReady,
+    );
+  }
 
-  draw({ background, palette }: BackdropConfig, stageWidth: number) {
+  show(
+    stage: StageConfig,
+    stageWidth: number,
+    nextStage: StageConfig | undefined,
+  ) {
+    this.activeStage = { config: stage, width: stageWidth };
+    this.draw(stage, stageWidth);
+    // The current stage is normally cached by the previous scene or stage.
+    // Queueing it again is a no-op unless that speculative request failed.
+    this.backgroundPreloader.preload(stage);
+    this.backgroundPreloader.preload(nextStage);
+  }
+
+  private draw({ background, palette }: BackdropConfig, stageWidth: number) {
     this.clear();
 
-    if (background) {
+    if (background && this.scene.textures.exists(background.key)) {
       this.drawImage(background, stageWidth);
       return;
     }
 
     this.drawProcedural(palette, stageWidth);
   }
+
+  private handleBackgroundReady = (stage: StageConfig) => {
+    if (stage.id !== this.activeStage?.config.id) {
+      return;
+    }
+
+    this.draw(stage, this.activeStage.width);
+  };
 
   private clear() {
     this.neonFlickerTimer?.remove();

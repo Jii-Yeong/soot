@@ -106,7 +106,7 @@ export class GameScene extends Phaser.Scene {
 
     this.configureHorizontalWorld();
     this.backdropDirector = new BackdropDirector(this);
-    this.backdropDirector.draw(this.stage, this.stageWorldWidth);
+    this.showStageBackdrop();
     this.floorBuilder = new FloorBuilder(this);
     this.rebuildFloorForStage();
     this.createPlayer();
@@ -296,7 +296,7 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('stage-changed', this.stage.id);
     this.configureHorizontalWorld();
     this.restorePlayerHealthForStage();
-    this.backdropDirector.draw(this.stage, this.stageWorldWidth);
+    this.showStageBackdrop();
     this.rebuildFloorForStage();
     this.enterCurrentRoom(true);
   }
@@ -356,6 +356,14 @@ export class GameScene extends Phaser.Scene {
       `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${
         this.stage.rooms.length
       }`,
+    );
+  }
+
+  private showStageBackdrop() {
+    this.backdropDirector.show(
+      this.stage,
+      this.stageWorldWidth,
+      STAGES[this.currentStageIndex + 1],
     );
   }
 

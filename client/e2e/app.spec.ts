@@ -146,6 +146,32 @@ test('boots the Phaser canvas', async ({ page }) => {
   await expect(canvas).toHaveAttribute('height', '720');
 });
 
+test('loads stage backgrounds one step ahead', async ({ page }) => {
+  const requestedBackgrounds = new Set<string>();
+  page.on('request', (request) => {
+    const fileName = new URL(request.url()).pathname
+      .split('/')
+      .find((segment) => /^stage-\d{2}\.png$/.test(segment));
+
+    if (fileName) {
+      requestedBackgrounds.add(fileName);
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  expect(requestedBackgrounds).toEqual(new Set(['stage-01.png']));
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await expect
+    .poll(() => requestedBackgrounds.has('stage-02.png'))
+    .toBe(true);
+  expect(requestedBackgrounds.has('stage-03.png')).toBe(false);
+  expect(requestedBackgrounds.has('stage-04.png')).toBe(false);
+  expect(requestedBackgrounds.has('stage-05.png')).toBe(false);
+});
+
 test('waits for the entrance detector before starting combat', async ({
   page,
 }) => {
