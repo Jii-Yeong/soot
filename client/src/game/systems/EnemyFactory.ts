@@ -7,8 +7,10 @@ import {
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import { BossEnemy } from '@/game/entities/BossEnemy';
+import { ChargingBossEnemy } from '@/game/entities/ChargingBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 
@@ -18,11 +20,16 @@ type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
 >;
 
 export class EnemyFactory {
+  private readonly intensity: number;
+
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
-    private readonly intensity: number = 1,
-  ) {}
+    intensity: number | undefined,
+    private readonly damagePlayer: (damage: number) => void,
+  ) {
+    this.intensity = intensity ?? 1;
+  }
 
   create(spawn: EnemySpawnConfig): Enemy {
     switch (spawn.type) {
@@ -91,13 +98,32 @@ export class EnemyFactory {
 
   private createBossEnemy(spawn: SpawnOf<'boss'>) {
     const config = BOSS_COMBAT_CONFIGS[spawn.variant];
-    const enemy = new BossEnemy(
-      this.scene,
-      spawn.x,
-      spawn.y,
-      config.texture,
-      config,
-    );
+    let enemy: BossEnemy;
+
+    switch (config.pattern.type) {
+      case 'laser-cannon':
+        enemy = new LaserBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          config.pattern,
+          this.damagePlayer,
+        );
+        break;
+      case 'charge':
+        enemy = new ChargingBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          config.pattern,
+        );
+        break;
+    }
+
     return this.finishSpawn(enemy);
   }
 

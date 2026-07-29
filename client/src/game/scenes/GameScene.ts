@@ -225,6 +225,7 @@ export class GameScene extends Phaser.Scene {
       this,
       this.floorGroup,
       this.activeRoomConfig.intensity,
+      (damage) => this.applyPlayerDamage(damage),
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
@@ -665,6 +666,7 @@ export class GameScene extends Phaser.Scene {
         this.weaponSystem.activeConfig.id,
       );
     }
+    enemy.onDefeated();
     enemy.disableBody(true, true);
     this.roomDirector.notifyEnemyDefeated(enemy);
   }
