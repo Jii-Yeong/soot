@@ -1,0 +1,97 @@
+name: CI
+
+# 공통 작업 규칙에 "매일 밤 메인 브랜치에서 처음부터 끝까지 실행되는 상태를
+# 유지한다"가 있다. 사람이 매번 네 가지를 손으로 돌리는 대신 여기서 강제한다.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# 같은 브랜치에 연달아 푸시하면 앞선 실행은 의미가 없다. 제출 주간에
+# 러너가 밀리는 것을 막는다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # packageManager 필드(pnpm@11.7.0)를 그대로 읽으므로 버전을 두 곳에
+      # 적어 두고 어긋나는 일이 없다.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # 웹 잼 제출물이라 첫 로딩 용량이 곧 이탈률이다. 실패시키지는 않는다.
+      # 배경·음원은 담당자가 다르고, 남의 브랜치를 빨간불로 막는 것보다
+      # 숫자를 계속 보이게 두는 편이 낫다.
+      - name: Report bundle size
+        run: |
+          {
+            echo "### 빌드 용량"
+            echo
+            echo "총합: **$(du -sh client/dist | cut -f1)**"
+            echo
+            echo "| 크기 | 파일 |"
+            echo "| --- | --- |"
+            find client/dist -type f -printf '%s\t%p\n' \
+              | sort -rn | head -12 \
+              | while IFS=$'\t' read -r bytes path; do
+                  echo "| $(numfmt --to=iec --suffix=B "$bytes") | \`${path#client/dist/}\` |"
+                done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # 브라우저 바이너리는 200MB가 넘고 버전이 바뀔 때만 달라진다.
+      # 락파일 해시로 캐시해 매 실행 다운로드를 피한다.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright chromium
+        run: pnpm --filter @soot/client exec playwright install --with-deps chromium
+
+      # playwright.config.ts가 CI에서는 reuseExistingServer를 끄므로
+      # 여기서 dev 서버를 따로 띄울 필요가 없다.
+      - name: E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: client/playwright-report
+          retention-days: 7
+
+      # 제출 패키지의 원본. 배포 타깃이 정해지기 전에도 여기서 바로 내려받아
+      # 확인할 수 있고, 정해지면 이 산출물을 그대로 올리면 된다.
+      - name: Upload build
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: client/dist
+          retention-days: 14
