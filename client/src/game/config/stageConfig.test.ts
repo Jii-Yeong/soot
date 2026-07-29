@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
   STAGES,
   STAGE_FIVE_CONFIG,
@@ -7,7 +8,25 @@ import {
   STAGE_TWO_CONFIG,
 } from '@/game/config/stageConfig';
 
-describe('stage room progression', () => {
+describe('stage configuration', () => {
+  it('increases player health with stage difficulty', () => {
+    expect(STAGES.map(({ playerMaxHealth }) => playerMaxHealth)).toEqual([
+      100, 115, 130, 150, 175,
+    ]);
+
+    for (const stage of STAGES) {
+      const bossSpawn = stage.rooms.at(-1)?.enemySpawns[0];
+      if (!bossSpawn || bossSpawn.type !== 'boss') {
+        throw new Error(`Missing boss for ${stage.id}`);
+      }
+
+      const boss = BOSS_COMBAT_CONFIGS[bossSpawn.variant];
+      expect(stage.playerMaxHealth / boss.contactDamage).toBeGreaterThanOrEqual(
+        5,
+      );
+    }
+  });
+
   it('ends every stage with one dedicated boss room', () => {
     for (const stage of STAGES) {
       expect(stage.rooms).toHaveLength(3);

@@ -1,5 +1,4 @@
 export const PLAYER_COMBAT_CONFIG = {
-  maxHealth: 100,
   moveSpeed: 300,
   jumpSpeed: 560,
   fastFallSpeed: 720,

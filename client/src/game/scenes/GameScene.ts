@@ -28,6 +28,7 @@ import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
+import { PlayerHealthState } from '@/game/state/playerHealthState';
 import type { RoomState } from '@/game/state/roomState';
 import { BackdropDirector } from '@/game/systems/BackdropDirector';
 import { EnemyFactory } from '@/game/systems/EnemyFactory';
@@ -36,6 +37,8 @@ import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
+
+const PLAYER_DAMAGE_FLASH_DURATION = 80;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -62,7 +65,11 @@ export class GameScene extends Phaser.Scene {
   private weaponLabelText!: Phaser.GameObjects.Text;
   private weaponEquippedText!: Phaser.GameObjects.Text;
   private stageLabelText!: Phaser.GameObjects.Text;
-  private playerHealth: number = PLAYER_COMBAT_CONFIG.maxHealth;
+  private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
+  private readonly playerHealth = new PlayerHealthState(
+    (currentHealth, maxHealth) =>
+      gameEvents.emit('health-changed', currentHealth, maxHealth),
+  );
   private phase: GamePhase = 'boot';
 
   constructor() {
@@ -275,6 +282,7 @@ export class GameScene extends Phaser.Scene {
     this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
+    this.restorePlayerHealthForStage();
     this.backdropDirector.draw(this.stage);
     this.enterCurrentRoom(true);
   }
@@ -526,15 +534,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    this.playerHealth = PLAYER_COMBAT_CONFIG.maxHealth;
     this.currentStageIndex = 0;
     this.currentRoomIndex = 0;
-    gameEvents.emit(
-      'health-changed',
-      this.playerHealth,
-      PLAYER_COMBAT_CONFIG.maxHealth,
-    );
+    this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');
+  }
+
+  private restorePlayerHealthForStage() {
+    this.playerHealth.restore(this.stage.playerMaxHealth);
   }
 
   private setPhase(phase: GamePhase) {
@@ -724,28 +731,40 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.playerHealth = Math.max(0, this.playerHealth - damage);
-    gameEvents.emit(
-      'health-changed',
-      this.playerHealth,
-      PLAYER_COMBAT_CONFIG.maxHealth,
-    );
+    const playerDefeated = this.playerHealth.takeDamage(damage);
     gameEvents.emit('player-damaged', this.player.x, this.player.y);
 
-    this.player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+    this.flashPlayerDamage();
     this.cameras.main.shake(90, 0.004);
-    this.time.delayedCall(80, () => {
-      if (this.phase === 'playing') {
-        this.player.clearTint();
-      }
-    });
 
-    if (this.playerHealth === 0) {
+    if (playerDefeated) {
       this.handlePlayerDeath();
     }
   }
 
+  private flashPlayerDamage() {
+    this.playerDamageFlashTimer?.remove(false);
+    this.player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+    this.playerDamageFlashTimer = this.time.delayedCall(
+      PLAYER_DAMAGE_FLASH_DURATION,
+      () => {
+        this.playerDamageFlashTimer = undefined;
+        if (this.phase !== 'dead') {
+          this.player.clearTint();
+        }
+      },
+    );
+  }
+
+  private cancelPlayerDamageFlash() {
+    if (this.playerDamageFlashTimer) {
+      this.playerDamageFlashTimer.remove(false);
+      this.playerDamageFlashTimer = undefined;
+    }
+  }
+
   private handlePlayerDeath() {
+    this.cancelPlayerDamageFlash();
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
     for (const enemy of this.enemies) {
