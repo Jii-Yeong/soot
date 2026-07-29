@@ -67,6 +67,7 @@ export class GameScene extends Phaser.Scene {
   create() {
     this.resetRunState();
     gameEvents.emit('scene-changed', 'game');
+    gameEvents.emit('stage-changed', this.stage.id);
     this.setPhase('playing');
 
     this.drawBackdrop();
@@ -199,6 +200,7 @@ export class GameScene extends Phaser.Scene {
 
     this.currentStageIndex += 1;
     this.currentRoomIndex = 0;
+    gameEvents.emit('stage-changed', this.stage.id);
     this.drawBackdrop();
     this.enterCurrentRoom();
   }
@@ -457,6 +459,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     weapon.nextFireAt = time + config.fireInterval;
+    gameEvents.emit('weapon-fired', config.id, this.player.x, this.player.y);
   }
 
   private computePelletAngles(
@@ -555,6 +558,7 @@ export class GameScene extends Phaser.Scene {
       weapon.pool.registerHit(bullet);
       const defeated = enemy.takeDamage(weapon.config.damage);
       this.emitEnemyHealth();
+      gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
 
       enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       this.time.delayedCall(70, () => {
@@ -564,6 +568,7 @@ export class GameScene extends Phaser.Scene {
       });
 
       if (defeated) {
+        gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
         enemy.disableBody(true, true);
         this.roomDirector.notifyEnemyDefeated(enemy);
       }
@@ -638,6 +643,7 @@ export class GameScene extends Phaser.Scene {
       this.playerHealth,
       PLAYER_COMBAT_CONFIG.maxHealth,
     );
+    gameEvents.emit('player-damaged', this.player.x, this.player.y);
 
     this.player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.cameras.main.shake(90, 0.004);

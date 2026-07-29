@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { gameEvents } from '@/game/events/gameEvents';
 
 export type PlayerMovementConfig = {
   moveSpeed: number;
@@ -169,6 +170,9 @@ export class PlayerController {
     this.player
       .setVelocity(this.config.dash.speed * this.dashDirection, 0)
       .setTint(0xb6ffe4);
+    // Emitted here rather than at the call sites so the keyboard and the
+    // right-click dash raise the same cue exactly once.
+    gameEvents.emit('player-dashed', this.player.x, this.player.y);
 
     return true;
   }
