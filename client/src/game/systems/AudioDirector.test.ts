@@ -36,6 +36,7 @@ function createFakeGame(
   const played: PlayedSfx[] = [];
   const added: AddedMusic[] = [];
   let unlockListener: (() => void) | undefined;
+  const decodedListeners = new Set<(key: string) => void>();
 
   const game = {
     cache: {
@@ -66,10 +67,17 @@ function createFakeGame(
       once: (_event: string, listener: () => void) => {
         unlockListener = listener;
       },
-      off: (_event: string, listener: () => void) => {
+      // The fake deliberately omits decodeAudio, which is how the director
+      // detects a manager that cannot take deferred music. Nothing is fetched.
+      on: (_event: string, listener: (key: string) => void) => {
+        decodedListeners.add(listener);
+      },
+      off: (_event: string, listener: (key: string) => void) => {
         if (unlockListener === listener) {
           unlockListener = undefined;
         }
+
+        decodedListeners.delete(listener);
       },
     },
   };
@@ -79,6 +87,13 @@ function createFakeGame(
     played,
     added,
     unlock: () => unlockListener?.(),
+    /** Mimics a background track arriving after the game already asked for it. */
+    finishDecoding: (key: string) => {
+      loaded.add(key);
+      for (const listener of decodedListeners) {
+        listener(key);
+      }
+    },
   };
 }
 
@@ -134,6 +149,30 @@ describe('AudioDirector', () => {
     expect(added).toHaveLength(1);
     expect(added[0]).toMatchObject({ key: 'bgm-city', playCount: 1 });
     expect(added[0].config.loop).toBe(true);
+  });
+
+  it('starts a stage track that was still downloading when the stage began', () => {
+    const { game, added, finishDecoding } = createFakeGame();
+    director = new AudioDirector(game);
+
+    gameEvents.emit('stage-changed', 'stage-01');
+    expect(added).toEqual([]);
+
+    finishDecoding('bgm-city');
+
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ key: 'bgm-city', playCount: 1 });
+  });
+
+  it('ignores a track that finished downloading after the stage moved on', () => {
+    const { game, added, finishDecoding } = createFakeGame();
+    director = new AudioDirector(game);
+
+    gameEvents.emit('stage-changed', 'stage-01');
+    gameEvents.emit('stage-changed', 'stage-02');
+    finishDecoding('bgm-city');
+
+    expect(added).toEqual([]);
   });
 
   it('defers music until the browser unlocks audio', () => {

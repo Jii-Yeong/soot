@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { resolveAudioAssets } from '@/game/config/audioAssets';
 import {
   AUDIO_MIX_CONFIG,
   MUSIC_CONFIG,
@@ -21,6 +22,21 @@ export type AudioMix = {
 };
 
 /**
+ * `decodeAudio` lives on the Web Audio manager only. The HTML5 and no-audio
+ * managers do not expose it, so deferred music is skipped there rather than
+ * crashing — the same silent degradation every cue already has.
+ */
+type DecodingSoundManager = Phaser.Sound.BaseSoundManager & {
+  decodeAudio(key: string, data: ArrayBuffer): void;
+};
+
+function canDecode(
+  manager: Phaser.Sound.BaseSoundManager,
+): manager is DecodingSoundManager {
+  return 'decodeAudio' in manager && typeof manager.decodeAudio === 'function';
+}
+
+/**
  * Owns every sound in the game. It is bound to the Phaser.Game rather than a
  * Scene so music survives scene.restart() and the title-to-game handover, and
  * it only listens to gameEvents so no gameplay system has to know audio exists.
@@ -32,9 +48,13 @@ export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
   private readonly playedAt = new Map<SfxKey, number>();
   private music?: Phaser.Sound.BaseSound;
-  private musicKey?: MusicKey;
+  /** What should be playing, whether or not its file has arrived yet. */
+  private wantedMusic?: MusicKey;
 
   constructor(private readonly game: Phaser.Game) {
+    this.game.sound.on(Phaser.Sound.Events.DECODED, this.handleDecoded);
+    this.loadMusic();
+
     gameEvents.on('scene-changed', this.handleSceneChanged);
     gameEvents.on('stage-changed', this.handleStageChanged);
     gameEvents.on('phase-changed', this.handlePhaseChanged);
@@ -56,9 +76,47 @@ export class AudioDirector {
     gameEvents.off('player-dashed', this.handlePlayerDashed);
     gameEvents.off('enemy-damaged', this.handleEnemyDamaged);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
+    this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
     this.stopMusic();
     this.playedAt.clear();
   }
+
+  /**
+   * Music is fetched after boot rather than during it. The city track alone is
+   * 3.8MB against 113KB for every sound effect combined, so loading it in
+   * BootScene meant the title screen waited on a file nothing needs yet — and
+   * every track added later would have piled onto that same wait.
+   *
+   * Decoding goes through the sound manager instead of a Scene loader because
+   * no Scene outlives the boot to title to game handover; a loader started in
+   * one is torn down with it.
+   */
+  private loadMusic() {
+    const manager = this.game.sound;
+
+    if (!canDecode(manager)) {
+      return;
+    }
+
+    for (const asset of resolveAudioAssets().assets) {
+      if (!(asset.key in MUSIC_CONFIG)) {
+        continue;
+      }
+
+      // A track that fails to arrive leaves its cue silent, which is the same
+      // outcome as a cue whose file was never produced.
+      void fetch(asset.url)
+        .then((response) => response.arrayBuffer())
+        .then((data) => manager.decodeAudio(asset.key, data))
+        .catch(() => undefined);
+    }
+  }
+
+  private readonly handleDecoded = (key: string) => {
+    if (key === this.wantedMusic) {
+      this.startMusic();
+    }
+  };
 
   private readonly handleSceneChanged = (scene: GameSceneKey) => {
     if (scene === 'title') {
@@ -142,12 +200,26 @@ export class AudioDirector {
   }
 
   private playMusic(key: MusicKey) {
-    if (this.musicKey === key || !this.isLoaded(key)) {
+    if (this.wantedMusic === key) {
       return;
     }
 
     this.stopMusic();
-    this.musicKey = key;
+    this.wantedMusic = key;
+    this.startMusic();
+  }
+
+  /**
+   * Runs when music is requested and again when a deferred track finishes
+   * decoding, so a stage entered before its file arrived still gets scored.
+   */
+  private startMusic() {
+    const key = this.wantedMusic;
+
+    if (!key || this.music || !this.isLoaded(key)) {
+      return;
+    }
+
     this.music = this.game.sound.add(key, {
       loop: true,
       volume: MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master,
@@ -171,7 +243,7 @@ export class AudioDirector {
     this.music?.stop();
     this.music?.destroy();
     this.music = undefined;
-    this.musicKey = undefined;
+    this.wantedMusic = undefined;
   }
 
   private isLoaded(key: AudioAssetKey) {
