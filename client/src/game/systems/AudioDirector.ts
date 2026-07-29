@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { resolveAudioAssets } from '@/game/config/audioAssets';
 import {
   AUDIO_MIX_CONFIG,
   MUSIC_CONFIG,
@@ -21,6 +22,21 @@ export type AudioMix = {
 };
 
 /**
+ * `decodeAudio` lives on the Web Audio manager only. The HTML5 and no-audio
+ * managers do not expose it, so deferred music is skipped there rather than
+ * crashing — the same silent degradation every cue already has.
+ */
+type DecodingSoundManager = Phaser.Sound.BaseSoundManager & {
+  decodeAudio(key: string, data: ArrayBuffer): void;
+};
+
+function canDecode(
+  manager: Phaser.Sound.BaseSoundManager,
+): manager is DecodingSoundManager {
+  return 'decodeAudio' in manager && typeof manager.decodeAudio === 'function';
+}
+
+/**
  * Owns every sound in the game. It is bound to the Phaser.Game rather than a
  * Scene so music survives scene.restart() and the title-to-game handover, and
  * it only listens to gameEvents so no gameplay system has to know audio exists.
@@ -32,9 +48,14 @@ export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
   private readonly playedAt = new Map<SfxKey, number>();
   private music?: Phaser.Sound.BaseSound;
-  private musicKey?: MusicKey;
+  /** What should be playing, whether or not its file has arrived yet. */
+  private wantedMusic?: MusicKey;
+  /** Tracks already fetched, so a revisited stage does not download twice. */
+  private readonly requested = new Set<MusicKey>();
 
   constructor(private readonly game: Phaser.Game) {
+    this.game.sound.on(Phaser.Sound.Events.DECODED, this.handleDecoded);
+
     gameEvents.on('scene-changed', this.handleSceneChanged);
     gameEvents.on('stage-changed', this.handleStageChanged);
     gameEvents.on('phase-changed', this.handlePhaseChanged);
@@ -56,22 +77,93 @@ export class AudioDirector {
     gameEvents.off('player-dashed', this.handlePlayerDashed);
     gameEvents.off('enemy-damaged', this.handleEnemyDamaged);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
+    this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
     this.stopMusic();
     this.playedAt.clear();
   }
 
-  private readonly handleSceneChanged = (scene: GameSceneKey) => {
-    if (scene === 'title') {
-      this.playMusic('bgm-title');
+  /** Built once; the glob behind it is resolved at build time. */
+  private musicUrls?: Map<string, string>;
+
+  private urlFor(key: MusicKey) {
+    if (!this.musicUrls) {
+      this.musicUrls = new Map(
+        resolveAudioAssets()
+          .assets.filter((asset) => asset.key in MUSIC_CONFIG)
+          .map((asset) => [asset.key, asset.url]),
+      );
+    }
+
+    return this.musicUrls.get(key);
+  }
+
+  /**
+   * Music is fetched after boot rather than during it. Sound effects total
+   * 113KB while one track is over a megabyte, so loading music in BootScene
+   * meant the title screen waited on a file nothing needs yet.
+   *
+   * Only the track that is about to be needed is fetched, plus the one for the
+   * stage after it. Fetching every track up front would mean a player who
+   * quits during stage 1 still pays for the stage 5 music, and that download
+   * would compete with the stage 1 background the player is actually waiting
+   * on. The one-stage lead is 2~3 minutes of play against roughly a second of
+   * transfer, which is what keeps the handover silent-gap free.
+   *
+   * Decoding goes through the sound manager instead of a Scene loader because
+   * no Scene outlives the boot to title to game handover; a loader started in
+   * one is torn down with it.
+   */
+  private requestMusic(key: MusicKey | undefined) {
+    const manager = this.game.sound;
+
+    if (!key || this.requested.has(key) || !canDecode(manager)) {
+      return;
+    }
+
+    const url = this.urlFor(key);
+
+    if (!url) {
+      return;
+    }
+
+    this.requested.add(key);
+
+    // A track that fails to arrive leaves its cue silent, which is the same
+    // outcome as a cue whose file was never produced.
+    void fetch(url)
+      .then((response) => response.arrayBuffer())
+      .then((data) => manager.decodeAudio(key, data))
+      .catch(() => undefined);
+  }
+
+  private readonly handleDecoded = (key: string) => {
+    if (key === this.wantedMusic) {
+      this.startMusic();
     }
   };
 
-  private readonly handleStageChanged = (stageId: string) => {
-    const stage = STAGES.find((candidate) => candidate.id === stageId);
-
-    if (stage) {
-      this.playMusic(stage.music);
+  private readonly handleSceneChanged = (scene: GameSceneKey) => {
+    if (scene !== 'title') {
+      return;
     }
+
+    this.requestMusic('bgm-title');
+    // The title is where the player reads and presses ENTER, which is the only
+    // free moment stage one's track ever gets.
+    this.requestMusic(STAGES[0]?.music);
+    this.playMusic('bgm-title');
+  };
+
+  private readonly handleStageChanged = (stageId: string) => {
+    const index = STAGES.findIndex((candidate) => candidate.id === stageId);
+
+    if (index < 0) {
+      return;
+    }
+
+    this.requestMusic(STAGES[index].music);
+    this.requestMusic(STAGES[index + 1]?.music);
+    this.playMusic(STAGES[index].music);
   };
 
   private readonly handlePhaseChanged = (phase: GamePhase) => {
@@ -142,12 +234,26 @@ export class AudioDirector {
   }
 
   private playMusic(key: MusicKey) {
-    if (this.musicKey === key || !this.isLoaded(key)) {
+    if (this.wantedMusic === key) {
       return;
     }
 
     this.stopMusic();
-    this.musicKey = key;
+    this.wantedMusic = key;
+    this.startMusic();
+  }
+
+  /**
+   * Runs when music is requested and again when a deferred track finishes
+   * decoding, so a stage entered before its file arrived still gets scored.
+   */
+  private startMusic() {
+    const key = this.wantedMusic;
+
+    if (!key || this.music || !this.isLoaded(key)) {
+      return;
+    }
+
     this.music = this.game.sound.add(key, {
       loop: true,
       volume: MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master,
@@ -171,7 +277,7 @@ export class AudioDirector {
     this.music?.stop();
     this.music?.destroy();
     this.music = undefined;
-    this.musicKey = undefined;
+    this.wantedMusic = undefined;
   }
 
   private isLoaded(key: AudioAssetKey) {

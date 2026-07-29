@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
+import { MUSIC_CONFIG } from '@/game/config/audioConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
   PLAYER_ANIMATIONS,
@@ -23,6 +24,13 @@ export class BootScene extends Phaser.Scene {
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
     for (const asset of assets) {
+      // Only sound effects block the title screen. Music is megabytes and
+      // nothing on the title needs it the instant boot ends, so AudioDirector
+      // fetches it in the background instead. See AudioDirector.loadMusic.
+      if (asset.key in MUSIC_CONFIG) {
+        continue;
+      }
+
       this.load.audio(asset.key, asset.url);
     }
 

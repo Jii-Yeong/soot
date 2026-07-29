@@ -3,6 +3,7 @@
 import type Phaser from 'phaser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AudioAssetKey } from '@/game/config/audioConfig';
+import { STAGES } from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import { AudioDirector } from '@/game/systems/AudioDirector';
 
@@ -30,12 +31,17 @@ type AddedMusic = {
 };
 
 function createFakeGame(
-  options: { loaded?: AudioAssetKey[]; locked?: boolean } = {},
+  options: {
+    loaded?: AudioAssetKey[];
+    locked?: boolean;
+    canDecode?: boolean;
+  } = {},
 ) {
   const loaded = new Set<string>(options.loaded ?? []);
   const played: PlayedSfx[] = [];
   const added: AddedMusic[] = [];
   let unlockListener: (() => void) | undefined;
+  const decodedListeners = new Set<(key: string) => void>();
 
   const game = {
     cache: {
@@ -66,10 +72,25 @@ function createFakeGame(
       once: (_event: string, listener: () => void) => {
         unlockListener = listener;
       },
-      off: (_event: string, listener: () => void) => {
+      // Present only when the test asks for it, so the default fake still
+      // exercises the path where a manager cannot take deferred music.
+      ...(options.canDecode
+        ? {
+            decodeAudio: (key: string) => {
+              loaded.add(key);
+              for (const listener of decodedListeners) listener(key);
+            },
+          }
+        : {}),
+      on: (_event: string, listener: (key: string) => void) => {
+        decodedListeners.add(listener);
+      },
+      off: (_event: string, listener: (key: string) => void) => {
         if (unlockListener === listener) {
           unlockListener = undefined;
         }
+
+        decodedListeners.delete(listener);
       },
     },
   };
@@ -79,6 +100,13 @@ function createFakeGame(
     played,
     added,
     unlock: () => unlockListener?.(),
+    /** Mimics a background track arriving after the game already asked for it. */
+    finishDecoding: (key: string) => {
+      loaded.add(key);
+      for (const listener of decodedListeners) {
+        listener(key);
+      }
+    },
   };
 }
 
@@ -88,7 +116,19 @@ describe('AudioDirector', () => {
   afterEach(() => {
     director?.destroy();
     director = undefined;
+    vi.unstubAllGlobals();
   });
+
+  /** Records which tracks the director actually goes to the network for. */
+  function captureFetches() {
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', (url: string) => {
+      urls.push(url);
+      return Promise.resolve({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) });
+    });
+
+    return urls;
+  }
 
   it('stays silent for cues whose asset has not been produced yet', () => {
     const { game, played } = createFakeGame();
@@ -136,6 +176,30 @@ describe('AudioDirector', () => {
     expect(added[0].config.loop).toBe(true);
   });
 
+  it('starts a stage track that was still downloading when the stage began', () => {
+    const { game, added, finishDecoding } = createFakeGame();
+    director = new AudioDirector(game);
+
+    gameEvents.emit('stage-changed', 'stage-01');
+    expect(added).toEqual([]);
+
+    finishDecoding('bgm-city');
+
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ key: 'bgm-city', playCount: 1 });
+  });
+
+  it('ignores a track that finished downloading after the stage moved on', () => {
+    const { game, added, finishDecoding } = createFakeGame();
+    director = new AudioDirector(game);
+
+    gameEvents.emit('stage-changed', 'stage-01');
+    gameEvents.emit('stage-changed', 'stage-02');
+    finishDecoding('bgm-city');
+
+    expect(added).toEqual([]);
+  });
+
   it('defers music until the browser unlocks audio', () => {
     const { game, added, unlock } = createFakeGame({
       loaded: ['bgm-title'],
@@ -148,6 +212,54 @@ describe('AudioDirector', () => {
 
     unlock();
     expect(added[0].playCount).toBe(1);
+  });
+
+  it('fetches only the stage in play and the one after it', async () => {
+    const urls = captureFetches();
+    const { game } = createFakeGame({ canDecode: true });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('stage-changed', 'stage-01');
+    await Promise.resolve();
+
+    // Fetching the whole soundtrack up front would make a player who quits in
+    // stage 1 pay for the stage 5 music, and that transfer would compete with
+    // the stage 1 background they are actually waiting on.
+    //
+    // Only cues with a file produce a request, so this counts at most two and
+    // grows into a real assertion as the remaining tracks land.
+    const reachable = [STAGES[0].music, STAGES[1]?.music]
+      .filter((key) => key !== undefined)
+      .map((key) => key.replace('bgm-', ''));
+
+    expect(urls.length).toBeLessThanOrEqual(2);
+    expect(
+      urls.every((url) => reachable.some((name) => url.includes(name))),
+    ).toBe(true);
+    expect(urls.some((url) => url.includes('city'))).toBe(true);
+  });
+
+  it('survives the last stage having no stage after it', () => {
+    captureFetches();
+    const { game } = createFakeGame({ canDecode: true });
+    director = new AudioDirector(game);
+
+    expect(() =>
+      gameEvents.emit('stage-changed', STAGES[STAGES.length - 1].id),
+    ).not.toThrow();
+  });
+
+  it('does not refetch a track when a stage is revisited', async () => {
+    const urls = captureFetches();
+    const { game } = createFakeGame({ canDecode: true });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('stage-changed', 'stage-01');
+    gameEvents.emit('stage-changed', 'stage-02');
+    gameEvents.emit('stage-changed', 'stage-01');
+    await Promise.resolve();
+
+    expect(new Set(urls).size).toBe(urls.length);
   });
 
   it('stops responding to cues once destroyed', () => {
