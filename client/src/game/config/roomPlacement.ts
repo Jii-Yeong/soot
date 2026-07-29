@@ -16,5 +16,9 @@ export function placeRoomInStage(
       ...spawn,
       x: spawn.x + offsetX,
     })),
+    terrain: roomConfig.terrain?.map((piece) => ({
+      ...piece,
+      x: piece.x + offsetX,
+    })),
   };
 }

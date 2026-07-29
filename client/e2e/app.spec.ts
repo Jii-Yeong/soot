@@ -114,6 +114,20 @@ async function clearRoom(
 
 async function advanceThroughDoor(page: Page) {
   await whileHoldingKey(page, 'KeyD', async () => {
+    // Rooms end with an exit wall, so run-up jump toward the door. A held jump
+    // (not a fast press) is needed — Phaser's JustDown misses a too-quick tap.
+    for (let hop = 0; hop < 12; hop += 1) {
+      const roomState = await page
+        .locator('main')
+        .getAttribute('data-room-state');
+      if (roomState === 'locked') {
+        return;
+      }
+      await page.keyboard.down('Space');
+      await page.waitForTimeout(70);
+      await page.keyboard.up('Space');
+      await page.waitForTimeout(380);
+    }
     await expect(page.locator('main')).toHaveAttribute(
       'data-room-state',
       'locked',

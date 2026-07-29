@@ -25,6 +25,19 @@ export type EnemySpawnConfig =
       y: number;
     };
 
+/**
+ * A solid, static piece of level geometry. `x`/`y` are the top-left corner.
+ * A `platform` is a low ledge to stand on; a `wall` is a tall barrier to jump
+ * or dash over. Both are solid on every side.
+ */
+export type TerrainPiece = {
+  type: 'platform' | 'wall';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type RoomConfig = {
   id: string;
   label: string;
@@ -37,6 +50,7 @@ export type RoomConfig = {
     height: number;
   };
   enemySpawns: EnemySpawnConfig[];
+  terrain?: TerrainPiece[];
   /** Multiplies enemy move speed and divides fire interval. 1 = baseline pace. */
   intensity?: number;
 };

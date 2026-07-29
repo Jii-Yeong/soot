@@ -35,6 +35,7 @@ import { EnemyFactory } from '@/game/systems/EnemyFactory';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
+import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
 
@@ -44,6 +45,7 @@ export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemies: Enemy[] = [];
   private floorGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private terrainBuilder!: TerrainBuilder;
   private currentStageIndex = 0;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
@@ -95,6 +97,8 @@ export class GameScene extends Phaser.Scene {
     this.backdropDirector.draw(this.stage);
     const floor = this.createFloor();
     this.createPlayer(floor);
+    this.terrainBuilder = new TerrainBuilder(this);
+    this.physics.add.collider(this.player, this.terrainBuilder.group);
     this.configureCamera();
     this.createRoom(floor);
     this.createCombatSystems();
@@ -214,6 +218,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.replaceEnemies([]);
     this.emitEnemyHealth();
+
+    this.terrainBuilder.build(roomConfig.terrain);
 
     // A stage with real backdrop art shows its own ground, so the placeholder
     // tiles are hidden while their collision bodies stay active.
