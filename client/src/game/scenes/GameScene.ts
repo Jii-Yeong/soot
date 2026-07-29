@@ -5,55 +5,89 @@ import {
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import {
+  PLAYER_ANIMATIONS,
+  PLAYER_ATLAS_KEY,
+  PLAYER_INITIAL_FRAME,
+} from '@/game/config/playerAnimationConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
-import { STAGES } from '@/game/config/stageConfig';
-import { WEAPON_CONFIGS, type WeaponConfig } from '@/game/config/weaponConfig';
+import {
+  placeRoomInStage,
+  stageWorldWidth,
+} from '@/game/config/roomPlacement';
+import { STAGES, type StageEndEvent } from '@/game/config/stageConfig';
+import { getStageExitPlan } from '@/game/config/stageProgression';
+import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
+import {
+  STARTING_WEAPON_ID,
+  WEAPON_CONFIGS,
+  type WeaponConfig,
+} from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
+import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import type { GamePhase } from '@/game/state/gamePhase';
+import { PlayerHealthState } from '@/game/state/playerHealthState';
 import type { RoomState } from '@/game/state/roomState';
+import { BackdropDirector } from '@/game/systems/BackdropDirector';
 import { EnemyFactory } from '@/game/systems/EnemyFactory';
+import {
+  FLOOR_SURFACE_Y,
+  FLOOR_TILE,
+  FloorBuilder,
+} from '@/game/systems/FloorBuilder';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
+import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
+import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
+import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
+import { WeaponSystem } from '@/game/systems/WeaponSystem';
 
-type WeaponRuntime = {
-  config: WeaponConfig;
-  pool: ProjectilePool;
-  nextFireAt: number;
-};
+const PLAYER_DAMAGE_FLASH_DURATION = 80;
+
+/** How far the feet must sink past the floor surface to count as a pit fall. */
+const PIT_FALL_TRIGGER_DEPTH = 22;
+const PIT_FALL_DAMAGE = 12;
+/** Height above the floor the player is placed at after climbing out of a pit. */
+const PIT_RESPAWN_LIFT = 60;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
+  private stageWorldWidth = 0;
   private enemies: Enemy[] = [];
-  private floorGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private floorBuilder!: FloorBuilder;
+  private terrainBuilder!: TerrainBuilder;
   private currentStageIndex = 0;
   private currentRoomIndex = 0;
+  private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
-  private weapons: WeaponRuntime[] = [];
-  private activeWeaponIndex = 0;
+  private weaponDropDirector!: WeaponDropDirector;
+  private weaponSystem!: WeaponSystem;
+  private stageEndEventDirector!: StageEndEventDirector;
+  private equipKey!: Phaser.Input.Keyboard.Key;
   private enemyProjectiles!: ProjectilePool;
   private flyingEnemyProjectiles!: ProjectilePool;
   private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
   private aimGraphics!: Phaser.GameObjects.Graphics;
   private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
-  private backdropGraphics!: Phaser.GameObjects.Graphics;
-  private neonAccent?: Phaser.GameObjects.Rectangle;
-  private neonFlickerTimer?: Phaser.Time.TimerEvent;
+  private backdropDirector!: BackdropDirector;
   private deathOverlay!: Phaser.GameObjects.Container;
-  private stageClearOverlay!: Phaser.GameObjects.Container;
+  private victoryOverlay!: Phaser.GameObjects.Container;
+  private stageEndOverlay!: Phaser.GameObjects.Container;
   private weaponLabelText!: Phaser.GameObjects.Text;
+  private weaponEquippedText!: Phaser.GameObjects.Text;
   private stageLabelText!: Phaser.GameObjects.Text;
-  private playerHealth: number = PLAYER_COMBAT_CONFIG.maxHealth;
+  private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
+  private readonly playerHealth = new PlayerHealthState(
+    (currentHealth, maxHealth) =>
+      gameEvents.emit('health-changed', currentHealth, maxHealth),
+  );
   private phase: GamePhase = 'boot';
 
   constructor() {
     super('game');
-  }
-
-  private get activeWeapon(): WeaponRuntime {
-    return this.weapons[this.activeWeaponIndex];
   }
 
   private get stage() {
@@ -70,42 +104,55 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('stage-changed', this.stage.id);
     this.setPhase('playing');
 
-    this.drawBackdrop();
-    const floor = this.createFloor();
-    this.createPlayer(floor);
-    this.createRoom(floor);
+    this.configureHorizontalWorld();
+    this.backdropDirector = new BackdropDirector(this);
+    this.showStageBackdrop();
+    this.floorBuilder = new FloorBuilder(this);
+    this.rebuildFloorForStage();
+    this.createPlayer();
+    this.terrainBuilder = new TerrainBuilder(this);
+    this.physics.add.collider(this.player, this.terrainBuilder.group);
+    this.configureCamera();
+    this.createRoom();
     this.createCombatSystems();
+    this.stageEndEventDirector = new StageEndEventDirector(this);
     this.createCombatUi();
     this.bindInputHandlers();
-    this.startRoomEncounter();
   }
 
-  update(time: number) {
-    if (this.phase === 'dead' || this.phase === 'ending') {
+  update(time: number, delta: number) {
+    if (
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
+    ) {
       return;
     }
 
+    this.handlePitFall();
+
     if (
       this.phase === 'room-cleared' &&
-      this.player.x > this.currentRoomConfig.exitX + 20
+      this.player.x > this.activeRoomConfig.exitX + 20
     ) {
       this.advanceToNextRoom();
     }
 
     this.playerController.update(time);
+    this.weaponDropDirector.update(
+      this.player,
+      this.weaponSystem.activeConfig,
+    );
 
     const pointer = this.input.activePointer;
     const aimPoint = pointer.positionToCamera(
       this.cameras.main,
     ) as Phaser.Math.Vector2;
+    this.weaponSystem.update(delta, aimPoint);
     this.drawAimGuide(aimPoint);
 
-    if (
-      this.phase === 'playing' &&
-      pointer.leftButtonDown() &&
-      time >= this.activeWeapon.nextFireAt
-    ) {
-      this.fireBullet(aimPoint, time);
+    if (this.phase === 'playing' && pointer.leftButtonDown()) {
+      this.weaponSystem.tryFire(aimPoint, time);
     }
 
     if (this.phase === 'playing') {
@@ -113,54 +160,85 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private createFloor() {
-    const floor = this.physics.add.staticGroup();
-
-    for (let x = 32; x < GAME_WIDTH; x += 64) {
-      floor.create(x, GAME_HEIGHT - 32, 'floor-placeholder');
-    }
-
-    return floor;
+  private rebuildFloorForStage() {
+    this.floorBuilder.build(this.stage.rooms, Boolean(this.stage.background));
   }
 
-  private createPlayer(floor: Phaser.Physics.Arcade.StaticGroup) {
+  private createPlayer() {
     this.player = this.physics.add.sprite(
       180,
       GAME_HEIGHT - 120,
-      'player',
-      'shoot-posture-refined 0.png',
+      PLAYER_ATLAS_KEY,
+      PLAYER_INITIAL_FRAME,
     );
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(36, 76, true);
-    this.player.play('player-idle');
+    this.player.play(PLAYER_ANIMATIONS.idle);
     this.player.setCollideWorldBounds(true);
     // Enemies default to the same depth (0) and are added to the display
     // list after the player, so without this they render on top of the
     // player whenever a melee enemy closes to contact range.
     this.player.setDepth(8);
-    this.physics.add.collider(this.player, floor);
+    this.physics.add.collider(this.player, this.floorBuilder.group);
   }
 
-  private createRoom(floor: Phaser.Physics.Arcade.StaticGroup) {
-    this.floorGroup = floor;
-    this.buildRoom(this.currentRoomConfig);
+  private configureHorizontalWorld() {
+    this.stageWorldWidth = stageWorldWidth(this.stage.rooms);
+    this.physics.world.setBounds(0, 0, this.stageWorldWidth, GAME_HEIGHT);
+    this.cameras.main
+      .setBounds(0, 0, this.stageWorldWidth, GAME_HEIGHT)
+      .setRoundPixels(true);
+  }
+
+  private configureCamera() {
+    this.cameras.main.startFollow(
+      this.player,
+      true,
+      ROOM_CAMERA_FOLLOW_LERP_X,
+      1,
+    );
+  }
+
+  private resetCameraToRoomEntrance() {
+    this.cameras.main.stopFollow();
+    this.cameras.main.setScroll(0, 0);
+    this.configureCamera();
+  }
+
+  private createRoom() {
+    this.buildRoom(
+      placeRoomInStage(this.stage.rooms, this.currentRoomIndex),
+    );
   }
 
   private buildRoom(roomConfig: RoomConfig) {
+    this.weaponDropDirector?.clear();
     this.roomDirector?.destroy();
-    this.roomDirector = new RoomDirector(this, this.player, roomConfig, (state) =>
-      this.handleRoomStateChanged(state),
-    );
+    this.activeRoomConfig = roomConfig;
+    this.roomDirector = new RoomDirector({
+      scene: this,
+      player: this.player,
+      config: roomConfig,
+      onStateChanged: (state) => this.handleRoomStateChanged(state),
+      onEntranceDetected: () => this.startRoomEncounter(),
+    });
 
     for (const enemy of this.enemies) {
       enemy.destroy();
     }
+    this.replaceEnemies([]);
+    this.emitEnemyHealth();
 
+    this.terrainBuilder.build(roomConfig.terrain);
+  }
+
+  private spawnRoomEnemies() {
     const enemyFactory = new EnemyFactory(
       this,
-      this.floorGroup,
-      roomConfig.intensity,
+      this.floorBuilder.group,
+      this.activeRoomConfig.intensity,
+      (damage) => this.applyPlayerDamage(damage),
     );
-    const spawned = roomConfig.enemySpawns.map((spawn) =>
+    const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
     this.replaceEnemies(spawned);
@@ -178,6 +256,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startRoomEncounter() {
+    if (this.enemies.some((enemy) => enemy.active)) {
+      return;
+    }
+
+    this.spawnRoomEnemies();
     this.roomDirector.beginEncounter(this.enemies);
   }
 
@@ -192,36 +275,95 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceToNextStage() {
-    if (this.currentStageIndex + 1 >= STAGES.length) {
-      // No stage 3+ yet — the run ends here rather than the run failing to progress.
+    const plan = getStageExitPlan(STAGES, this.currentStageIndex);
+
+    if (plan.event) {
+      this.playStageEndEvent(plan.event, plan.nextStageIndex);
+      return;
+    }
+
+    this.completeStageExit(plan.nextStageIndex);
+  }
+
+  private completeStageExit(nextStageIndex: number | null) {
+    if (nextStageIndex === null) {
       this.handleRunCleared();
       return;
     }
 
-    this.currentStageIndex += 1;
+    this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
-    this.drawBackdrop();
-    this.enterCurrentRoom();
+    this.configureHorizontalWorld();
+    this.restorePlayerHealthForStage();
+    this.showStageBackdrop();
+    this.rebuildFloorForStage();
+    this.enterCurrentRoom(true);
   }
 
-  private enterCurrentRoom() {
-    this.buildRoom(this.currentRoomConfig);
+  private enterCurrentRoom(resetToStageEntrance = false) {
+    if (resetToStageEntrance) {
+      this.player.setPosition(
+        this.currentRoomConfig.entranceX + 90,
+        this.player.y,
+      );
+      this.player.setVelocity(0);
+      this.resetCameraToRoomEntrance();
+    }
+
+    this.buildRoom(
+      placeRoomInStage(this.stage.rooms, this.currentRoomIndex),
+    );
     this.updateStageLabel();
-    this.startRoomEncounter();
     this.setPhase('playing');
-    this.player.setPosition(this.currentRoomConfig.entranceX + 90, this.player.y);
   }
 
   private handleRunCleared() {
     this.setPhase('ending');
+    this.weaponSystem.hide();
     this.enemyRangeGraphics.clear();
-    this.stageClearOverlay.setVisible(true);
+    // Beating the final stage ("The Return") is the true victory — wash the
+    // screen to warm light (waking up) before the ending card resolves.
+    this.cameras.main.flash(700, 255, 240, 210);
+    this.victoryOverlay.setVisible(true);
+  }
+
+  private playStageEndEvent(
+    event: StageEndEvent,
+    nextStageIndex: number | null,
+  ) {
+    this.setPhase('transitioning');
+    this.weaponSystem.cancelHitStop();
+    this.playerController.stop();
+    this.player.setVelocity(0);
+    this.weaponSystem.hide();
+    this.weaponDropDirector.clear();
+    this.aimGraphics.clear();
+    this.enemyRangeGraphics.clear();
+    this.stageEndEventDirector.play(event, () => {
+      if (nextStageIndex === null) {
+        this.setPhase('ending');
+        this.stageEndOverlay.setVisible(true);
+        return;
+      }
+
+      this.completeStageExit(nextStageIndex);
+    });
   }
 
   private updateStageLabel() {
     this.stageLabelText.setText(
-      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${this.stage.rooms.length}`,
+      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${
+        this.stage.rooms.length
+      }`,
+    );
+  }
+
+  private showStageBackdrop() {
+    this.backdropDirector.show(
+      this.stage,
+      this.stageWorldWidth,
+      STAGES[this.currentStageIndex + 1],
     );
   }
 
@@ -231,28 +373,21 @@ export class GameScene extends Phaser.Scene {
       this.player,
       PLAYER_COMBAT_CONFIG,
     );
-    this.weapons = WEAPON_CONFIGS.map((config) => {
-      const weapon: WeaponRuntime = {
-        config,
-        pool: new ProjectilePool(this, {
-          texture: config.texture,
-          speed: config.projectileSpeed,
-          lifetime: config.projectileLifetime,
-          maxSize: config.maxPoolSize,
-        }),
-        nextFireAt: 0,
-      };
-
-      this.physics.add.overlap(
-        weapon.pool.group,
-        this.enemies,
-        this.createEnemyHitHandler(weapon),
-        undefined,
-        this,
-      );
-
-      return weapon;
-    });
+    this.weaponSystem = new WeaponSystem(
+      this,
+      this.player,
+      this.enemies,
+      WEAPON_CONFIGS,
+      STARTING_WEAPON_ID,
+      () => this.phase === 'playing',
+      (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
+    );
+    this.weaponDropDirector = new WeaponDropDirector(
+      this,
+      this.floorBuilder.group,
+      WEAPON_CONFIGS,
+      (weapon) => gameEvents.emit('nearby-weapon-changed', weapon?.id ?? null),
+    );
     this.enemyProjectiles = new ProjectilePool(
       this,
       RANGED_ENEMY_COMBAT_CONFIG.projectile,
@@ -297,11 +432,17 @@ export class GameScene extends Phaser.Scene {
       'SYSTEM FAILURE',
       'PRESS R OR ENTER TO RESTART',
     );
-    this.stageClearOverlay = this.createOverlay(
-      0xb6ffe4,
-      '#b6ffe4',
-      'STAGE CLEAR',
-      'TO BE CONTINUED  //  PRESS R OR ENTER TO REPLAY',
+    this.victoryOverlay = this.createOverlay(
+      0xffe1a8,
+      '#ffe9c4',
+      'RETURN COMPLETE',
+      "YOU'RE AWAKE  //  PRESS R OR ENTER TO REPLAY",
+    );
+    this.stageEndOverlay = this.createOverlay(
+      0xe45d68,
+      '#ff7180',
+      'SURROUNDED',
+      'SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY',
     );
 
     this.stageLabelText = this.add
@@ -311,7 +452,8 @@ export class GameScene extends Phaser.Scene {
         fontSize: '14px',
       })
       .setOrigin(0.5)
-      .setDepth(20);
+      .setDepth(20)
+      .setScrollFactor(0);
     this.updateStageLabel();
 
     this.weaponLabelText = this.add
@@ -321,71 +463,110 @@ export class GameScene extends Phaser.Scene {
         fontSize: '15px',
         fontStyle: 'bold',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0.5)
+      .setDepth(20)
+      .setScrollFactor(0);
     this.updateWeaponLabel();
+
+    this.weaponEquippedText = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, '', {
+        color: '#ffffff',
+        backgroundColor: '#070a0be8',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        fontStyle: 'bold',
+        padding: { x: 12, y: 7 },
+      })
+      .setOrigin(0.5)
+      .setDepth(30)
+      .setScrollFactor(0)
+      .setVisible(false);
 
     this.add
       .text(
         GAME_WIDTH - 32,
         GAME_HEIGHT - 96,
-        'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    1/2  WEAPON',
+        'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
         {
           color: '#879197',
           fontFamily: 'Arial, sans-serif',
           fontSize: '15px',
         },
       )
-      .setOrigin(1, 0.5);
+      .setOrigin(1, 0.5)
+      .setDepth(20)
+      .setScrollFactor(0);
   }
 
   private bindInputHandlers() {
-    const switchToSmg = () => this.switchWeapon(0);
-    const switchToShotgun = () => this.switchWeapon(1);
+    const keyboard = this.input.keyboard;
+    if (!keyboard) {
+      throw new Error('Keyboard input is required for weapon pickup');
+    }
 
+    this.equipKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.equipKey.on('down', this.tryEquipNearbyWeapon, this);
     this.input.on('pointerdown', this.handlePointerDown, this);
-    this.input.keyboard?.on('keydown-R', this.handleRestartInput, this);
-    this.input.keyboard?.on('keydown-ENTER', this.handleRestartInput, this);
-    this.input.keyboard?.on('keydown-ONE', switchToSmg);
-    this.input.keyboard?.on('keydown-TWO', switchToShotgun);
+    keyboard.on('keydown-R', this.handleRestartInput, this);
+    keyboard.on('keydown-ENTER', this.handleRestartInput, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.handlePointerDown, this);
-      this.input.keyboard?.off('keydown-R', this.handleRestartInput, this);
-      this.input.keyboard?.off('keydown-ENTER', this.handleRestartInput, this);
-      this.input.keyboard?.off('keydown-ONE', switchToSmg);
-      this.input.keyboard?.off('keydown-TWO', switchToShotgun);
+      keyboard.off('keydown-R', this.handleRestartInput, this);
+      keyboard.off('keydown-ENTER', this.handleRestartInput, this);
+      this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
     });
   }
 
-  private switchWeapon(index: number) {
-    if (
-      this.phase !== 'playing' ||
-      index < 0 ||
-      index >= this.weapons.length ||
-      index === this.activeWeaponIndex
-    ) {
+  private tryEquipNearbyWeapon() {
+    if (this.phase !== 'playing' && this.phase !== 'room-cleared') {
       return;
     }
 
-    this.activeWeaponIndex = index;
+    const weapon = this.weaponDropDirector.takeNearest(
+      this.player,
+      this.weaponSystem.activeConfig,
+    );
+    if (!weapon || !this.weaponSystem.equip(weapon.id)) {
+      return;
+    }
+
     this.updateWeaponLabel();
+    this.showWeaponEquipped(weapon);
   }
 
   private updateWeaponLabel() {
-    this.weaponLabelText.setText(`WEAPON // ${this.activeWeapon.config.label}`);
+    const weapon = this.weaponSystem.activeConfig;
+    this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
+    gameEvents.emit('weapon-changed', weapon.id, weapon.label);
+  }
+
+  private showWeaponEquipped(weapon: WeaponConfig) {
+    this.tweens.killTweensOf(this.weaponEquippedText);
+    this.weaponEquippedText
+      .setText(`EQUIPPED // ${weapon.label}`)
+      .setColor(`#${weapon.pickupColor.toString(16).padStart(6, '0')}`)
+      .setAlpha(1)
+      .setVisible(true);
+    this.tweens.add({
+      targets: this.weaponEquippedText,
+      alpha: 0,
+      delay: 850,
+      duration: 260,
+      onComplete: () => this.weaponEquippedText.setVisible(false),
+    });
+    this.weaponSystem.playEquipFeedback();
   }
 
   private resetRunState() {
-    this.playerHealth = PLAYER_COMBAT_CONFIG.maxHealth;
-    this.activeWeaponIndex = 0;
     this.currentStageIndex = 0;
     this.currentRoomIndex = 0;
-    gameEvents.emit(
-      'health-changed',
-      this.playerHealth,
-      PLAYER_COMBAT_CONFIG.maxHealth,
-    );
+    this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');
+  }
+
+  private restorePlayerHealthForStage() {
+    this.playerHealth.restore(this.stage.playerMaxHealth);
   }
 
   private setPhase(phase: GamePhase) {
@@ -411,7 +592,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
-    if (this.phase === 'dead' || this.phase === 'ending') {
+    if (
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
+    ) {
       return;
     }
 
@@ -420,66 +605,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (
-      this.phase !== 'playing' ||
-      pointer.button !== 0 ||
-      this.time.now < this.activeWeapon.nextFireAt
-    ) {
+    if (this.phase !== 'playing' || pointer.button !== 0) {
       return;
     }
 
     const aimPoint = pointer.positionToCamera(
       this.cameras.main,
     ) as Phaser.Math.Vector2;
-    this.fireBullet(aimPoint, this.time.now);
-  }
-
-  private fireBullet(aimPoint: Phaser.Math.Vector2, time: number) {
-    const weapon = this.activeWeapon;
-    const { config } = weapon;
-    const baseAngle = Phaser.Math.Angle.Between(
-      this.player.x,
-      this.player.y,
-      aimPoint.x,
-      aimPoint.y,
-    );
-
-    for (const angle of this.computePelletAngles(
-      baseAngle,
-      config.pelletCount,
-      config.spreadDegrees,
-    )) {
-      const { x, y } = this.muzzlePosition(
-        this.player.x,
-        this.player.y,
-        angle,
-        config.muzzleOffset,
-      );
-      weapon.pool.fire(x, y, angle, { pierce: config.pierce });
-    }
-
-    weapon.nextFireAt = time + config.fireInterval;
-    gameEvents.emit('weapon-fired', config.id, this.player.x, this.player.y);
-  }
-
-  private computePelletAngles(
-    baseAngle: number,
-    pelletCount: number,
-    spreadDegrees: number,
-  ) {
-    if (pelletCount <= 1) {
-      return [baseAngle];
-    }
-
-    const spreadRad = Phaser.Math.DegToRad(spreadDegrees);
-    const angles: number[] = [];
-
-    for (let i = 0; i < pelletCount; i++) {
-      const t = i / (pelletCount - 1) - 0.5;
-      angles.push(baseAngle + t * spreadRad);
-    }
-
-    return angles;
+    this.weaponSystem.tryFire(aimPoint, this.time.now);
   }
 
   private updateEnemyCombat(time: number) {
@@ -541,38 +674,46 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
-  private createEnemyHitHandler(
-    weapon: WeaponRuntime,
-  ): Phaser.Types.Physics.Arcade.ArcadePhysicsCallback {
-    return (firstObject, secondObject) => {
-      const enemy = this.findEnemy(firstObject, secondObject);
-      const bullet =
-        firstObject instanceof Enemy
-          ? (secondObject as Phaser.Physics.Arcade.Image)
-          : (firstObject as Phaser.Physics.Arcade.Image);
+  private handleEnemyHit(enemy: Enemy, defeated: boolean) {
+    this.emitEnemyHealth();
+    gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
 
-      if (!enemy || !bullet.active || !enemy.active) {
-        return;
-      }
+    if (!defeated) {
+      return;
+    }
 
-      weapon.pool.registerHit(bullet);
-      const defeated = enemy.takeDamage(weapon.config.damage);
-      this.emitEnemyHealth();
-      gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
+    gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
+    if (enemy instanceof BossEnemy) {
+      this.weaponDropDirector.dropBossReward(
+        enemy.x,
+        enemy.y,
+        this.weaponSystem.activeConfig.id,
+      );
+    } else {
+      this.spawnDeathPop(enemy);
+    }
+    enemy.defeat();
+    this.roomDirector.notifyEnemyDefeated(enemy);
+  }
 
-      enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-      this.time.delayedCall(70, () => {
-        if (enemy.active) {
-          enemy.clearTint();
-        }
-      });
-
-      if (defeated) {
-        gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
-        enemy.disableBody(true, true);
-        this.roomDirector.notifyEnemyDefeated(enemy);
-      }
-    };
+  /** A fading, expanding ghost of the enemy so a kill has a beat of weight. */
+  private spawnDeathPop(enemy: Enemy) {
+    const pop = this.add
+      .image(enemy.x, enemy.y, enemy.texture.key, enemy.frame.name)
+      .setFlipX(enemy.flipX)
+      .setScale(enemy.scaleX, enemy.scaleY)
+      .setDepth(enemy.depth)
+      .setTint(0xffffff)
+      .setTintMode(Phaser.TintModes.FILL);
+    this.tweens.add({
+      targets: pop,
+      scaleX: enemy.scaleX * 1.6,
+      scaleY: enemy.scaleY * 1.6,
+      alpha: 0,
+      duration: 180,
+      ease: 'Quad.easeOut',
+      onComplete: () => pop.destroy(),
+    });
   }
 
   private handleEnemyContact: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
@@ -632,43 +773,75 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  /**
+   * When the player's feet sink past the floor surface they have dropped into a
+   * pit (the floor collider stops them everywhere else). Lift them out onto the
+   * far ledge and dock health — the pit is a hazard, not a dead end.
+   */
+  private handlePitFall() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body.bottom <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
+      return;
+    }
+
+    const pit = this.floorBuilder.findPitAt(this.player.x, FLOOR_TILE);
+    const targetX = pit ? pit.end + FLOOR_TILE / 2 : this.player.x;
+    this.player.setPosition(targetX, FLOOR_SURFACE_Y - PIT_RESPAWN_LIFT);
+    body.setVelocity(0, 0);
+
+    this.applyPlayerDamage(PIT_FALL_DAMAGE);
+  }
+
   private applyPlayerDamage(damage: number) {
     if (this.phase !== 'playing' || this.playerController.isInvulnerable) {
       return;
     }
 
-    this.playerHealth = Math.max(0, this.playerHealth - damage);
-    gameEvents.emit(
-      'health-changed',
-      this.playerHealth,
-      PLAYER_COMBAT_CONFIG.maxHealth,
-    );
+    const playerDefeated = this.playerHealth.takeDamage(damage);
     gameEvents.emit('player-damaged', this.player.x, this.player.y);
 
-    this.player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+    this.flashPlayerDamage();
     this.cameras.main.shake(90, 0.004);
-    this.time.delayedCall(80, () => {
-      if (this.phase === 'playing') {
-        this.player.clearTint();
-      }
-    });
 
-    if (this.playerHealth === 0) {
+    if (playerDefeated) {
       this.handlePlayerDeath();
     }
   }
 
+  private flashPlayerDamage() {
+    this.playerDamageFlashTimer?.remove(false);
+    this.player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+    this.playerDamageFlashTimer = this.time.delayedCall(
+      PLAYER_DAMAGE_FLASH_DURATION,
+      () => {
+        this.playerDamageFlashTimer = undefined;
+        if (this.phase !== 'dead') {
+          this.player.clearTint();
+        }
+      },
+    );
+  }
+
+  private cancelPlayerDamageFlash() {
+    if (this.playerDamageFlashTimer) {
+      this.playerDamageFlashTimer.remove(false);
+      this.playerDamageFlashTimer = undefined;
+    }
+  }
+
   private handlePlayerDeath() {
+    this.cancelPlayerDamageFlash();
+    this.weaponSystem.cancelHitStop();
     this.playerController.stop();
     for (const enemy of this.enemies) {
       enemy.setVelocity(0);
     }
     this.setPhase('dead');
     this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
+    this.weaponSystem.hide();
+    this.weaponDropDirector.clear();
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-    for (const weapon of this.weapons) {
-      weapon.pool.clear();
-    }
+    this.weaponSystem.clearProjectiles();
     this.enemyProjectiles.clear();
     this.flyingEnemyProjectiles.clear();
     this.aimGraphics.clear();
@@ -705,6 +878,7 @@ export class GameScene extends Phaser.Scene {
     return this.add
       .container(0, 0, [panel, title, prompt])
       .setDepth(100)
+      .setScrollFactor(0)
       .setVisible(false);
   }
 
@@ -739,51 +913,5 @@ export class GameScene extends Phaser.Scene {
       aimPoint.x,
       aimPoint.y + 12,
     );
-  }
-
-  private drawBackdrop() {
-    const { palette } = this.stage;
-
-    // Always rebuild rather than reusing a cached reference: on a scene
-    // restart this field still points at the previous life's (destroyed)
-    // Graphics object, which must not be drawn into again.
-    this.backdropGraphics?.destroy();
-    this.backdropGraphics = this.add.graphics();
-    const graphics = this.backdropGraphics;
-
-    graphics.fillGradientStyle(
-      palette.backgroundTop,
-      palette.backgroundTop,
-      palette.backgroundBottom,
-      palette.backgroundBottom,
-    );
-    graphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    graphics.lineStyle(1, palette.gridLine, 0.55);
-    for (let x = 64; x < GAME_WIDTH; x += 64) {
-      graphics.lineBetween(x, 0, x, GAME_HEIGHT - 64);
-    }
-    for (let y = 80; y < GAME_HEIGHT - 64; y += 64) {
-      graphics.lineBetween(0, y, GAME_WIDTH, y);
-    }
-
-    graphics.fillStyle(palette.accentPrimary, 0.8);
-    graphics.fillRect(0, 110, GAME_WIDTH, 3);
-
-    this.neonAccent?.destroy();
-    this.neonAccent = this.add
-      .rectangle(0, 116, GAME_WIDTH * 0.36, 1, palette.accentSecondary, 0.7)
-      .setOrigin(0, 0.5);
-
-    this.neonFlickerTimer?.remove();
-    this.neonFlickerTimer = palette.neonFlicker
-      ? this.time.addEvent({
-          delay: 90,
-          loop: true,
-          callback: () => {
-            this.neonAccent?.setAlpha(Math.random() < 0.15 ? 0.15 : 0.7);
-          },
-        })
-      : undefined;
   }
 }

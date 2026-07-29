@@ -3,7 +3,13 @@
  * and only this file decides which sound answers them. Renaming a key here is
  * the single edit needed when an asset is replaced.
  */
-export type MusicKey = 'bgm-title' | 'bgm-city' | 'bgm-alley';
+export type MusicKey =
+  | 'bgm-title'
+  | 'bgm-city'
+  | 'bgm-alley'
+  | 'bgm-underground'
+  | 'bgm-inferno'
+  | 'bgm-return';
 
 export type SfxKey =
   | 'sfx-smg-fire'
@@ -42,6 +48,11 @@ export const MUSIC_CONFIG: Record<MusicKey, MusicConfig> = {
   'bgm-title': { volume: 0.7 },
   'bgm-city': { volume: 0.6 },
   'bgm-alley': { volume: 0.65 },
+  // Stages 3-5 have their own BGM slot; the files are not produced yet, so
+  // AudioDirector skips them silently until they land in assets/audio/music/.
+  'bgm-underground': { volume: 0.6 },
+  'bgm-inferno': { volume: 0.6 },
+  'bgm-return': { volume: 0.6 },
 };
 
 export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {

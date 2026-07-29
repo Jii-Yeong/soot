@@ -1,4 +1,8 @@
 import Phaser from 'phaser';
+import {
+  PLAYER_ANIMATIONS,
+  PLAYER_JUMP_FRAMES,
+} from '@/game/config/playerAnimationConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 
 export type PlayerMovementConfig = {
@@ -17,13 +21,12 @@ type MovementKeys = Record<
   Phaser.Input.Keyboard.Key
 >;
 
-// player_jump_down tag (frames 4-6 of the atlas): 4 covers both rise and
-// fall, 5 is the apex hang, 6 is a brief landing pose before returning to idle.
-const JUMP_RISE_FALL_FRAME = 'shoot-posture-refined 4.png';
-const JUMP_APEX_FRAME = 'shoot-posture-refined 5.png';
-const JUMP_LANDING_FRAME = 'shoot-posture-refined 6.png';
 const JUMP_APEX_VELOCITY_THRESHOLD = 150;
 const LANDING_POSE_DURATION = 260;
+/** Grace window to still jump just after walking off a ledge. */
+const COYOTE_TIME = 90;
+/** A jump pressed this long before landing still fires on touchdown. */
+const JUMP_BUFFER_TIME = 110;
 
 export class PlayerController {
   private readonly movementKeys: MovementKeys;
@@ -33,6 +36,8 @@ export class PlayerController {
   private dashDirection = 1;
   private dashing = false;
   private invulnerable = false;
+  private lastGroundedAt = 0;
+  private jumpBufferedUntil = 0;
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
@@ -85,13 +90,26 @@ export class PlayerController {
       this.player.setFlipX(movingLeft);
     }
 
+    if (this.player.body?.blocked.down) {
+      this.lastGroundedAt = time;
+    }
+
     const jumpPressed =
       Phaser.Input.Keyboard.JustDown(this.movementKeys.jump) ||
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.up) ||
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.space);
 
-    if (jumpPressed && this.player.body?.blocked.down) {
+    if (jumpPressed) {
+      this.jumpBufferedUntil = time + JUMP_BUFFER_TIME;
+    }
+
+    // Coyote time + jump buffer: forgive a jump pressed slightly early or a
+    // step after leaving the ledge, so platforming over pits feels responsive.
+    const withinCoyoteWindow = time - this.lastGroundedAt <= COYOTE_TIME;
+    if (time <= this.jumpBufferedUntil && withinCoyoteWindow) {
       this.player.setVelocityY(-this.config.jumpSpeed);
+      this.jumpBufferedUntil = 0;
+      this.lastGroundedAt = time - COYOTE_TIME - 1;
     }
 
     if (
@@ -118,21 +136,21 @@ export class PlayerController {
       const velocityY = body?.velocity.y ?? 0;
       this.setPose(
         Math.abs(velocityY) < JUMP_APEX_VELOCITY_THRESHOLD
-          ? JUMP_APEX_FRAME
-          : JUMP_RISE_FALL_FRAME,
+          ? PLAYER_JUMP_FRAMES.apex
+          : PLAYER_JUMP_FRAMES.airborne,
       );
       return;
     }
 
     if (time < this.landingPoseUntil) {
-      this.setPose(JUMP_LANDING_FRAME);
+      this.setPose(PLAYER_JUMP_FRAMES.landing);
       return;
     }
 
-    if (this.currentPose !== 'player-idle') {
-      this.currentPose = 'player-idle';
-      this.player.play('player-idle', true);
-    }
+    const isRunning = Math.abs(body?.velocity.x ?? 0) > 1;
+    this.playAnimation(
+      isRunning ? PLAYER_ANIMATIONS.run : PLAYER_ANIMATIONS.idle,
+    );
   }
 
   private setPose(frameName: string) {
@@ -143,6 +161,15 @@ export class PlayerController {
     this.currentPose = frameName;
     this.player.anims.stop();
     this.player.setFrame(frameName);
+  }
+
+  private playAnimation(animationKey: string) {
+    if (this.currentPose === animationKey) {
+      return;
+    }
+
+    this.currentPose = animationKey;
+    this.player.play(animationKey, true);
   }
 
   tryDash(time: number) {

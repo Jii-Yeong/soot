@@ -12,6 +12,8 @@ export function App() {
     scene,
     phase,
     roomState,
+    weaponId,
+    nearbyWeaponId,
   } = useGameUiStore();
 
   useGameUiEvents();
@@ -22,6 +24,8 @@ export function App() {
       data-phase={phase}
       data-room-state={roomState}
       data-scene={scene}
+      data-weapon={weaponId}
+      data-nearby-weapon={nearbyWeaponId ?? ''}
     >
       <PhaserGame />
       {scene === 'game' && (
