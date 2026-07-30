@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
-import { STAGE_FIVE_CONFIG } from '@/game/config/stageConfig';
+import {
+  STARTING_STAGE_INDEX,
+  STAGES,
+} from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 
 export class TitleScene extends Phaser.Scene {
@@ -28,7 +31,7 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const background = STAGE_FIVE_CONFIG.background;
+    const background = STAGES[STARTING_STAGE_INDEX]?.background;
 
     if (background && !this.textures.exists(background.key)) {
       this.load.image(background.key, background.path);

@@ -154,3 +154,15 @@ export const STAGES: readonly StageConfig[] = [
   STAGE_FOUR_CONFIG,
   STAGE_FIVE_CONFIG,
 ];
+
+const configuredStartingStageIndex = Number(
+  import.meta.env.VITE_STARTING_STAGE_INDEX,
+);
+
+/** Defaults to stage five temporarily; E2E sets this to stage one. */
+export const STARTING_STAGE_INDEX =
+  Number.isInteger(configuredStartingStageIndex) &&
+  configuredStartingStageIndex >= 0 &&
+  configuredStartingStageIndex < STAGES.length
+    ? configuredStartingStageIndex
+    : STAGES.length - 1;

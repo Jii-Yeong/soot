@@ -15,7 +15,11 @@ import {
   placeRoomInStage,
   stageWorldWidth,
 } from '@/game/config/roomPlacement';
-import { STAGES, type StageEndEvent } from '@/game/config/stageConfig';
+import {
+  STARTING_STAGE_INDEX,
+  STAGES,
+  type StageEndEvent,
+} from '@/game/config/stageConfig';
 import { getStageExitPlan } from '@/game/config/stageProgression';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
@@ -57,7 +61,6 @@ const PIT_FALL_DAMAGE = 12;
 const PIT_RESPAWN_LIFT = 60;
 const GROUND_ROOM_EXIT_OFFSET = 20;
 const FLIGHT_ROOM_EXIT_OFFSET = 0;
-const TEMPORARY_STARTING_STAGE_INDEX = 4;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -65,7 +68,7 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
-  private currentStageIndex = TEMPORARY_STARTING_STAGE_INDEX;
+  private currentStageIndex = STARTING_STAGE_INDEX;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -587,7 +590,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    this.currentStageIndex = TEMPORARY_STARTING_STAGE_INDEX;
+    this.currentStageIndex = STARTING_STAGE_INDEX;
     this.currentRoomIndex = 0;
     this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');

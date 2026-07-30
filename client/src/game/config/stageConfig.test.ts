@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
+  STARTING_STAGE_INDEX,
   STAGES,
   STAGE_FIVE_CONFIG,
   STAGE_FOUR_CONFIG,
@@ -10,6 +11,10 @@ import {
 } from '@/game/config/stageConfig';
 
 describe('stage configuration', () => {
+  it('temporarily starts regular builds at stage five', () => {
+    expect(STARTING_STAGE_INDEX).toBe(4);
+  });
+
   it('uses flight movement only in stage five', () => {
     expect(STAGES.slice(0, 4).map((stage) => stage.movementMode)).toEqual([
       MovementMode.GROUND,

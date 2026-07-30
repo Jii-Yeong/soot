@@ -404,12 +404,12 @@ test('invincibility mode prevents player health loss', async ({ page }) => {
   const healthMeter = page.getByRole('meter', { name: 'Player health' });
   await holdKeyFor(page, 'KeyD', 1000);
   await page.waitForTimeout(2000);
-  await expect(healthMeter).toHaveAttribute('aria-valuenow', '175');
+  await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await holdKeyFor(page, 'KeyD', 400);
-  await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '175', {
+  await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '100', {
     timeout: 5000,
   });
 });
