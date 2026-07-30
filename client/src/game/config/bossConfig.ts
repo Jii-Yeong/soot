@@ -188,12 +188,79 @@ export type InfernalBossPatternConfig = {
   };
 };
 
+export type ArchitectBossPatternConfig = {
+  type: 'architect';
+  enrageHealthRatio: number;
+  salvationHealthRatio: number;
+  firstAttackDelay: number;
+  recoveryDuration: number;
+  enragedRecoveryDuration: number;
+  phaseTransitionDuration: number;
+  goldColor: number;
+  skyColor: number;
+  corruptionColor: number;
+  aerial: {
+    minY: number;
+    maxY: number;
+    moveSpeed: number;
+  };
+  projectile: {
+    speed: number;
+    lifetime: number;
+    radius: number;
+  };
+  halo: {
+    warnDuration: number;
+    bulletCount: number;
+    phaseOneRings: number;
+    phaseTwoRings: number;
+    ringInterval: number;
+    gapWidth: number;
+    gapStep: number;
+    damage: number;
+  };
+  wings: {
+    warnDuration: number;
+    bulletCount: number;
+    simultaneousBulletCount: number;
+    stepInterval: number;
+    recoveryDuration: number;
+    spread: number;
+    simultaneousSeparation: number;
+    speed: number;
+    damage: number;
+  };
+  eye: {
+    trackingDuration: number;
+    lockedWarningDuration: number;
+    orbDuration: number;
+    phaseTwoFollowUpDelay: number;
+    orbRadius: number;
+    directDamage: number;
+    splitBulletCount: number;
+    splitDamage: number;
+  };
+  salvation: {
+    transitionDuration: number;
+    ringDuration: number;
+    ringCount: number;
+    bulletCount: number;
+    innerRadius: number;
+    radiusStep: number;
+    gapWidth: number;
+    bulletSpeed: number;
+    damage: number;
+    coreDamageMultiplier: number;
+  };
+};
+
 export type BossPatternConfig =
   | ChargeBossPatternConfig
   | LaserCannonPatternConfig
   | HoundBossPatternConfig
   | PurifierBossPatternConfig
-  | InfernalBossPatternConfig;
+  | InfernalBossPatternConfig
+  | ArchitectBossPatternConfig;
 
 /**
  * When a boss has a real sprite atlas (rather than a generated placeholder), it
@@ -233,6 +300,8 @@ export type PurifierBossCombatConfig =
   BossCombatConfig<PurifierBossPatternConfig>;
 export type InfernalBossCombatConfig =
   BossCombatConfig<InfernalBossPatternConfig>;
+export type ArchitectBossCombatConfig =
+  BossCombatConfig<ArchitectBossPatternConfig>;
 
 export const hasBossPattern = <Type extends BossPatternConfig['type']>(
   config: BossCombatConfig,
@@ -433,17 +502,68 @@ export const BOSS_COMBAT_CONFIGS = {
     contactDamage: 32,
     contactDamageCooldown: 520,
     pattern: {
-      type: 'charge',
-      moveSpeed: 185,
-      enragedMoveSpeed: 270,
-      enrageHealthRatio: 0.7,
-      chargeSpeed: 640,
-      chargeDuration: 560,
-      chargeInterval: 1550,
+      type: 'architect',
+      enrageHealthRatio: 0.5,
+      salvationHealthRatio: 0.1,
+      firstAttackDelay: 1000,
+      recoveryDuration: 900,
+      enragedRecoveryDuration: 700,
+      phaseTransitionDuration: 1000,
+      goldColor: 0xffd86b,
+      skyColor: 0x9eeeff,
+      corruptionColor: 0x17131f,
       aerial: {
         minY: 150,
         maxY: 570,
-        verticalTrackSpeed: 210,
+        moveSpeed: 240,
+      },
+      projectile: {
+        speed: 260,
+        lifetime: 6500,
+        radius: 7,
+      },
+      halo: {
+        warnDuration: 700,
+        bulletCount: 18,
+        phaseOneRings: 2,
+        phaseTwoRings: 3,
+        ringInterval: 450,
+        gapWidth: Math.PI / 2,
+        gapStep: Math.PI / 4,
+        damage: 9,
+      },
+      wings: {
+        warnDuration: 550,
+        bulletCount: 7,
+        simultaneousBulletCount: 5,
+        stepInterval: 500,
+        recoveryDuration: 800,
+        spread: Math.PI / 3,
+        simultaneousSeparation: 0.62,
+        speed: 340,
+        damage: 10,
+      },
+      eye: {
+        trackingDuration: 800,
+        lockedWarningDuration: 350,
+        orbDuration: 1200,
+        phaseTwoFollowUpDelay: 650,
+        orbRadius: 38,
+        directDamage: 15,
+        splitBulletCount: 8,
+        splitDamage: 8,
+      },
+      salvation: {
+        transitionDuration: 900,
+        ringDuration: 2800,
+        ringCount: 3,
+        bulletCount: 24,
+        innerRadius: 90,
+        radiusStep: 64,
+        gapWidth: Math.PI / 2.4,
+        bulletSpeed: 125,
+        damage: 9,
+        coreDamageMultiplier: 2,
       },
     },
   },

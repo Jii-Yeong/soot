@@ -85,15 +85,19 @@ describe('boss combat configuration', () => {
     );
   });
 
-  it('keeps the final boss on the charge pattern', () => {
-    expect(BOSS_COMBAT_CONFIGS['returning-architect'].pattern.type).toBe(
-      'charge',
-    );
-    expect(
-      BOSS_COMBAT_CONFIGS['returning-architect'].pattern.aerial,
-    ).toMatchObject({
-      minY: 150,
-      maxY: 570,
-    });
+  it('gives the returning architect a three-pattern final phase', () => {
+    const { pattern } = BOSS_COMBAT_CONFIGS['returning-architect'];
+
+    expect(pattern.type).toBe('architect');
+    if (pattern.type !== 'architect') {
+      throw new Error('Returning architect must use the architect pattern');
+    }
+
+    expect(pattern.enrageHealthRatio).toBe(0.5);
+    expect(pattern.salvationHealthRatio).toBe(0.1);
+    expect(pattern.halo.bulletCount).toBeGreaterThanOrEqual(16);
+    expect(pattern.wings.bulletCount).toBeGreaterThanOrEqual(7);
+    expect(pattern.eye.splitBulletCount).toBe(8);
+    expect(pattern.salvation.coreDamageMultiplier).toBeGreaterThan(1);
   });
 });

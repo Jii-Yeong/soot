@@ -158,6 +158,13 @@ export class BootScene extends Phaser.Scene {
     graphics.fillCircle(5, 5, 2);
     graphics.generateTexture('flying-enemy-bullet-placeholder', 10, 10);
 
+    graphics.clear();
+    graphics.fillStyle(0xffffff);
+    graphics.fillCircle(7, 7, 7);
+    graphics.fillStyle(0xfff4c7);
+    graphics.fillCircle(7, 7, 3);
+    graphics.generateTexture('architect-bullet-placeholder', 14, 14);
+
     const createBossPlaceholder = (
       key: string,
       bodyColor: number,

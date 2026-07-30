@@ -10,7 +10,7 @@ import {
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
-import { ChargingBossEnemy } from '@/game/entities/ChargingBossEnemy';
+import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
@@ -175,16 +175,19 @@ export class EnemyFactory {
       );
     }
 
-    if (hasBossPattern(config, 'charge')) {
+    if (hasBossPattern(config, 'architect')) {
       return this.finishSpawn(
-        new ChargingBossEnemy(
+        new ArchitectBossEnemy(
           this.scene,
           spawn.x,
           spawn.y,
           config.texture,
           config,
+          this.damagePlayer,
+          this.bossArena,
+          this.onBossPhaseChanged,
         ),
-        { collidesWithFloor: !config.pattern.aerial },
+        { collidesWithFloor: false },
       );
     }
 
