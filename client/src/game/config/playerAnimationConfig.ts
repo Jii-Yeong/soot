@@ -1,5 +1,5 @@
 const frameName = (index: number) =>
-  `shoot-posture-refined ${index}.aseprite`;
+  `shoot-posture-hand ${index}.aseprite`;
 
 export const PLAYER_ATLAS_KEY = 'player';
 
