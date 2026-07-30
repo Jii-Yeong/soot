@@ -47,9 +47,10 @@ export type BeamVisualConfig = {
 };
 
 /**
- * Stage-2 hound: a mobile searchlight predator. Alternates a player-tracking
- * lock-on beam (the headlamp lance) with a lunging pounce, and adds a wide
- * sweeping beam once enraged.
+ * Stage-2 hound: a searchlight predator. Casts a wide red detection fan toward
+ * the player and down across the ground; once the player is caught inside it,
+ * the hound locks on and lobs a round energy orb. No hitscan beam, to stay
+ * distinct from the city warden's laser cannon.
  */
 export type HoundBossPatternConfig = {
   type: 'hound';
@@ -61,26 +62,26 @@ export type HoundBossPatternConfig = {
   firstAttackDelay: number;
   recoveryDuration: number;
   enragedRecoveryDuration: number;
-  beam: BeamVisualConfig & {
+  /** A wide red searchlight fan cast toward the player and down the ground. */
+  cone: {
+    color: number;
+    range: number;
+    /** Half-width of the fan, in degrees. */
+    halfAngleDegrees: number;
+    /** Extra downward lean of the cone centre from the line to the player. */
+    tiltDegrees: number;
+    /** Apex height above the sprite centre (the head sensor). */
+    apexOffsetY: number;
+  };
+  /** The round energy orb lobbed once the player is caught in the cone. */
+  orb: {
+    /** Warning window after the player is caught, before the orb launches. */
+    lockDuration: number;
+    enragedLockDuration: number;
+    speed: number;
+    radius: number;
     damage: number;
-    muzzleOffset: number;
-    muzzleOffsetY: number;
-  };
-  lance: {
-    chargeDuration: number;
-    enragedChargeDuration: number;
-    aimLockDuration: number;
-    fireDuration: number;
-  };
-  pounce: {
-    telegraphDuration: number;
-    chargeSpeed: number;
-    chargeDuration: number;
-  };
-  sweep: {
-    chargeDuration: number;
-    fireDuration: number;
-    arcDegrees: number;
+    color: number;
   };
 };
 
@@ -191,32 +192,22 @@ export const BOSS_COMBAT_CONFIGS = {
       preferredDistance: 470,
       distanceTolerance: 90,
       firstAttackDelay: 800,
-      recoveryDuration: 1100,
-      enragedRecoveryDuration: 820,
-      beam: {
-        range: 1700,
-        width: 26,
-        damage: 20,
-        muzzleOffset: 48,
-        muzzleOffsetY: -14,
-        telegraphColor: 0x8ee3ff,
-        beamColor: 0xc8f7ff,
+      recoveryDuration: 950,
+      enragedRecoveryDuration: 700,
+      cone: {
+        color: 0xff3b3b,
+        range: 720,
+        halfAngleDegrees: 40,
+        tiltDegrees: 14,
+        apexOffsetY: -34,
       },
-      lance: {
-        chargeDuration: 850,
-        enragedChargeDuration: 640,
-        aimLockDuration: 260,
-        fireDuration: 200,
-      },
-      pounce: {
-        telegraphDuration: 360,
-        chargeSpeed: 480,
-        chargeDuration: 440,
-      },
-      sweep: {
-        chargeDuration: 720,
-        fireDuration: 900,
-        arcDegrees: 68,
+      orb: {
+        lockDuration: 420,
+        enragedLockDuration: 300,
+        speed: 430,
+        radius: 16,
+        damage: 22,
+        color: 0xff5a4a,
       },
     },
   },

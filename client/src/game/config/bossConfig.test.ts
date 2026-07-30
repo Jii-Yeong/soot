@@ -23,13 +23,14 @@ describe('boss combat configuration', () => {
       throw new Error('Alley hunter must use the hound pattern');
     }
 
-    // The lock-on must resolve before the beam fires, and the beam must reach
-    // across the arena.
-    expect(pattern.lance.chargeDuration).toBeGreaterThan(
-      pattern.lance.aimLockDuration,
+    // A wide detection fan that reaches at least to the player's stand-off
+    // distance, then a dodgeable orb that fires quicker once enraged.
+    expect(pattern.cone.halfAngleDegrees).toBeGreaterThan(0);
+    expect(pattern.cone.range).toBeGreaterThanOrEqual(pattern.preferredDistance);
+    expect(pattern.orb.enragedLockDuration).toBeLessThan(
+      pattern.orb.lockDuration,
     );
-    expect(pattern.beam.range).toBeGreaterThanOrEqual(1280);
-    expect(pattern.sweep.arcDegrees).toBeGreaterThan(0);
+    expect(pattern.orb.damage).toBeGreaterThan(0);
   });
 
   it('keeps the deeper bosses on the charge pattern', () => {

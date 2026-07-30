@@ -3,42 +3,34 @@ import type {
   HoundBossPatternConfig,
   HoundBossCombatConfig,
 } from '@/game/config/bossConfig';
-import { isPointInsideLaser } from '@/game/combat/laserGeometry';
+import { isPointInsideCone } from '@/game/combat/coneGeometry';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
-import { BeamEffects } from '@/game/systems/BeamEffects';
+import { SearchlightCone } from '@/game/systems/SearchlightCone';
 
-type HoundState =
-  | 'recover'
-  | 'lance-charge'
-  | 'lance-fire'
-  | 'pounce-telegraph'
-  | 'pounce'
-  | 'sweep-charge'
-  | 'sweep-fire';
+type HoundState = 'recover' | 'scanning' | 'locking';
 
 type PlayerDamageHandler = (damage: number) => void;
 
 type Point = { x: number; y: number };
 
+const ORB_LIFETIME = 2600;
+const ORB_DEPTH = 10;
+
 /**
- * Stage-2 boss (the searchlight hound). A state machine that alternates a
- * player-tracking lock-on beam (lance) with a lunging pounce, and adds a wide
- * sweeping beam once enraged. `recover` doubles as the between-attacks reposition
- * state and picks the next attack when its timer elapses.
+ * Stage-2 boss (the searchlight hound). It sweeps a wide red detection fan
+ * toward the player and down across the ground; the instant the player is
+ * caught inside it the hound locks on (the fan flares) and lobs a round energy
+ * orb along the line of sight. No hitscan beam — deliberately unlike the city
+ * warden's laser cannon.
  */
 export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
-  private readonly effects: BeamEffects;
+  private readonly cone: SearchlightCone;
   private attackState: HoundState = 'recover';
-  private stateEndsAt: number;
-  private aimAngle = 0;
-  private aimLocksAt = 0;
   private stateStartedAt = 0;
-  private beamHit = false;
-  private pounceDirection = 1;
-  private sweepFromAngle = 0;
-  private sweepToAngle = 0;
-  private attackIndex = 0;
+  private stateEndsAt: number;
+  private centerAngle = 0;
+  private readonly orbCleanups = new Set<() => void>();
 
   constructor(
     scene: Phaser.Scene,
@@ -51,7 +43,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     super(scene, x, y, texture, config);
 
     this.stateEndsAt = scene.time.now + config.pattern.firstAttackDelay;
-    this.effects = new BeamEffects(scene, config.pattern.beam);
+    this.cone = new SearchlightCone(scene, config.pattern.cone.color);
   }
 
   updateCombat(
@@ -60,7 +52,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     _fireProjectile: EnemyProjectileAttack,
   ) {
     if (!this.active) {
-      this.effects.hideAll();
+      this.cone.hide();
       return false;
     }
 
@@ -69,7 +61,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
       this.aggroRadius;
     if (!targetInRange) {
       this.setVelocityX(0);
-      this.effects.hideAll();
+      this.cone.hide();
       return false;
     }
 
@@ -77,23 +69,11 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
       case 'recover':
         this.updateRecover(time, target);
         break;
-      case 'lance-charge':
-        this.updateLanceCharge(time, target);
+      case 'scanning':
+        this.updateScanning(time, target);
         break;
-      case 'lance-fire':
-        this.updateLanceFire(time, target);
-        break;
-      case 'pounce-telegraph':
-        this.updatePounceTelegraph(time, target);
-        break;
-      case 'pounce':
-        this.updatePounce(time);
-        break;
-      case 'sweep-charge':
-        this.updateSweepCharge(time);
-        break;
-      case 'sweep-fire':
-        this.updateSweepFire(time, target);
+      case 'locking':
+        this.updateLocking(time, target);
         break;
     }
 
@@ -102,191 +82,57 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
 
   protected override onDefeated() {
     super.onDefeated();
-    this.effects.hideAll();
+    this.cone.hide();
+    this.clearOrbs();
   }
 
   override destroy(fromScene?: boolean) {
-    this.effects.destroy();
+    this.cone.destroy();
+    this.clearOrbs();
     super.destroy(fromScene);
   }
 
   private updateRecover(time: number, target: Phaser.Physics.Arcade.Sprite) {
-    this.effects.hideAll();
+    this.cone.hide();
     this.moveToPreferredDistance(time, target);
 
     if (time >= this.stateEndsAt) {
-      this.chooseNextAttack(time, target);
+      this.attackState = 'scanning';
     }
   }
 
-  private chooseNextAttack(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    // Non-enraged cycles lance/pounce; enrage injects the sweep as every 3rd.
-    const cycle = this.isEnraged
-      ? (['lance', 'pounce', 'sweep'] as const)
-      : (['lance', 'pounce'] as const);
-    const attack = cycle[this.attackIndex % cycle.length];
-    this.attackIndex += 1;
-
-    if (attack === 'lance') {
-      this.beginLanceCharge(time, target);
-    } else if (attack === 'pounce') {
-      this.beginPounceTelegraph(time, target);
-    } else {
-      this.beginSweepCharge(time, target);
-    }
-  }
-
-  private beginLanceCharge(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    const duration = this.isEnraged
-      ? this.pattern.lance.enragedChargeDuration
-      : this.pattern.lance.chargeDuration;
-
-    this.attackState = 'lance-charge';
-    this.stateStartedAt = time;
-    this.stateEndsAt = time + duration;
-    this.aimLocksAt = this.stateEndsAt - this.pattern.lance.aimLockDuration;
-    this.aimAngle = this.aimAt(target);
-  }
-
-  private updateLanceCharge(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    this.setVelocityX(0);
-
-    if (time < this.aimLocksAt) {
-      this.aimAngle = this.aimAt(target);
-    }
-    this.setFlipX(Math.cos(this.aimAngle) < 0);
-    this.effects.drawTelegraph(
-      this.getMuzzlePosition(),
-      this.aimAngle,
-      this.stateProgress(time),
+  private updateScanning(time: number, target: Phaser.Physics.Arcade.Sprite) {
+    this.moveToPreferredDistance(time, target);
+    this.aimConeAt(target);
+    this.cone.draw(
+      this.coneApex(),
+      this.centerAngle,
+      this.coneHalfAngle(),
+      this.pattern.cone.range,
+      0.15,
     );
 
-    if (time >= this.stateEndsAt) {
-      this.attackState = 'lance-fire';
-      this.stateEndsAt = time + this.pattern.lance.fireDuration;
-      this.beamHit = false;
-      this.effects.showBeam(this.getMuzzlePosition(), this.aimAngle);
-    }
-  }
-
-  private updateLanceFire(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    this.setVelocityX(0);
-    const muzzle = this.getMuzzlePosition();
-    this.effects.updateBeam(muzzle, this.aimAngle);
-    this.tryBeamHit(target, muzzle);
-
-    if (time >= this.stateEndsAt) {
-      this.effects.hideBeam();
-      this.beginRecover(time);
-    }
-  }
-
-  private beginPounceTelegraph(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    this.attackState = 'pounce-telegraph';
-    this.stateStartedAt = time;
-    this.stateEndsAt = time + this.pattern.pounce.telegraphDuration;
-    this.pounceDirection = Math.sign(target.x - this.x) || this.pounceDirection;
-    // The hound throws its searchlight down the lane it's about to charge.
-    this.aimAngle = this.pounceDirection < 0 ? Math.PI : 0;
-    this.setFlipX(this.pounceDirection < 0);
-  }
-
-  private updatePounceTelegraph(
-    time: number,
-    _target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    this.setVelocityX(0);
-    this.effects.drawTelegraph(
-      this.getMuzzlePosition(),
-      this.aimAngle,
-      this.stateProgress(time),
-    );
-
-    if (time >= this.stateEndsAt) {
-      this.effects.hideAll();
-      this.attackState = 'pounce';
-      this.stateEndsAt = time + this.pattern.pounce.chargeDuration;
-      this.setVelocityX(this.pounceDirection * this.pattern.pounce.chargeSpeed);
-    }
-  }
-
-  private updatePounce(time: number) {
-    // Committed lunge: keep driving even if knocked, until the dash ends.
-    this.setVelocityX(this.pounceDirection * this.pattern.pounce.chargeSpeed);
-
-    if (time >= this.stateEndsAt) {
-      this.setVelocityX(0);
-      this.beginRecover(time);
-    }
-  }
-
-  private beginSweepCharge(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
-    this.attackState = 'sweep-charge';
-    this.stateStartedAt = time;
-    this.stateEndsAt = time + this.pattern.sweep.chargeDuration;
-
-    // Sweep the beam across the player's side, ending past their position.
-    const half = Phaser.Math.DegToRad(this.pattern.sweep.arcDegrees) / 2;
-    const center = this.aimAt(target);
-    const towardTarget = Math.sign(target.x - this.x) || 1;
-    this.sweepFromAngle = center - towardTarget * half;
-    this.sweepToAngle = center + towardTarget * half;
-    this.aimAngle = this.sweepFromAngle;
-    this.setFlipX(towardTarget < 0);
-  }
-
-  private updateSweepCharge(time: number) {
-    this.setVelocityX(0);
-    this.effects.drawTelegraph(
-      this.getMuzzlePosition(),
-      this.sweepFromAngle,
-      this.stateProgress(time),
-    );
-
-    if (time >= this.stateEndsAt) {
-      this.attackState = 'sweep-fire';
+    if (this.playerInCone(target)) {
+      this.attackState = 'locking';
       this.stateStartedAt = time;
-      this.stateEndsAt = time + this.pattern.sweep.fireDuration;
-      this.beamHit = false;
-      this.aimAngle = this.sweepFromAngle;
-      this.effects.showBeam(this.getMuzzlePosition(), this.aimAngle);
+      this.stateEndsAt = time + this.lockDuration;
     }
   }
 
-  private updateSweepFire(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
+  private updateLocking(time: number, target: Phaser.Physics.Arcade.Sprite) {
+    // Commit: stop moving and keep the fan trained on the player as it flares.
     this.setVelocityX(0);
-    this.aimAngle = Phaser.Math.Linear(
-      this.sweepFromAngle,
-      this.sweepToAngle,
-      this.stateProgress(time),
+    this.aimConeAt(target);
+    this.cone.draw(
+      this.coneApex(),
+      this.centerAngle,
+      this.coneHalfAngle(),
+      this.pattern.cone.range,
+      0.15 + 0.85 * this.stateProgress(time),
     );
-    const muzzle = this.getMuzzlePosition();
-    this.effects.updateBeam(muzzle, this.aimAngle);
-    this.tryBeamHit(target, muzzle);
 
     if (time >= this.stateEndsAt) {
-      this.effects.hideBeam();
+      this.fireOrb(target);
       this.beginRecover(time);
     }
   }
@@ -298,7 +144,47 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
       (this.isEnraged
         ? this.pattern.enragedRecoveryDuration
         : this.pattern.recoveryDuration);
-    this.effects.hideAll();
+    this.cone.hide();
+  }
+
+  private fireOrb(target: Phaser.Physics.Arcade.Sprite) {
+    const apex = this.coneApex();
+    const angle = Phaser.Math.Angle.Between(apex.x, apex.y, target.x, target.y);
+    const { radius, color, speed, damage } = this.pattern.orb;
+
+    const orb = this.scene.add
+      .circle(apex.x, apex.y, radius, color, 0.95)
+      .setStrokeStyle(3, 0xffe4de, 0.9)
+      .setDepth(ORB_DEPTH);
+    this.scene.physics.add.existing(orb);
+    const body = orb.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(false);
+    body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
+      this.scene.physics.world.removeCollider(overlap);
+      timer.remove(false);
+      this.orbCleanups.delete(cleanup);
+      orb.destroy();
+    };
+    const overlap = this.scene.physics.add.overlap(orb, target, () => {
+      this.damagePlayer(damage);
+      cleanup();
+    });
+    const timer = this.scene.time.delayedCall(ORB_LIFETIME, cleanup);
+    this.orbCleanups.add(cleanup);
+  }
+
+  private clearOrbs() {
+    // Snapshot: each cleanup removes itself from the set as it runs.
+    for (const cleanup of Array.from(this.orbCleanups)) {
+      cleanup();
+    }
   }
 
   private moveToPreferredDistance(
@@ -336,47 +222,43 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     this.setVelocityX(0);
   }
 
-  private tryBeamHit(target: Phaser.Physics.Arcade.Sprite, muzzle: Point) {
-    if (this.beamHit) {
-      return;
-    }
+  private aimConeAt(target: Phaser.Physics.Arcade.Sprite) {
+    const apex = this.coneApex();
+    const base = Phaser.Math.Angle.Between(apex.x, apex.y, target.x, target.y);
+    const tilt = Phaser.Math.DegToRad(this.pattern.cone.tiltDegrees);
+    // Lean the fan downward whichever way it faces, so it always rakes the floor.
+    const facingRight = Math.cos(base) >= 0;
+    this.centerAngle = base + (facingRight ? tilt : -tilt);
+    this.setFlipX(!facingRight);
+  }
 
+  private playerInCone(target: Phaser.Physics.Arcade.Sprite) {
     const body = target.body as Phaser.Physics.Arcade.Body | null;
     const point = body?.center ?? target;
     const targetRadius = body ? Math.max(body.width, body.height) * 0.35 : 24;
 
-    if (
-      isPointInsideLaser(
-        muzzle,
-        this.aimAngle,
-        this.pattern.beam.range,
-        this.pattern.beam.width,
-        point,
-        targetRadius,
-      )
-    ) {
-      this.beamHit = true;
-      this.damagePlayer(this.pattern.beam.damage);
-    }
-  }
-
-  private aimAt(target: Phaser.Physics.Arcade.Sprite) {
-    return Phaser.Math.Angle.Between(
-      this.x,
-      this.y + this.pattern.beam.muzzleOffsetY,
-      target.x,
-      target.y,
+    return isPointInsideCone(
+      this.coneApex(),
+      this.centerAngle,
+      this.coneHalfAngle(),
+      this.pattern.cone.range,
+      point,
+      targetRadius,
     );
   }
 
-  private getMuzzlePosition(): Point {
-    return {
-      x: this.x + Math.cos(this.aimAngle) * this.pattern.beam.muzzleOffset,
-      y:
-        this.y +
-        this.pattern.beam.muzzleOffsetY +
-        Math.sin(this.aimAngle) * this.pattern.beam.muzzleOffset,
-    };
+  private coneApex(): Point {
+    return { x: this.x, y: this.y + this.pattern.cone.apexOffsetY };
+  }
+
+  private coneHalfAngle() {
+    return Phaser.Math.DegToRad(this.pattern.cone.halfAngleDegrees);
+  }
+
+  private get lockDuration() {
+    return this.isEnraged
+      ? this.pattern.orb.enragedLockDuration
+      : this.pattern.orb.lockDuration;
   }
 
   private stateProgress(time: number) {
