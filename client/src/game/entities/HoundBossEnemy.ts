@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import type {
   HoundBossPatternConfig,
   HoundBossCombatConfig,
-} from '@/game/config/bossConfig';
+} from '@/game/config/bossConfigTypes';
 import { isPointInsideCone } from '@/game/combat/coneGeometry';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { destroyCollider } from '@/game/systems/arcadePhysicsCleanup';
+import { CleanupRegistry } from '@/game/systems/CleanupRegistry';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { SearchlightCone } from '@/game/systems/SearchlightCone';
 
@@ -31,7 +33,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
   private stateStartedAt = 0;
   private stateEndsAt: number;
   private centerAngle = 0;
-  private readonly orbCleanups = new Set<() => void>();
+  private readonly orbCleanups = new CleanupRegistry();
 
   constructor(
     scene: Phaser.Scene,
@@ -84,12 +86,12 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
   protected override onDefeated() {
     super.onDefeated();
     this.cone.hide();
-    this.clearOrbs();
+    this.orbCleanups.clear();
   }
 
   override destroy(fromScene?: boolean) {
     this.cone.destroy();
-    this.clearOrbs();
+    this.orbCleanups.clear();
     super.destroy(fromScene);
   }
 
@@ -170,7 +172,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
         return;
       }
       cleaned = true;
-      this.scene.physics.world.removeCollider(overlap);
+      destroyCollider(overlap);
       timer.remove(false);
       this.orbCleanups.delete(cleanup);
       orb.destroy();
@@ -181,13 +183,6 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     });
     const timer = this.scene.time.delayedCall(ORB_LIFETIME, cleanup);
     this.orbCleanups.add(cleanup);
-  }
-
-  private clearOrbs() {
-    // Snapshot: each cleanup removes itself from the set as it runs.
-    for (const cleanup of Array.from(this.orbCleanups)) {
-      cleanup();
-    }
   }
 
   private moveToPreferredDistance(

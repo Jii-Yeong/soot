@@ -6,16 +6,14 @@ import {
 import type {
   InfernalBossCombatConfig,
   InfernalBossPatternConfig,
-} from '@/game/config/bossConfig';
+} from '@/game/config/bossConfigTypes';
+import type { BossArenaBounds } from '@/game/config/bossArena';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
 import type { BossPhase } from '@/game/state/bossPhase';
+import { destroyCollider } from '@/game/systems/arcadePhysicsCleanup';
+import { CleanupRegistry } from '@/game/systems/CleanupRegistry';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
-
-export type BossArenaBounds = {
-  left: number;
-  right: number;
-};
 
 type InfernalState =
   | 'recover'
@@ -29,7 +27,6 @@ type InfernalState =
 type InfernalAttack = 'rupture' | 'charge' | 'shards';
 type PlayerDamageHandler = (damage: number) => void;
 type PhaseChangeHandler = (phase: BossPhase) => void;
-type EffectCleanup = () => void;
 
 const EFFECT_DEPTH = 6;
 const CORE_DEPTH = 7;
@@ -51,7 +48,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
   private readonly telegraph: Phaser.GameObjects.Graphics;
   private readonly phaseOverlay: Phaser.GameObjects.Graphics;
   private readonly coreGlow: Phaser.GameObjects.Arc;
-  private readonly effectCleanups = new Set<EffectCleanup>();
+  private readonly effectCleanups = new CleanupRegistry();
   private attackState: InfernalState = 'recover';
   private stateStartedAt = 0;
   private stateEndsAt: number;
@@ -190,14 +187,14 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.telegraph.clear();
     this.phaseOverlay.clear();
     this.coreGlow.setVisible(false);
-    this.clearEffects();
+    this.effectCleanups.clear();
   }
 
   override destroy(fromScene?: boolean) {
     this.telegraph.destroy();
     this.phaseOverlay.destroy();
     this.coreGlow.destroy();
-    this.clearEffects();
+    this.effectCleanups.clear();
     super.destroy(fromScene);
   }
 
@@ -336,9 +333,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       cleaned = true;
       warningTimer.remove(false);
       activeTimer?.remove(false);
-      if (overlap) {
-        this.scene.physics.world.removeCollider(overlap);
-      }
+      destroyCollider(overlap);
       warning?.destroy();
       eruption?.destroy();
       warning = undefined;
@@ -547,9 +542,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       cleaned = true;
       warningTimer.remove(false);
       zoneTimer?.remove(false);
-      if (overlap) {
-        this.scene.physics.world.removeCollider(overlap);
-      }
+      destroyCollider(overlap);
       if (shard) {
         this.scene.tweens.killTweensOf(shard);
       }
@@ -673,12 +666,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       .lineStyle(4, 0xffd18a, pulse)
       .strokeCircle(this.x, this.y - 10, 40 + pulse * 8);
     this.coreGlow.setAlpha(pulse);
-  }
-
-  private clearEffects() {
-    for (const cleanup of Array.from(this.effectCleanups)) {
-      cleanup();
-    }
   }
 
   private syncCore() {

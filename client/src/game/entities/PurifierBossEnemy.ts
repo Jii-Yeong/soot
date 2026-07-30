@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import type {
   PurifierBossPatternConfig,
   PurifierBossCombatConfig,
-} from '@/game/config/bossConfig';
+} from '@/game/config/bossConfigTypes';
 import { getSlamLeapVelocity } from '@/game/combat/slamLeap';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { destroyCollider } from '@/game/systems/arcadePhysicsCleanup';
+import { CleanupRegistry } from '@/game/systems/CleanupRegistry';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type PurifierState =
@@ -44,7 +46,7 @@ const LANDING_GRACE_DURATION = 400;
  */
 export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   private readonly telegraph: Phaser.GameObjects.Graphics;
-  private readonly waveCleanups = new Set<() => void>();
+  private readonly waveCleanups = new CleanupRegistry();
   private attackState: PurifierState = 'recover';
   private stateStartedAt = 0;
   private stateEndsAt: number;
@@ -131,12 +133,12 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     super.onDefeated();
     this.telegraph.clear();
     this.clearTint();
-    this.clearWaves();
+    this.waveCleanups.clear();
   }
 
   override destroy(fromScene?: boolean) {
     this.telegraph.destroy();
-    this.clearWaves();
+    this.waveCleanups.clear();
     super.destroy(fromScene);
   }
 
@@ -398,7 +400,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
         return;
       }
       cleaned = true;
-      this.scene.physics.world.removeCollider(overlap);
+      destroyCollider(overlap);
       timer.remove(false);
       this.waveCleanups.delete(cleanup);
       wave.destroy();
@@ -422,12 +424,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
       cleanup,
     );
     this.waveCleanups.add(cleanup);
-  }
-
-  private clearWaves() {
-    for (const cleanup of Array.from(this.waveCleanups)) {
-      cleanup();
-    }
   }
 
   private drawGroundMarker(x: number, width: number, intensity: number) {

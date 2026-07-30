@@ -3,7 +3,7 @@ import type {
   BossSpriteConfig,
   LaserCannonPatternConfig,
   LaserBossCombatConfig,
-} from '@/game/config/bossConfig';
+} from '@/game/config/bossConfigTypes';
 import { isPointInsideLaser } from '@/game/combat/laserGeometry';
 import { LaserAttackCycle } from '@/game/combat/LaserAttackCycle';
 import { getLaserPatternTuning } from '@/game/combat/laserPattern';

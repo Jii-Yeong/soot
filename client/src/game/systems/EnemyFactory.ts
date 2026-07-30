@@ -4,6 +4,7 @@ import {
   BOSS_SPRITES,
   hasBossPattern,
 } from '@/game/config/bossConfig';
+import type { BossArenaBounds } from '@/game/config/bossArena';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
@@ -14,10 +15,7 @@ import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
-import {
-  InfernalBossEnemy,
-  type BossArenaBounds,
-} from '@/game/entities/InfernalBossEnemy';
+import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';

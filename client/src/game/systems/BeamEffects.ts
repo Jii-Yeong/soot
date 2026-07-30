@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { BeamVisualConfig } from '@/game/config/bossConfig';
+import type { BeamVisualConfig } from '@/game/config/bossConfigTypes';
 
 type Point = {
   x: number;

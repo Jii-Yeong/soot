@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type {
   BossCombatConfig,
   BossPatternConfig,
-} from '@/game/config/bossConfig';
+} from '@/game/config/bossConfigTypes';
 import { Enemy } from '@/game/entities/Enemy';
 
 export abstract class BossEnemy<
