@@ -104,22 +104,25 @@ export type BossRoomDefinition = Pick<
   'id' | 'label' | 'intensity'
 > & {
   variant: BossVariant;
+  /** Override the boss-room width (e.g. a bigger boss needs more arena). */
+  worldWidth?: number;
 };
 
 export const defineBossRoom = ({
   variant,
+  worldWidth = BOSS_ROOM_WORLD_WIDTH,
   ...definition
 }: BossRoomDefinition): RoomConfig =>
   defineRoom({
     ...definition,
     kind: 'boss',
     // Shorter than a combat room so the boss appears after a brief walk in.
-    worldWidth: BOSS_ROOM_WORLD_WIDTH,
+    worldWidth,
     enemySpawns: [
       {
         type: 'boss',
         variant,
-        x: BOSS_ROOM_WORLD_WIDTH - 760,
+        x: worldWidth - 760,
         y: GAME_HEIGHT - 180,
       },
     ],

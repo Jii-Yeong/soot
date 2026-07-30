@@ -42,9 +42,12 @@ export const UNDERGROUND_ROOM_TWO = defineRoom({
 
 export const UNDERGROUND_BOSS_ROOM = defineBossRoom({
   id: 'underground-boss',
-  label: 'UNDERGROUND GUARDIAN',
+  label: '정화 집행기 // PURIFIER',
   variant: 'underground-guardian',
   intensity: 1.35,
+  // The purifier is a large capture/crush boss: widen the arena so the grab
+  // pull and the two floor shockwaves have room to be dodged.
+  worldWidth: 2600,
 });
 
 export const UNDERGROUND_ROOMS = [

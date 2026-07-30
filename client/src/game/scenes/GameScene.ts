@@ -240,6 +240,10 @@ export class GameScene extends Phaser.Scene {
       this.floorBuilder.group,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
+      (bossX, bossHalfWidth) =>
+        this.playerController.applyGrab(bossX, bossHalfWidth),
+      (bossX, pullSpeed) =>
+        this.playerController.applyVacuum(bossX, pullSpeed),
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),

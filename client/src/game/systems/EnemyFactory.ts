@@ -16,6 +16,7 @@ import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
+import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 
 type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
@@ -35,6 +36,8 @@ export class EnemyFactory {
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
+    private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
+    private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -130,6 +133,21 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
+        ),
+      );
+    }
+
+    if (hasBossPattern(config, 'purifier')) {
+      return this.finishSpawn(
+        new PurifierBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+          this.grabPlayer,
+          this.pullPlayer,
         ),
       );
     }

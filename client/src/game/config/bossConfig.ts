@@ -85,10 +85,63 @@ export type HoundBossPatternConfig = {
   };
 };
 
+/**
+ * Stage-3 boss (the purification enforcer). A capture/crush android, not a
+ * gunner: a claw yanks the grounded player toward its central tank (where the
+ * boss's own contact damage finishes the "collection"), and a targeting leap
+ * lands on the player's marked position before sending green pressure waves
+ * along the floor. Its intake also pulls the player across the arena unless
+ * they keep running away from it. Distinct axis from stages 1-2.
+ */
+export type PurifierBossPatternConfig = {
+  type: 'purifier';
+  moveSpeed: number;
+  enragedMoveSpeed: number;
+  enrageHealthRatio: number;
+  preferredDistance: number;
+  distanceTolerance: number;
+  firstAttackDelay: number;
+  recoveryDuration: number;
+  enragedRecoveryDuration: number;
+  telegraphColor: number;
+  /** Impurity collection: warn on the player's spot, then the claw strikes. */
+  grab: {
+    warnDuration: number;
+    strikeDuration: number;
+    /** Width of the ground strike zone at the marked spot. */
+    reach: number;
+    damage: number;
+    /** After a catch, the boss holds still this long so the drag reaches it. */
+    holdDuration: number;
+  };
+  /** Waste compaction: leap to the player, then rake two pressure waves out. */
+  slam: {
+    warnDuration: number;
+    strikeDuration: number;
+    launchSpeedY: number;
+    maxTravelSpeedX: number;
+    /** Radius of the marked landing zone. */
+    landingRadius: number;
+    shockwaveSpeed: number;
+    shockwaveDamage: number;
+    shockwaveWidth: number;
+    shockwaveHeight: number;
+    shockwaveRange: number;
+  };
+  /** Full-arena intake: movement away can overcome its continuous pull. */
+  vacuum: {
+    warnDuration: number;
+    duration: number;
+    pullSpeed: number;
+    enragedPullSpeed: number;
+  };
+};
+
 export type BossPatternConfig =
   | ChargeBossPatternConfig
   | LaserCannonPatternConfig
-  | HoundBossPatternConfig;
+  | HoundBossPatternConfig
+  | PurifierBossPatternConfig;
 
 /**
  * When a boss has a real sprite atlas (rather than a generated placeholder), it
@@ -124,6 +177,8 @@ export type ChargingBossCombatConfig =
 export type LaserBossCombatConfig =
   BossCombatConfig<LaserCannonPatternConfig>;
 export type HoundBossCombatConfig = BossCombatConfig<HoundBossPatternConfig>;
+export type PurifierBossCombatConfig =
+  BossCombatConfig<PurifierBossPatternConfig>;
 
 export const hasBossPattern = <Type extends BossPatternConfig['type']>(
   config: BossCombatConfig,
@@ -218,18 +273,46 @@ export const BOSS_COMBAT_CONFIGS = {
       accentColor: 0xc5ec72,
     },
     maxHealth: 800,
-    aggroRadius: 1700,
+    aggroRadius: 2600,
     aggroIndicatorColor: 0xa8d65c,
     contactDamage: 25,
     contactDamageCooldown: 600,
     pattern: {
-      type: 'charge',
-      moveSpeed: 150,
-      enragedMoveSpeed: 220,
-      enrageHealthRatio: 0.6,
-      chargeSpeed: 530,
-      chargeDuration: 500,
-      chargeInterval: 1900,
+      type: 'purifier',
+      moveSpeed: 90,
+      enragedMoveSpeed: 120,
+      enrageHealthRatio: 0.5,
+      preferredDistance: 430,
+      distanceTolerance: 80,
+      firstAttackDelay: 800,
+      recoveryDuration: 900,
+      enragedRecoveryDuration: 700,
+      telegraphColor: 0x66ff8c,
+      grab: {
+        warnDuration: 650,
+        strikeDuration: 250,
+        reach: 150,
+        damage: 16,
+        holdDuration: 800,
+      },
+      slam: {
+        warnDuration: 900,
+        strikeDuration: 300,
+        launchSpeedY: 720,
+        maxTravelSpeedX: 900,
+        landingRadius: 110,
+        shockwaveSpeed: 420,
+        shockwaveDamage: 18,
+        shockwaveWidth: 46,
+        shockwaveHeight: 46,
+        shockwaveRange: 1400,
+      },
+      vacuum: {
+        warnDuration: 700,
+        duration: 2400,
+        pullSpeed: 250,
+        enragedPullSpeed: 280,
+      },
     },
   },
   'infernal-executioner': {
