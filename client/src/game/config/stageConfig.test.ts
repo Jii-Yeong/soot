@@ -11,8 +11,8 @@ import {
 } from '@/game/config/stageConfig';
 
 describe('stage configuration', () => {
-  it('temporarily starts regular builds at stage five', () => {
-    expect(STARTING_STAGE_INDEX).toBe(4);
+  it('starts new runs at stage one', () => {
+    expect(STARTING_STAGE_INDEX).toBe(0);
   });
 
   it('uses flight movement only in stage five', () => {
