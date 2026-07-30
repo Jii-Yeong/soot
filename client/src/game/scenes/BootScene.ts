@@ -1,5 +1,13 @@
 import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
+import { MUSIC_CONFIG } from '@/game/config/audioConfig';
+import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import {
+  PLAYER_ANIMATIONS,
+  PLAYER_ATLAS_KEY,
+  PLAYER_IDLE_FRAMES,
+  PLAYER_RUN_FRAMES,
+} from '@/game/config/playerAnimationConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,7 +16,7 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.atlas(
-      'player',
+      PLAYER_ATLAS_KEY,
       '/assets/player/player.png',
       '/assets/player/player.json',
     );
@@ -16,6 +24,13 @@ export class BootScene extends Phaser.Scene {
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
     for (const asset of assets) {
+      // Only sound effects block the title screen. Music is megabytes and
+      // nothing on the title needs it the instant boot ends, so AudioDirector
+      // fetches it in the background instead. See AudioDirector.loadMusic.
+      if (asset.key in MUSIC_CONFIG) {
+        continue;
+      }
+
       this.load.audio(asset.key, asset.url);
     }
 
@@ -53,6 +68,31 @@ export class BootScene extends Phaser.Scene {
 
   private createRuntimeTextures() {
     const graphics = this.make.graphics({ x: 0, y: 0 }, false);
+    const createWeaponPlaceholder = (
+      key: string,
+      width: number,
+      accent: number,
+      options: { longBarrel?: boolean; wideMuzzle?: boolean } = {},
+    ) => {
+      graphics.clear();
+      graphics.fillStyle(0x161b1d);
+      graphics.fillRect(2, 3, width - 7, 7);
+      graphics.fillStyle(0x3a454a);
+      graphics.fillRect(5, 1, Math.floor(width * 0.42), 4);
+      graphics.fillStyle(accent);
+      graphics.fillRect(8, 4, Math.floor(width * 0.38), 2);
+      graphics.fillStyle(0x0b0d0e);
+      graphics.fillRect(10, 10, 6, 4);
+      graphics.fillRect(0, 5, 6, 5);
+      graphics.fillStyle(0x79878d);
+      graphics.fillRect(
+        width - (options.longBarrel ? 9 : 7),
+        options.wideMuzzle ? 3 : 5,
+        options.longBarrel ? 9 : 7,
+        options.wideMuzzle ? 6 : 3,
+      );
+      graphics.generateTexture(key, width, 14);
+    };
 
     graphics.fillStyle(0xf4c66d);
     graphics.fillRect(0, 0, 16, 4);
@@ -106,11 +146,58 @@ export class BootScene extends Phaser.Scene {
     graphics.fillCircle(5, 5, 2);
     graphics.generateTexture('flying-enemy-bullet-placeholder', 10, 10);
 
+    const createBossPlaceholder = (
+      key: string,
+      bodyColor: number,
+      accentColor: number,
+    ) => {
+      graphics.clear();
+      graphics.fillStyle(0x111719);
+      graphics.fillRect(8, 18, 80, 78);
+      graphics.fillStyle(bodyColor);
+      graphics.fillRect(13, 23, 70, 66);
+      graphics.fillStyle(0x070a0b);
+      graphics.fillRect(23, 35, 50, 18);
+      graphics.fillStyle(accentColor);
+      graphics.fillRect(28, 40, 40, 7);
+      graphics.fillTriangle(8, 31, 8, 70, 0, 55);
+      graphics.fillTriangle(88, 31, 88, 70, 96, 55);
+      graphics.fillStyle(0xdbe8ec);
+      graphics.fillRect(18, 89, 22, 15);
+      graphics.fillRect(56, 89, 22, 15);
+      graphics.generateTexture(key, 96, 104);
+    };
+
+    for (const config of Object.values(BOSS_COMBAT_CONFIGS)) {
+      createBossPlaceholder(
+        config.texture,
+        config.placeholder.bodyColor,
+        config.placeholder.accentColor,
+      );
+    }
+
     graphics.clear();
     graphics.fillStyle(0xffe1a8);
     graphics.fillCircle(4, 4, 4);
     graphics.generateTexture('shotgun-pellet-placeholder', 8, 8);
 
+    graphics.clear();
+    graphics.fillStyle(0xd5a8ff);
+    graphics.fillRect(0, 1, 20, 3);
+    graphics.fillStyle(0xffffff);
+    graphics.fillRect(14, 0, 6, 5);
+    graphics.generateTexture('rail-bolt-placeholder', 20, 5);
+
+    createWeaponPlaceholder('weapon-smg-placeholder', 34, 0xb6ffe4);
+    createWeaponPlaceholder('weapon-shotgun-placeholder', 42, 0xf0a35b, {
+      wideMuzzle: true,
+    });
+    createWeaponPlaceholder('weapon-burst-placeholder', 39, 0x8fb8ff, {
+      longBarrel: true,
+    });
+    createWeaponPlaceholder('weapon-rail-placeholder', 48, 0xd5a8ff, {
+      longBarrel: true,
+    });
     graphics.clear();
     graphics.fillStyle(0x202629);
     graphics.fillRect(0, 0, 64, 64);
@@ -123,12 +210,21 @@ export class BootScene extends Phaser.Scene {
 
   private createAnimations() {
     this.anims.create({
-      key: 'player-idle',
-      frames: [0, 1, 2, 3].map((index) => ({
-        key: 'player',
-        frame: `shoot-posture-refined ${index}.png`,
+      key: PLAYER_ANIMATIONS.idle,
+      frames: PLAYER_IDLE_FRAMES.map((frame) => ({
+        key: PLAYER_ATLAS_KEY,
+        frame,
       })),
       duration: 1500,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: PLAYER_ANIMATIONS.run,
+      frames: PLAYER_RUN_FRAMES.map((frame) => ({
+        key: PLAYER_ATLAS_KEY,
+        frame,
+      })),
+      duration: 480,
       repeat: -1,
     });
   }

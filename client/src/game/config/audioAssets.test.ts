@@ -43,7 +43,8 @@ describe('matchAudioAssets', () => {
     const { assets, missingKeys, unusedFiles } = matchAudioAssets({});
 
     expect(assets).toEqual([]);
-    expect(missingKeys).toHaveLength(12);
+    // 6 music cues + 9 sfx cues.
+    expect(missingKeys).toHaveLength(15);
     expect(unusedFiles).toEqual([]);
   });
 

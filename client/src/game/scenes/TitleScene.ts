@@ -1,10 +1,19 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import { STAGE_ONE_CONFIG } from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('title');
+  }
+
+  preload() {
+    const background = STAGE_ONE_CONFIG.background;
+
+    if (background && !this.textures.exists(background.key)) {
+      this.load.image(background.key, background.path);
+    }
   }
 
   create() {

@@ -53,6 +53,11 @@ export class FlyingEnemy extends Enemy {
       this.fireInterval,
     );
 
+    // While staggered, let the knockback push it before hover control resumes.
+    if (this.isStaggered(time)) {
+      return targetInRange;
+    }
+
     const horizontalDirection = Math.sign(target.x - this.x);
     this.setVelocityX(targetInRange ? horizontalDirection * this.trackSpeed : 0);
 

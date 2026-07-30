@@ -1,21 +1,42 @@
 import Phaser from 'phaser';
 import {
+  BOSS_COMBAT_CONFIGS,
+  hasBossPattern,
+} from '@/game/config/bossConfig';
+import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
+import { ChargingBossEnemy } from '@/game/entities/ChargingBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
+import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 
+type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
+  EnemySpawnConfig,
+  { type: Type }
+>;
+
+const assertUnhandledBossConfig = (_config: never): never => {
+  throw new Error('Unsupported boss pattern');
+};
+
 export class EnemyFactory {
+  private readonly intensity: number;
+
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
-    private readonly intensity: number = 1,
-  ) {}
+    intensity: number | undefined,
+    private readonly damagePlayer: (damage: number) => void,
+  ) {
+    this.intensity = intensity ?? 1;
+  }
 
   create(spawn: EnemySpawnConfig): Enemy {
     switch (spawn.type) {
@@ -25,10 +46,12 @@ export class EnemyFactory {
         return this.createRangedEnemy(spawn);
       case 'flying':
         return this.createFlyingEnemy(spawn);
+      case 'boss':
+        return this.createBossEnemy(spawn);
     }
   }
 
-  private createMeleeEnemy(spawn: EnemySpawnConfig) {
+  private createMeleeEnemy(spawn: SpawnOf<'melee'>) {
     const enemy = new MeleeEnemy(
       this.scene,
       spawn.x,
@@ -46,7 +69,7 @@ export class EnemyFactory {
     return this.finishSpawn(enemy);
   }
 
-  private createRangedEnemy(spawn: EnemySpawnConfig) {
+  private createRangedEnemy(spawn: SpawnOf<'ranged'>) {
     const enemy = new RangedEnemy(
       this.scene,
       spawn.x,
@@ -62,7 +85,7 @@ export class EnemyFactory {
     return this.finishSpawn(enemy);
   }
 
-  private createFlyingEnemy(spawn: EnemySpawnConfig) {
+  private createFlyingEnemy(spawn: SpawnOf<'flying'>) {
     const enemy = new FlyingEnemy(
       this.scene,
       spawn.x,
@@ -78,6 +101,50 @@ export class EnemyFactory {
       },
     );
     return this.finishSpawn(enemy, { collidesWithFloor: false });
+  }
+
+  private createBossEnemy(spawn: SpawnOf<'boss'>) {
+    const config = BOSS_COMBAT_CONFIGS[spawn.variant];
+
+    if (hasBossPattern(config, 'laser-cannon')) {
+      return this.finishSpawn(
+        new LaserBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+        ),
+      );
+    }
+
+    if (hasBossPattern(config, 'hound')) {
+      return this.finishSpawn(
+        new HoundBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+        ),
+      );
+    }
+
+    if (hasBossPattern(config, 'charge')) {
+      return this.finishSpawn(
+        new ChargingBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+        ),
+      );
+    }
+
+    return assertUnhandledBossConfig(config);
   }
 
   private finishSpawn<EnemyType extends Enemy>(
