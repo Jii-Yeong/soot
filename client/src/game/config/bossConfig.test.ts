@@ -89,5 +89,11 @@ describe('boss combat configuration', () => {
     expect(BOSS_COMBAT_CONFIGS['returning-architect'].pattern.type).toBe(
       'charge',
     );
+    expect(
+      BOSS_COMBAT_CONFIGS['returning-architect'].pattern.aerial,
+    ).toMatchObject({
+      minY: 150,
+      maxY: 570,
+    });
   });
 });

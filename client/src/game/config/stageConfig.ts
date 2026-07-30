@@ -1,4 +1,5 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import { MovementMode } from '@/game/config/playerMovementConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
 import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
@@ -33,6 +34,7 @@ export type StageConfig = {
   id: string;
   label: string;
   playerMaxHealth: number;
+  movementMode: MovementMode;
   palette: StagePalette;
   music: MusicKey;
   rooms: StageRooms;
@@ -44,6 +46,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
   id: 'stage-01',
   label: 'STAGE 1 // THE CITY',
   playerMaxHealth: 100,
+  movementMode: MovementMode.GROUND,
   palette: {
     backgroundTop: 0x111719,
     backgroundBottom: 0x080a0b,
@@ -63,6 +66,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
   id: 'stage-02',
   label: 'STAGE 2 // THE BACK ALLEYS',
   playerMaxHealth: 115,
+  movementMode: MovementMode.GROUND,
   palette: {
     backgroundTop: 0x1a1310,
     backgroundBottom: 0x0c0908,
@@ -83,6 +87,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
   id: 'stage-03',
   label: 'STAGE 3 // THE UNDERGROUND',
   playerMaxHealth: 130,
+  movementMode: MovementMode.GROUND,
   palette: {
     backgroundTop: 0x10180f,
     backgroundBottom: 0x070a06,
@@ -104,6 +109,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
   id: 'stage-04',
   label: 'STAGE 4 // HELL',
   playerMaxHealth: 150,
+  movementMode: MovementMode.GROUND,
   palette: {
     backgroundTop: 0x210b0a,
     backgroundBottom: 0x080303,
@@ -124,6 +130,7 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
   id: 'stage-05',
   label: 'STAGE 5 // THE RETURN',
   playerMaxHealth: 175,
+  movementMode: MovementMode.FLIGHT,
   palette: {
     backgroundTop: 0x171027,
     backgroundBottom: 0x07040c,

@@ -1,5 +1,6 @@
 export const PLAYER_COMBAT_CONFIG = {
   moveSpeed: 300,
+  flightSpeed: 300,
   jumpSpeed: 560,
   fastFallSpeed: 720,
   dash: {

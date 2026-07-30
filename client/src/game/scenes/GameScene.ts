@@ -54,6 +54,8 @@ const PIT_FALL_TRIGGER_DEPTH = 22;
 const PIT_FALL_DAMAGE = 12;
 /** Height above the floor the player is placed at after climbing out of a pit. */
 const PIT_RESPAWN_LIFT = 60;
+const GROUND_ROOM_EXIT_OFFSET = 20;
+const FLIGHT_ROOM_EXIT_OFFSET = 12;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -82,6 +84,7 @@ export class GameScene extends Phaser.Scene {
   private weaponLabelText!: Phaser.GameObjects.Text;
   private weaponEquippedText!: Phaser.GameObjects.Text;
   private stageLabelText!: Phaser.GameObjects.Text;
+  private controlHintText?: Phaser.GameObjects.Text;
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
     (currentHealth, maxHealth) =>
@@ -136,7 +139,11 @@ export class GameScene extends Phaser.Scene {
 
     if (
       this.phase === 'room-cleared' &&
-      this.player.x > this.activeRoomConfig.exitX + 20
+      this.player.x >
+        this.activeRoomConfig.exitX +
+          (this.playerController.isFlightMode
+            ? FLIGHT_ROOM_EXIT_OFFSET
+            : GROUND_ROOM_EXIT_OFFSET)
     ) {
       this.advanceToNextRoom();
     }
@@ -322,6 +329,7 @@ export class GameScene extends Phaser.Scene {
       );
       this.player.setVelocity(0);
       this.resetCameraToRoomEntrance();
+      this.applyStageMovementMode();
     }
 
     this.buildRoom(
@@ -386,6 +394,7 @@ export class GameScene extends Phaser.Scene {
       this.player,
       PLAYER_COMBAT_CONFIG,
     );
+    this.applyStageMovementMode();
     this.weaponSystem = new WeaponSystem(
       this,
       this.player,
@@ -498,11 +507,11 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setVisible(false);
 
-    this.add
+    this.controlHintText = this.add
       .text(
         GAME_WIDTH - 32,
         GAME_HEIGHT - 96,
-        'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
+        '',
         {
           color: '#879197',
           fontFamily: 'Arial, sans-serif',
@@ -512,6 +521,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(1, 0.5)
       .setDepth(20)
       .setScrollFactor(0);
+    this.updateControlHint();
   }
 
   private bindInputHandlers() {
@@ -583,6 +593,19 @@ export class GameScene extends Phaser.Scene {
 
   private restorePlayerHealthForStage() {
     this.playerHealth.restore(this.stage.playerMaxHealth);
+  }
+
+  private applyStageMovementMode() {
+    this.playerController.setMovementMode(this.stage.movementMode);
+    this.updateControlHint();
+  }
+
+  private updateControlHint() {
+    this.controlHintText?.setText(
+      this.playerController.isFlightMode
+        ? 'W/SPACE  UP    S  DOWN    A/D  MOVE    SHIFT/RMB  DASH    LMB  FIRE'
+        : 'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
+    );
   }
 
   private setPhase(phase: GamePhase) {
@@ -795,6 +818,10 @@ export class GameScene extends Phaser.Scene {
    * far ledge and dock health — the pit is a hazard, not a dead end.
    */
   private handlePitFall() {
+    if (this.playerController.isFlightMode) {
+      return;
+    }
+
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     if (body.bottom <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
       return;

@@ -6,11 +6,11 @@ const EXPECTED_COMBAT_ROOM_COUNTS = [
   [8, 9],
   [9, 10],
   [10, 11],
-  [11, 12],
+  [8, 9],
 ];
 
 describe('enemy spawn progression', () => {
-  it('increases encounter size with stage difficulty', () => {
+  it('keeps encounter sizes tuned for each stage combat model', () => {
     expect(
       STAGES.map((stage) =>
         stage.rooms

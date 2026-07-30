@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
   STAGES,
   STAGE_FIVE_CONFIG,
@@ -9,6 +10,16 @@ import {
 } from '@/game/config/stageConfig';
 
 describe('stage configuration', () => {
+  it('uses flight movement only in stage five', () => {
+    expect(STAGES.slice(0, 4).map((stage) => stage.movementMode)).toEqual([
+      MovementMode.GROUND,
+      MovementMode.GROUND,
+      MovementMode.GROUND,
+      MovementMode.GROUND,
+    ]);
+    expect(STAGE_FIVE_CONFIG.movementMode).toBe(MovementMode.FLIGHT);
+  });
+
   it('increases player health with stage difficulty', () => {
     expect(STAGES.map(({ playerMaxHealth }) => playerMaxHealth)).toEqual([
       100, 115, 130, 150, 175,
@@ -82,5 +93,28 @@ describe('stage configuration', () => {
       type: 'boss',
       variant: 'returning-architect',
     });
+  });
+
+  it('uses independently configured aerial enemies throughout stage five', () => {
+    for (const room of STAGE_FIVE_CONFIG.rooms.slice(0, 2)) {
+      expect(
+        room.enemySpawns.every(
+          (spawn) => spawn.type === 'flying' && Boolean(spawn.movement),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('prevents flight from bypassing stage five exit doors', () => {
+    expect(
+      STAGE_FIVE_CONFIG.rooms.every(
+        (room) => room.door.height === 720 && room.door.y === 360,
+      ),
+    ).toBe(true);
+    expect(
+      STAGES.slice(0, 4).every((stage) =>
+        stage.rooms.every((room) => room.door.height === 180),
+      ),
+    ).toBe(true);
   });
 });

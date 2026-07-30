@@ -1,4 +1,5 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import type { AerialMovementConfig } from '@/game/config/aerialMovementConfig';
 import type { BossVariant } from '@/game/config/bossConfig';
 import {
   BOSS_ROOM_WORLD_WIDTH,
@@ -20,6 +21,7 @@ export type EnemySpawnConfig =
       type: 'flying';
       x: number;
       y: number;
+      movement?: AerialMovementConfig;
     }
   | {
       type: 'boss';
@@ -85,32 +87,38 @@ export type RoomDefinition = Omit<
   kind?: RoomConfig['kind'];
   /** Room segment width; the exit door sits near its right edge. */
   worldWidth?: number;
+  /** Stage-specific door geometry, e.g. a full-height aerial barrier. */
+  door?: Partial<RoomConfig['door']>;
 };
 
 export const defineRoom = ({
   worldWidth = ROOM_WORLD_WIDTH,
+  door,
   ...definition
 }: RoomDefinition): RoomConfig => ({
   kind: 'combat',
   worldWidth,
   entranceX: 64,
   exitX: worldWidth - 64,
-  door: ROOM_DOOR,
+  door: { ...ROOM_DOOR, ...door },
   ...definition,
 });
 
 export type BossRoomDefinition = Pick<
   RoomDefinition,
-  'id' | 'label' | 'intensity'
+  'id' | 'label' | 'intensity' | 'door'
 > & {
   variant: BossVariant;
   /** Override the boss-room width (e.g. a bigger boss needs more arena). */
   worldWidth?: number;
+  /** Override the boss centre height for an aerial encounter. */
+  bossY?: number;
 };
 
 export const defineBossRoom = ({
   variant,
   worldWidth = BOSS_ROOM_WORLD_WIDTH,
+  bossY = GAME_HEIGHT - 180,
   ...definition
 }: BossRoomDefinition): RoomConfig =>
   defineRoom({
@@ -123,7 +131,7 @@ export const defineBossRoom = ({
         type: 'boss',
         variant,
         x: worldWidth - 760,
-        y: GAME_HEIGHT - 180,
+        y: bossY,
       },
     ],
   });

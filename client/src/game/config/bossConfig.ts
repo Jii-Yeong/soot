@@ -12,6 +12,11 @@ export type ChargeBossPatternConfig = {
   chargeSpeed: number;
   chargeDuration: number;
   chargeInterval: number;
+  aerial?: {
+    minY: number;
+    maxY: number;
+    verticalTrackSpeed: number;
+  };
 };
 
 export type LaserCannonPatternConfig = {
@@ -435,6 +440,11 @@ export const BOSS_COMBAT_CONFIGS = {
       chargeSpeed: 640,
       chargeDuration: 560,
       chargeInterval: 1550,
+      aerial: {
+        minY: 150,
+        maxY: 570,
+        verticalTrackSpeed: 210,
+      },
     },
   },
 } satisfies Record<string, BossCombatConfig>;

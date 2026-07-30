@@ -109,6 +109,7 @@ export class EnemyFactory {
         trackSpeed: FLYING_ENEMY_COMBAT_CONFIG.trackSpeed * this.intensity,
         fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: FLYING_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
+        movement: spawn.movement,
       },
     );
     return this.finishSpawn(enemy, { collidesWithFloor: false });
@@ -183,6 +184,7 @@ export class EnemyFactory {
           config.texture,
           config,
         ),
+        { collidesWithFloor: !config.pattern.aerial },
       );
     }
 
