@@ -35,6 +35,9 @@ export class FlyingEnemy extends Enemy {
     this.projectile = { kind: 'flying', muzzleOffset: config.muzzleOffset };
 
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+    // Flyers hover at platform height, so they render in front of terrain
+    // (depth 5) instead of being hidden behind it — still under the player (8).
+    this.setDepth(6);
   }
 
   updateCombat(
