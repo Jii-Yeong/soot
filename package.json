@@ -2,6 +2,9 @@
   "name": "soot",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "pnpm --filter @soot/client dev",
     "build": "pnpm --filter @soot/client build",
@@ -9,5 +12,5 @@
     "test": "pnpm --filter @soot/client test",
     "test:e2e": "pnpm --filter @soot/client test:e2e"
   },
-  "packageManager": "pnpm@11.7.0"
+  "packageManager": "pnpm@10.34.5"
 }
