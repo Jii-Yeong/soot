@@ -46,6 +46,7 @@ import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
 import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 
@@ -55,7 +56,8 @@ const PIT_FALL_DAMAGE = 12;
 /** Height above the floor the player is placed at after climbing out of a pit. */
 const PIT_RESPAWN_LIFT = 60;
 const GROUND_ROOM_EXIT_OFFSET = 20;
-const FLIGHT_ROOM_EXIT_OFFSET = 12;
+const FLIGHT_ROOM_EXIT_OFFSET = 0;
+const TEMPORARY_STARTING_STAGE_INDEX = 4;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -63,7 +65,7 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
-  private currentStageIndex = 0;
+  private currentStageIndex = TEMPORARY_STARTING_STAGE_INDEX;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -585,7 +587,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    this.currentStageIndex = 0;
+    this.currentStageIndex = TEMPORARY_STARTING_STAGE_INDEX;
     this.currentRoomIndex = 0;
     this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');
@@ -836,7 +838,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyPlayerDamage(damage: number) {
-    if (this.phase !== 'playing' || this.playerController.isInvulnerable) {
+    if (
+      this.phase !== 'playing' ||
+      this.playerController.isInvulnerable ||
+      useGameSettingsStore.getState().invincible
+    ) {
       return;
     }
 

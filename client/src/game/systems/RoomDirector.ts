@@ -136,6 +136,7 @@ export class RoomDirector {
   }
 
   private clearRoom() {
+    this.exit.playerCollider.active = false;
     this.exit.body.enable = false;
     this.exit.view.setFillStyle(0xb6ffe4, 0.28).setStrokeStyle(2, 0xb6ffe4);
     this.scene.tweens.add({

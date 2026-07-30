@@ -1,6 +1,7 @@
 import { HealthMeter } from '@/app/components/HealthMeter';
 import { useGameUiEvents } from '@/app/hooks/useGameUiEvents';
 import { PhaserGame } from '@/game/PhaserGame';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
     weaponId,
     nearbyWeaponId,
   } = useGameUiStore();
+  const { invincible, toggleInvincible } = useGameSettingsStore();
 
   useGameUiEvents();
 
@@ -27,6 +29,7 @@ export function App() {
       data-scene={scene}
       data-weapon={weaponId}
       data-nearby-weapon={nearbyWeaponId ?? ''}
+      data-invincible={invincible}
     >
       <PhaserGame />
       {scene === 'game' && (
@@ -44,6 +47,17 @@ export function App() {
             variant="enemy"
             bossPhase={bossPhase}
           />
+          <button
+            type="button"
+            className={`invincibility-toggle${
+              invincible ? ' invincibility-toggle--active' : ''
+            }`}
+            aria-label="Invincibility mode"
+            aria-pressed={invincible}
+            onClick={toggleInvincible}
+          >
+            INVINCIBLE // {invincible ? 'ON' : 'OFF'}
+          </button>
           {bossPhase === 2 && (
             <div
               className="boss-phase-alert"

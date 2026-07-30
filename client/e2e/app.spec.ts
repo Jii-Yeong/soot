@@ -385,6 +385,35 @@ test('melee enemy pursues the player and deals contact damage', async ({
   });
 });
 
+test('invincibility mode prevents player health loss', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const toggle = page.getByRole('button', { name: 'Invincibility mode' });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-invincible',
+    'true',
+  );
+
+  await triggerCurrentRoom(page);
+  const healthMeter = page.getByRole('meter', { name: 'Player health' });
+  await holdKeyFor(page, 'KeyD', 1000);
+  await page.waitForTimeout(2000);
+  await expect(healthMeter).toHaveAttribute('aria-valuenow', '175');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await holdKeyFor(page, 'KeyD', 400);
+  await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '175', {
+    timeout: 5000,
+  });
+});
+
 test('player fire damages the enemy without stopping combat', async ({
   page,
 }) => {
