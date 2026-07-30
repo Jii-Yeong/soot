@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { matchAudioAssets } from '@/game/config/audioAssets';
+import { MUSIC_CONFIG, SFX_CONFIG } from '@/game/config/audioConfig';
 
 const AUDIO_ROOT = '../../assets/audio';
 
@@ -43,8 +44,11 @@ describe('matchAudioAssets', () => {
     const { assets, missingKeys, unusedFiles } = matchAudioAssets({});
 
     expect(assets).toEqual([]);
-    // 6 music cues + 9 sfx cues.
-    expect(missingKeys).toHaveLength(15);
+    // Counted from the configs rather than written out, so adding a cue does
+    // not fail a test that has nothing to say about it.
+    expect(missingKeys).toHaveLength(
+      Object.keys(MUSIC_CONFIG).length + Object.keys(SFX_CONFIG).length,
+    );
     expect(unusedFiles).toEqual([]);
   });
 

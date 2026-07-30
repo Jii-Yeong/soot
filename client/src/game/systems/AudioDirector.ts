@@ -8,6 +8,7 @@ import {
   type AudioAssetKey,
   type MusicKey,
   type SfxKey,
+  type SfxLayerConfig,
 } from '@/game/config/audioConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
@@ -52,6 +53,8 @@ export class AudioDirector {
   private wantedMusic?: MusicKey;
   /** Tracks already fetched, so a revisited stage does not download twice. */
   private readonly requested = new Set<MusicKey>();
+  /** Which stage is running, for cues that only some stages should hear. */
+  private stageId?: string;
 
   constructor(private readonly game: Phaser.Game) {
     this.game.sound.on(Phaser.Sound.Events.DECODED, this.handleDecoded);
@@ -147,6 +150,9 @@ export class AudioDirector {
       return;
     }
 
+    // Returning to the title ends whatever stage was running, so a stage-gated
+    // layer must not survive into the next run.
+    this.stageId = undefined;
     this.requestMusic('bgm-title');
     // The title is where the player reads and presses ENTER, which is the only
     // free moment stage one's track ever gets.
@@ -161,6 +167,7 @@ export class AudioDirector {
       return;
     }
 
+    this.stageId = stageId;
     this.requestMusic(STAGES[index].music);
     this.requestMusic(STAGES[index + 1]?.music);
     this.playMusic(STAGES[index].music);
@@ -207,7 +214,31 @@ export class AudioDirector {
     this.playSfx('sfx-enemy-down');
   };
 
+  /**
+   * Sounds a cue and, if it actually sounded, whatever layer it carries. The
+   * layer is played through the same path so it obeys its own volume and
+   * throttle, but it never gets a layer of its own — one level keeps a config
+   * that points at itself from recursing forever.
+   */
   private playSfx(key: SfxKey) {
+    if (!this.emitSfx(key)) {
+      return;
+    }
+
+    const layer = SFX_CONFIG[key].layer;
+
+    if (layer && this.hearsLayer(layer)) {
+      this.emitSfx(layer.key);
+    }
+  }
+
+  /** True when the current stage is one the layer was written for. */
+  private hearsLayer(layer: SfxLayerConfig) {
+    return !layer.stages || layer.stages.includes(this.stageId ?? '');
+  }
+
+  /** Returns whether the cue reached the sound manager. */
+  private emitSfx(key: SfxKey) {
     const config = SFX_CONFIG[key];
     const now = Date.now();
     const playedAt = this.playedAt.get(key);
@@ -217,13 +248,13 @@ export class AudioDirector {
       playedAt !== undefined &&
       now - playedAt < config.minInterval
     ) {
-      return;
+      return false;
     }
 
     // Cues are momentary, so anything triggered before the browser grants audio
     // is dropped rather than queued — a delayed gunshot reads as a bug.
     if (!this.isLoaded(key) || this.game.sound.locked) {
-      return;
+      return false;
     }
 
     this.playedAt.set(key, now);
@@ -231,6 +262,8 @@ export class AudioDirector {
       volume: config.volume * this.mix.sfx * this.mix.master,
       rate: this.jitteredRate(config.rateJitter),
     });
+
+    return true;
   }
 
   private playMusic(key: MusicKey) {
