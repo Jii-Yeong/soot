@@ -52,14 +52,14 @@ describe('stage configuration', () => {
   it('loads the supplied stage 2 background', () => {
     expect(STAGE_TWO_CONFIG.background).toEqual({
       key: 'stage-02-bg',
-      path: '/assets/backgrounds/stage-02.png',
+      path: '/assets/backgrounds/stage-02.webp',
     });
   });
 
   it('loads the supplied stage 3 background with the same structure', () => {
     expect(STAGE_THREE_CONFIG.background).toEqual({
       key: 'stage-03-bg',
-      path: '/assets/backgrounds/stage-03.png',
+      path: '/assets/backgrounds/stage-03.webp',
     });
   });
 
@@ -71,7 +71,7 @@ describe('stage configuration', () => {
       label: 'STAGE 4 // HELL',
       background: {
         key: 'stage-04-bg',
-        path: '/assets/backgrounds/stage-04.png',
+        path: '/assets/backgrounds/stage-04.webp',
       },
     });
     expect(STAGE_FOUR_CONFIG.rooms.at(-1)?.enemySpawns[0]).toMatchObject({
@@ -86,7 +86,7 @@ describe('stage configuration', () => {
       label: 'STAGE 5 // THE RETURN',
       background: {
         key: 'stage-05-bg',
-        path: '/assets/backgrounds/stage-05.png',
+        path: '/assets/backgrounds/stage-05.webp',
       },
     });
     expect(STAGE_FIVE_CONFIG.rooms.at(-1)?.enemySpawns[0]).toMatchObject({

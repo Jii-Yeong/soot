@@ -57,7 +57,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
   music: 'bgm-city',
   background: {
     key: 'stage-01-bg',
-    path: '/assets/backgrounds/stage-01.png',
+    path: '/assets/backgrounds/stage-01.webp',
   },
   rooms: CITY_ROOMS,
 };
@@ -78,7 +78,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
   music: 'bgm-alley',
   background: {
     key: 'stage-02-bg',
-    path: '/assets/backgrounds/stage-02.png',
+    path: '/assets/backgrounds/stage-02.webp',
   },
   rooms: ALLEY_ROOMS,
 };
@@ -99,7 +99,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
   music: 'bgm-underground',
   background: {
     key: 'stage-03-bg',
-    path: '/assets/backgrounds/stage-03.png',
+    path: '/assets/backgrounds/stage-03.webp',
   },
   rooms: UNDERGROUND_ROOMS,
   endEvent: 'siege',
@@ -121,7 +121,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
   music: 'bgm-inferno',
   background: {
     key: 'stage-04-bg',
-    path: '/assets/backgrounds/stage-04.png',
+    path: '/assets/backgrounds/stage-04.webp',
   },
   rooms: INFERNO_ROOMS,
 };
@@ -142,7 +142,7 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
   music: 'bgm-return',
   background: {
     key: 'stage-05-bg',
-    path: '/assets/backgrounds/stage-05.png',
+    path: '/assets/backgrounds/stage-05.webp',
   },
   rooms: RETURN_ROOMS,
 };

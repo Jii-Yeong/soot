@@ -193,12 +193,45 @@ test('boots the Phaser canvas', async ({ page }) => {
   await expect(canvas).toHaveAttribute('height', '720');
 });
 
+test('shows the title before the stage one background finishes loading', async ({
+  page,
+}) => {
+  let releaseBackground: (() => void) | undefined;
+  let markBackgroundRequested: (() => void) | undefined;
+  const backgroundGate = new Promise<void>((resolve) => {
+    releaseBackground = resolve;
+  });
+  const backgroundRequested = new Promise<void>((resolve) => {
+    markBackgroundRequested = resolve;
+  });
+
+  await page.route('**/assets/backgrounds/stage-01.webp', async (route) => {
+    markBackgroundRequested?.();
+    await backgroundGate;
+    await route.continue();
+  });
+
+  try {
+    await page.goto('/');
+    await backgroundRequested;
+    await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+
+    releaseBackground?.();
+    await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  } finally {
+    releaseBackground?.();
+  }
+});
+
 test('loads stage backgrounds one step ahead', async ({ page }) => {
   const requestedBackgrounds = new Set<string>();
   page.on('request', (request) => {
     const fileName = new URL(request.url()).pathname
       .split('/')
-      .find((segment) => /^stage-\d{2}\.png$/.test(segment));
+      .find((segment) => /^stage-\d{2}\.webp$/.test(segment));
 
     if (fileName) {
       requestedBackgrounds.add(fileName);
@@ -207,16 +240,16 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
 
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  expect(requestedBackgrounds).toEqual(new Set(['stage-01.png']));
+  expect(requestedBackgrounds).toEqual(new Set(['stage-01.webp']));
 
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
   await expect
-    .poll(() => requestedBackgrounds.has('stage-02.png'))
+    .poll(() => requestedBackgrounds.has('stage-02.webp'))
     .toBe(true);
-  expect(requestedBackgrounds.has('stage-03.png')).toBe(false);
-  expect(requestedBackgrounds.has('stage-04.png')).toBe(false);
-  expect(requestedBackgrounds.has('stage-05.png')).toBe(false);
+  expect(requestedBackgrounds.has('stage-03.webp')).toBe(false);
+  expect(requestedBackgrounds.has('stage-04.webp')).toBe(false);
+  expect(requestedBackgrounds.has('stage-05.webp')).toBe(false);
 });
 
 test('waits for the entrance detector before starting combat', async ({
