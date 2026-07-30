@@ -579,6 +579,110 @@ ffmpeg -i final.wav -c:a libopus -b:a 80k city.ogg
 **저장 포맷은 Ogg Vorbis로 한다.** 편집 후 다시 mp3로 저장하면 세대 손실이 누적되고,
 wav는 3분 스테레오가 30MB를 넘는다. ogg는 용량이 mp3 수준이면서 게임이 그대로 인식한다.
 
+### title / alley 프롬프트와 생성 기록
+
+city와 달리 **Pro 모델이 곡 구조를 만들려는 성향과 싸우는 것**이 핵심 과제였다. Vertex 문서에
+"인트로·벌스·코러스·브릿지 같은 구조 요소를 이해한다"고 적혀 있고, 우리가 원하는 것은 구조가
+없는 정적인 베드다. city도 12초 인트로 빌드와 후반 크레셴도가 있었고, title 초기 테이크들은
+빌드가 +7.2dB, +3.8dB까지 갔다.
+
+세 방향을 각각 시도했다.
+
+**A — 드론 베드 + 반복 명시 + 템포 제거**
+
+```
+sustained ambient drone bed, delicate high register strings holding one
+unresolved suspended chord throughout, glassy shimmering textures, crystalline
+clean electric guitar sounding single notes that decay into silence, light
+cello sustaining underneath, free time with no pulse, rubato, no percussion of
+any kind, the harmony never moves to another chord, the same eight bars
+repeated over and over for the entire duration, every passage sounds like every
+other passage, spacious and sparse, open and luminous, calm and static, purely
+instrumental, starts immediately at full level, the final minute sits at
+exactly the same level as the opening minute, loopable background bed, D major
+```
+
+**BPM 숫자를 일부러 뺐다.** 박이 없어야 하는 곡에 템포를 주면 모델이 그리드를 만들 이유가
+생긴다. city는 아르페지오와 약한 퍼커션이 있어 필요했지만 title은 반대다.
+
+**B — 녹음물로 프레이밍**
+
+```
+a single held string chord recorded in a large empty hall, delicate high
+register violin and viola sustaining without vibrato, glassy shimmering air
+around them, one crystalline clean guitar note every few bars fading into the
+room, light cello drone underneath, free time, no pulse, no percussion, the
+same chord for the entire duration, nothing enters and nothing leaves, ambient
+field recording of one moment stretched out, purely instrumental, starts
+immediately at full level, loopable, D major
+```
+
+작곡이 아니라 "한 순간을 늘여놓은 필드 레코딩"이라고 하면 구조를 만들 명분이 없어지지
+않을까 하는 시도다.
+
+**C — 짧은 미니멀**
+
+```
+delicate high register strings sustained, glassy shimmering textures,
+crystalline clean electric guitar, light cello drone, free time, no pulse, one
+unchanging chord, spacious and sparse, purely instrumental, loopable, D major
+```
+
+프롬프트 길이 자체가 변수인지 보려는 것이다. 짧으면 모델이 구조를 붙일 여지가 줄어들 수 있다.
+
+**alley는 반대로 박이 있어야 한다.** 드럼이 처음 들어오는 곡이므로 88 BPM을 명시하고,
+city와 **같은 으뜸음 D**를 유지한 채 장조만 단조로 뒤집는다.
+
+```
+dark orchestral, low unsteady cello and viola, distorted electric guitar
+arpeggio detuned and grinding, sparse slow drum kit with kick and snare on a
+steady grid, strings drifting slightly out of tune with each other, decayed and
+menacing, familiar but wrong, purely instrumental, one continuous unchanging
+texture, the same handful of instruments from beginning to end, the same eight
+bars repeated over and over for the entire duration, the final section sits at
+exactly the same level as the opening, starts immediately at full level,
+loopable background bed, 88 BPM, D minor
+```
+
+**88 BPM은 실측값이다.** 문서 계획값은 90이었지만 채택된 city(`The_Center_of_the_Room`)는
+v2 테이크이고 온셋 자기상관으로 88.5가 나왔다. alley는 채택본에 맞춘다.
+
+alley B는 위에 `the same theme as a bright D major city piece now turned wrong`와
+`distorted electric guitar taking over the arpeggio the clean guitar used to play`를
+더해 **city 파생을 문장으로 명시한 것**이고, alley C는 드럼을 `full drum kit with a steady
+driving kick and snare pattern audible throughout`로 앞세운 것이다.
+
+#### 생성 기록 (10테이크)
+
+| 순서 | 큐 | 프롬프트 | 길이 | 제목 |
+| --- | --- | --- | --- | --- |
+| 1 | title | A | 180초 | The Glass Horizon |
+| 2 | title | B | 170초 | — |
+| 3 | title | C | 177초 | — |
+| 4 | title | A | 170초 | Sunlight Through the Atrium |
+| 5 | title | B | 179초 | Noon in the Atrium |
+| 6 | alley | A | 167초 | Under the Iron Ceiling |
+| 7 | alley | A | 130초 | The Unsteady Corridor |
+| 8 | alley | B | 136초 | Gravity of the Concrete |
+| 9 | alley | B | 127초 | The Warped Foundation |
+| 10 | alley | C | 167초 | Torsion of the Girders |
+
+**측정은 1번만 끝났다.** 크롬이 연속 다운로드를 막아 나머지 9개를 아직 받지 못했다.
+
+| | 1번 (title A) | 참고: city 채택본 |
+| --- | --- | --- |
+| 빌드 | **-0.2 dB** | — |
+| 루프 상관 | **0.935** | 0.576 |
+| 박 상관 | 0.498 @ 80 BPM | 0.676 @ 88.5 |
+| 공기감 8~16k | -53.4 | -32.9 |
+
+**빌드가 사실상 0이다.** Pro의 구조 생성을 프롬프트로 이긴 첫 사례이고, BPM 제거와
+`the same eight bars repeated over and over`가 효과였을 가능성이 크다. 루프 상관 0.935는
+24초와 144초가 거의 같은 소재라는 뜻으로, 크로스페이드가 들리지 않는다.
+
+남은 문제는 둘이다. **공기감이 city보다 20dB 낮아** 밝기 지시가 먹지 않았고, **박 상관
+0.498**은 목표 0.3을 넘는다. `free time`, `no pulse`를 넣었는데도 80 BPM 그리드가 잡혔다.
+
 ### title / alley
 
 `title`은 city 확정 후, `alley`는 city 결과물을 듣고 무엇을 무너뜨릴지 정한 뒤에 작성한다.
@@ -641,6 +745,22 @@ SFX  xmlhttprequest    113 KB   9건, 부팅 로더
 ```
 
 ### 점검 도구
+
+`tools/measure-track.mjs`가 후보 한 곡을 네 지표로 잰다. ffmpeg는 디코딩에만 쓰고 계산은
+전부 스크립트 안에서 하므로 실행마다 값이 흔들리지 않는다.
+
+```bash
+node tools/measure-track.mjs <파일> [--loop-from <초>]
+```
+
+| 지표 | 무엇을 보는가 |
+| --- | --- |
+| 빌드 | 앞뒤 레벨 차이. 곡이 커지면 루프 이음매가 레벨 점프가 된다 |
+| 박 | 온셋 자기상관. 큐에 따라 있어야 하기도 하고 없어야 하기도 하다 |
+| 대역 | 8~16kHz가 스테이지 1을 유리처럼 들리게 하는 성분이다 |
+| 루프 | 두 끝의 소재가 얼마나 닮았는지. 크로스페이드가 들리는지를 결정한다 |
+
+윤곽도 함께 출력하므로 인트로 빌드나 후반 크레셴도의 모양을 눈으로 확인할 수 있다.
 
 `tools/audio-check.html`을 브라우저로 열고 음원을 끌어다 놓으면 아래 규격을 자동으로
 대조한다. 설치할 것은 없고 파일 하나로 동작한다. 여러 개를 한 번에 놓으면 **후보 비교표**가
@@ -785,10 +905,42 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 개인·교육·상업 이용을 명시적으로 허용한다. 표기는 의무가 아니지만 크레딧에 한 줄
 `Sound effects by Kenney (kenney.nl)`를 넣는 편이 낫다. 비용이 없다.
 
-> **남은 것은 BGM 하나다.** 생성 경로는 Gemini 웹 앱으로 확정됐고, **해당 서비스 약관에서
-> 생성물의 이용 범위를 확인해 라이선스 칸을 채우는 일**만 남았다. 출력물에는 SynthID
-> 워터마크가 들어간다. 제출 빌드에 출처 미상 에셋이 들어가면 안 되므로 8월 8일 제출 전까지
-> 반드시 확정한다.
+### BGM 라이선스 — 확인한 것과 남은 위험
+
+Gemini 앱 Lyria로 만든 곡의 상태를 조사한 결과다. **결론부터: 잼 제출에는 문제가 없고,
+상업화하려면 여러 칸이 비어 있다.**
+
+| 항목 | 상태 |
+| --- | --- |
+| 소유권 | Google이 주장하지 않음. 일반 약관에 "Google won't claim ownership over that content" |
+| 저작자 표기 | 불필요 |
+| 상업 이용 **명시적 허가** | **없음.** Google 문서에서 "Commercial use rights"가 적힌 곳은 별도 제품인 Google Flow Music뿐 |
+| IP 배상 | **없음.** 소비자용 Gemini 앱은 대상이 아니고 Vertex AI 엔터프라이즈만 해당 |
+| 한국 내 저작권 등록 | **불가.** 아래 참고 |
+| SynthID 워터마크 | 전 출력에 삽입. 압축·포맷 변환에도 남으므로 우리 Ogg 변환 후에도 유지 |
+| 진행 중 분쟁 | 독립 뮤지션들이 Lyria 3 학습 데이터를 두고 Google을 상대로 소송 제기 |
+
+**한국 기준이 가장 명확하다.** 저작권법이 저작물을 "인간의 사상이나 감정을 표현한 창작물"로
+정의하므로 순수 AI 생성물은 보호 대상이 아니다. 문화체육관광부와 한국저작권위원회의 2025년
+생성형 AI 저작권 등록 안내에 따르면 **프롬프트 입력만으로는 창작적 기여로 인정되지 않고**,
+사람이 결과물을 실질적으로 수정하거나 독자적인 작곡을 더해야 보호된다. 판단 기준은
+**제어 가능성과 예측 가능성**이다. 음저협은 2025년 3월부터 AI 활용 신고 곡에 등록 유보를
+적용하고 있다.
+
+우리가 한 가공(루프 구간 선정, 크로스페이드, 정규화, 코덱 변환)은 **수정이지 작곡이 아니다.**
+따라서 이 곡들은 우리 저작물로 등록할 수 없다고 보는 것이 안전하다.
+
+**그것이 사용을 막지는 않는다.** 등록 불가는 "독점권을 주장할 수 없다"는 뜻이고 "쓸 수 없다"는
+뜻이 아니다. 무료 배포되는 잼 제출물에는 실질적 영향이 없다.
+
+> **다만 하나는 8월 8일 전에 확인해야 한다. 해커톤 규정이 제출물 에셋의 소유권이나 권리
+> 보유를 요구하는지 여부다.** 요구한다면 AI 생성 BGM이 그 조건을 만족하지 못할 수 있고,
+> 이는 약관 문제가 아니라 대회 규정 문제라 우리가 해결할 수 없다. 규정 문서를 확인해
+> 이 칸을 채워야 한다.
+
+상업화 이야기가 나오면 그때는 **Vertex AI로 다시 뽑는 것**이 답이다. 곡당 약 $0.08이고
+상업 이용이 명시돼 있으며 배상까지 붙는다. 그 시점에는 곡이 어떤 소리여야 하는지 정확히
+알고 있으므로 근접시키는 비용도 낮다.
 
 직접 제작한 경우 출처에 `자체 제작`, 라이선스에 `해당 없음`으로 기록한다.
 
