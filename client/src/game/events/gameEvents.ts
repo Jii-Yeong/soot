@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
@@ -13,6 +14,7 @@ import type { RoomState } from '@/game/state/roomState';
 type GameEventMap = {
   'health-changed': [current: number, max: number];
   'enemy-health-changed': [current: number, max: number];
+  'boss-phase-changed': [phase: BossPhase | null];
   'phase-changed': [phase: GamePhase];
   'room-state-changed': [state: RoomState];
   'scene-changed': [scene: GameSceneKey];

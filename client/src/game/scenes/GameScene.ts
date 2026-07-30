@@ -216,6 +216,7 @@ export class GameScene extends Phaser.Scene {
   private buildRoom(roomConfig: RoomConfig) {
     this.weaponDropDirector?.clear();
     this.roomDirector?.destroy();
+    gameEvents.emit('boss-phase-changed', null);
     this.activeRoomConfig = roomConfig;
     this.roomDirector = new RoomDirector({
       scene: this,
@@ -244,6 +245,11 @@ export class GameScene extends Phaser.Scene {
         this.playerController.applyGrab(bossX, bossHalfWidth),
       (bossX, pullSpeed) =>
         this.playerController.applyVacuum(bossX, pullSpeed),
+      {
+        left: this.activeRoomConfig.entranceX,
+        right: this.activeRoomConfig.exitX,
+      },
+      (phase) => gameEvents.emit('boss-phase-changed', phase),
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),

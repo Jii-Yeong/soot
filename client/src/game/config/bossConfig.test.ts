@@ -63,16 +63,31 @@ describe('boss combat configuration', () => {
     );
   });
 
-  it('keeps the final two bosses on the charge pattern', () => {
-    const deeper = Object.entries(BOSS_COMBAT_CONFIGS)
-      .filter(
-        ([variant]) =>
-          !['city-warden', 'alley-hunter', 'underground-guardian'].includes(
-            variant,
-          ),
-      )
-      .map(([, config]) => config.pattern.type);
+  it('gives the infernal executioner three distinct magma patterns', () => {
+    const { pattern } = BOSS_COMBAT_CONFIGS['infernal-executioner'];
 
-    expect(deeper).toEqual(['charge', 'charge']);
+    expect(pattern.type).toBe('infernal');
+    if (pattern.type !== 'infernal') {
+      throw new Error('Infernal executioner must use the infernal pattern');
+    }
+
+    expect(pattern.enrageHealthRatio).toBe(0.5);
+    expect(pattern.rupture.count).toBe(3);
+    expect(pattern.rupture.warnDuration).toBe(700);
+    expect(pattern.charge.staggerDuration).toBeGreaterThan(
+      pattern.charge.duration,
+    );
+    expect(pattern.charge.coreDamageMultiplier).toBeGreaterThan(1);
+    expect(pattern.charge.enragedSpeedMultiplier).toBeCloseTo(1.15);
+    expect(pattern.shards.laneCount).toBe(4);
+    expect(pattern.shards.magmaDuration).toBeGreaterThan(
+      pattern.shards.warnDuration,
+    );
+  });
+
+  it('keeps the final boss on the charge pattern', () => {
+    expect(BOSS_COMBAT_CONFIGS['returning-architect'].pattern.type).toBe(
+      'charge',
+    );
   });
 });

@@ -8,6 +8,7 @@ describe('gameUiStore', () => {
       maxHealth: 100,
       enemyHealth: 100,
       enemyMaxHealth: 100,
+      bossPhase: null,
       scene: 'boot',
       phase: 'boot',
       roomState: 'idle',
@@ -36,6 +37,12 @@ describe('gameUiStore', () => {
     useGameUiStore.getState().setPhase('dead');
 
     expect(useGameUiStore.getState().phase).toBe('dead');
+  });
+
+  it('tracks the active boss phase for the HUD', () => {
+    useGameUiStore.getState().setBossPhase(2);
+
+    expect(useGameUiStore.getState().bossPhase).toBe(2);
   });
 
   it('tracks room lock and clear states for React overlays', () => {

@@ -14,10 +14,15 @@ import { ChargingBossEnemy } from '@/game/entities/ChargingBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
+import {
+  InfernalBossEnemy,
+  type BossArenaBounds,
+} from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
+import type { BossPhase } from '@/game/state/bossPhase';
 
 type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   EnemySpawnConfig,
@@ -38,6 +43,8 @@ export class EnemyFactory {
     private readonly damagePlayer: (damage: number) => void,
     private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
     private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
+    private readonly bossArena: BossArenaBounds,
+    private readonly onBossPhaseChanged: (phase: BossPhase) => void,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -148,6 +155,21 @@ export class EnemyFactory {
           this.damagePlayer,
           this.grabPlayer,
           this.pullPlayer,
+        ),
+      );
+    }
+
+    if (hasBossPattern(config, 'infernal')) {
+      return this.finishSpawn(
+        new InfernalBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+          this.bossArena,
+          this.onBossPhaseChanged,
         ),
       );
     }

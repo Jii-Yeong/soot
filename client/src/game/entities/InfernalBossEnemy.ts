@@ -1,0 +1,712 @@
+import Phaser from 'phaser';
+import {
+  getInfernalBossDamage,
+  getShardPatternLayout,
+} from '@/game/combat/infernalPattern';
+import type {
+  InfernalBossCombatConfig,
+  InfernalBossPatternConfig,
+} from '@/game/config/bossConfig';
+import { BossEnemy } from '@/game/entities/BossEnemy';
+import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import type { BossPhase } from '@/game/state/bossPhase';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+
+export type BossArenaBounds = {
+  left: number;
+  right: number;
+};
+
+type InfernalState =
+  | 'recover'
+  | 'phase-transition'
+  | 'rupture'
+  | 'charge-warn'
+  | 'charging'
+  | 'charge-stagger'
+  | 'shards';
+
+type InfernalAttack = 'rupture' | 'charge' | 'shards';
+type PlayerDamageHandler = (damage: number) => void;
+type PhaseChangeHandler = (phase: BossPhase) => void;
+type EffectCleanup = () => void;
+
+const EFFECT_DEPTH = 6;
+const CORE_DEPTH = 7;
+const PHASE_TWO_SEQUENCE: readonly InfernalAttack[] = [
+  'shards',
+  'rupture',
+  'charge',
+  'rupture',
+  'shards',
+  'charge',
+];
+
+/**
+ * Stage-4 boss: sequential ground eruptions and a locked horizontal charge
+ * teach two clean responses, then phase two adds shard-made magma zones that
+ * reduce space without ever removing every safe lane.
+ */
+export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
+  private readonly telegraph: Phaser.GameObjects.Graphics;
+  private readonly phaseOverlay: Phaser.GameObjects.Graphics;
+  private readonly coreGlow: Phaser.GameObjects.Arc;
+  private readonly effectCleanups = new Set<EffectCleanup>();
+  private attackState: InfernalState = 'recover';
+  private stateStartedAt = 0;
+  private stateEndsAt: number;
+  private phaseTwo = false;
+  private phaseOneAttackIndex = 0;
+  private phaseTwoAttackIndex = 0;
+  private ruptureCount = 0;
+  private nextRuptureAt = 0;
+  private chargeDirection = 1;
+  private chargeHit = false;
+  private playerTarget?: Phaser.Physics.Arcade.Sprite;
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    texture: string,
+    config: InfernalBossCombatConfig,
+    private readonly damagePlayer: PlayerDamageHandler,
+    private readonly arena: BossArenaBounds,
+    private readonly onPhaseChanged: PhaseChangeHandler,
+  ) {
+    super(scene, x, y, texture, config);
+
+    this.stateEndsAt = scene.time.now + config.pattern.firstAttackDelay;
+    this.telegraph = scene.add.graphics().setDepth(EFFECT_DEPTH);
+    this.phaseOverlay = scene.add
+      .graphics()
+      .setDepth(20)
+      .setScrollFactor(0);
+    this.coreGlow = scene.add
+      .circle(x, y - 10, 22, config.pattern.magmaColor, 0.42)
+      .setStrokeStyle(3, 0xffd18a, 0.65)
+      .setDepth(CORE_DEPTH);
+    this.onPhaseChanged(1);
+  }
+
+  updateCombat(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+    _fireProjectile: EnemyProjectileAttack,
+  ) {
+    this.playerTarget = target;
+    this.syncCore();
+
+    if (!this.active) {
+      this.telegraph.clear();
+      return false;
+    }
+
+    const targetInRange =
+      Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
+      this.aggroRadius;
+    if (!targetInRange) {
+      this.setVelocityX(0);
+      this.telegraph.clear();
+      return false;
+    }
+
+    if (!this.phaseTwo && this.isEnraged && this.attackState === 'recover') {
+      this.beginPhaseTransition(time);
+    }
+
+    switch (this.attackState) {
+      case 'recover':
+        this.updateRecover(time, target);
+        break;
+      case 'phase-transition':
+        this.updatePhaseTransition(time, target);
+        break;
+      case 'rupture':
+        this.updateRupture(time, target);
+        break;
+      case 'charge-warn':
+        this.updateChargeWarn(time, target);
+        break;
+      case 'charging':
+        this.updateCharge(time);
+        break;
+      case 'charge-stagger':
+        this.updateChargeStagger(time);
+        break;
+      case 'shards':
+        this.updateShards(time);
+        break;
+    }
+
+    this.syncCore();
+    return true;
+  }
+
+  override takeDamage(amount: number) {
+    return super.takeDamage(
+      getInfernalBossDamage(
+        amount,
+        this.pattern.charge.coreDamageMultiplier,
+        this.attackState === 'charge-stagger',
+      ),
+    );
+  }
+
+  override tryContactAttack(time: number) {
+    if (this.attackState === 'charging') {
+      if (this.chargeHit) {
+        return null;
+      }
+      this.chargeHit = true;
+      return this.pattern.charge.damage;
+    }
+
+    if (
+      this.attackState === 'charge-stagger' ||
+      this.attackState === 'phase-transition'
+    ) {
+      return null;
+    }
+
+    return super.tryContactAttack(time);
+  }
+
+  override applyKnockback(
+    angle: number,
+    force: number,
+    time: number,
+    durationMs = 160,
+  ) {
+    if (this.attackState !== 'recover') {
+      return;
+    }
+    super.applyKnockback(angle, force, time, durationMs);
+  }
+
+  protected override onDefeated() {
+    super.onDefeated();
+    this.clearTint();
+    this.telegraph.clear();
+    this.phaseOverlay.clear();
+    this.coreGlow.setVisible(false);
+    this.clearEffects();
+  }
+
+  override destroy(fromScene?: boolean) {
+    this.telegraph.destroy();
+    this.phaseOverlay.destroy();
+    this.coreGlow.destroy();
+    this.clearEffects();
+    super.destroy(fromScene);
+  }
+
+  private updateRecover(time: number, target: Phaser.Physics.Arcade.Sprite) {
+    this.setVelocityX(0);
+    this.clearTint();
+    this.telegraph.clear();
+    this.coreGlow.setAlpha(this.phaseTwo ? 0.62 : 0.42);
+
+    if (time < this.stateEndsAt) {
+      return;
+    }
+
+    if (this.phaseTwo) {
+      const attack =
+        PHASE_TWO_SEQUENCE[
+          this.phaseTwoAttackIndex % PHASE_TWO_SEQUENCE.length
+        ];
+      this.phaseTwoAttackIndex += 1;
+      this.beginAttack(attack, time, target);
+      return;
+    }
+
+    const attack: InfernalAttack =
+      this.phaseOneAttackIndex % 2 === 0 ? 'rupture' : 'charge';
+    this.phaseOneAttackIndex += 1;
+    this.beginAttack(attack, time, target);
+  }
+
+  private beginAttack(
+    attack: InfernalAttack,
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    switch (attack) {
+      case 'rupture':
+        this.beginRupture(time);
+        break;
+      case 'charge':
+        this.beginChargeWarn(time, target);
+        break;
+      case 'shards':
+        this.beginShards(time, target);
+        break;
+    }
+  }
+
+  private beginPhaseTransition(time: number) {
+    this.phaseTwo = true;
+    this.onPhaseChanged(2);
+    // The transition itself introduces shards, so continue with rupture next.
+    this.phaseTwoAttackIndex = 1;
+    this.attackState = 'phase-transition';
+    this.stateStartedAt = time;
+    this.stateEndsAt = time + this.pattern.phaseTransitionDuration;
+    this.setVelocityX(0);
+    this.setTint(this.pattern.magmaColor);
+    this.scene.cameras.main.flash(220, 255, 92, 35);
+    this.scene.cameras.main.shake(360, 0.012);
+  }
+
+  private updatePhaseTransition(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    this.setVelocityX(0);
+    this.drawPhaseCracks(time);
+    this.coreGlow
+      .setAlpha(0.75 + Math.sin(time * 0.03) * 0.2)
+      .setScale(1.25);
+
+    if (time >= this.stateEndsAt) {
+      this.coreGlow.setScale(1);
+      this.phaseOverlay.clear();
+      this.clearTint();
+      this.beginShards(time, target);
+    }
+  }
+
+  private beginRupture(time: number) {
+    const rupture = this.pattern.rupture;
+    this.attackState = 'rupture';
+    this.stateStartedAt = time;
+    this.stateEndsAt =
+      time +
+      rupture.warnDuration +
+      rupture.markerInterval * (rupture.count - 1) +
+      rupture.activeDuration;
+    this.ruptureCount = 0;
+    this.nextRuptureAt = time;
+    this.setVelocityX(0);
+    this.telegraph.clear();
+  }
+
+  private updateRupture(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    this.setVelocityX(0);
+    this.coreGlow.setAlpha(0.7 + Math.sin(time * 0.025) * 0.18);
+
+    if (
+      this.ruptureCount < this.pattern.rupture.count &&
+      time >= this.nextRuptureAt
+    ) {
+      this.spawnRupture(target.x);
+      this.ruptureCount += 1;
+      this.nextRuptureAt += this.pattern.rupture.markerInterval;
+    }
+
+    if (time >= this.stateEndsAt) {
+      this.beginRecover(time);
+    }
+  }
+
+  private spawnRupture(targetX: number) {
+    const rupture = this.pattern.rupture;
+    const x = Phaser.Math.Clamp(
+      targetX,
+      this.arena.left + rupture.width / 2,
+      this.arena.right - rupture.width / 2,
+    );
+    let warning: Phaser.GameObjects.Graphics | undefined =
+      this.createRuptureMarker(x);
+    let eruption: Phaser.GameObjects.Rectangle | undefined;
+    let overlap: Phaser.Physics.Arcade.Collider | undefined;
+    let activeTimer: Phaser.Time.TimerEvent | undefined;
+    let warningTimer: Phaser.Time.TimerEvent;
+    let cleaned = false;
+    let hit = false;
+
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
+      warningTimer.remove(false);
+      activeTimer?.remove(false);
+      if (overlap) {
+        this.scene.physics.world.removeCollider(overlap);
+      }
+      warning?.destroy();
+      eruption?.destroy();
+      warning = undefined;
+      eruption = undefined;
+      this.effectCleanups.delete(cleanup);
+    };
+
+    warningTimer = this.scene.time.delayedCall(rupture.warnDuration, () => {
+      warning?.destroy();
+      warning = undefined;
+      eruption = this.scene.add
+        .rectangle(
+          x,
+          FLOOR_SURFACE_Y - rupture.height / 2,
+          rupture.width,
+          rupture.height,
+          this.pattern.magmaColor,
+          0.82,
+        )
+        .setStrokeStyle(3, 0xffd18a, 0.8)
+        .setDepth(EFFECT_DEPTH);
+      this.scene.physics.add.existing(eruption);
+      const body = eruption.body as Phaser.Physics.Arcade.Body;
+      body.setAllowGravity(false);
+      body.setImmovable(true);
+      overlap = this.scene.physics.add.overlap(
+        eruption,
+        this.playerTarget as Phaser.Physics.Arcade.Sprite,
+        () => {
+          if (!hit) {
+            hit = true;
+            this.damagePlayer(rupture.damage);
+          }
+        },
+      );
+      this.scene.cameras.main.shake(100, 0.006);
+      activeTimer = this.scene.time.delayedCall(
+        rupture.activeDuration,
+        cleanup,
+      );
+    });
+
+    this.effectCleanups.add(cleanup);
+  }
+
+  private createRuptureMarker(x: number) {
+    const rupture = this.pattern.rupture;
+    const marker = this.scene.add.graphics().setDepth(EFFECT_DEPTH);
+    const left = x - rupture.width / 2;
+    const top = FLOOR_SURFACE_Y - 16;
+
+    marker
+      .fillStyle(this.pattern.telegraphColor, 0.3)
+      .fillRect(left, top, rupture.width, 16)
+      .lineStyle(3, this.pattern.magmaColor, 0.9)
+      .lineBetween(x - 38, FLOOR_SURFACE_Y, x - 12, top)
+      .lineBetween(x - 12, top, x + 8, FLOOR_SURFACE_Y - 4)
+      .lineBetween(x + 8, FLOOR_SURFACE_Y - 4, x + 36, top);
+    return marker;
+  }
+
+  private beginChargeWarn(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    this.attackState = 'charge-warn';
+    this.stateStartedAt = time;
+    this.stateEndsAt = time + this.pattern.charge.warnDuration;
+    this.chargeDirection = Math.sign(target.x - this.x) || 1;
+    this.setVelocityX(0);
+  }
+
+  private updateChargeWarn(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    this.setVelocityX(0);
+    this.chargeDirection =
+      Math.sign(target.x - this.x) || this.chargeDirection;
+    this.setFlipX(this.chargeDirection < 0);
+    this.setTint(this.pattern.telegraphColor);
+    this.drawChargeWarning(time);
+
+    if (time >= this.stateEndsAt) {
+      this.beginCharge(time);
+    }
+  }
+
+  private beginCharge(time: number) {
+    this.attackState = 'charging';
+    this.stateStartedAt = time;
+    this.stateEndsAt = time + this.pattern.charge.duration;
+    this.chargeHit = false;
+    this.clearTint();
+    this.telegraph.clear();
+    this.phaseOverlay.clear();
+    this.setVelocityX(this.chargeDirection * this.chargeSpeed);
+  }
+
+  private updateCharge(time: number) {
+    this.setVelocityX(this.chargeDirection * this.chargeSpeed);
+    const leftImpact =
+      this.chargeDirection < 0 &&
+      this.x <= this.arena.left + this.pattern.charge.wallPadding;
+    const rightImpact =
+      this.chargeDirection > 0 &&
+      this.x >= this.arena.right - this.pattern.charge.wallPadding;
+
+    if (leftImpact || rightImpact || time >= this.stateEndsAt) {
+      this.setX(
+        Phaser.Math.Clamp(
+          this.x,
+          this.arena.left + this.pattern.charge.wallPadding,
+          this.arena.right - this.pattern.charge.wallPadding,
+        ),
+      );
+      this.beginChargeStagger(time);
+    }
+  }
+
+  private beginChargeStagger(time: number) {
+    this.attackState = 'charge-stagger';
+    this.stateStartedAt = time;
+    this.stateEndsAt = time + this.pattern.charge.staggerDuration;
+    this.setVelocityX(0);
+    this.scene.cameras.main.shake(220, 0.014);
+    this.coreGlow.setAlpha(1).setScale(1.4);
+  }
+
+  private updateChargeStagger(time: number) {
+    this.setVelocityX(0);
+    this.drawExposedCore(time);
+
+    if (time >= this.stateEndsAt) {
+      this.coreGlow.setScale(1);
+      this.beginRecover(time);
+    }
+  }
+
+  private beginShards(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    const shards = this.pattern.shards;
+    this.attackState = 'shards';
+    this.stateStartedAt = time;
+    this.stateEndsAt =
+      time + shards.warnDuration + shards.followUpDelay;
+    this.setVelocityX(0);
+    this.telegraph.clear();
+
+    const layout = getShardPatternLayout({
+      arenaLeft: this.arena.left,
+      arenaRight: this.arena.right,
+      playerX: target.x,
+      laneCount: shards.laneCount,
+    });
+    for (const x of layout.hazardXPositions) {
+      this.spawnShard(x);
+    }
+  }
+
+  private updateShards(time: number) {
+    this.setVelocityX(0);
+    this.coreGlow.setAlpha(0.72 + Math.sin(time * 0.02) * 0.16);
+
+    if (time >= this.stateEndsAt) {
+      this.beginRecover(time);
+    }
+  }
+
+  private spawnShard(x: number) {
+    const shards = this.pattern.shards;
+    let warning: Phaser.GameObjects.Rectangle | undefined = this.scene.add
+      .rectangle(
+        x,
+        FLOOR_SURFACE_Y / 2,
+        4,
+        FLOOR_SURFACE_Y,
+        this.pattern.telegraphColor,
+        0.42,
+      )
+      .setDepth(EFFECT_DEPTH);
+    let shard: Phaser.GameObjects.Triangle | undefined = this.scene.add
+      .triangle(x, 70, -14, -20, 14, -20, 0, 22, this.pattern.magmaColor, 0.95)
+      .setStrokeStyle(2, 0xffd18a, 0.8)
+      .setDepth(EFFECT_DEPTH);
+    this.scene.tweens.add({
+      targets: shard,
+      y: FLOOR_SURFACE_Y - 26,
+      duration: shards.warnDuration,
+      ease: 'Quad.easeIn',
+    });
+
+    let zone: Phaser.GameObjects.Rectangle | undefined;
+    let overlap: Phaser.Physics.Arcade.Collider | undefined;
+    let zoneTimer: Phaser.Time.TimerEvent | undefined;
+    let warningTimer: Phaser.Time.TimerEvent;
+    let nextMagmaDamageAt = 0;
+    let cleaned = false;
+
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
+      warningTimer.remove(false);
+      zoneTimer?.remove(false);
+      if (overlap) {
+        this.scene.physics.world.removeCollider(overlap);
+      }
+      if (shard) {
+        this.scene.tweens.killTweensOf(shard);
+      }
+      warning?.destroy();
+      shard?.destroy();
+      zone?.destroy();
+      warning = undefined;
+      shard = undefined;
+      zone = undefined;
+      this.effectCleanups.delete(cleanup);
+    };
+
+    warningTimer = this.scene.time.delayedCall(shards.warnDuration, () => {
+      warning?.destroy();
+      shard?.destroy();
+      warning = undefined;
+      shard = undefined;
+
+      if (
+        this.playerTarget &&
+        Math.abs(this.playerTarget.x - x) <= shards.zoneWidth / 2
+      ) {
+        this.damagePlayer(shards.impactDamage);
+      }
+
+      zone = this.scene.add
+        .rectangle(
+          x,
+          FLOOR_SURFACE_Y - shards.zoneHeight / 2,
+          shards.zoneWidth,
+          shards.zoneHeight,
+          this.pattern.magmaColor,
+          0.72,
+        )
+        .setStrokeStyle(2, 0xffd18a, 0.7)
+        .setDepth(EFFECT_DEPTH);
+      this.scene.physics.add.existing(zone);
+      const body = zone.body as Phaser.Physics.Arcade.Body;
+      body.setAllowGravity(false);
+      body.setImmovable(true);
+      overlap = this.scene.physics.add.overlap(
+        zone,
+        this.playerTarget as Phaser.Physics.Arcade.Sprite,
+        () => {
+          const now = this.scene.time.now;
+          if (now >= nextMagmaDamageAt) {
+            nextMagmaDamageAt = now + shards.magmaTickInterval;
+            this.damagePlayer(shards.magmaDamage);
+          }
+        },
+      );
+      this.scene.cameras.main.shake(90, 0.005);
+      zoneTimer = this.scene.time.delayedCall(shards.magmaDuration, cleanup);
+    });
+
+    this.effectCleanups.add(cleanup);
+  }
+
+  private beginRecover(time: number) {
+    this.attackState = 'recover';
+    this.stateStartedAt = time;
+    this.stateEndsAt =
+      time +
+      (this.phaseTwo
+        ? this.pattern.enragedRecoveryDuration
+        : this.pattern.recoveryDuration);
+    this.setVelocityX(0);
+    this.clearTint();
+    this.telegraph.clear();
+    this.coreGlow.setScale(1);
+  }
+
+  private drawPhaseCracks(time: number) {
+    const pulse = 0.55 + Math.sin(time * 0.025) * 0.25;
+    const centerX = this.scene.cameras.main.width / 2;
+    const centerY = this.scene.cameras.main.height / 2;
+    this.phaseOverlay
+      .clear()
+      .lineStyle(4, this.pattern.magmaColor, pulse)
+      .lineBetween(0, centerY - 180, centerX - 170, centerY - 35)
+      .lineBetween(
+        centerX - 170,
+        centerY - 35,
+        centerX - 280,
+        centerY + 130,
+      )
+      .lineBetween(
+        this.scene.cameras.main.width,
+        centerY - 210,
+        centerX + 150,
+        centerY - 20,
+      )
+      .lineBetween(
+        centerX + 150,
+        centerY - 20,
+        centerX + 270,
+        centerY + 150,
+      );
+  }
+
+  private drawChargeWarning(time: number) {
+    const boundary =
+      this.chargeDirection < 0 ? this.arena.left : this.arena.right;
+    const pulse = 0.35 + this.stateProgress(time) * 0.55;
+    this.telegraph
+      .clear()
+      .lineStyle(5, this.pattern.telegraphColor, pulse)
+      .lineBetween(this.x, FLOOR_SURFACE_Y - 28, boundary, FLOOR_SURFACE_Y - 28)
+      .fillStyle(this.pattern.magmaColor, pulse)
+      .fillCircle(
+        this.x - this.chargeDirection * 68,
+        FLOOR_SURFACE_Y - 14,
+        8 + Math.sin(time * 0.03) * 3,
+      );
+  }
+
+  private drawExposedCore(time: number) {
+    const pulse = 0.7 + Math.sin(time * 0.035) * 0.25;
+    this.telegraph
+      .clear()
+      .lineStyle(4, 0xffd18a, pulse)
+      .strokeCircle(this.x, this.y - 10, 40 + pulse * 8);
+    this.coreGlow.setAlpha(pulse);
+  }
+
+  private clearEffects() {
+    for (const cleanup of Array.from(this.effectCleanups)) {
+      cleanup();
+    }
+  }
+
+  private syncCore() {
+    this.coreGlow.setPosition(this.x, this.y - 10);
+  }
+
+  private stateProgress(time: number) {
+    return Phaser.Math.Clamp(
+      (time - this.stateStartedAt) / (this.stateEndsAt - this.stateStartedAt),
+      0,
+      1,
+    );
+  }
+
+  private get chargeSpeed() {
+    return (
+      this.pattern.charge.speed *
+      (this.phaseTwo ? this.pattern.charge.enragedSpeedMultiplier : 1)
+    );
+  }
+
+  private get isEnraged() {
+    return (
+      this.currentHealth / this.maxHealth <= this.pattern.enrageHealthRatio
+    );
+  }
+
+  private get pattern() {
+    return this.config.pattern;
+  }
+}

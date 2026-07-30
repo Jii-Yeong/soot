@@ -9,6 +9,7 @@ export function App() {
     maxHealth,
     enemyHealth,
     enemyMaxHealth,
+    bossPhase,
     scene,
     phase,
     roomState,
@@ -41,7 +42,18 @@ export function App() {
             value={enemyHealth}
             maxValue={enemyMaxHealth}
             variant="enemy"
+            bossPhase={bossPhase}
           />
+          {bossPhase === 2 && (
+            <div
+              className="boss-phase-alert"
+              role="status"
+              aria-live="assertive"
+            >
+              <span>PHASE 2</span>
+              <strong>CORE OVERLOAD</strong>
+            </div>
+          )}
         </div>
       )}
     </main>

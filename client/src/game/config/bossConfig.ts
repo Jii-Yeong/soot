@@ -137,11 +137,58 @@ export type PurifierBossPatternConfig = {
   };
 };
 
+/**
+ * Stage-4 boss: a grounded magma executioner. Sequential eruptions force
+ * movement, a locked horizontal charge creates a punish window, and phase two
+ * adds persistent shard hazards while always preserving one safe lane.
+ */
+export type InfernalBossPatternConfig = {
+  type: 'infernal';
+  enrageHealthRatio: number;
+  firstAttackDelay: number;
+  recoveryDuration: number;
+  enragedRecoveryDuration: number;
+  phaseTransitionDuration: number;
+  telegraphColor: number;
+  magmaColor: number;
+  rupture: {
+    count: number;
+    warnDuration: number;
+    activeDuration: number;
+    markerInterval: number;
+    width: number;
+    height: number;
+    damage: number;
+  };
+  charge: {
+    warnDuration: number;
+    duration: number;
+    speed: number;
+    enragedSpeedMultiplier: number;
+    damage: number;
+    staggerDuration: number;
+    coreDamageMultiplier: number;
+    wallPadding: number;
+  };
+  shards: {
+    warnDuration: number;
+    impactDamage: number;
+    magmaDamage: number;
+    magmaTickInterval: number;
+    magmaDuration: number;
+    followUpDelay: number;
+    zoneWidth: number;
+    zoneHeight: number;
+    laneCount: number;
+  };
+};
+
 export type BossPatternConfig =
   | ChargeBossPatternConfig
   | LaserCannonPatternConfig
   | HoundBossPatternConfig
-  | PurifierBossPatternConfig;
+  | PurifierBossPatternConfig
+  | InfernalBossPatternConfig;
 
 /**
  * When a boss has a real sprite atlas (rather than a generated placeholder), it
@@ -179,6 +226,8 @@ export type LaserBossCombatConfig =
 export type HoundBossCombatConfig = BossCombatConfig<HoundBossPatternConfig>;
 export type PurifierBossCombatConfig =
   BossCombatConfig<PurifierBossPatternConfig>;
+export type InfernalBossCombatConfig =
+  BossCombatConfig<InfernalBossPatternConfig>;
 
 export const hasBossPattern = <Type extends BossPatternConfig['type']>(
   config: BossCombatConfig,
@@ -322,18 +371,49 @@ export const BOSS_COMBAT_CONFIGS = {
       accentColor: 0xff6a3d,
     },
     maxHealth: 1000,
-    aggroRadius: 1800,
+    aggroRadius: 2200,
     aggroIndicatorColor: 0xff5a36,
-    contactDamage: 28,
+    contactDamage: 20,
     contactDamageCooldown: 560,
     pattern: {
-      type: 'charge',
-      moveSpeed: 170,
-      enragedMoveSpeed: 245,
-      enrageHealthRatio: 0.65,
-      chargeSpeed: 590,
-      chargeDuration: 540,
-      chargeInterval: 1700,
+      type: 'infernal',
+      enrageHealthRatio: 0.5,
+      firstAttackDelay: 900,
+      recoveryDuration: 750,
+      enragedRecoveryDuration: 550,
+      phaseTransitionDuration: 700,
+      telegraphColor: 0xff5a36,
+      magmaColor: 0xff8a2b,
+      rupture: {
+        count: 3,
+        warnDuration: 700,
+        activeDuration: 350,
+        markerInterval: 250,
+        width: 92,
+        height: 250,
+        damage: 20,
+      },
+      charge: {
+        warnDuration: 850,
+        duration: 600,
+        speed: 2200,
+        enragedSpeedMultiplier: 1.15,
+        damage: 26,
+        staggerDuration: 900,
+        coreDamageMultiplier: 1.5,
+        wallPadding: 90,
+      },
+      shards: {
+        warnDuration: 650,
+        impactDamage: 16,
+        magmaDamage: 4,
+        magmaTickInterval: 400,
+        magmaDuration: 1500,
+        followUpDelay: 450,
+        zoneWidth: 300,
+        zoneHeight: 26,
+        laneCount: 4,
+      },
     },
   },
   'returning-architect': {

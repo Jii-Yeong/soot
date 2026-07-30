@@ -44,9 +44,10 @@ export const INFERNO_ROOM_TWO = defineRoom({
 
 export const INFERNO_BOSS_ROOM = defineBossRoom({
   id: 'inferno-boss',
-  label: 'INFERNAL EXECUTIONER',
+  label: '연옥의 집행체 // INFERNAL EXECUTIONER',
   variant: 'infernal-executioner',
   intensity: 1.55,
+  worldWidth: 2200,
 });
 
 export const INFERNO_ROOMS = [
