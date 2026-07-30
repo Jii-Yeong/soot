@@ -20,6 +20,13 @@ import { join } from 'node:path';
 
 const FFMPEG = process.env.FFMPEG ?? 'ffmpeg';
 const RATE = 11025; // enough for envelope, onsets and loop correlation
+/**
+ * Bands must be measured above their own ceiling. ffmpeg applies `-af` at the
+ * source rate and only then resamples, so decoding the air band at RATE would
+ * throw away everything above 5.5kHz and leave the filter's stopband leakage
+ * behind — which reads as a band that is 20dB quieter than it is.
+ */
+const BAND_RATE = 44100;
 const BANDS = [
   { key: 'low', from: 0, to: 250 },
   { key: 'lowMid', from: 250, to: 1000 },
@@ -39,26 +46,21 @@ function ffmpeg(args) {
   return execFileSync(FFMPEG, args, { maxBuffer: 1 << 30 });
 }
 
-/** Decodes to mono float samples at RATE. */
-function decode(path, extraFilters = []) {
+/** Decodes to mono float samples at `rate`. */
+function decode(path, extraFilters = [], rate = RATE) {
   const dir = mkdtempSync(join(tmpdir(), 'soot-measure-'));
   const raw = join(dir, 'pcm.raw');
   try {
     ffmpeg([
       '-v', 'error', '-i', path,
       ...(extraFilters.length > 0 ? ['-af', extraFilters.join(',')] : []),
-      '-ac', '1', '-ar', String(RATE), '-f', 'f32le', raw, '-y',
+      '-ac', '1', '-ar', String(rate), '-f', 'f32le', raw, '-y',
     ]);
     const buf = readFileSync(raw);
     return new Float32Array(buf.buffer, buf.byteOffset, buf.length / 4);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-}
-
-function probeSeconds(path) {
-  const out = ffmpeg(['-v', 'error', '-i', path, '-f', 'null', '-']).toString();
-  return out; // unused; duration comes from the sample count instead
 }
 
 function rmsDb(data, from = 0, length = data.length) {
@@ -167,13 +169,13 @@ function pulse(mono) {
 // ── bands ───────────────────────────────────────────────────────────────────
 /** Each band relative to the track's own level, so loudness does not skew it. */
 function bands(path) {
-  const overall = rmsDb(decode(path));
+  const overall = rmsDb(decode(path, [], BAND_RATE));
   const out = {};
   for (const band of BANDS) {
     const filters = [];
     if (band.from > 0) filters.push(`highpass=f=${band.from}`, `highpass=f=${band.from}`);
     filters.push(`lowpass=f=${band.to}`, `lowpass=f=${band.to}`);
-    out[band.key] = +(rmsDb(decode(path, filters)) - overall).toFixed(1);
+    out[band.key] = +(rmsDb(decode(path, filters, BAND_RATE)) - overall).toFixed(1);
   }
   return out;
 }
@@ -183,7 +185,14 @@ function bands(path) {
  * Finds where the track could wrap. Scores each candidate end by how alike its
  * material is to the loop start, because that similarity is what decides
  * whether the crossfade sounds like one continuous passage.
+ *
+ * Correlation alone is not enough. A tail fade correlates well with the body —
+ * it is the same material, just quieter — so an ungated search happily returns
+ * a seam that drops the level by 12dB. Candidates are therefore held to a level
+ * match first and ranked by correlation only within that set.
  */
+const LEVEL_GATE_DB = 1.5;
+
 function loop(mono, from) {
   const seconds = mono.length / RATE;
   const start = from ?? Math.min(24, seconds * 0.2);
@@ -197,13 +206,24 @@ function loop(mono, from) {
     }
     return dot / (Math.sqrt(aa * bb) + 1e-12);
   };
-  let best = { end: 0, corr: -2 };
+
+  const startDb = rmsDb(mono, at(start), win);
+  let best = { end: 0, corr: -2, levelDelta: 0 };
+  let bestUngated = { end: 0, corr: -2, levelDelta: 0 };
+
   for (let end = start + 45; end <= seconds - 1; end += 0.02) {
     const c = corr(at(start), at(end));
-    if (c > best.corr) best = { end, corr: c };
+    const levelDelta = rmsDb(mono, at(end) - win, win) - startDb;
+
+    if (c > bestUngated.corr) bestUngated = { end, corr: c, levelDelta };
+    if (Math.abs(levelDelta) <= LEVEL_GATE_DB && c > best.corr) {
+      best = { end, corr: c, levelDelta };
+    }
   }
-  const level = rmsDb(mono, at(best.end) - win, win) - rmsDb(mono, at(start), win);
-  return { start, ...best, levelDelta: level };
+
+  return best.corr > -2
+    ? { start, ...best, gated: true }
+    : { start, ...bestUngated, gated: false };
 }
 
 // ── report ──────────────────────────────────────────────────────────────────
@@ -219,7 +239,11 @@ console.log(`  길이        ${seconds.toFixed(1)}초`);
 console.log(`  빌드        ${b.delta >= 0 ? '+' : ''}${b.delta.toFixed(1)} dB   (앞 ${b.head.toFixed(1)} → 뒤 ${b.tail.toFixed(1)})`);
 console.log(`  박          상관 ${p.score.toFixed(3)} @ ${p.bpm.toFixed(2)} BPM`);
 console.log(`  대역        저 ${bd.low} / 중저 ${bd.lowMid} / 중 ${bd.mid} / 고 ${bd.high} / 공기감 ${bd.air}`);
-console.log(`  루프        ${lp.start.toFixed(2)}s → ${lp.end.toFixed(2)}s (${(lp.end - lp.start).toFixed(1)}초)  상관 ${lp.corr.toFixed(3)}  레벨차 ${lp.levelDelta >= 0 ? '+' : ''}${lp.levelDelta.toFixed(2)}dB`);
+console.log(
+  `  루프        ${lp.start.toFixed(2)}s → ${lp.end.toFixed(2)}s (${(lp.end - lp.start).toFixed(1)}초)` +
+    `  상관 ${lp.corr.toFixed(3)}  레벨차 ${lp.levelDelta >= 0 ? '+' : ''}${lp.levelDelta.toFixed(2)}dB` +
+    (lp.gated ? '' : `  ※ ±${LEVEL_GATE_DB}dB 안에 드는 후보가 없다`),
+);
 console.log('  윤곽');
 for (const row of envelope(mono, Math.max(4, Math.round(seconds / 30)))) {
   const bar = '#'.repeat(Math.max(0, Math.round((row.db + 40) / 0.6)));
