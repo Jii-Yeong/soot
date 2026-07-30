@@ -9,6 +9,10 @@ const ARC_STEPS = 20;
  * Draws the hound's red searchlight fan as a translucent wedge. `intensity`
  * (0-1) brightens it as the hound locks on, so the fill doubles as the
  * fire warning.
+ *
+ * Each downward ray is clamped at the floor so the fan never dips below ground
+ * — a searchlight raking the surface, not an x-ray. (A geometry mask was tried
+ * for sprite-generality but did not clip reliably under the scrolling camera.)
  */
 export class SearchlightCone {
   private readonly gfx: Phaser.GameObjects.Graphics;
@@ -28,13 +32,19 @@ export class SearchlightCone {
     halfAngle: number,
     range: number,
     intensity: number,
+    floorY: number,
   ) {
     const points: Point[] = [apex];
     for (let i = 0; i <= ARC_STEPS; i += 1) {
       const angle = centerAngle - halfAngle + 2 * halfAngle * (i / ARC_STEPS);
+      const sin = Math.sin(angle);
+      let rayRange = range;
+      if (sin > 1e-4 && apex.y < floorY) {
+        rayRange = Math.min(range, (floorY - apex.y) / sin);
+      }
       points.push({
-        x: apex.x + Math.cos(angle) * range,
-        y: apex.y + Math.sin(angle) * range,
+        x: apex.x + Math.cos(angle) * rayRange,
+        y: apex.y + Math.sin(angle) * rayRange,
       });
     }
 

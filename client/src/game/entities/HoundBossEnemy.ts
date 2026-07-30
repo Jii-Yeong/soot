@@ -6,6 +6,7 @@ import type {
 import { isPointInsideCone } from '@/game/combat/coneGeometry';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { SearchlightCone } from '@/game/systems/SearchlightCone';
 
 type HoundState = 'recover' | 'scanning' | 'locking';
@@ -110,6 +111,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
       this.coneHalfAngle(),
       this.pattern.cone.range,
       0.15,
+      FLOOR_SURFACE_Y,
     );
 
     if (this.playerInCone(target)) {
@@ -129,6 +131,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
       this.coneHalfAngle(),
       this.pattern.cone.range,
       0.15 + 0.85 * this.stateProgress(time),
+      FLOOR_SURFACE_Y,
     );
 
     if (time >= this.stateEndsAt) {
