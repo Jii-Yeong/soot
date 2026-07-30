@@ -85,9 +85,9 @@
 | `sfx-room-locked` | `room-locked` | `room-state-changed` = `locked` | 셔터·자물쇠. 도시의 기계음 | `metal shutter close`, `lock heavy` |
 | `sfx-room-cleared` | `room-cleared` | `room-state-changed` = `cleared` | 해제음. 게임 톤이 호러이므로 너무 밝으면 안 된다 | `unlock`, `sci-fi confirm` |
 
-> **`sfx-player-hit` 복선.** 기획서에 "1~3 스테이지의 피격 순간에 병원 모니터 파형을 삽입"이
-> 있다. 주인공이 사실 병원에 누워 있다는 힌트다. 피격음에 심전도 모니터음을 아주 작게 깔면
-> 사운드만으로 복선이 성립한다. 파일 2개를 받아 겹쳐 재생하는 방식도 가능하다.
+> **`sfx-player-hit` 복선 — 구현했다.** 기획서의 "1~3 스테이지의 피격 순간에 병원 모니터
+> 파형을 삽입"에 해당한다. 주인공이 사실 병원에 누워 있다는 힌트이고, 피격음 아래에 심전도
+> 비프를 깔아 사운드만으로 성립시켰다. 아래 "모니터 비프는 합성했다" 참고.
 
 ### 설치된 SFX (Kenney, 전량 CC0)
 
@@ -105,6 +105,7 @@
 | `sfx-player-death` | `player-death_low-frequency-explosion-001.ogg` | sci-fi / `lowFrequency_explosion_001` | 1.000초 | 저역으로 무너지는 느낌 |
 | `sfx-room-locked` | `room-locked_impact-metal-004.ogg` | sci-fi / `impactMetal_004` | 0.390초 | 아래 "방 큐를 갈아엎었다" 참고 |
 | `sfx-room-cleared` | `room-cleared_impact-soft-heavy-000.ogg` | impact / `impactSoft_heavy_000` | 0.504초 | 〃 |
+| `sfx-monitor-beep` | `monitor-beep_synth.wav` | **자체 합성** (`tools/make-monitor-beep.mjs`) | 0.130초 | 아래 "모니터 비프는 합성했다" 참고 |
 
 **규격에서 벗어난 항목과 그 이유:**
 
@@ -227,10 +228,71 @@ B가 수치상 가장 낮지만 **A를 채택했다.** 무기가 탄알 발사�
 **여기서 더 나아가려면 실총 녹음이 필요하다.** Freesound에서 CC0 필터로 `gunshot dry`,
 `9mm indoor`를 받는 편이 합성보다 확실히 낫다. 지금 것은 그때까지의 대체품이다.
 
-**`player-hit` 복선용 재료를 같이 받아 뒀다.** `candidates/sfx/monitor-tone_tone1.ogg`
-(digital 팩 `tone1`, 0.661초). 심전도 모니터 비프에 가장 가깝다. `player-hit`가 저역에만
-에너지가 있고 중역이 -25.8dB로 비어 있어 이 비프를 겹쳐도 서로 먹지 않는다. 겹쳐 재생은
-`AudioDirector` 작업이 필요하므로 지금은 재료만 둔다.
+### 모니터 비프는 합성했다
+
+`player-hit` 복선용으로 `candidates/sfx/monitor-tone_tone1.ogg`(digital 팩 `tone1`)를
+받아 뒀었다. **재보니 쓸 수 없었다.**
+
+| | 기음 | 실질 길이 |
+| --- | --- | --- |
+| `tone1` 원본 | 261Hz | **80.9ms** (전체 0.684초 중 나머지는 무음) |
+| `player-hit` | 16~30Hz + 310Hz | 184ms |
+
+**261Hz는 타격음의 310Hz 바로 옆이다.** 그대로 겹치면 비프가 또렷하게 들리는 게 아니라
+타격음을 탁하게 만든다. 그렇다고 모니터 대역(1kHz 내외)으로 올리면 `asetrate`가 피치와
+길이를 함께 바꾸므로 **4배에서 20ms가 되어 비프가 아니라 클릭이 된다.** 원본이 81ms짜리
+블립이라 어떤 배율에서도 "1kHz이면서 100ms 이상"이 나오지 않는다.
+
+비프는 그냥 음이므로 만드는 편이 싸다. `tools/make-monitor-beep.mjs`가 만든다.
+
+```bash
+node tools/make-monitor-beep.mjs client/src/assets/audio/sfx/monitor-beep_synth.wav
+```
+
+**1000Hz, 130ms, 상승 2ms / 하강 28ms.** 실제 병실 모니터의 값이다. 순음이 아니라 3배음
+-18dB, 5배음 -26dB를 얹었다 — 그 스피커가 작고 싸서 생기는 홀수 배음이 "의료기기 소리"로
+읽히게 하는 대부분이다. 사각파까지 가면 4~8kHz에 배음이 쌓이는데, 거기는 타격음이 -47.3dB로
+비어 있어 가려 줄 것이 없다.
+
+결과는 타격음과 상보적이다.
+
+| | 저 | 중저 | 중 | 고 |
+| --- | --- | --- | --- | --- |
+| `player-hit` | **-2.8** | -6.2 | -31.5 | -47.3 |
+| `monitor-beep` | -48.2 | -6.2 | **-6.0** | -27.3 |
+
+타격음이 저역을, 비프가 중역을 가진다. 피크로 보면 310Hz와 1000Hz로 1.7옥타브 떨어져 있다.
+
+> 이전 판에는 `player-hit`의 중역이 -25.8dB라고 적혀 있었다. 브라우저 도구 값이고 위 표는
+> ffmpeg 기반이라 눈금이 다르다. 결론은 같다.
+
+**볼륨 0.12는 귀로 정할 값이다.** 지속음이라 트랜지언트와 견주면 RMS가 말하는 것보다 훨씬
+크게 들린다. 복선은 들려야 성립하고 타격음 아래에 있어야 복선으로 남으므로, 이 하나는
+계측이 아니라 귀가 정한다.
+
+#### 큐를 겹치는 방법
+
+`SfxConfig.layer`에 적는다. 레이어는 **자기 자신도 큐**여서 `SFX_CONFIG`에 항목을 갖는다.
+볼륨과 스로틀을 부모에 파묻지 않고 다른 큐와 같은 자리에서 고치기 위해서다.
+
+```ts
+'sfx-player-hit': {
+  volume: 0.8,
+  layer: { key: 'sfx-monitor-beep', stages: MONITOR_MOTIF_STAGES },
+},
+'sfx-monitor-beep': { volume: 0.12 },
+```
+
+`stages`를 생략하면 모든 스테이지에서 울린다. **겹침은 한 겹까지만이다.** 레이어가 또
+레이어를 갖더라도 재생되지 않는다 — 설정이 자기를 가리켜도 무한 재귀가 되지 않아야 한다.
+
+**부모가 실제로 울렸을 때만 레이어가 붙는다.** 스로틀에 걸리거나 파일이 없어 부모가
+소리나지 않으면 레이어도 조용하다. 반대로 레이어 파일만 없으면 부모는 정상적으로 울린다.
+
+**스테이지 판정은 `stage-changed`로 들어온 id를 쓴다.** 타이틀로 돌아가면 지워지므로 다음
+판에 스테이지가 시작되기 전까지는 레이어가 울리지 않는다. 스테이지 id를 `audioConfig`에
+문자열로 적어 둔 것은 `stageConfig`가 이미 `MusicKey` 때문에 `audioConfig`를 참조하고
+있어서, 반대 방향으로 `STAGES`를 끌어오면 순환이 닫히기 때문이다.
 
 ## BGM 생성 가이드 (AI 사용 시)
 
@@ -780,6 +842,7 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 | `sfx-player-death` | `player-death_low-frequency-explosion-001.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-room-locked` | `room-locked_impact-metal-004.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-room-cleared` | `room-cleared_impact-soft-heavy-000.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
+| `sfx-monitor-beep` | `monitor-beep_synth.wav` | 자체 제작 (`tools/make-monitor-beep.mjs`) | 해당 없음 | 불필요 | 사인파 합성이라 원본 소재가 없다 |
 
 **SFX는 전부 정리됐다.** 팩 3종의 `License.txt`를 직접 열어 확인했고 셋 다 CC0 1.0이며
 개인·교육·상업 이용을 명시적으로 허용한다. 표기는 의무가 아니지만 크레딧에 한 줄
