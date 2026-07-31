@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { HealthMeter } from '@/app/components/HealthMeter';
 import { useGameUiEvents } from '@/app/hooks/useGameUiEvents';
 import { PhaserGame } from '@/game/PhaserGame';
+import { gameEvents } from '@/game/events/gameEvents';
 import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
+  const [adminOpen, setAdminOpen] = useState(false);
   const {
     health,
     maxHealth,
@@ -21,6 +24,11 @@ export function App() {
 
   useGameUiEvents();
 
+  const goToStage = (stageIndex: number) => {
+    setAdminOpen(false);
+    gameEvents.emit('admin-stage-requested', stageIndex);
+  };
+
   return (
     <main
       className="game-shell"
@@ -33,42 +41,85 @@ export function App() {
     >
       <PhaserGame />
       {scene === 'game' && (
-        <div className="hud-layer">
-          <HealthMeter
-            label="PLAYER"
-            value={health}
-            maxValue={maxHealth}
-            variant="player"
-          />
-          <HealthMeter
-            label="ENEMY"
-            value={enemyHealth}
-            maxValue={enemyMaxHealth}
-            variant="enemy"
-            bossPhase={bossPhase}
-          />
-          <button
-            type="button"
-            className={`invincibility-toggle${
-              invincible ? ' invincibility-toggle--active' : ''
-            }`}
-            aria-label="Invincibility mode"
-            aria-pressed={invincible}
-            onClick={toggleInvincible}
-          >
-            INVINCIBLE // {invincible ? 'ON' : 'OFF'}
-          </button>
-          {bossPhase === 2 && (
-            <div
-              className="boss-phase-alert"
-              role="status"
-              aria-live="assertive"
+        <>
+          <div className="hud-layer">
+            <HealthMeter
+              label="PLAYER"
+              value={health}
+              maxValue={maxHealth}
+              variant="player"
+            />
+            <HealthMeter
+              label="ENEMY"
+              value={enemyHealth}
+              maxValue={enemyMaxHealth}
+              variant="enemy"
+              bossPhase={bossPhase}
+            />
+            {bossPhase === 2 && (
+              <div
+                className="boss-phase-alert"
+                role="status"
+                aria-live="assertive"
+              >
+                <span>PHASE 2</span>
+                <strong>CORE OVERLOAD</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="admin-controls">
+            <button
+              type="button"
+              className="admin-controls__trigger"
+              aria-expanded={adminOpen}
+              aria-controls="admin-menu"
+              onClick={() => setAdminOpen((open) => !open)}
             >
-              <span>PHASE 2</span>
-              <strong>CORE OVERLOAD</strong>
-            </div>
-          )}
-        </div>
+              ADMIN
+            </button>
+
+            {adminOpen && (
+              <div
+                id="admin-menu"
+                className="admin-controls__menu"
+                role="dialog"
+                aria-label="Admin menu"
+              >
+                <button
+                  type="button"
+                  className={`admin-controls__button${
+                    invincible ? ' admin-controls__button--active' : ''
+                  }`}
+                  aria-label="Invincibility mode"
+                  aria-pressed={invincible}
+                  onClick={toggleInvincible}
+                >
+                  무적 // {invincible ? 'ON' : 'OFF'}
+                </button>
+
+                {[1, 2, 3, 4, 5].map((stageNumber) => (
+                  <button
+                    key={stageNumber}
+                    type="button"
+                    className="admin-controls__button"
+                    onClick={() => goToStage(stageNumber - 1)}
+                  >
+                    {stageNumber}스테이지 가기
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  className="admin-controls__button admin-controls__button--close"
+                  onClick={() => setAdminOpen(false)}
+                >
+                  닫기
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </main>
   );

@@ -391,7 +391,10 @@ test('invincibility mode prevents player health loss', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
 
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
   const toggle = page.getByRole('button', { name: 'Invincibility mode' });
+  await expect(toggle).toHaveCount(0);
+  await adminButton.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
@@ -412,6 +415,40 @@ test('invincibility mode prevents player health loss', async ({ page }) => {
   await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '100', {
     timeout: 5000,
   });
+});
+
+test('admin menu closes and jumps directly to a selected stage', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  const adminMenu = page.getByRole('dialog', { name: 'Admin menu' });
+
+  await expect(adminButton).toHaveAttribute('aria-expanded', 'false');
+  await adminButton.click();
+  await expect(adminButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(adminMenu).toBeVisible();
+
+  for (let stageNumber = 1; stageNumber <= 5; stageNumber += 1) {
+    await expect(
+      page.getByRole('button', { name: `${stageNumber}스테이지 가기` }),
+    ).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: '닫기' }).click();
+  await expect(adminMenu).toHaveCount(0);
+  await expect(adminButton).toHaveAttribute('aria-expanded', 'false');
+
+  await adminButton.click();
+  await page.getByRole('button', { name: '2스테이지 가기' }).click();
+  await expect(adminMenu).toHaveCount(0);
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '115');
 });
 
 test('player fire damages the enemy without stopping combat', async ({

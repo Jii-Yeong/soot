@@ -69,6 +69,7 @@ export class GameScene extends Phaser.Scene {
   private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
   private currentStageIndex = STARTING_STAGE_INDEX;
+  private requestedStartingStageIndex?: number;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -540,12 +541,14 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', this.handlePointerDown, this);
     keyboard.on('keydown-R', this.handleRestartInput, this);
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
+    gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.handlePointerDown, this);
       keyboard.off('keydown-R', this.handleRestartInput, this);
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
+      gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
     });
   }
 
@@ -590,7 +593,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    this.currentStageIndex = STARTING_STAGE_INDEX;
+    this.currentStageIndex =
+      this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
+    this.requestedStartingStageIndex = undefined;
     this.currentRoomIndex = 0;
     this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');
@@ -634,6 +639,15 @@ export class GameScene extends Phaser.Scene {
       this.scene.restart();
     }
   }
+
+  private handleAdminStageRequested = (stageIndex: number) => {
+    if (!Number.isInteger(stageIndex) || !STAGES[stageIndex]) {
+      return;
+    }
+
+    this.requestedStartingStageIndex = stageIndex;
+    this.scene.restart();
+  };
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
     if (

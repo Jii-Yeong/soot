@@ -88,10 +88,19 @@ input {
     inset 0 0 18px rgba(255, 94, 35, 0.08);
 }
 
-.invincibility-toggle {
+.admin-controls {
   position: absolute;
-  top: 0;
-  left: 50%;
+  top: clamp(64px, 8vw, 84px);
+  right: clamp(16px, 3vw, 32px);
+  z-index: 60;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.admin-controls__trigger,
+.admin-controls__button {
   padding: 9px 14px;
   border: 1px solid #4f5b5f;
   color: #879197;
@@ -100,22 +109,44 @@ input {
   font-weight: 700;
   letter-spacing: 0.08em;
   cursor: pointer;
-  pointer-events: auto;
-  transform: translateX(-50%);
 }
 
-.invincibility-toggle:hover,
-.invincibility-toggle:focus-visible {
+.admin-controls__trigger:hover,
+.admin-controls__trigger:focus-visible,
+.admin-controls__button:hover,
+.admin-controls__button:focus-visible {
   border-color: #b6ffe4;
   color: #b6ffe4;
   outline: none;
 }
 
-.invincibility-toggle--active {
+.admin-controls__menu {
+  display: grid;
+  gap: 6px;
+  width: 190px;
+  padding: 10px;
+  border: 1px solid #33424a;
+  background: rgba(7, 10, 11, 0.94);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(6px);
+}
+
+.admin-controls__button {
+  width: 100%;
+  text-align: left;
+}
+
+.admin-controls__button--active {
   border-color: #6fd6a6;
   color: #b6ffe4;
   background: rgba(21, 57, 45, 0.9);
   box-shadow: 0 0 14px rgba(111, 214, 166, 0.24);
+}
+
+.admin-controls__button--close {
+  margin-top: 4px;
+  border-color: #6c3e43;
+  color: #e99ba3;
 }
 
 .hud__label,
@@ -246,9 +277,8 @@ input {
     width: 100%;
   }
 
-  .invincibility-toggle {
-    position: static;
-    align-self: flex-start;
-    transform: none;
+  .admin-controls {
+    top: 12px;
+    right: 12px;
   }
 }

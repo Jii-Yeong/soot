@@ -19,6 +19,7 @@ type GameEventMap = {
   'room-state-changed': [state: RoomState];
   'scene-changed': [scene: GameSceneKey];
   'stage-changed': [stageId: string];
+  'admin-stage-requested': [stageIndex: number];
   'weapon-fired': [weaponId: string, x: number, y: number];
   'player-damaged': [x: number, y: number];
   'player-dashed': [x: number, y: number];
