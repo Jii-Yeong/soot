@@ -11,5 +11,13 @@ export function createGame(parent: string) {
 
   game.events.once(Phaser.Core.Events.DESTROY, () => audioDirector.destroy());
 
+  // A handle to poke at from the console while the game is running. Phaser
+  // keeps no registry of live instances, so without this there is no way to ask
+  // a running build where a sprite actually ended up — which is the only way to
+  // tell a bad offset from a bad texture. Stripped from production builds.
+  if (import.meta.env.DEV) {
+    (window as unknown as { __game?: Phaser.Game }).__game = game;
+  }
+
   return game;
 }

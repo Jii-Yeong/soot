@@ -949,22 +949,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawAimGuide(aimPoint: Phaser.Math.Vector2) {
-    const angle = Phaser.Math.Angle.Between(
-      this.player.x,
-      this.player.y,
-      aimPoint.x,
-      aimPoint.y,
-    );
-    const guideLength = 58;
-
+    // Only the crosshair. The 58px stub that used to run from the player is
+    // redundant now that the weapon sprite points where the shot goes, and it
+    // drew straight over the barrel.
     this.aimGraphics.clear();
-    this.aimGraphics.lineStyle(2, 0xf0a35b, 0.9);
-    this.aimGraphics.lineBetween(
-      this.player.x,
-      this.player.y,
-      this.player.x + Math.cos(angle) * guideLength,
-      this.player.y + Math.sin(angle) * guideLength,
-    );
     this.aimGraphics.lineStyle(1, 0xb6ffe4, 0.75);
     this.aimGraphics.strokeCircle(aimPoint.x, aimPoint.y, 8);
     this.aimGraphics.lineBetween(

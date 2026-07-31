@@ -1,6 +1,23 @@
 import Phaser from 'phaser';
 import type { WeaponConfig } from '@/game/config/weaponConfig';
 
+/**
+ * The grip inside the 72x24 weapon sprite, as a fraction. Every weapon shares
+ * this canvas, so one constant covers all four: the art is aligned to the grip
+ * rather than to its own bounding box, which is what lets a 43px SMG and a 60px
+ * rail rifle sit in the same hand.
+ */
+const GRIP_ORIGIN_X = 18 / 72;
+const GRIP_ORIGIN_Y = 14 / 24;
+
+/**
+ * Where that grip sits relative to the player sprite's centre. The player frame
+ * is 96x96 with a centred origin and the hand is drawn at (53, 45), so the
+ * weapon hangs 5px right of centre and 3px above it. Mirrored when aiming left.
+ */
+const HAND_FROM_CENTRE_X = 5;
+const HAND_FROM_CENTRE_Y = -3;
+
 export class WeaponFeedback {
   readonly display: Phaser.GameObjects.Image;
 
@@ -16,7 +33,7 @@ export class WeaponFeedback {
   ) {
     this.display = scene.add
       .image(player.x, player.y, initialWeapon.displayTexture)
-      .setOrigin(0.24, 0.5)
+      .setOrigin(GRIP_ORIGIN_X, GRIP_ORIGIN_Y)
       .setDepth(9);
   }
 
@@ -41,9 +58,13 @@ export class WeaponFeedback {
     this.player.setFlipX(aimingLeft);
     this.display
       .setVisible(true)
+      // Anchored to the hand, not swung around the player's centre. Recoil then
+      // pushes back along the aim vector from wherever the hand actually is.
       .setPosition(
-        this.player.x + Math.cos(angle) * (8 - this.recoil),
-        this.player.y - 7 + Math.sin(angle) * 4 - Math.sin(angle) * this.recoil,
+        this.player.x +
+          (aimingLeft ? -HAND_FROM_CENTRE_X : HAND_FROM_CENTRE_X) -
+          Math.cos(angle) * this.recoil,
+        this.player.y + HAND_FROM_CENTRE_Y - Math.sin(angle) * this.recoil,
       )
       .setRotation(climbed)
       .setFlipY(aimingLeft);
