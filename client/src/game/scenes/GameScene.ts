@@ -15,7 +15,11 @@ import {
   placeRoomInStage,
   stageWorldWidth,
 } from '@/game/config/roomPlacement';
-import { STAGES, type StageEndEvent } from '@/game/config/stageConfig';
+import {
+  STARTING_STAGE_INDEX,
+  STAGES,
+  type StageEndEvent,
+} from '@/game/config/stageConfig';
 import { getStageExitPlan } from '@/game/config/stageProgression';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
@@ -27,7 +31,10 @@ import { PlayerController } from '@/game/controllers/PlayerController';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
-import type { GamePhase } from '@/game/state/gamePhase';
+import {
+  canPlayerFireInPhase,
+  type GamePhase,
+} from '@/game/state/gamePhase';
 import { PlayerHealthState } from '@/game/state/playerHealthState';
 import type { RoomState } from '@/game/state/roomState';
 import { BackdropDirector } from '@/game/systems/BackdropDirector';
@@ -43,6 +50,7 @@ import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
 import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 
@@ -51,6 +59,8 @@ const PIT_FALL_TRIGGER_DEPTH = 22;
 const PIT_FALL_DAMAGE = 12;
 /** Height above the floor the player is placed at after climbing out of a pit. */
 const PIT_RESPAWN_LIFT = 60;
+const GROUND_ROOM_EXIT_OFFSET = 20;
+const FLIGHT_ROOM_EXIT_OFFSET = 0;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -58,7 +68,8 @@ export class GameScene extends Phaser.Scene {
   private enemies: Enemy[] = [];
   private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
-  private currentStageIndex = 0;
+  private currentStageIndex = STARTING_STAGE_INDEX;
+  private requestedStartingStageIndex?: number;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -79,6 +90,7 @@ export class GameScene extends Phaser.Scene {
   private weaponLabelText!: Phaser.GameObjects.Text;
   private weaponEquippedText!: Phaser.GameObjects.Text;
   private stageLabelText!: Phaser.GameObjects.Text;
+  private controlHintText?: Phaser.GameObjects.Text;
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
     (currentHealth, maxHealth) =>
@@ -133,7 +145,11 @@ export class GameScene extends Phaser.Scene {
 
     if (
       this.phase === 'room-cleared' &&
-      this.player.x > this.activeRoomConfig.exitX + 20
+      this.player.x >
+        this.activeRoomConfig.exitX +
+          (this.playerController.isFlightMode
+            ? FLIGHT_ROOM_EXIT_OFFSET
+            : GROUND_ROOM_EXIT_OFFSET)
     ) {
       this.advanceToNextRoom();
     }
@@ -151,7 +167,7 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.update(delta, aimPoint);
     this.drawAimGuide(aimPoint);
 
-    if (this.phase === 'playing' && pointer.leftButtonDown()) {
+    if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
     }
 
@@ -213,6 +229,7 @@ export class GameScene extends Phaser.Scene {
   private buildRoom(roomConfig: RoomConfig) {
     this.weaponDropDirector?.clear();
     this.roomDirector?.destroy();
+    gameEvents.emit('boss-phase-changed', null);
     this.activeRoomConfig = roomConfig;
     this.roomDirector = new RoomDirector({
       scene: this,
@@ -237,6 +254,15 @@ export class GameScene extends Phaser.Scene {
       this.floorBuilder.group,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
+      (bossX, bossHalfWidth) =>
+        this.playerController.applyGrab(bossX, bossHalfWidth),
+      (bossX, pullSpeed) =>
+        this.playerController.applyVacuum(bossX, pullSpeed),
+      {
+        left: this.activeRoomConfig.entranceX,
+        right: this.activeRoomConfig.exitX,
+      },
+      (phase) => gameEvents.emit('boss-phase-changed', phase),
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
@@ -309,6 +335,7 @@ export class GameScene extends Phaser.Scene {
       );
       this.player.setVelocity(0);
       this.resetCameraToRoomEntrance();
+      this.applyStageMovementMode();
     }
 
     this.buildRoom(
@@ -373,15 +400,17 @@ export class GameScene extends Phaser.Scene {
       this.player,
       PLAYER_COMBAT_CONFIG,
     );
+    this.applyStageMovementMode();
     this.weaponSystem = new WeaponSystem(
       this,
       this.player,
       this.enemies,
       WEAPON_CONFIGS,
       STARTING_WEAPON_ID,
-      () => this.phase === 'playing',
+      () => canPlayerFireInPhase(this.phase),
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
     );
+    this.weaponSystem.blockProjectilesWith(this.terrainBuilder.group);
     this.weaponDropDirector = new WeaponDropDirector(
       this,
       this.floorBuilder.group,
@@ -400,6 +429,8 @@ export class GameScene extends Phaser.Scene {
       ranged: this.enemyProjectiles,
       flying: this.flyingEnemyProjectiles,
     };
+    this.enemyProjectiles.collideWith(this.terrainBuilder.group);
+    this.flyingEnemyProjectiles.collideWith(this.terrainBuilder.group);
     this.physics.add.overlap(
       this.enemyProjectiles.group,
       this.player,
@@ -482,11 +513,11 @@ export class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setVisible(false);
 
-    this.add
+    this.controlHintText = this.add
       .text(
         GAME_WIDTH - 32,
         GAME_HEIGHT - 96,
-        'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
+        '',
         {
           color: '#879197',
           fontFamily: 'Arial, sans-serif',
@@ -496,6 +527,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(1, 0.5)
       .setDepth(20)
       .setScrollFactor(0);
+    this.updateControlHint();
   }
 
   private bindInputHandlers() {
@@ -509,12 +541,14 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', this.handlePointerDown, this);
     keyboard.on('keydown-R', this.handleRestartInput, this);
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
+    gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.handlePointerDown, this);
       keyboard.off('keydown-R', this.handleRestartInput, this);
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
+      gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
     });
   }
 
@@ -559,7 +593,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    this.currentStageIndex = 0;
+    this.currentStageIndex =
+      this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
+    this.requestedStartingStageIndex = undefined;
     this.currentRoomIndex = 0;
     this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');
@@ -567,6 +603,19 @@ export class GameScene extends Phaser.Scene {
 
   private restorePlayerHealthForStage() {
     this.playerHealth.restore(this.stage.playerMaxHealth);
+  }
+
+  private applyStageMovementMode() {
+    this.playerController.setMovementMode(this.stage.movementMode);
+    this.updateControlHint();
+  }
+
+  private updateControlHint() {
+    this.controlHintText?.setText(
+      this.playerController.isFlightMode
+        ? 'W/SPACE  UP    S  DOWN    A/D  MOVE    SHIFT/RMB  DASH    LMB  FIRE'
+        : 'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
+    );
   }
 
   private setPhase(phase: GamePhase) {
@@ -591,6 +640,15 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private handleAdminStageRequested = (stageIndex: number) => {
+    if (!Number.isInteger(stageIndex) || !STAGES[stageIndex]) {
+      return;
+    }
+
+    this.requestedStartingStageIndex = stageIndex;
+    this.scene.restart();
+  };
+
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
     if (
       this.phase === 'dead' ||
@@ -605,7 +663,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.phase !== 'playing' || pointer.button !== 0) {
+    if (!canPlayerFireInPhase(this.phase) || pointer.button !== 0) {
       return;
     }
 
@@ -779,6 +837,10 @@ export class GameScene extends Phaser.Scene {
    * far ledge and dock health — the pit is a hazard, not a dead end.
    */
   private handlePitFall() {
+    if (this.playerController.isFlightMode) {
+      return;
+    }
+
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     if (body.bottom <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
       return;
@@ -793,7 +855,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyPlayerDamage(damage: number) {
-    if (this.phase !== 'playing' || this.playerController.isInvulnerable) {
+    if (
+      this.phase !== 'playing' ||
+      this.playerController.isInvulnerable ||
+      useGameSettingsStore.getState().invincible
+    ) {
       return;
     }
 

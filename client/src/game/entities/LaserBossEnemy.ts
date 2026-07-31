@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import type {
+  BossSpriteConfig,
   LaserCannonPatternConfig,
   LaserBossCombatConfig,
-} from '@/game/config/bossConfig';
+} from '@/game/config/bossConfigTypes';
 import { isPointInsideLaser } from '@/game/combat/laserGeometry';
 import { LaserAttackCycle } from '@/game/combat/LaserAttackCycle';
 import { getLaserPatternTuning } from '@/game/combat/laserPattern';
@@ -17,6 +18,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
   private readonly attackCycle: LaserAttackCycle;
   private aimAngle = 0;
   private laserHit = false;
+  private inBattlePose = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -25,11 +27,46 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     texture: string,
     config: LaserBossCombatConfig,
     private readonly damagePlayer: PlayerDamageHandler,
+    private readonly sprite?: BossSpriteConfig,
   ) {
     super(scene, x, y, texture, config);
 
     this.attackCycle = new LaserAttackCycle(config.pattern, scene.time.now);
     this.effects = new BeamEffects(scene, config.pattern);
+    this.applyBossSprite();
+  }
+
+  /**
+   * The real atlas frame is padded, so the physics body is sized to the
+   * character. The boss idles on a loop and only snaps to the braced battle
+   * frame while charging or firing (see {@link setBattlePose}).
+   */
+  private applyBossSprite() {
+    if (!this.sprite) {
+      return;
+    }
+
+    this.setScale(this.sprite.scale);
+    (this.body as Phaser.Physics.Arcade.Body).setSize(
+      this.sprite.bodyWidth,
+      this.sprite.bodyHeight,
+      true,
+    );
+    this.play(this.sprite.idleAnimation);
+  }
+
+  private setBattlePose(active: boolean) {
+    if (!this.sprite || this.inBattlePose === active) {
+      return;
+    }
+
+    this.inBattlePose = active;
+    if (active) {
+      this.anims.stop();
+      this.setFrame(this.sprite.battleFrame);
+    } else {
+      this.play(this.sprite.idleAnimation, true);
+    }
   }
 
   updateCombat(
@@ -48,6 +85,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     if (!targetInRange) {
       this.setVelocityX(0);
       this.effects.hideAll();
+      this.setBattlePose(false);
       return false;
     }
 
@@ -81,6 +119,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.effects.hideAll();
+    this.setBattlePose(false);
     this.moveToPreferredDistance(time, target);
 
     if (this.attackCycle.isComplete(time)) {
@@ -94,6 +133,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
+    this.setBattlePose(true);
 
     if (this.attackCycle.shouldTrackAim(time)) {
       this.lockAimOn(target);
@@ -115,6 +155,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
+    this.setBattlePose(true);
     const muzzle = this.getMuzzlePosition();
     this.effects.updateBeam(muzzle, this.aimAngle);
 

@@ -1,109 +1,13 @@
-export type ChargeBossPatternConfig = {
-  type: 'charge';
-  moveSpeed: number;
-  enragedMoveSpeed: number;
-  enrageHealthRatio: number;
-  chargeSpeed: number;
-  chargeDuration: number;
-  chargeInterval: number;
-};
-
-export type LaserCannonPatternConfig = {
-  type: 'laser-cannon';
-  moveSpeed: number;
-  enragedMoveSpeed: number;
-  enrageHealthRatio: number;
-  preferredDistance: number;
-  distanceTolerance: number;
-  firstAttackDelay: number;
-  chargeDuration: number;
-  enragedChargeDuration: number;
-  aimLockDuration: number;
-  followUpChargeDuration: number;
-  fireDuration: number;
-  recoveryDuration: number;
-  enragedRecoveryDuration: number;
-  range: number;
-  width: number;
-  damage: number;
-  muzzleOffset: number;
-  muzzleOffsetY: number;
-  telegraphColor: number;
-  beamColor: number;
-};
-
-/** Visual-only fields a beam effect needs; shared by any beam-firing boss. */
-export type BeamVisualConfig = {
-  range: number;
-  width: number;
-  telegraphColor: number;
-  beamColor: number;
-};
-
-/**
- * Stage-2 hound: a mobile searchlight predator. Alternates a player-tracking
- * lock-on beam (the headlamp lance) with a lunging pounce, and adds a wide
- * sweeping beam once enraged.
- */
-export type HoundBossPatternConfig = {
-  type: 'hound';
-  moveSpeed: number;
-  enragedMoveSpeed: number;
-  enrageHealthRatio: number;
-  preferredDistance: number;
-  distanceTolerance: number;
-  firstAttackDelay: number;
-  recoveryDuration: number;
-  enragedRecoveryDuration: number;
-  beam: BeamVisualConfig & {
-    damage: number;
-    muzzleOffset: number;
-    muzzleOffsetY: number;
-  };
-  lance: {
-    chargeDuration: number;
-    enragedChargeDuration: number;
-    aimLockDuration: number;
-    fireDuration: number;
-  };
-  pounce: {
-    telegraphDuration: number;
-    chargeSpeed: number;
-    chargeDuration: number;
-  };
-  sweep: {
-    chargeDuration: number;
-    fireDuration: number;
-    arcDegrees: number;
-  };
-};
-
-export type BossPatternConfig =
-  | ChargeBossPatternConfig
-  | LaserCannonPatternConfig
-  | HoundBossPatternConfig;
-
-export type BossCombatConfig<
-  Pattern extends BossPatternConfig = BossPatternConfig,
-> = {
-  texture: string;
-  placeholder: {
-    bodyColor: number;
-    accentColor: number;
-  };
-  maxHealth: number;
-  aggroRadius: number;
-  aggroIndicatorColor: number;
-  contactDamage: number;
-  contactDamageCooldown: number;
-  pattern: Pattern;
-};
-
-export type ChargingBossCombatConfig =
-  BossCombatConfig<ChargeBossPatternConfig>;
-export type LaserBossCombatConfig =
-  BossCombatConfig<LaserCannonPatternConfig>;
-export type HoundBossCombatConfig = BossCombatConfig<HoundBossPatternConfig>;
+import {
+  STAGE_ONE_BOSS_ANIMATIONS,
+  STAGE_ONE_BOSS_ATLAS_KEY,
+  STAGE_ONE_BOSS_BATTLE_FRAME,
+} from '@/game/config/bossAnimationConfig';
+import type {
+  BossCombatConfig,
+  BossPatternConfig,
+  BossSpriteConfig,
+} from '@/game/config/bossConfigTypes';
 
 export const hasBossPattern = <Type extends BossPatternConfig['type']>(
   config: BossCombatConfig,
@@ -117,7 +21,7 @@ export const hasBossPattern = <Type extends BossPatternConfig['type']>(
  */
 export const BOSS_COMBAT_CONFIGS = {
   'city-warden': {
-    texture: 'city-warden-placeholder',
+    texture: STAGE_ONE_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x286783,
       accentColor: 0x8ee3ff,
@@ -145,8 +49,10 @@ export const BOSS_COMBAT_CONFIGS = {
       range: 1700,
       width: 30,
       damage: 20,
-      muzzleOffset: 48,
-      muzzleOffsetY: -18,
+      // Battle-pose cannon muzzle sits at source (+64, +10) from the sprite
+      // centre, so the beam leaves the barrel rather than the chest.
+      muzzleOffset: 64,
+      muzzleOffsetY: 10,
       telegraphColor: 0x8ee3ff,
       beamColor: 0xc8f7ff,
     },
@@ -170,32 +76,22 @@ export const BOSS_COMBAT_CONFIGS = {
       preferredDistance: 470,
       distanceTolerance: 90,
       firstAttackDelay: 800,
-      recoveryDuration: 1100,
-      enragedRecoveryDuration: 820,
-      beam: {
-        range: 1700,
-        width: 26,
-        damage: 20,
-        muzzleOffset: 48,
-        muzzleOffsetY: -14,
-        telegraphColor: 0x8ee3ff,
-        beamColor: 0xc8f7ff,
+      recoveryDuration: 950,
+      enragedRecoveryDuration: 700,
+      cone: {
+        color: 0xff3b3b,
+        range: 720,
+        halfAngleDegrees: 40,
+        tiltDegrees: 14,
+        apexOffsetY: -34,
       },
-      lance: {
-        chargeDuration: 850,
-        enragedChargeDuration: 640,
-        aimLockDuration: 260,
-        fireDuration: 200,
-      },
-      pounce: {
-        telegraphDuration: 360,
-        chargeSpeed: 480,
-        chargeDuration: 440,
-      },
-      sweep: {
-        chargeDuration: 720,
-        fireDuration: 900,
-        arcDegrees: 68,
+      orb: {
+        lockDuration: 420,
+        enragedLockDuration: 300,
+        speed: 430,
+        radius: 16,
+        damage: 22,
+        color: 0xff5a4a,
       },
     },
   },
@@ -206,18 +102,46 @@ export const BOSS_COMBAT_CONFIGS = {
       accentColor: 0xc5ec72,
     },
     maxHealth: 800,
-    aggroRadius: 1700,
+    aggroRadius: 2600,
     aggroIndicatorColor: 0xa8d65c,
     contactDamage: 25,
     contactDamageCooldown: 600,
     pattern: {
-      type: 'charge',
-      moveSpeed: 150,
-      enragedMoveSpeed: 220,
-      enrageHealthRatio: 0.6,
-      chargeSpeed: 530,
-      chargeDuration: 500,
-      chargeInterval: 1900,
+      type: 'purifier',
+      moveSpeed: 90,
+      enragedMoveSpeed: 120,
+      enrageHealthRatio: 0.5,
+      preferredDistance: 430,
+      distanceTolerance: 80,
+      firstAttackDelay: 800,
+      recoveryDuration: 900,
+      enragedRecoveryDuration: 700,
+      telegraphColor: 0x66ff8c,
+      grab: {
+        warnDuration: 650,
+        strikeDuration: 250,
+        reach: 150,
+        damage: 16,
+        holdDuration: 800,
+      },
+      slam: {
+        warnDuration: 900,
+        strikeDuration: 300,
+        launchSpeedY: 720,
+        maxTravelSpeedX: 900,
+        landingRadius: 110,
+        shockwaveSpeed: 420,
+        shockwaveDamage: 18,
+        shockwaveWidth: 46,
+        shockwaveHeight: 46,
+        shockwaveRange: 1400,
+      },
+      vacuum: {
+        warnDuration: 700,
+        duration: 2400,
+        pullSpeed: 250,
+        enragedPullSpeed: 280,
+      },
     },
   },
   'infernal-executioner': {
@@ -227,18 +151,49 @@ export const BOSS_COMBAT_CONFIGS = {
       accentColor: 0xff6a3d,
     },
     maxHealth: 1000,
-    aggroRadius: 1800,
+    aggroRadius: 2200,
     aggroIndicatorColor: 0xff5a36,
-    contactDamage: 28,
+    contactDamage: 20,
     contactDamageCooldown: 560,
     pattern: {
-      type: 'charge',
-      moveSpeed: 170,
-      enragedMoveSpeed: 245,
-      enrageHealthRatio: 0.65,
-      chargeSpeed: 590,
-      chargeDuration: 540,
-      chargeInterval: 1700,
+      type: 'infernal',
+      enrageHealthRatio: 0.5,
+      firstAttackDelay: 900,
+      recoveryDuration: 750,
+      enragedRecoveryDuration: 550,
+      phaseTransitionDuration: 700,
+      telegraphColor: 0xff5a36,
+      magmaColor: 0xff8a2b,
+      rupture: {
+        count: 3,
+        warnDuration: 700,
+        activeDuration: 350,
+        markerInterval: 250,
+        width: 92,
+        height: 250,
+        damage: 20,
+      },
+      charge: {
+        warnDuration: 850,
+        duration: 600,
+        speed: 2200,
+        enragedSpeedMultiplier: 1.15,
+        damage: 26,
+        staggerDuration: 900,
+        coreDamageMultiplier: 1.5,
+        wallPadding: 90,
+      },
+      shards: {
+        warnDuration: 650,
+        impactDamage: 16,
+        magmaDamage: 4,
+        magmaTickInterval: 400,
+        magmaDuration: 1500,
+        followUpDelay: 450,
+        zoneWidth: 300,
+        zoneHeight: 26,
+        laneCount: 4,
+      },
     },
   },
   'returning-architect': {
@@ -253,15 +208,86 @@ export const BOSS_COMBAT_CONFIGS = {
     contactDamage: 32,
     contactDamageCooldown: 520,
     pattern: {
-      type: 'charge',
-      moveSpeed: 185,
-      enragedMoveSpeed: 270,
-      enrageHealthRatio: 0.7,
-      chargeSpeed: 640,
-      chargeDuration: 560,
-      chargeInterval: 1550,
+      type: 'architect',
+      enrageHealthRatio: 0.5,
+      salvationHealthRatio: 0.1,
+      firstAttackDelay: 1000,
+      recoveryDuration: 900,
+      enragedRecoveryDuration: 700,
+      phaseTransitionDuration: 1000,
+      goldColor: 0xffd86b,
+      skyColor: 0x9eeeff,
+      corruptionColor: 0x17131f,
+      aerial: {
+        minY: 150,
+        maxY: 570,
+        moveSpeed: 240,
+      },
+      projectile: {
+        speed: 260,
+        lifetime: 6500,
+        radius: 7,
+      },
+      halo: {
+        warnDuration: 700,
+        bulletCount: 18,
+        phaseOneRings: 2,
+        phaseTwoRings: 3,
+        ringInterval: 450,
+        gapWidth: Math.PI / 2,
+        gapStep: Math.PI / 4,
+        damage: 9,
+      },
+      wings: {
+        warnDuration: 550,
+        bulletCount: 7,
+        simultaneousBulletCount: 5,
+        stepInterval: 500,
+        recoveryDuration: 800,
+        spread: Math.PI / 3,
+        simultaneousSeparation: 0.62,
+        speed: 340,
+        damage: 10,
+      },
+      eye: {
+        trackingDuration: 800,
+        lockedWarningDuration: 350,
+        orbDuration: 1200,
+        phaseTwoFollowUpDelay: 650,
+        orbRadius: 38,
+        directDamage: 15,
+        splitBulletCount: 8,
+        splitDamage: 8,
+      },
+      salvation: {
+        transitionDuration: 900,
+        ringDuration: 2800,
+        ringCount: 3,
+        bulletCount: 24,
+        innerRadius: 90,
+        radiusStep: 64,
+        gapWidth: Math.PI / 2.4,
+        bulletSpeed: 125,
+        damage: 9,
+        coreDamageMultiplier: 2,
+      },
     },
   },
 } satisfies Record<string, BossCombatConfig>;
 
 export type BossVariant = keyof typeof BOSS_COMBAT_CONFIGS;
+
+/**
+ * Real-atlas rendering for bosses that have one, kept apart from combat tuning
+ * so the combat-config union stays uniform (and its pattern-type exhaustiveness
+ * intact). Bosses absent here fall back to the generated placeholder.
+ */
+export const BOSS_SPRITES: Partial<Record<BossVariant, BossSpriteConfig>> = {
+  'city-warden': {
+    idleAnimation: STAGE_ONE_BOSS_ANIMATIONS.idle,
+    battleFrame: STAGE_ONE_BOSS_BATTLE_FRAME,
+    scale: 1,
+    bodyWidth: 72,
+    bodyHeight: 132,
+  },
+};

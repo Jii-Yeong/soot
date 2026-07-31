@@ -5,6 +5,12 @@ import {
   type StageRooms,
 } from '@/game/config/roomConfig';
 
+// The reference map's ground floor is supplied by FloorBuilder. The two
+// overhead tiers stay one jump apart, with fewer pieces on the third floor so
+// stage 1 gains vertical routes without becoming a dense platforming course.
+const SECOND_FLOOR_Y = GAME_HEIGHT - 180;
+const THIRD_FLOOR_Y = GAME_HEIGHT - 300;
+
 export const CITY_ROOM_ONE = defineRoom({
   id: 'city-01',
   label: 'ROOM 01',
@@ -13,24 +19,20 @@ export const CITY_ROOM_ONE = defineRoom({
     { type: 'ranged', x: 950, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 1120, y: GAME_HEIGHT - 120 },
     { type: 'flying', x: 820, y: GAME_HEIGHT - 260 },
+    { type: 'melee', x: 1750, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 2920, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3200, y: GAME_HEIGHT - 360 },
   ],
   terrain: [
-    // Overhead perches at varied heights (the ground stays runnable beneath
-    // them) spanning the room; a single exit barrier gates the far door.
-    { type: 'platform', x: 700, y: GAME_HEIGHT - 180, width: 240, height: 22 },
-    { type: 'platform', x: 1500, y: GAME_HEIGHT - 190, width: 200, height: 22 },
-    { type: 'platform', x: 1820, y: GAME_HEIGHT - 260, width: 170, height: 22 },
-    { type: 'platform', x: 2200, y: GAME_HEIGHT - 200, width: 220, height: 22 },
-    { type: 'platform', x: 2560, y: GAME_HEIGHT - 280, width: 160, height: 22 },
-    { type: 'platform', x: 2900, y: GAME_HEIGHT - 210, width: 200, height: 22 },
-    // Exit barrier — a running jump clears it.
-    { type: 'wall', x: 3380, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-  ],
-  // Floor gaps past the combat zone: jump across, or drop in and take damage.
-  // Each sits beneath an overhead platform that doubles as a crossing route.
-  pits: [
-    { x: 1640, width: 150 },
-    { x: 2380, width: 168 },
+    // Three broad second-floor runs echo the lower half of the reference map.
+    // Their wide gaps keep the ground route open and the screen uncluttered.
+    { type: 'platform', x: 380, y: SECOND_FLOOR_Y, width: 560, height: 22 },
+    { type: 'platform', x: 1280, y: SECOND_FLOOR_Y, width: 620, height: 22 },
+    { type: 'platform', x: 2380, y: SECOND_FLOOR_Y, width: 600, height: 22 },
+    // Sparse third-floor bridges begin beyond the lower ledge edges, leaving
+    // enough horizontal run-up to clear their solid undersides.
+    { type: 'platform', x: 1080, y: THIRD_FLOOR_Y, width: 420, height: 22 },
+    { type: 'platform', x: 2060, y: THIRD_FLOOR_Y, width: 420, height: 22 },
   ],
 });
 
@@ -43,24 +45,18 @@ export const CITY_ROOM_TWO = defineRoom({
     { type: 'flying', x: 750, y: GAME_HEIGHT - 260 },
     { type: 'flying', x: 1050, y: GAME_HEIGHT - 300 },
     { type: 'ranged', x: 1160, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 1780, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 2180, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 2980, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
-    // Two-tier combat perches, then overhead ledges with two jump-over walls
-    // for obstacle variety before the exit barrier.
-    { type: 'platform', x: 470, y: GAME_HEIGHT - 180, width: 200, height: 22 },
-    { type: 'platform', x: 860, y: GAME_HEIGHT - 272, width: 190, height: 22 },
-    { type: 'platform', x: 1560, y: GAME_HEIGHT - 210, width: 180, height: 22 },
-    { type: 'platform', x: 1900, y: GAME_HEIGHT - 290, width: 160, height: 22 },
-    { type: 'wall', x: 2250, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-    { type: 'platform', x: 2480, y: GAME_HEIGHT - 200, width: 210, height: 22 },
-    { type: 'platform', x: 2850, y: GAME_HEIGHT - 270, width: 170, height: 22 },
-    // Exit barrier — a running jump clears it.
-    { type: 'wall', x: 3400, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-  ],
-  // Two gaps before the exit wall; the second lands just shy of the barrier.
-  pits: [
-    { x: 1250, width: 150 },
-    { x: 2040, width: 160 },
+    // Stagger the same three-piece rhythm so the second room feels related
+    // without repeating the first room's silhouette exactly.
+    { type: 'platform', x: 260, y: SECOND_FLOOR_Y, width: 640, height: 22 },
+    { type: 'platform', x: 1400, y: SECOND_FLOOR_Y, width: 560, height: 22 },
+    { type: 'platform', x: 2320, y: SECOND_FLOOR_Y, width: 680, height: 22 },
+    { type: 'platform', x: 1060, y: THIRD_FLOOR_Y, width: 420, height: 22 },
+    { type: 'platform', x: 2120, y: THIRD_FLOOR_Y, width: 420, height: 22 },
   ],
 });
 

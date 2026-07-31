@@ -35,7 +35,7 @@ describe('StageBackgroundPreloader', () => {
     expect(preloader.preload(STAGE_TWO_CONFIG)).toBe(true);
     expect(load.image).toHaveBeenCalledWith(
       'stage-02-bg',
-      '/assets/backgrounds/stage-02.png',
+      '/assets/backgrounds/stage-02.webp',
     );
     expect(load.start).toHaveBeenCalledOnce();
   });

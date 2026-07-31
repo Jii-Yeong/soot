@@ -53,6 +53,15 @@ export class ProjectilePool {
     return projectile;
   }
 
+  /** Deactivates projectiles as soon as they strike solid room geometry. */
+  collideWith(blockers: Phaser.Physics.Arcade.StaticGroup) {
+    this.scene.physics.add.collider(
+      this.group,
+      blockers,
+      this.handleBlockerHit,
+    );
+  }
+
   /** Returns true if the projectile should be deactivated after this hit. */
   registerHit(projectile: Phaser.Physics.Arcade.Image) {
     const pierceRemaining = (projectile.getData('pierceRemaining') as number) ?? 0;
@@ -71,6 +80,18 @@ export class ProjectilePool {
       (child as Phaser.Physics.Arcade.Image).disableBody(true, true);
     }
   }
+
+  private readonly handleBlockerHit: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
+    (firstObject, secondObject) => {
+      const projectile =
+        firstObject instanceof Phaser.Physics.Arcade.Image
+          ? firstObject
+          : (secondObject as Phaser.Physics.Arcade.Image);
+
+      if (projectile.active) {
+        projectile.disableBody(true, true);
+      }
+    };
 
   private scheduleExpiry(projectile: Phaser.Physics.Arcade.Image) {
     const launchId = (projectile.getData('launchId') ?? 0) + 1;

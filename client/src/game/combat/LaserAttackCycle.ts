@@ -1,4 +1,4 @@
-import type { LaserCannonPatternConfig } from '@/game/config/bossConfig';
+import type { LaserCannonPatternConfig } from '@/game/config/bossConfigTypes';
 import {
   getLaserChargeWindow,
   getLaserPatternTuning,

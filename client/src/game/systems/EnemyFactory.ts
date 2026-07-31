@@ -1,21 +1,26 @@
 import Phaser from 'phaser';
 import {
   BOSS_COMBAT_CONFIGS,
+  BOSS_SPRITES,
   hasBossPattern,
 } from '@/game/config/bossConfig';
+import type { BossArenaBounds } from '@/game/config/bossArena';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
-import { ChargingBossEnemy } from '@/game/entities/ChargingBossEnemy';
+import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
+import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
+import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
+import type { BossPhase } from '@/game/state/bossPhase';
 
 type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   EnemySpawnConfig,
@@ -34,6 +39,10 @@ export class EnemyFactory {
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
+    private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
+    private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
+    private readonly bossArena: BossArenaBounds,
+    private readonly onBossPhaseChanged: (phase: BossPhase) => void,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -98,6 +107,7 @@ export class EnemyFactory {
         trackSpeed: FLYING_ENEMY_COMBAT_CONFIG.trackSpeed * this.intensity,
         fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: FLYING_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
+        movement: spawn.movement,
       },
     );
     return this.finishSpawn(enemy, { collidesWithFloor: false });
@@ -115,6 +125,7 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
+          BOSS_SPRITES[spawn.variant],
         ),
       );
     }
@@ -132,15 +143,49 @@ export class EnemyFactory {
       );
     }
 
-    if (hasBossPattern(config, 'charge')) {
+    if (hasBossPattern(config, 'purifier')) {
       return this.finishSpawn(
-        new ChargingBossEnemy(
+        new PurifierBossEnemy(
           this.scene,
           spawn.x,
           spawn.y,
           config.texture,
           config,
+          this.damagePlayer,
+          this.grabPlayer,
+          this.pullPlayer,
         ),
+      );
+    }
+
+    if (hasBossPattern(config, 'infernal')) {
+      return this.finishSpawn(
+        new InfernalBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+          this.bossArena,
+          this.onBossPhaseChanged,
+        ),
+      );
+    }
+
+    if (hasBossPattern(config, 'architect')) {
+      return this.finishSpawn(
+        new ArchitectBossEnemy(
+          this.scene,
+          spawn.x,
+          spawn.y,
+          config.texture,
+          config,
+          this.damagePlayer,
+          this.bossArena,
+          this.onBossPhaseChanged,
+        ),
+        { collidesWithFloor: false },
       );
     }
 

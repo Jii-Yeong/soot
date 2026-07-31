@@ -23,6 +23,7 @@ export const ALLEY_ROOM_ONE = defineRoom({
     { type: 'flying', x: 2500, y: GAME_HEIGHT - 320 },
     // Cluster C — the far stretch before the exit barrier.
     { type: 'melee', x: 3050, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 3300, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
     // Fire-escape perches (overhead — the ground stays runnable beneath).
@@ -61,6 +62,7 @@ export const ALLEY_ROOM_TWO = defineRoom({
     // Cluster C — the far stretch.
     { type: 'ranged', x: 2600, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 3050, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3220, y: GAME_HEIGHT - 300 },
   ],
   terrain: [
     // Two-tier perches early, then ledges across the run.

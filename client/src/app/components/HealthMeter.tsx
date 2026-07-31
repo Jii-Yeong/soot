@@ -1,8 +1,11 @@
+import type { BossPhase } from '@/game/state/bossPhase';
+
 type HealthMeterProps = {
   label: string;
   value: number;
   maxValue: number;
   variant: 'player' | 'enemy';
+  bossPhase?: BossPhase | null;
 };
 
 export function HealthMeter({
@@ -10,6 +13,7 @@ export function HealthMeter({
   value,
   maxValue,
   variant,
+  bossPhase = null,
 }: HealthMeterProps) {
   const percentage =
     maxValue > 0 ? Math.min(100, Math.max(0, (value / maxValue) * 100)) : 0;
@@ -17,10 +21,15 @@ export function HealthMeter({
 
   return (
     <aside
-      className={`hud hud--${variant}`}
+      className={`hud hud--${variant}${
+        bossPhase ? ` hud--boss-phase-${bossPhase}` : ''
+      }`}
       aria-label={`${accessibleLabel} status`}
+      data-boss-phase={bossPhase ?? undefined}
     >
-      <span className="hud__label">{label}</span>
+      <span className="hud__label">
+        {bossPhase ? `BOSS // PHASE ${bossPhase}` : label}
+      </span>
       <div
         className="hud__meter"
         role="meter"
@@ -35,6 +44,7 @@ export function HealthMeter({
           }`}
           style={{ width: `${percentage}%` }}
         />
+        {bossPhase && <span className="hud__phase-threshold" aria-hidden />}
       </div>
       <span className="hud__value">
         {value}/{maxValue}

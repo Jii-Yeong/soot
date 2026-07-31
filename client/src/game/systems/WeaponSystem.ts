@@ -66,6 +66,12 @@ export class WeaponSystem {
     this.feedback.update(delta, aimPoint);
   }
 
+  blockProjectilesWith(terrain: Phaser.Physics.Arcade.StaticGroup) {
+    for (const weapon of this.weapons) {
+      weapon.pool.collideWith(terrain);
+    }
+  }
+
   tryFire(aimPoint: Phaser.Math.Vector2, time: number) {
     const weapon = this.activeWeapon;
     if (!this.canFire() || time < weapon.nextFireAt) {

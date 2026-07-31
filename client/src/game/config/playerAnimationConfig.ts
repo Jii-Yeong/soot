@@ -1,11 +1,14 @@
 const frameName = (index: number) =>
-  `shoot-posture-refined ${index}.aseprite`;
+  `shoot-posture-hand ${index}.aseprite`;
 
 export const PLAYER_ATLAS_KEY = 'player';
 
 export const PLAYER_ANIMATIONS = {
   idle: 'player-idle',
   run: 'player-run',
+  flyIdle: 'player_fly_idle',
+  flyMove: 'player_fly_move',
+  flyDash: 'player_fly_dash',
 } as const;
 
 export const PLAYER_IDLE_FRAMES = [0, 1, 2, 3].map(frameName);

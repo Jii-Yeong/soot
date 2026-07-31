@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import { PLAYER_COMBAT_CONFIG } from '@/game/config/combatConfig';
 
 describe('boss combat configuration', () => {
   it('gives the city warden a readable laser-cannon pattern', () => {
@@ -23,22 +24,80 @@ describe('boss combat configuration', () => {
       throw new Error('Alley hunter must use the hound pattern');
     }
 
-    // The lock-on must resolve before the beam fires, and the beam must reach
-    // across the arena.
-    expect(pattern.lance.chargeDuration).toBeGreaterThan(
-      pattern.lance.aimLockDuration,
+    // A wide detection fan that reaches at least to the player's stand-off
+    // distance, then a dodgeable orb that fires quicker once enraged.
+    expect(pattern.cone.halfAngleDegrees).toBeGreaterThan(0);
+    expect(pattern.cone.range).toBeGreaterThanOrEqual(pattern.preferredDistance);
+    expect(pattern.orb.enragedLockDuration).toBeLessThan(
+      pattern.orb.lockDuration,
     );
-    expect(pattern.beam.range).toBeGreaterThanOrEqual(1280);
-    expect(pattern.sweep.arcDegrees).toBeGreaterThan(0);
+    expect(pattern.orb.damage).toBeGreaterThan(0);
   });
 
-  it('keeps the deeper bosses on the charge pattern', () => {
-    const chargePatterns = Object.entries(BOSS_COMBAT_CONFIGS)
-      .filter(
-        ([variant]) => variant !== 'city-warden' && variant !== 'alley-hunter',
-      )
-      .map(([, config]) => config.pattern.type);
+  it('gives the underground purifier a capture + crush kit', () => {
+    const { pattern } = BOSS_COMBAT_CONFIGS['underground-guardian'];
 
-    expect(chargePatterns).toEqual(['charge', 'charge', 'charge']);
+    expect(pattern.type).toBe('purifier');
+    if (pattern.type !== 'purifier') {
+      throw new Error('Underground boss must use the purifier pattern');
+    }
+
+    // A grab, a targeted leap, and a full-arena vacuum that can be resisted.
+    expect(pattern.grab.reach).toBeGreaterThan(0);
+    expect(pattern.grab.damage).toBeGreaterThan(0);
+    expect(pattern.slam.launchSpeedY).toBeGreaterThan(0);
+    expect(pattern.slam.maxTravelSpeedX).toBeGreaterThan(
+      pattern.enragedMoveSpeed,
+    );
+    expect(pattern.slam.landingRadius).toBeGreaterThan(0);
+    expect(pattern.slam.shockwaveSpeed).toBeGreaterThan(0);
+    expect(pattern.slam.shockwaveDamage).toBeGreaterThan(0);
+    expect(pattern.vacuum.duration).toBeGreaterThan(
+      pattern.vacuum.warnDuration,
+    );
+    expect(pattern.vacuum.pullSpeed).toBeLessThan(
+      PLAYER_COMBAT_CONFIG.moveSpeed,
+    );
+    expect(pattern.vacuum.enragedPullSpeed).toBeGreaterThan(
+      pattern.vacuum.pullSpeed,
+    );
+  });
+
+  it('gives the infernal executioner three distinct magma patterns', () => {
+    const { pattern } = BOSS_COMBAT_CONFIGS['infernal-executioner'];
+
+    expect(pattern.type).toBe('infernal');
+    if (pattern.type !== 'infernal') {
+      throw new Error('Infernal executioner must use the infernal pattern');
+    }
+
+    expect(pattern.enrageHealthRatio).toBe(0.5);
+    expect(pattern.rupture.count).toBe(3);
+    expect(pattern.rupture.warnDuration).toBe(700);
+    expect(pattern.charge.staggerDuration).toBeGreaterThan(
+      pattern.charge.duration,
+    );
+    expect(pattern.charge.coreDamageMultiplier).toBeGreaterThan(1);
+    expect(pattern.charge.enragedSpeedMultiplier).toBeCloseTo(1.15);
+    expect(pattern.shards.laneCount).toBe(4);
+    expect(pattern.shards.magmaDuration).toBeGreaterThan(
+      pattern.shards.warnDuration,
+    );
+  });
+
+  it('gives the returning architect a three-pattern final phase', () => {
+    const { pattern } = BOSS_COMBAT_CONFIGS['returning-architect'];
+
+    expect(pattern.type).toBe('architect');
+    if (pattern.type !== 'architect') {
+      throw new Error('Returning architect must use the architect pattern');
+    }
+
+    expect(pattern.enrageHealthRatio).toBe(0.5);
+    expect(pattern.salvationHealthRatio).toBe(0.1);
+    expect(pattern.halo.bulletCount).toBeGreaterThanOrEqual(16);
+    expect(pattern.wings.bulletCount).toBeGreaterThanOrEqual(7);
+    expect(pattern.eye.splitBulletCount).toBe(8);
+    expect(pattern.salvation.coreDamageMultiplier).toBeGreaterThan(1);
   });
 });

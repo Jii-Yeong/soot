@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const ROOM_TRANSITION_TIMEOUT = 10_000;
-const SINGLE_ROOM_TEST_TIMEOUT = 60_000;
+const SINGLE_ROOM_TEST_TIMEOUT = 75_000;
+const CITY_ROOM_ONE_MAX_HEALTH = 470;
+const CITY_ROOM_TWO_MAX_HEALTH = 530;
 
 async function whileHoldingKey(
   page: Page,
@@ -93,14 +95,32 @@ async function fireShotsAt(
   }
 }
 
+async function runAndFireAt(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+  x: number,
+  y: number,
+  duration: number,
+) {
+  const point = getCanvasPoint(bounds, x, y);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  try {
+    await holdKeyFor(page, 'KeyD', duration);
+  } finally {
+    await page.mouse.up();
+  }
+}
+
 type FireTarget = [x: number, y: number, durationMs: number];
 
-const CITY_ROOM_ONE_TARGETS: FireTarget[] = [
+const CITY_ROOM_ONE_GROUND_TARGETS: FireTarget[] = [
   [640, 630, 1200],
-  [820, 460, 1200],
   [950, 630, 2000],
   [1120, 630, 2500],
 ];
+
+const CITY_ROOM_ONE_FLYING_TARGET: FireTarget = [820, 460, 1200];
 
 async function clearRoom(
   page: Page,
@@ -110,6 +130,33 @@ async function clearRoom(
   for (const [x, y, duration] of targets) {
     await fireAt(page, bounds, x, y, duration);
   }
+}
+
+async function clearCityRoomOne(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+) {
+  await clearRoom(page, bounds, CITY_ROOM_ONE_GROUND_TARGETS);
+
+  // The flying enemy is protected by the first platform. Climb onto it before
+  // firing instead of relying on the old through-platform shot path.
+  await whileHoldingKey(page, 'KeyD', async () => {
+    await page.keyboard.down('Space');
+    await page.waitForTimeout(100);
+    await page.keyboard.up('Space');
+    await page.waitForTimeout(650);
+  });
+  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
+
+  // Continue through the mid and far clusters while firing along the ground,
+  // then sweep the upper screen for the flying enemy that follows from the
+  // middle and can finish on either side of the player.
+  await runAndFireAt(page, bounds, 1120, 630, 8000);
+  await holdKeyFor(page, 'KeyD', 1300);
+  await fireAt(page, bounds, 300, 360, 1200);
+  await fireAt(page, bounds, 450, 360, 1200);
+  await fireAt(page, bounds, 600, 360, 1200);
+  await fireAt(page, bounds, 640, 360, 1200);
 }
 
 async function advanceThroughDoor(page: Page) {
@@ -146,12 +193,45 @@ test('boots the Phaser canvas', async ({ page }) => {
   await expect(canvas).toHaveAttribute('height', '720');
 });
 
+test('shows the title before the stage one background finishes loading', async ({
+  page,
+}) => {
+  let releaseBackground: (() => void) | undefined;
+  let markBackgroundRequested: (() => void) | undefined;
+  const backgroundGate = new Promise<void>((resolve) => {
+    releaseBackground = resolve;
+  });
+  const backgroundRequested = new Promise<void>((resolve) => {
+    markBackgroundRequested = resolve;
+  });
+
+  await page.route('**/assets/backgrounds/stage-01.webp', async (route) => {
+    markBackgroundRequested?.();
+    await backgroundGate;
+    await route.continue();
+  });
+
+  try {
+    await page.goto('/');
+    await backgroundRequested;
+    await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+
+    releaseBackground?.();
+    await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  } finally {
+    releaseBackground?.();
+  }
+});
+
 test('loads stage backgrounds one step ahead', async ({ page }) => {
   const requestedBackgrounds = new Set<string>();
   page.on('request', (request) => {
     const fileName = new URL(request.url()).pathname
       .split('/')
-      .find((segment) => /^stage-\d{2}\.png$/.test(segment));
+      .find((segment) => /^stage-\d{2}\.webp$/.test(segment));
 
     if (fileName) {
       requestedBackgrounds.add(fileName);
@@ -160,16 +240,16 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
 
   await page.goto('/');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-  expect(requestedBackgrounds).toEqual(new Set(['stage-01.png']));
+  expect(requestedBackgrounds).toEqual(new Set(['stage-01.webp']));
 
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
   await expect
-    .poll(() => requestedBackgrounds.has('stage-02.png'))
+    .poll(() => requestedBackgrounds.has('stage-02.webp'))
     .toBe(true);
-  expect(requestedBackgrounds.has('stage-03.png')).toBe(false);
-  expect(requestedBackgrounds.has('stage-04.png')).toBe(false);
-  expect(requestedBackgrounds.has('stage-05.png')).toBe(false);
+  expect(requestedBackgrounds.has('stage-03.webp')).toBe(false);
+  expect(requestedBackgrounds.has('stage-04.webp')).toBe(false);
+  expect(requestedBackgrounds.has('stage-05.webp')).toBe(false);
 });
 
 test('waits for the entrance detector before starting combat', async ({
@@ -193,7 +273,10 @@ test('waits for the entrance detector before starting combat', async ({
   );
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '305');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 });
 
 test('enters the game and shows the React HUD', async ({ page }) => {
@@ -208,8 +291,14 @@ test('enters the game and shows the React HUD', async ({ page }) => {
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuenow', '100');
   const enemyHealthMeter = page.getByRole('meter', { name: 'Enemy health' });
-  await expect(enemyHealthMeter).toHaveAttribute('aria-valuenow', '305');
-  await expect(enemyHealthMeter).toHaveAttribute('aria-valuemax', '305');
+  await expect(enemyHealthMeter).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
+  await expect(enemyHealthMeter).toHaveAttribute(
+    'aria-valuemax',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 });
 
 test('accepts WASD movement and mouse fire input', async ({ page }) => {
@@ -269,7 +358,10 @@ test('enemy detects the player and deals ranged damage', async ({ page }) => {
   await fireShotsAt(page, bounds, 640, 630, 6);
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).not.toHaveAttribute('aria-valuenow', '305');
+  ).not.toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 
   await holdKeyFor(page, 'KeyD', 1500);
 
@@ -293,6 +385,72 @@ test('melee enemy pursues the player and deals contact damage', async ({
   });
 });
 
+test('invincibility mode prevents player health loss', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  const toggle = page.getByRole('button', { name: 'Invincibility mode' });
+  await expect(toggle).toHaveCount(0);
+  await adminButton.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-invincible',
+    'true',
+  );
+
+  await triggerCurrentRoom(page);
+  const healthMeter = page.getByRole('meter', { name: 'Player health' });
+  await holdKeyFor(page, 'KeyD', 1000);
+  await page.waitForTimeout(2000);
+  await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await holdKeyFor(page, 'KeyD', 400);
+  await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '100', {
+    timeout: 5000,
+  });
+});
+
+test('admin menu closes and jumps directly to a selected stage', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  const adminMenu = page.getByRole('dialog', { name: 'Admin menu' });
+
+  await expect(adminButton).toHaveAttribute('aria-expanded', 'false');
+  await adminButton.click();
+  await expect(adminButton).toHaveAttribute('aria-expanded', 'true');
+  await expect(adminMenu).toBeVisible();
+
+  for (let stageNumber = 1; stageNumber <= 5; stageNumber += 1) {
+    await expect(
+      page.getByRole('button', { name: `${stageNumber}스테이지 가기` }),
+    ).toBeVisible();
+  }
+
+  await page.getByRole('button', { name: '닫기' }).click();
+  await expect(adminMenu).toHaveCount(0);
+  await expect(adminButton).toHaveAttribute('aria-expanded', 'false');
+
+  await adminButton.click();
+  await page.getByRole('button', { name: '2스테이지 가기' }).click();
+  await expect(adminMenu).toHaveCount(0);
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '115');
+});
+
 test('player fire damages the enemy without stopping combat', async ({
   page,
 }) => {
@@ -307,8 +465,23 @@ test('player fire damages the enemy without stopping combat', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '294', { timeout: 5000 });
+  ).toHaveAttribute('aria-valuenow', '459', { timeout: 5000 });
   expect(runtimeErrors).toEqual([]);
+});
+
+test('platforms block player projectiles', async ({ page }) => {
+  await enterGame(page);
+  await page.waitForTimeout(1000);
+
+  const bounds = await getCanvasBounds(page);
+  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
+
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
 });
 
 test('locks the room until every spawned enemy is defeated', async ({
@@ -325,7 +498,7 @@ test('locks the room until every spawned enemy is defeated', async ({
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
+  await clearCityRoomOne(page, bounds);
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
@@ -339,6 +512,7 @@ test('locks the room until every spawned enemy is defeated', async ({
     'data-phase',
     'room-cleared',
   );
+  await fireShotsAt(page, bounds, 1000, 420, 1);
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -365,7 +539,10 @@ test('player death stops combat and supports a fast restart', async ({
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '305');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
@@ -387,7 +564,10 @@ test('does not offer a weapon drop from a standard enemy', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).not.toHaveAttribute('aria-valuenow', '305');
+  ).not.toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_ONE_MAX_HEALTH.toString(),
+  );
   await holdKeyFor(page, 'KeyD', 700);
   await expect(page.locator('main')).toHaveAttribute(
     'data-nearby-weapon',
@@ -408,7 +588,7 @@ test('advances to the next room after clearing the first and locks it again', as
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
-  await clearRoom(page, bounds, CITY_ROOM_ONE_TARGETS);
+  await clearCityRoomOne(page, bounds);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-phase',
@@ -424,6 +604,9 @@ test('advances to the next room after clearing the first and locks it again', as
   );
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '310');
+  ).toHaveAttribute(
+    'aria-valuenow',
+    CITY_ROOM_TWO_MAX_HEALTH.toString(),
+  );
   expect(runtimeErrors).toEqual([]);
 });
