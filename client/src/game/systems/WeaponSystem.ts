@@ -155,6 +155,7 @@ export class WeaponSystem {
       const { x, y } = this.feedback.getMuzzlePosition(
         angle,
         config.muzzleOffset,
+        config.muzzleRise,
       );
       weapon.pool.fire(x, y, angle, {
         pierce: config.pierce,

@@ -25,6 +25,27 @@ describe('weapon progression', () => {
     }
   });
 
+  it('gives every weapon a round of its own', () => {
+    // Four weapons shared three textures before this, with the SMG and the
+    // burst rifle firing identical amber slugs — the player had no way to read
+    // which weapon was putting rounds downrange.
+    expect(new Set(WEAPON_CONFIGS.map(({ texture }) => texture)).size).toBe(4);
+    expect(
+      new Set(WEAPON_CONFIGS.map(({ projectile }) => projectile.color)).size,
+    ).toBe(4);
+  });
+
+  it('fires from the barrel rather than from the grip', () => {
+    for (const weapon of WEAPON_CONFIGS) {
+      // The sprite's origin is the grip, so a weapon with no rise spawns its
+      // rounds inside the shooter's fist.
+      expect(weapon.muzzleRise).toBeGreaterThan(0);
+      // Nothing reaches past the longest sprite, which is 60px of art on a
+      // 72px canvas placed 18px behind the origin.
+      expect(weapon.muzzleOffset).toBeLessThanOrEqual(54);
+    }
+  });
+
   it('keeps each stage boss within its target ideal clear time', () => {
     const slowestWeaponDamage = Math.min(
       ...WEAPON_CONFIGS.map(getWeaponSustainedDamagePerSecond),

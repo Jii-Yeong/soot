@@ -5,6 +5,7 @@ export class WeaponFeedback {
   readonly display: Phaser.GameObjects.Image;
 
   private recoil = 0;
+  private climb = 0;
   private hitStopTimer?: Phaser.Time.TimerEvent;
 
   constructor(
@@ -20,7 +21,11 @@ export class WeaponFeedback {
   }
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
+    // The slide settles faster than the barrel drops. Recoil that decays on one
+    // curve reads as the whole weapon being dragged back into place; letting the
+    // muzzle hang gives the heavy weapons their weight.
     this.recoil = Math.max(0, this.recoil - delta * 0.12);
+    this.climb = Math.max(0, this.climb - delta * 0.006);
 
     const angle = Phaser.Math.Angle.Between(
       this.player.x,
@@ -29,6 +34,9 @@ export class WeaponFeedback {
       aimPoint.y,
     );
     const aimingLeft = Math.cos(angle) < 0;
+    // Climb is always away from the ground, and the sprite is mirrored when
+    // aiming left, so the sign has to follow the flip or the barrel dips.
+    const climbed = angle + (aimingLeft ? this.climb : -this.climb);
 
     this.player.setFlipX(aimingLeft);
     this.display
@@ -37,7 +45,7 @@ export class WeaponFeedback {
         this.player.x + Math.cos(angle) * (8 - this.recoil),
         this.player.y - 7 + Math.sin(angle) * 4 - Math.sin(angle) * this.recoil,
       )
-      .setRotation(angle)
+      .setRotation(climbed)
       .setFlipY(aimingLeft);
   }
 
@@ -51,7 +59,11 @@ export class WeaponFeedback {
 
   playFire(weapon: WeaponConfig, baseAngle: number, pelletAngles: number[]) {
     const { feedback } = weapon;
-    const muzzle = this.getMuzzlePosition(baseAngle, weapon.muzzleOffset);
+    const muzzle = this.getMuzzlePosition(
+      baseAngle,
+      weapon.muzzleOffset,
+      weapon.muzzleRise,
+    );
     const thickness = Math.max(3, Math.round(feedback.muzzleLength * 0.28));
     const flash = this.scene.add
       .rectangle(
@@ -81,6 +93,7 @@ export class WeaponFeedback {
     });
 
     this.recoil = Math.max(this.recoil, feedback.recoilDistance);
+    this.climb = Math.max(this.climb, feedback.recoilClimb);
     this.scene.cameras.main.shake(
       feedback.shakeDuration,
       feedback.shakeIntensity,
@@ -177,10 +190,20 @@ export class WeaponFeedback {
     });
   }
 
-  getMuzzlePosition(angle: number, offset: number) {
+  /**
+   * The barrel tip in world space.
+   *
+   * `offset` runs along the barrel and `rise` perpendicular to it. Both are
+   * needed: the sprite's origin is the grip, and every barrel sits 8-11px above
+   * it, so projecting along the aim vector alone puts the muzzle inside the
+   * shooter's fist. The perpendicular flips with the weapon, otherwise firing
+   * left would push the muzzle down through the grip instead of up over it.
+   */
+  getMuzzlePosition(angle: number, offset: number, rise = 0) {
+    const lift = this.display.flipY ? rise : -rise;
     return {
-      x: this.display.x + Math.cos(angle) * offset,
-      y: this.display.y + Math.sin(angle) * offset,
+      x: this.display.x + Math.cos(angle) * offset - Math.sin(angle) * lift,
+      y: this.display.y + Math.sin(angle) * offset + Math.cos(angle) * lift,
     };
   }
 

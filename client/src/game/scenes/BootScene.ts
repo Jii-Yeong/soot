@@ -15,6 +15,7 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
+import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -106,11 +107,31 @@ export class BootScene extends Phaser.Scene {
       graphics.generateTexture(key, width, 14);
     };
 
-    graphics.fillStyle(0xf4c66d);
-    graphics.fillRect(0, 0, 16, 4);
-    graphics.fillStyle(0xfff4c7);
-    graphics.fillRect(12, 0, 4, 4);
-    graphics.generateTexture('bullet-placeholder', 16, 4);
+    // One round per weapon, drawn from that weapon's own identity colour. The
+    // four weapons used to share three textures, so an SMG burst and a burst
+    // rifle volley were indistinguishable in flight.
+    for (const weapon of WEAPON_CONFIGS) {
+      const { color, tipColor, length, thickness, round } = weapon.projectile;
+      graphics.clear();
+      if (round) {
+        const radius = thickness / 2;
+        graphics.fillStyle(color);
+        graphics.fillCircle(radius, radius, radius);
+        // Lit on the leading side, so a pellet still reads as travelling.
+        graphics.fillStyle(tipColor);
+        graphics.fillCircle(radius + radius * 0.35, radius, radius * 0.45);
+      } else {
+        graphics.fillStyle(color);
+        graphics.fillRect(0, 0, length, thickness);
+        graphics.fillStyle(tipColor);
+        graphics.fillRect(length - Math.ceil(length * 0.3), 0, Math.ceil(length * 0.3), thickness);
+      }
+      graphics.generateTexture(
+        weapon.texture,
+        round ? thickness : length,
+        thickness,
+      );
+    }
 
     graphics.clear();
     graphics.fillStyle(0xe45d68);
@@ -199,18 +220,6 @@ export class BootScene extends Phaser.Scene {
         config.placeholder.accentColor,
       );
     }
-
-    graphics.clear();
-    graphics.fillStyle(0xffe1a8);
-    graphics.fillCircle(4, 4, 4);
-    graphics.generateTexture('shotgun-pellet-placeholder', 8, 8);
-
-    graphics.clear();
-    graphics.fillStyle(0xd5a8ff);
-    graphics.fillRect(0, 1, 20, 3);
-    graphics.fillStyle(0xffffff);
-    graphics.fillRect(14, 0, 6, 5);
-    graphics.generateTexture('rail-bolt-placeholder', 20, 5);
 
     createWeaponPlaceholder('weapon-smg-placeholder', 34, 0xb6ffe4);
     createWeaponPlaceholder('weapon-shotgun-placeholder', 42, 0xf0a35b, {
