@@ -11,7 +11,7 @@
 
 | 항목 | 기준 |
 | --- | --- |
-| 포맷 | Ogg Vorbis 권장. `.mp3 .wav .m4a .webm`도 그대로 인식됨 |
+| 포맷 | **`.ogg` 컨테이너에 Opus.** BGM·SFX 전부 같다. `.mp3 .wav .m4a .webm`도 인식은 되지만 섞지 않는다 |
 | 샘플레이트 | 44.1kHz |
 | 채널 | SFX 모노, BGM 스테레오 |
 | BGM 길이 | 60초~3분 루프, 이음매에서 클릭 노이즈 없을 것 |
@@ -98,7 +98,7 @@
 
 | 큐 | 파일 | 출처 팩 / 원본 | 길이 | 고른 이유 |
 | --- | --- | --- | --- | --- |
-| `sfx-smg-fire` | `smg-fire_synth-dry.wav` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.16초 | 아래 "총소리는 세 번 갈아엎었다" 참고 |
+| `sfx-smg-fire` | `smg-fire_synth-dry.ogg` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.16초 | 아래 "총소리는 세 번 갈아엎었다" 참고 |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | sci-fi / `laserLarge_000` | 0.677초 | 저역이 지배적이라 SMG와 대비된다 |
 | `sfx-burst-rifle-fire` | `burst-rifle-fire_synth-crack.ogg` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.17초 | 아래 "무기 넷, 소리 둘" 참고 |
 | `sfx-rail-rifle-fire` | `rail-rifle-fire_synth-coil.ogg` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.52초 | 〃 |
@@ -612,8 +612,17 @@ ffmpeg -i final.wav -c:a libopus -b:a 80k city.ogg
 
 한 마디 길이는 `60 / BPM * 4`초다. 91 BPM이면 약 2.64초.
 
-**저장 포맷은 Ogg Vorbis로 한다.** 편집 후 다시 mp3로 저장하면 세대 손실이 누적되고,
-wav는 3분 스테레오가 30MB를 넘는다. ogg는 용량이 mp3 수준이면서 게임이 그대로 인식한다.
+**저장 포맷은 `.ogg` 컨테이너의 Opus로 한다.** 편집 후 다시 mp3로 저장하면 세대 손실이
+누적되고, wav는 3분 스테레오가 30MB를 넘는다. Opus는 같은 용량에서 Vorbis보다 낫고 게임이
+그대로 인식한다 — 확장자가 `.ogg`인 것은 상자 이름일 뿐이다. 위의 "Vorbis냐 Opus냐" 항목 참고.
+
+**BGM과 SFX를 같은 포맷으로 맞춘다.** 한때 BGM만 Opus이고 SFX는 Vorbis, `smg-fire`만
+무압축 wav였다. 셋을 Opus로 모으면서 SFX 전량이 131KB에서 53KB가 됐다. 마스터가 남아 있는
+합성음 셋은 마스터에서 다시 뽑았고, 나머지는 이미 손실 압축된 Kenney 원본이라 트랜스코딩이다
+— 0.1~1초짜리 효과음이라 실용상 문제가 없다고 판단했다.
+
+비트레이트는 길이가 아니라 채널로 정한다. 모노 96k, 스테레오 64k다. 스테레오를 128k로 올리면
+1초짜리 `player-death`가 원본보다 커져서 통일한 이유가 사라진다.
 
 ### title / alley
 
@@ -807,7 +816,7 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 | 에셋 키 | 파일 | 출처 | 라이선스 | 저작자 표기 필요 | 표기 문구 |
 | --- | --- | --- | --- | --- | --- |
 | `bgm-city` | `city_the-center-of-the-room.ogg` | Gemini 웹 앱(gemini.google.com)의 Lyria 3 Pro로 생성, Google AI Pro 구독 | **확인 필요** | 불필요 | |
-| `sfx-smg-fire` | `smg-fire_synth-dry.wav` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
+| `sfx-smg-fire` | `smg-fire_synth-dry.ogg` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-burst-rifle-fire` | `burst-rifle-fire_synth-crack.ogg` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
 | `sfx-rail-rifle-fire` | `rail-rifle-fire_synth-coil.ogg` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
