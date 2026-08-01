@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { PLAYER_COMBAT_CONFIG } from '@/game/config/combatConfig';
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import {
+  MovementMode,
+  PLAYER_FLIGHT_BOUNDS,
+} from '@/game/config/playerMovementConfig';
 import type { RoomConfig, TerrainPiece } from '@/game/config/roomConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
@@ -306,6 +310,69 @@ describe('level geometry against player metrics', () => {
 
     // And the one the ground cannot answer comes last.
     expect(order[order.length - 1]).toBe('flying');
+  });
+
+  it('keeps a flight stage inside the band the player can fly', () => {
+    // The one stage the player flies has no floor to stand on and no jump to
+    // measure, so its geometry is the box the flight controller clamps them to.
+    // An enemy outside it — or one whose own patrol drifts outside it — is one
+    // the player can be shot by and cannot answer.
+    const { minY, maxY } = PLAYER_FLIGHT_BOUNDS;
+    const outOfReach: string[] = [];
+    const bandUse: string[] = [];
+
+    for (const stage of STAGES) {
+      if (stage.movementMode !== MovementMode.FLIGHT) continue;
+
+      for (const room of stage.rooms.filter(({ kind }) => kind === 'combat')) {
+        const heights: number[] = [];
+
+        for (const spawn of room.enemySpawns) {
+          if (spawn.type !== 'flying') continue;
+          heights.push(spawn.y);
+          // A patrol or orbit swings this far either side of where it starts.
+          const swing = spawn.movement?.rangeY ?? 0;
+          if (spawn.y - swing < minY || spawn.y + swing > maxY) {
+            outOfReach.push(
+              `${stage.id}/${room.id} y=${spawn.y}±${swing} — 비행 범위 ${minY}~${maxY} 밖`,
+            );
+          }
+        }
+
+        // Placement that clusters in the middle leaves the ceiling and the
+        // floor as free parking, which is the whole stage's difficulty.
+        const spread = Math.max(...heights) - Math.min(...heights);
+        const share = spread / (maxY - minY);
+        bandUse.push(
+          `  ${stage.id}/${room.id} y ${Math.min(...heights)}~${Math.max(...heights)} — 비행 범위의 ${(share * 100).toFixed(0)}%`,
+        );
+        expect(
+          share,
+          `${room.id} uses only ${(share * 100).toFixed(0)}% of the flight band`,
+        ).toBeGreaterThan(0.65);
+      }
+    }
+
+    console.log(bandUse.join('\n'));
+
+    if (outOfReach.length > 0) {
+      console.log(`  사거리 밖 스폰\n    ${outOfReach.join('\n    ')}`);
+    }
+
+    expect(outOfReach).toEqual([]);
+  });
+
+  it('leaves a flight stage free of terrain', () => {
+    // Solid geometry needs a jump to escape and flight mode has none, so a
+    // player pushed into a corner by a tracking enemy would have no way out.
+    for (const stage of STAGES) {
+      if (stage.movementMode !== MovementMode.FLIGHT) continue;
+
+      for (const room of stage.rooms) {
+        expect(room.terrain ?? [], `${room.id} has terrain`).toHaveLength(0);
+        expect(room.pits ?? [], `${room.id} has pits`).toHaveLength(0);
+      }
+    }
   });
 
   it('does not spawn a ground enemy over a pit', () => {

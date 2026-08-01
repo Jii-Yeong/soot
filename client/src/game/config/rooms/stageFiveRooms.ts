@@ -11,6 +11,24 @@ const AERIAL_ROOM_DOOR = {
   height: GAME_HEIGHT,
 };
 
+// The return is the only stage the player flies, so its level design is
+// vertical placement and rhythm rather than geometry — there is no terrain
+// here, and there should not be: the player cannot jump out of anywhere they
+// get wedged.
+//
+// Two things were wrong with the first pass.
+//
+// The flight band is y 128~600, and every enemy sat between 250 and 480 — under
+// half of it. The top and bottom hundred pixels were dead, so hugging either
+// edge took the player out of the whole pattern. Placement now spans 180~560,
+// about three quarters of the band, and each enemy's own movement range is kept
+// inside the player's limits so nothing drifts out of reach.
+//
+// And the spacing was metronomic: even x gaps, alternating high and low, all
+// the way through both rooms. There was no burst and no breather. Each room now
+// reads as introduce → develop → rest → spike, with the last room closing on a
+// tight trio at the boss door.
+
 export const RETURN_ROOM_ONE = defineRoom({
   id: 'return-01',
   label: 'ROOM 01',
@@ -20,19 +38,19 @@ export const RETURN_ROOM_ONE = defineRoom({
     {
       type: 'flying',
       x: 460,
-      y: GAME_HEIGHT - 300,
+      y: 400,
       movement: { mode: AerialMovementMode.HOVER },
     },
     {
       type: 'flying',
-      x: 820,
-      y: GAME_HEIGHT - 470,
+      x: 900,
+      y: 200,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 1180,
-      y: GAME_HEIGHT - 240,
+      x: 1350,
+      y: 520,
       movement: {
         mode: AerialMovementMode.PATROL,
         rangeX: 170,
@@ -41,8 +59,8 @@ export const RETURN_ROOM_ONE = defineRoom({
     },
     {
       type: 'flying',
-      x: 1620,
-      y: GAME_HEIGHT - 410,
+      x: 1700,
+      y: 230,
       movement: {
         mode: AerialMovementMode.ORBIT,
         rangeX: 130,
@@ -51,14 +69,14 @@ export const RETURN_ROOM_ONE = defineRoom({
     },
     {
       type: 'flying',
-      x: 2080,
-      y: GAME_HEIGHT - 270,
+      x: 2250,
+      y: 560,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 2520,
-      y: GAME_HEIGHT - 460,
+      x: 2480,
+      y: 200,
       movement: {
         mode: AerialMovementMode.PATROL,
         rangeX: 190,
@@ -67,14 +85,14 @@ export const RETURN_ROOM_ONE = defineRoom({
     },
     {
       type: 'flying',
-      x: 2940,
-      y: GAME_HEIGHT - 250,
+      x: 2700,
+      y: 430,
       movement: { mode: AerialMovementMode.HOVER },
     },
     {
       type: 'flying',
-      x: 3340,
-      y: GAME_HEIGHT - 410,
+      x: 3300,
+      y: 330,
       movement: {
         mode: AerialMovementMode.ORBIT,
         rangeX: 145,
@@ -93,7 +111,7 @@ export const RETURN_ROOM_TWO = defineRoom({
     {
       type: 'flying',
       x: 420,
-      y: GAME_HEIGHT - 430,
+      y: 230,
       movement: {
         mode: AerialMovementMode.ORBIT,
         rangeX: 120,
@@ -102,14 +120,14 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 780,
-      y: GAME_HEIGHT - 250,
+      x: 700,
+      y: 540,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 1160,
-      y: GAME_HEIGHT - 460,
+      x: 1100,
+      y: 200,
       movement: {
         mode: AerialMovementMode.PATROL,
         rangeX: 180,
@@ -118,20 +136,20 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 1540,
-      y: GAME_HEIGHT - 280,
+      x: 1600,
+      y: 520,
       movement: { mode: AerialMovementMode.HOVER },
     },
     {
       type: 'flying',
-      x: 1940,
-      y: GAME_HEIGHT - 450,
+      x: 1900,
+      y: 180,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 2340,
-      y: GAME_HEIGHT - 240,
+      x: 2150,
+      y: 380,
       movement: {
         mode: AerialMovementMode.ORBIT,
         rangeX: 150,
@@ -140,8 +158,8 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 2740,
-      y: GAME_HEIGHT - 420,
+      x: 2900,
+      y: 250,
       movement: {
         mode: AerialMovementMode.PATROL,
         rangeX: 200,
@@ -151,13 +169,13 @@ export const RETURN_ROOM_TWO = defineRoom({
     {
       type: 'flying',
       x: 3120,
-      y: GAME_HEIGHT - 260,
+      y: 470,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 3420,
-      y: GAME_HEIGHT - 440,
+      x: 3350,
+      y: 330,
       movement: { mode: AerialMovementMode.HOVER },
     },
   ],
