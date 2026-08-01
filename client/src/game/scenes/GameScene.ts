@@ -70,6 +70,7 @@ export class GameScene extends Phaser.Scene {
   private terrainBuilder!: TerrainBuilder;
   private currentStageIndex = STARTING_STAGE_INDEX;
   private requestedStartingStageIndex?: number;
+  private requestedStartingRoomIndex?: number;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -182,7 +183,7 @@ export class GameScene extends Phaser.Scene {
 
   private createPlayer() {
     this.player = this.physics.add.sprite(
-      180,
+      this.getStartingPlayerX(),
       GAME_HEIGHT - 120,
       PLAYER_ATLAS_KEY,
       PLAYER_INITIAL_FRAME,
@@ -542,6 +543,10 @@ export class GameScene extends Phaser.Scene {
     keyboard.on('keydown-R', this.handleRestartInput, this);
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
     gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
+    gameEvents.on(
+      'admin-stage-boss-requested',
+      this.handleAdminStageBossRequested,
+    );
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.handlePointerDown, this);
@@ -549,6 +554,10 @@ export class GameScene extends Phaser.Scene {
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
       gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
+      gameEvents.off(
+        'admin-stage-boss-requested',
+        this.handleAdminStageBossRequested,
+      );
     });
   }
 
@@ -596,9 +605,24 @@ export class GameScene extends Phaser.Scene {
     this.currentStageIndex =
       this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
     this.requestedStartingStageIndex = undefined;
-    this.currentRoomIndex = 0;
+    this.currentRoomIndex = Phaser.Math.Clamp(
+      this.requestedStartingRoomIndex ?? 0,
+      0,
+      this.stage.rooms.length - 1,
+    );
+    this.requestedStartingRoomIndex = undefined;
     this.restorePlayerHealthForStage();
     gameEvents.emit('room-state-changed', 'idle');
+  }
+
+  private getStartingPlayerX() {
+    if (this.currentRoomIndex === 0) {
+      return 180;
+    }
+
+    return (
+      placeRoomInStage(this.stage.rooms, this.currentRoomIndex).entranceX + 90
+    );
   }
 
   private restorePlayerHealthForStage() {
@@ -646,6 +670,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.requestedStartingStageIndex = stageIndex;
+    this.requestedStartingRoomIndex = 0;
+    this.scene.restart();
+  };
+
+  private handleAdminStageBossRequested = (stageIndex: number) => {
+    if (!Number.isInteger(stageIndex) || !STAGES[stageIndex]) {
+      return;
+    }
+
+    this.requestedStartingStageIndex = stageIndex;
+    this.requestedStartingRoomIndex = STAGES[stageIndex].rooms.length - 1;
     this.scene.restart();
   };
 

@@ -29,6 +29,11 @@ export function App() {
     gameEvents.emit('admin-stage-requested', stageIndex);
   };
 
+  const goToStageBoss = (stageIndex: number) => {
+    setAdminOpen(false);
+    gameEvents.emit('admin-stage-boss-requested', stageIndex);
+  };
+
   return (
     <main
       className="game-shell"
@@ -98,7 +103,23 @@ export function App() {
                   무적 // {invincible ? 'ON' : 'OFF'}
                 </button>
 
-                {[1, 2, 3, 4, 5].map((stageNumber) => (
+                <button
+                  type="button"
+                  className="admin-controls__button"
+                  onClick={() => goToStage(0)}
+                >
+                  1스테이지 가기
+                </button>
+
+                <button
+                  type="button"
+                  className="admin-controls__button"
+                  onClick={() => goToStageBoss(0)}
+                >
+                  1스테이지 보스 가기
+                </button>
+
+                {[2, 3, 4, 5].map((stageNumber) => (
                   <button
                     key={stageNumber}
                     type="button"
