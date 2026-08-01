@@ -18,7 +18,25 @@ describe('stage 1 room layout', () => {
       expect(platforms).toHaveLength(5);
       expect(platformsPerLevel).toEqual([3, 2]);
       expect(platformLevels[0]! - platformLevels[1]!).toBe(120);
-      expect(room.terrain?.some(({ type }) => type === 'wall')).toBe(false);
+    }
+  });
+
+  it('teaches the barrier once and never digs a pit', () => {
+    // This rule used to be "stage 1 has no walls at all", which read as
+    // simplicity but cost the player their only safe meeting with a barrier:
+    // stage 2 opens with three of them beside eight enemies and two pits.
+    // One barrier, in the second room, in a quiet stretch — enough to learn
+    // the shape without turning the stage into a platforming course.
+    const walls = CITY_COMBAT_ROOMS.map(
+      (room) => room.terrain?.filter(({ type }) => type === 'wall').length ?? 0,
+    );
+
+    expect(walls).toEqual([0, 1]);
+
+    // Pits stay out of stage 1 entirely. Every open stretch here has a ledge
+    // overhead, and a full jump would put the player into its underside — see
+    // the sky-clearance rule in reachability.test.ts.
+    for (const room of CITY_COMBAT_ROOMS) {
       expect(room.pits).toBeUndefined();
     }
   });

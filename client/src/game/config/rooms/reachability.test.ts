@@ -226,6 +226,88 @@ describe('level geometry against player metrics', () => {
     expect(problems).toEqual([]);
   });
 
+  it('leaves sky above everything that has to be jumped', () => {
+    // Clearing a barrier or a gap costs a full jump — there is one jump speed,
+    // so the player rises 130.7px whether they need it or not. A ledge low
+    // enough to be in the way turns an ordinary hop into a headbutt, and the
+    // player has no way to jump less.
+    const PLAYER_BODY_HEIGHT = 76;
+    const blocked: string[] = [];
+
+    for (const { stage, room } of combatRooms()) {
+      const ledges = (room.terrain ?? []).filter(
+        (piece) => piece.type === 'platform',
+      );
+      // Highest the player's head reaches on a floor-level jump.
+      const headAtApex =
+        FLOOR_SURFACE_Y - MAX_JUMP_HEIGHT - PLAYER_BODY_HEIGHT;
+
+      const obstacles: { label: string; left: number; right: number }[] = [
+        ...(room.pits ?? []).map((pit, index) => ({
+          label: `구덩이#${index}`,
+          left: pit.x,
+          right: pit.x + pit.width,
+        })),
+        ...(room.terrain ?? [])
+          .map((piece, index) => ({ piece, index }))
+          .filter(({ piece }) => piece.type === 'wall')
+          .map(({ piece, index }) => ({
+            label: `벽#${index}`,
+            left: piece.x,
+            right: piece.x + piece.width,
+          })),
+      ];
+
+      for (const obstacle of obstacles) {
+        for (const ledge of ledges) {
+          const underside = ledge.y + ledge.height;
+          if (underside <= headAtApex) continue;
+          const overlaps =
+            ledge.x < obstacle.right && ledge.x + ledge.width > obstacle.left;
+          if (overlaps) {
+            blocked.push(
+              `${stage}/${room.id} ${obstacle.label} 위에 발판 밑면 y=${underside} (머리 y=${headAtApex.toFixed(0)})`,
+            );
+          }
+        }
+      }
+    }
+
+    if (blocked.length > 0) {
+      console.log(`  점프 경로가 막힌 곳\n    ${blocked.join('\n    ')}`);
+    }
+
+    expect(blocked).toEqual([]);
+  });
+
+  it('introduces each enemy type on its own before combining them', () => {
+    // Every hazard meets the player somewhere it can be read before it meets
+    // them somewhere it can kill. The first room used to open with all three
+    // types inside 500px, which teaches that enemies exist and nothing else.
+    const firstRoom = STAGES[0].rooms.find((room) => room.kind === 'combat')!;
+    const order = [...firstRoom.enemySpawns]
+      .sort((first, second) => first.x - second.x)
+      .map((spawn) => spawn.type);
+
+    const introducedAt = new Map<string, number>();
+    order.forEach((type, index) => {
+      if (!introducedAt.has(type)) introducedAt.set(type, index);
+    });
+
+    // Nothing new arrives while the previous type is still being introduced:
+    // each type gets at least one encounter to itself.
+    const introductions = [...introducedAt.values()].sort((a, b) => a - b);
+    for (let index = 1; index < introductions.length; index += 1) {
+      expect(
+        introductions[index] - introductions[index - 1],
+        `${order[introductions[index]]} arrives before the previous type has been met alone`,
+      ).toBeGreaterThanOrEqual(2);
+    }
+
+    // And the one the ground cannot answer comes last.
+    expect(order[order.length - 1]).toBe('flying');
+  });
+
   it('does not bury a ground spawn inside terrain', () => {
     const buried: string[] = [];
 

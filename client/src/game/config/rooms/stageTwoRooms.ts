@@ -94,7 +94,9 @@ export const ALLEY_ROOM_TWO = defineRoom({
     { type: 'platform', x: 2790, y: GAME_HEIGHT - 250, width: 170, height: 22 },
     // Dumpster barriers.
     { type: 'wall', x: 1250, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-    { type: 'wall', x: 2750, y: GAME_HEIGHT - 140, width: 44, height: 76 },
+    // 2700 rather than 2750: the perch above moved to 2790 and clearing this
+    // barrier puts the player's head within 12px of its underside.
+    { type: 'wall', x: 2700, y: GAME_HEIGHT - 140, width: 44, height: 76 },
     // Exit barrier at the far door.
     { type: 'wall', x: 3400, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
