@@ -32,6 +32,23 @@ export function useGameUiEvents() {
     const handleNearbyWeaponChanged = (id: string | null) => {
       useGameUiStore.getState().setNearbyWeapon(id);
     };
+    const handlePauseChanged = (paused: boolean) => {
+      useGameUiStore.getState().setPaused(paused);
+    };
+    /**
+     * Listened for on the window rather than through Phaser's keyboard plugin:
+     * that plugin pauses along with the scene, so a key bound through it could
+     * pause the game and then never be heard again to unpause it.
+     */
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      gameEvents.emit('pause-toggle-requested');
+    };
+    window.addEventListener('keydown', handleKeyDown);
 
     gameEvents.on('health-changed', handleHealthChanged);
     gameEvents.on('enemy-health-changed', handleEnemyHealthChanged);
@@ -41,8 +58,11 @@ export function useGameUiEvents() {
     gameEvents.on('scene-changed', handleSceneChanged);
     gameEvents.on('weapon-changed', handleWeaponChanged);
     gameEvents.on('nearby-weapon-changed', handleNearbyWeaponChanged);
+    gameEvents.on('pause-changed', handlePauseChanged);
 
     return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      gameEvents.off('pause-changed', handlePauseChanged);
       gameEvents.off('health-changed', handleHealthChanged);
       gameEvents.off('enemy-health-changed', handleEnemyHealthChanged);
       gameEvents.off('boss-phase-changed', handleBossPhaseChanged);

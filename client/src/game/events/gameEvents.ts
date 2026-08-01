@@ -20,6 +20,14 @@ type GameEventMap = {
   'scene-changed': [scene: GameSceneKey];
   'stage-changed': [stageId: string];
   'admin-stage-requested': [stageIndex: number];
+  'admin-weapon-requested': [weaponId: string];
+  /**
+   * Asked for by the UI, answered by the scene. Split in two because the scene
+   * is the only thing that knows whether pausing is allowed right now, and a UI
+   * that flipped its own flag would drift out of step the first time it was not.
+   */
+  'pause-toggle-requested': [];
+  'pause-changed': [paused: boolean];
   'weapon-fired': [weaponId: string, x: number, y: number];
   'player-damaged': [x: number, y: number];
   'player-dashed': [x: number, y: number];

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SFX_CONFIG,
+  WEAPON_FIRE_SFX,
+  type SfxKey,
+} from '@/game/config/audioConfig';
+import {
   BOSS_COMBAT_CONFIGS,
   type BossVariant,
 } from '@/game/config/bossConfig';
@@ -43,6 +48,28 @@ describe('weapon progression', () => {
       // Nothing reaches past the longest sprite, which is 60px of art on a
       // 72px canvas placed 18px behind the origin.
       expect(weapon.muzzleOffset).toBeLessThanOrEqual(54);
+    }
+  });
+
+  it('lets climb stack no further than the weapon allows', () => {
+    for (const { feedback } of WEAPON_CONFIGS) {
+      // A ceiling under the per-shot kick would clamp the first round and make
+      // the weapon feel weaker the harder it hits.
+      expect(feedback.recoilClimbMax).toBeGreaterThanOrEqual(
+        feedback.recoilClimb,
+      );
+      // A quarter turn. Past that the barrel is no longer pointing downrange.
+      expect(feedback.recoilClimbMax).toBeLessThan(Math.PI / 2);
+    }
+  });
+
+  it('gives every weapon a fire sound', () => {
+    // The burst and rail rifles shipped silent: they were wired to sprites and
+    // rounds but never added to the sfx table, and nothing failed to say so.
+    for (const weapon of WEAPON_CONFIGS) {
+      const cue = WEAPON_FIRE_SFX[weapon.id];
+      expect(cue, `${weapon.id} has no fire cue`).toBeDefined();
+      expect(SFX_CONFIG[cue as SfxKey]).toBeDefined();
     }
   });
 

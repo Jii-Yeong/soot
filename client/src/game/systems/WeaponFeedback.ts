@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
+import { BackArm } from '@/game/systems/BackArm';
 import type { WeaponConfig } from '@/game/config/weaponConfig';
 
 /**
@@ -18,9 +20,26 @@ const GRIP_ORIGIN_Y = 14 / 24;
 const HAND_FROM_CENTRE_X = 5;
 const HAND_FROM_CENTRE_Y = -3;
 
+/**
+ * Recoil settles on a half-life rather than a flat rate per millisecond. A flat
+ * rate cannot serve both ends of the rack: tuned to the rail rifle's 22-degree
+ * kick it leaves the SMG visibly tilted between rounds, and tuned to the SMG it
+ * erases the rail rifle's kick inside three frames. Halving is scale-free, so
+ * both read the same way.
+ */
+const RECOIL_HALF_LIFE_MS = 55;
+const CLIMB_HALF_LIFE_MS = 75;
+
+/** Below this the offset is under a pixel and the rotation under a degree. */
+const RECOIL_EPSILON = 0.05;
+const CLIMB_EPSILON = 0.004;
+
 export class WeaponFeedback {
   readonly display: Phaser.GameObjects.Image;
 
+  private readonly backArm: BackArm;
+  /** The arm needs the barrel length to know where the handguard runs out. */
+  private weapon: WeaponConfig;
   private recoil = 0;
   private climb = 0;
   private hitStopTimer?: Phaser.Time.TimerEvent;
@@ -34,15 +53,24 @@ export class WeaponFeedback {
     this.display = scene.add
       .image(player.x, player.y, initialWeapon.displayTexture)
       .setOrigin(GRIP_ORIGIN_X, GRIP_ORIGIN_Y)
-      .setDepth(9);
+      .setDepth(PLAYER_STACK_DEPTH.weapon);
+
+    this.backArm = new BackArm(scene, player);
+    this.weapon = initialWeapon;
   }
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
     // The slide settles faster than the barrel drops. Recoil that decays on one
     // curve reads as the whole weapon being dragged back into place; letting the
     // muzzle hang gives the heavy weapons their weight.
-    this.recoil = Math.max(0, this.recoil - delta * 0.12);
-    this.climb = Math.max(0, this.climb - delta * 0.006);
+    this.recoil *= Math.pow(0.5, delta / RECOIL_HALF_LIFE_MS);
+    this.climb *= Math.pow(0.5, delta / CLIMB_HALF_LIFE_MS);
+    if (this.recoil < RECOIL_EPSILON) {
+      this.recoil = 0;
+    }
+    if (this.climb < CLIMB_EPSILON) {
+      this.climb = 0;
+    }
 
     const angle = Phaser.Math.Angle.Between(
       this.player.x,
@@ -68,23 +96,27 @@ export class WeaponFeedback {
       )
       .setRotation(climbed)
       .setFlipY(aimingLeft);
+
+    // Rides the body, not the weapon: it is the joint, and a joint that turns
+    // with the arm is the gap it exists to close.
+    // After the weapon, never before: the arm is chasing where the gun ended up
+    // this frame, recoil and climb included.
+    this.backArm.update(this.display, aimingLeft, this.weapon.muzzleOffset);
   }
 
   setWeapon(weapon: WeaponConfig) {
+    this.weapon = weapon;
     this.display.setTexture(weapon.displayTexture);
   }
 
   hide() {
     this.display.setVisible(false);
+    this.backArm.hide();
   }
 
-  playFire(weapon: WeaponConfig, baseAngle: number, pelletAngles: number[]) {
+  playFire(weapon: WeaponConfig, pelletAngles: number[]) {
     const { feedback } = weapon;
-    const muzzle = this.getMuzzlePosition(
-      baseAngle,
-      weapon.muzzleOffset,
-      weapon.muzzleRise,
-    );
+    const muzzle = this.getMuzzlePosition(weapon.muzzleOffset, weapon.muzzleRise);
     const thickness = Math.max(3, Math.round(feedback.muzzleLength * 0.28));
     const flash = this.scene.add
       .rectangle(
@@ -96,7 +128,9 @@ export class WeaponFeedback {
         0.96,
       )
       .setOrigin(0, 0.5)
-      .setRotation(baseAngle)
+      // The barrel's angle, not the aim angle. Mid-burst the weapon has already
+      // climbed, and a flash pinned to the crosshair floats off the muzzle.
+      .setRotation(this.display.rotation)
       .setDepth(12);
     const core = this.scene.add
       .circle(muzzle.x, muzzle.y, Math.max(2, thickness * 0.55), 0xffffff, 0.9)
@@ -114,7 +148,12 @@ export class WeaponFeedback {
     });
 
     this.recoil = Math.max(this.recoil, feedback.recoilDistance);
-    this.climb = Math.max(this.climb, feedback.recoilClimb);
+    // Climb stacks round on round up to the weapon's ceiling, which is what
+    // separates holding an SMG trigger from tapping one.
+    this.climb = Math.min(
+      feedback.recoilClimbMax,
+      this.climb + feedback.recoilClimb,
+    );
     this.scene.cameras.main.shake(
       feedback.shakeDuration,
       feedback.shakeIntensity,
@@ -215,12 +254,17 @@ export class WeaponFeedback {
    * The barrel tip in world space.
    *
    * `offset` runs along the barrel and `rise` perpendicular to it. Both are
-   * needed: the sprite's origin is the grip, and every barrel sits 8-11px above
+   * needed: the sprite's origin is the grip, and every barrel sits 6-9px above
    * it, so projecting along the aim vector alone puts the muzzle inside the
    * shooter's fist. The perpendicular flips with the weapon, otherwise firing
    * left would push the muzzle down through the grip instead of up over it.
+   *
+   * Taken from the sprite's own rotation rather than from an aim angle, because
+   * once recoil climb is in play those two disagree — and it is the drawn barrel
+   * the player watches rounds leave.
    */
-  getMuzzlePosition(angle: number, offset: number, rise = 0) {
+  getMuzzlePosition(offset: number, rise = 0) {
+    const angle = this.display.rotation;
     const lift = this.display.flipY ? rise : -rise;
     return {
       x: this.display.x + Math.cos(angle) * offset - Math.sin(angle) * lift,
@@ -245,7 +289,10 @@ export class WeaponFeedback {
       return;
     }
 
-    const traces = this.scene.add.graphics().setDepth(9).setAlpha(1);
+    const traces = this.scene.add
+      .graphics()
+      .setDepth(PLAYER_STACK_DEPTH.shotTrace)
+      .setAlpha(1);
     traces.lineStyle(
       weapon.id === 'rail-rifle' ? 3 : 1,
       feedback.muzzleColor,

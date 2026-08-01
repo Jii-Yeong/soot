@@ -21,6 +21,7 @@ import {
   type StageEndEvent,
 } from '@/game/config/stageConfig';
 import { getStageExitPlan } from '@/game/config/stageProgression';
+import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
   STARTING_WEAPON_ID,
@@ -97,6 +98,7 @@ export class GameScene extends Phaser.Scene {
       gameEvents.emit('health-changed', currentHealth, maxHealth),
   );
   private phase: GamePhase = 'boot';
+  private paused = false;
 
   constructor() {
     super('game');
@@ -193,7 +195,7 @@ export class GameScene extends Phaser.Scene {
     // Enemies default to the same depth (0) and are added to the display
     // list after the player, so without this they render on top of the
     // player whenever a melee enemy closes to contact range.
-    this.player.setDepth(8);
+    this.player.setDepth(PLAYER_STACK_DEPTH.body);
     this.physics.add.collider(this.player, this.floorBuilder.group);
   }
 
@@ -542,6 +544,8 @@ export class GameScene extends Phaser.Scene {
     keyboard.on('keydown-R', this.handleRestartInput, this);
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
     gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
+    gameEvents.on('admin-weapon-requested', this.handleAdminWeaponRequested);
+    gameEvents.on('pause-toggle-requested', this.handlePauseToggleRequested);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off('pointerdown', this.handlePointerDown, this);
@@ -549,6 +553,11 @@ export class GameScene extends Phaser.Scene {
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
       gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
+      gameEvents.off('admin-weapon-requested', this.handleAdminWeaponRequested);
+      gameEvents.off('pause-toggle-requested', this.handlePauseToggleRequested);
+      // A scene that shuts down while paused would leave the overlay up over
+      // whatever replaces it.
+      this.setPaused(false);
     });
   }
 
@@ -646,7 +655,61 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.requestedStartingStageIndex = stageIndex;
+    this.setPaused(false);
     this.scene.restart();
+  };
+
+  /**
+   * Death and the ending already hold the screen with their own prompts, and
+   * boot has nothing to pause, so those three are left alone.
+   */
+  private canPause() {
+    return (
+      this.phase !== 'boot' && this.phase !== 'dead' && this.phase !== 'ending'
+    );
+  }
+
+  private handlePauseToggleRequested = () => {
+    if (this.paused) {
+      this.setPaused(false);
+      return;
+    }
+
+    if (this.canPause()) {
+      this.setPaused(true);
+    }
+  };
+
+  private setPaused(paused: boolean) {
+    if (this.paused === paused) {
+      return;
+    }
+
+    this.paused = paused;
+    // Pausing the scene stops its update loop, timers and physics in one call,
+    // which is what keeps a hit-stop or a burst timer from firing behind the
+    // overlay and resolving the moment the player looks away.
+    if (paused) {
+      this.scene.pause();
+    } else {
+      this.scene.resume();
+    }
+    gameEvents.emit('pause-changed', paused);
+  }
+
+  /**
+   * Hands the player a weapon without one having to drop. Every weapon is
+   * already instantiated at scene start, so this is the same path `E` takes —
+   * it just skips the pickup. Restarting the stage to test the rail rifle was
+   * the alternative, and the drop tables do not guarantee it appears at all.
+   */
+  private handleAdminWeaponRequested = (weaponId: string) => {
+    if (!this.weaponSystem.equip(weaponId)) {
+      return;
+    }
+
+    this.updateWeaponLabel();
+    this.showWeaponEquipped(this.weaponSystem.activeConfig);
   };
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {

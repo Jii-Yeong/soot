@@ -3,11 +3,19 @@ export type WeaponFeedbackConfig = {
   muzzleLength: number;
   recoilDistance: number;
   /**
-   * How far the muzzle kicks upward, in radians. Pushing the weapon straight
-   * back reads as the whole gun sliding; it is the barrel lifting that reads as
-   * recoil, which is why a heavy weapon needs both.
+   * How far the muzzle kicks upward per shot, in radians. Pushing the weapon
+   * straight back reads as the whole gun sliding; it is the barrel lifting that
+   * reads as recoil, which is why a heavy weapon needs both.
    */
   recoilClimb: number;
+  /**
+   * The ceiling climb accumulates to while the trigger is held. An automatic
+   * lands one small kick at a time and only reads as recoil once they stack, so
+   * a per-shot value large enough to see on an SMG would throw the barrel at
+   * the ceiling by the fifth round. Single-shot weapons set this equal to
+   * `recoilClimb`, which makes the accumulation a no-op for them.
+   */
+  recoilClimbMax: number;
   shakeDuration: number;
   shakeIntensity: number;
   hitColor: number;
@@ -57,8 +65,10 @@ export type WeaponConfig = {
    */
   muzzleOffset: number;
   /**
-   * How far the barrel sits above the grip. The grip is the rotation origin, so
-   * without this every weapon fires from the shooter's fist.
+   * How far the barrel sits above the grip, measured to the centre of the
+   * muzzle face on the sprite. The grip is the rotation origin, so without this
+   * every weapon fires from the shooter's fist — but guessing high is just as
+   * wrong, and the first pass had every weapon firing over its own barrel.
    */
   muzzleRise: number;
   maxPoolSize: number;
@@ -89,7 +99,7 @@ export const SMG_WEAPON_CONFIG: WeaponConfig = {
   spreadDegrees: 0,
   pierce: 0,
   muzzleOffset: 24,
-  muzzleRise: 8,
+  muzzleRise: 7,
   maxPoolSize: 80,
   projectile: {
     color: 0x73d7a1,
@@ -100,8 +110,9 @@ export const SMG_WEAPON_CONFIG: WeaponConfig = {
   feedback: {
     muzzleColor: 0xfff4c7,
     muzzleLength: 10,
-    recoilDistance: 2,
-    recoilClimb: 0.02,
+    recoilDistance: 3.5,
+    recoilClimb: 0.035,
+    recoilClimbMax: 0.17,
     shakeDuration: 28,
     shakeIntensity: 0.0012,
     hitColor: 0xf4c66d,
@@ -127,7 +138,7 @@ export const SHOTGUN_WEAPON_CONFIG: WeaponConfig = {
   spreadDegrees: 26,
   pierce: 0,
   muzzleOffset: 47,
-  muzzleRise: 10,
+  muzzleRise: 6.5,
   maxPoolSize: 60,
   projectile: {
     color: 0xe99816,
@@ -139,8 +150,9 @@ export const SHOTGUN_WEAPON_CONFIG: WeaponConfig = {
   feedback: {
     muzzleColor: 0xffd29f,
     muzzleLength: 18,
-    recoilDistance: 8,
-    recoilClimb: 0.12,
+    recoilDistance: 13,
+    recoilClimb: 0.3,
+    recoilClimbMax: 0.3,
     shakeDuration: 80,
     shakeIntensity: 0.006,
     hitColor: 0xf0a35b,
@@ -167,7 +179,7 @@ export const BURST_RIFLE_WEAPON_CONFIG: WeaponConfig = {
   spreadDegrees: 0,
   pierce: 0,
   muzzleOffset: 36,
-  muzzleRise: 9,
+  muzzleRise: 8,
   maxPoolSize: 72,
   projectile: {
     color: 0x9fd8fb,
@@ -178,8 +190,10 @@ export const BURST_RIFLE_WEAPON_CONFIG: WeaponConfig = {
   feedback: {
     muzzleColor: 0xc6d8ff,
     muzzleLength: 13,
-    recoilDistance: 4,
-    recoilClimb: 0.05,
+    recoilDistance: 6,
+    recoilClimb: 0.075,
+    // Three rounds inside 144ms, so the burst walks up and stops there.
+    recoilClimbMax: 0.2,
     shakeDuration: 42,
     shakeIntensity: 0.0025,
     hitColor: 0x8fb8ff,
@@ -205,7 +219,7 @@ export const RAIL_RIFLE_WEAPON_CONFIG: WeaponConfig = {
   spreadDegrees: 0,
   pierce: 2,
   muzzleOffset: 47,
-  muzzleRise: 11,
+  muzzleRise: 8.5,
   maxPoolSize: 36,
   projectile: {
     color: 0xc271f0,
@@ -216,8 +230,9 @@ export const RAIL_RIFLE_WEAPON_CONFIG: WeaponConfig = {
   feedback: {
     muzzleColor: 0xf2e6ff,
     muzzleLength: 28,
-    recoilDistance: 10,
-    recoilClimb: 0.15,
+    recoilDistance: 16,
+    recoilClimb: 0.38,
+    recoilClimbMax: 0.38,
     shakeDuration: 110,
     shakeIntensity: 0.008,
     hitColor: 0xd5a8ff,

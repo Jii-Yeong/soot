@@ -15,6 +15,7 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
+import { BACK_ARM } from '@/game/config/playerRigConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
 export class BootScene extends Phaser.Scene {
@@ -40,6 +41,7 @@ export class BootScene extends Phaser.Scene {
     for (const weapon of WEAPON_CONFIGS) {
       this.load.image(weapon.displayTexture, `/assets/weapons/${weapon.id}.png`);
     }
+    this.load.image(BACK_ARM.texture, BACK_ARM.url);
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
