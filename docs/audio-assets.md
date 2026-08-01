@@ -77,6 +77,8 @@
 | --- | --- | --- | --- | --- |
 | `sfx-smg-fire` | `smg-fire` | `weapon-fired` (weaponId `smg`) | 0.2초 이하 필수. 건조하고 짧게 | `smg shot dry`, `laser shoot short` |
 | `sfx-shotgun-fire` | `shotgun-fire` | `weapon-fired` (weaponId `shotgun`) | 묵직한 저역 | `shotgun blast`, `heavy energy shot` |
+| `sfx-burst-rifle-fire` | `burst-rifle-fire` | `weapon-fired` (weaponId `burst-rifle`) | SMG보다 어둡고 무겁게. 72ms 간격 3연발이라 꼬리가 길면 뭉갠다 | `rifle crack`, `assault rifle shot` |
+| `sfx-rail-rifle-fire` | `rail-rifle-fire` | `weapon-fired` (weaponId `rail-rifle`) | 게임에서 가장 무거운 큐. 발사 간격 760ms라 길어도 된다 | `railgun shot`, `coil charge discharge` |
 | `sfx-enemy-hit` | `enemy-hit` | `enemy-damaged` | 금속 임팩트 + 전자 노이즈. 연타되므로 거슬리지 않게 | `metal impact`, `robot hit` |
 | `sfx-enemy-down` | `enemy-down` | `enemy-defeated` | 파괴 + 전원 차단 | `robot destroy`, `power down` |
 | `sfx-player-hit` | `player-hit` | `player-damaged` | 아래 복선 항목 참고 | `body impact`, `heartbeat monitor` |
@@ -98,6 +100,8 @@
 | --- | --- | --- | --- | --- |
 | `sfx-smg-fire` | `smg-fire_synth-dry.wav` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.16초 | 아래 "총소리는 세 번 갈아엎었다" 참고 |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | sci-fi / `laserLarge_000` | 0.677초 | 저역이 지배적이라 SMG와 대비된다 |
+| `sfx-burst-rifle-fire` | `burst-rifle-fire_synth-crack.ogg` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.17초 | 아래 "무기 넷, 소리 둘" 참고 |
+| `sfx-rail-rifle-fire` | `rail-rifle-fire_synth-coil.ogg` | **자체 합성** (`tools/make-gunshot.mjs`) | 0.52초 | 〃 |
 | `sfx-enemy-hit` | `enemy-hit_impact-metal-medium-004.ogg` | impact / `impactMetal_medium_004` | 0.107초 | 연타되는 큐라 가장 짧은 금속 타격 |
 | `sfx-enemy-down` | `enemy-down_explosion-crunch-000.ogg` | sci-fi / `explosionCrunch_000` | 0.777초 | 파편 섞인 파괴음. 안드로이드에 맞는다 |
 | `sfx-player-hit` | `player-hit_impact-punch-medium-001.ogg` | impact / `impactPunch_medium_001` | 0.402초 | 둔탁한 몸통 타격 |
@@ -231,6 +235,38 @@ B가 수치상 가장 낮지만 **A를 채택했다.** 무기가 탄알 발사�
 (digital 팩 `tone1`, 0.661초). 심전도 모니터 비프에 가장 가깝다. `player-hit`가 저역에만
 에너지가 있고 중역이 -25.8dB로 비어 있어 이 비프를 겹쳐도 서로 먹지 않는다. 겹쳐 재생은
 `AudioDirector` 작업이 필요하므로 지금은 재료만 둔다.
+
+### 무기 넷, 소리 둘 — 없는 줄도 몰랐던 큐
+
+`WEAPON_FIRE_SFX`에 `smg`와 `shotgun`만 있었다. `burst-rifle`과 `rail-rifle`은 스프라이트도
+탄알도 붙은 채로 **소리 없이 발사되고 있었고**, 매핑이 `Record<string, SfxKey | undefined>`라
+없는 키가 그냥 `undefined`로 조용히 지나갔다. 지금은 무기 전량에 큐가 있는지 확인하는
+테스트가 있다.
+
+두 소리 모두 `tools/make-gunshot.mjs`로 합성했다. 팩에서 고르지 않은 이유는 SMG 때와 같다 —
+네 정이 서로 구분돼야 하는데, 팩의 총소리는 대개 같은 계열이라 나란히 두면 뭉갠다.
+
+**버스트 라이플의 1차본은 폐기했다.** 밝고 짧게 만들었더니 시작 centroid가 3049Hz로 SMG의
+3276과 거의 같고 길이도 0.15초로 동일해서, 실제로 쏘면 같은 소리였다. 라이플이 더 무거운
+탄을 쓴다는 방향으로 뒤집어 다시 만들었다. **밝기로 차별화하려 한 것이 실수였다.**
+
+| 큐 | 길이 | 시작 centroid | 성격 |
+| --- | --- | --- | --- |
+| `sfx-smg-fire` | 0.16초 | 3276Hz | 밝고 마르다 |
+| `sfx-burst-rifle-fire` | 0.17초 | 992Hz | 어둡고 묵직하다 |
+| `sfx-shotgun-fire` | 0.68초 | 102Hz | 저역 붐 |
+| `sfx-rail-rifle-fire` | 0.52초 | 1030 → 284Hz | 60ms 충전 후 하강 스윕 |
+
+레일 라이플만 **음정이 있는 층을 하나 넣었다.** 위의 "전부 노이즈" 원칙에 대한 유일한 예외다.
+코일건이라 스윕하는 공진이 소리의 전부인데, 활강은 고정된 음정이 아니므로 스테이지 조성과
+부딪히지 않는다. 고정 biquad로는 안 되고(계수가 생성 시점에 굳는다) 상태변수 필터의 컷오프를
+샘플마다 움직였다.
+
+버스트의 저역 꼬리는 0.033초로 잘랐다. 연사 간격이 72ms라, 길면 3연발이 하나의 저역 뭉텅이로
+번지고 짧으면 세 발이 따로 논다. 그 사이를 맞춘 값이다.
+
+**두 소리 다 귀로 확인하지 못했다.** 작업 환경에서 재생이 안 돼 길이·피크·RMS·시간대별
+centroid만 재서 맞췄다. 들어보고 어색하면 파일만 갈아 끼우면 된다. 코드는 건드릴 필요 없다.
 
 ## BGM 생성 가이드 (AI 사용 시)
 
@@ -773,6 +809,8 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 | `bgm-city` | `city_the-center-of-the-room.ogg` | Gemini 웹 앱(gemini.google.com)의 Lyria 3 Pro로 생성, Google AI Pro 구독 | **확인 필요** | 불필요 | |
 | `sfx-smg-fire` | `smg-fire_synth-dry.wav` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
+| `sfx-burst-rifle-fire` | `burst-rifle-fire_synth-crack.ogg` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
+| `sfx-rail-rifle-fire` | `rail-rifle-fire_synth-coil.ogg` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
 | `sfx-enemy-hit` | `enemy-hit_impact-metal-medium-004.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-enemy-down` | `enemy-down_explosion-crunch-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-player-hit` | `player-hit_impact-punch-medium-001.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |

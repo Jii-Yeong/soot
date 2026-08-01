@@ -146,6 +146,134 @@ function gunshot({ seconds, topHz, midLoHz, midHiHz, lowHz, topTau, midTau, lowT
   return wav(out);
 }
 
+/**
+ * Chamberlin state-variable filter whose cutoff moves per sample.
+ *
+ * The rule above — all noise, nothing resonant — has one exception. The rail
+ * rifle is a coilgun, and a *swept* resonance is the whole of that sound. A
+ * glide has no stable pitch, so it still cannot clash with a stage's key. A
+ * fixed biquad cannot do this: its coefficients are baked at construction.
+ */
+function sweptBandpass(signal, fromHz, toHz, q) {
+  const out = new Float64Array(signal.length);
+  let low = 0;
+  let band = 0;
+  for (let i = 0; i < signal.length; i += 1) {
+    const t = i / (signal.length - 1);
+    // Exponential glide, so the sweep is even in pitch rather than in hertz.
+    const hz = fromHz * Math.pow(toHz / fromHz, t);
+    const f = 2 * Math.sin((Math.PI * Math.min(hz, RATE * 0.45)) / RATE);
+    const high = signal[i] - low - (1 / q) * band;
+    band += f * high;
+    low += f * band;
+    out[i] = band;
+  }
+  return out;
+}
+
+/** Rises then falls. The charge before a coil release, not a hit. */
+function swell(frames, attack, tau, delay = 0) {
+  const out = new Float64Array(frames);
+  for (let i = 0; i < frames; i += 1) {
+    const t = i / RATE - delay;
+    if (t < 0) out[i] = 0;
+    else if (t < attack) out[i] = t / attack;
+    else out[i] = Math.exp(-(t - attack) / tau);
+  }
+  return out;
+}
+
+/** The 1ms ramp, the tail fade and the -1dBFS normalise, shared by every shape. */
+function finish(out, frames, fadeSeconds) {
+  const ramp = Math.round(RATE * 0.001);
+  for (let i = 0; i < ramp; i += 1) out[i] *= i / ramp;
+  const fade = Math.round(RATE * fadeSeconds);
+  for (let i = 0; i < fade; i += 1) out[frames - 1 - i] *= i / fade;
+
+  let peak = 0;
+  for (const v of out) peak = Math.max(peak, Math.abs(v));
+  const target = Math.pow(10, -1 / 20);
+  for (let i = 0; i < frames; i += 1) out[i] = (out[i] / peak) * target;
+  return out;
+}
+
+/**
+ * Burst rifle. Deliberately darker and heavier than the SMG.
+ *
+ * A first pass built it bright and short and measured at a 3049Hz opening
+ * centroid against the SMG's 3276 over the same 0.15s — near enough that in play
+ * they were the same sound. A rifle round is the heavier one; the contrast lives
+ * there, not in being brighter.
+ */
+function burstRifle() {
+  const seconds = 0.17;
+  const frames = Math.round(RATE * seconds);
+  const source = noise(frames, 4242);
+
+  const crack = apply(source, biquad('highpass', 3000, BUTTER));
+  const body = apply(source, biquad('highpass', 480, BUTTER), biquad('lowpass', 3000, BUTTER));
+  const low = apply(source, biquad('lowpass', 260, BUTTER), biquad('lowpass', 260, BUTTER));
+  const room = apply(noise(frames, 4249), biquad('lowpass', 1400, BUTTER), biquad('highpass', 260, BUTTER));
+
+  return wav(
+    finish(
+      mix(
+        frames,
+        [crack, decay(frames, 0.004), 0.62],
+        [body, decay(frames, 0.016), 1.0],
+        // Trimmed against the 72ms burst interval: long enough that three
+        // rounds stack into one aggressive event, short enough that they do
+        // not smear into a single low blur.
+        [low, decay(frames, 0.033), 0.85],
+        [room, decay(frames, 0.03, 0.008), 0.1],
+      ),
+      frames,
+      0.008,
+    ),
+  );
+}
+
+/**
+ * Rail rifle. 75 damage on a 760ms interval, so it is allowed to be the longest
+ * and heaviest cue in the game: a short coil charge, the discharge, then a
+ * resonance sweeping down out of everything else's way.
+ */
+function railRifle() {
+  const seconds = 0.52;
+  const frames = Math.round(RATE * seconds);
+  const source = noise(frames, 909);
+
+  const charge = sweptBandpass(noise(frames, 911), 320, 2600, 6);
+  const snap = apply(source, biquad('highpass', 5000, BUTTER));
+  const body = apply(source, biquad('highpass', 600, BUTTER), biquad('lowpass', 5000, BUTTER));
+  const slam = apply(
+    apply(source, biquad('lowpass', 150, BUTTER)),
+    biquad('lowpass', 150, BUTTER),
+  );
+  const coil = sweptBandpass(noise(frames, 913), 1800, 190, 9);
+
+  return wav(
+    finish(
+      mix(
+        frames,
+        [charge, swell(frames, 0.055, 0.008), 0.5],
+        // The shot lands at 60ms, after the charge has risen.
+        [snap, decay(frames, 0.006, 0.06), 0.85],
+        [body, decay(frames, 0.02, 0.06), 1.0],
+        [slam, decay(frames, 0.09, 0.06), 0.9],
+        [coil, decay(frames, 0.16, 0.062), 0.75],
+      ),
+      frames,
+      0.008,
+    ),
+  );
+}
+
+const SHAPED = {
+  'burst-rifle-fire_synth-crack': burstRifle,
+  'rail-rifle-fire_synth-coil': railRifle,
+};
+
 const VARIANTS = {
   // Tight and dry. Built for a 110ms fire interval — barely any tail to stack.
   'synth-a-dry': {
@@ -170,5 +298,9 @@ const VARIANTS = {
 const dir = process.argv[2];
 for (const [name, options] of Object.entries(VARIANTS)) {
   writeFileSync(`${dir}/${name}.wav`, gunshot(options));
+  console.log('written', name);
+}
+for (const [name, build] of Object.entries(SHAPED)) {
+  writeFileSync(`${dir}/${name}.wav`, build());
   console.log('written', name);
 }
