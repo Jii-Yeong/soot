@@ -308,6 +308,33 @@ describe('level geometry against player metrics', () => {
     expect(order[order.length - 1]).toBe('flying');
   });
 
+  it('does not spawn a ground enemy over a pit', () => {
+    // A ground enemy standing where there is no floor falls out of the room the
+    // moment it is created. Easy to do by eye and invisible until someone plays
+    // the room — three of these were nearly authored while laying out stages 3
+    // and 4, because the pits go in after the enemies and nothing complained.
+    const floating: string[] = [];
+
+    for (const { stage, room } of combatRooms()) {
+      for (const spawn of room.enemySpawns) {
+        if (spawn.type === 'flying' || spawn.type === 'boss') continue;
+        for (const pit of room.pits ?? []) {
+          if (spawn.x >= pit.x && spawn.x <= pit.x + pit.width) {
+            floating.push(
+              `${stage}/${room.id} ${spawn.type} x=${spawn.x} — 구덩이 ${pit.x}~${pit.x + pit.width}`,
+            );
+          }
+        }
+      }
+    }
+
+    if (floating.length > 0) {
+      console.log(`  바닥 없는 곳의 스폰\n    ${floating.join('\n    ')}`);
+    }
+
+    expect(floating).toEqual([]);
+  });
+
   it('does not bury a ground spawn inside terrain', () => {
     const buried: string[] = [];
 
