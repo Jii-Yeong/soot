@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { BackArm } from '@/game/systems/BackArm';
+import { muzzlePoint } from '@/game/systems/muzzlePoint';
 import type { WeaponConfig } from '@/game/config/weaponConfig';
 
 /**
@@ -107,6 +108,11 @@ export class WeaponFeedback {
   setWeapon(weapon: WeaponConfig) {
     this.weapon = weapon;
     this.display.setTexture(weapon.displayTexture);
+    // Recoil belongs to the weapon that produced it. Carrying it across a swap
+    // makes the new weapon's first shot clamp the leftover down to its own
+    // ceiling in one frame — a rail rifle's 0.38 snapping to an SMG's 0.17.
+    this.recoil = 0;
+    this.climb = 0;
   }
 
   hide() {
@@ -114,9 +120,13 @@ export class WeaponFeedback {
     this.backArm.hide();
   }
 
-  playFire(weapon: WeaponConfig, pelletAngles: number[]) {
+  playFire(weapon: WeaponConfig, baseAngle: number, pelletAngles: number[]) {
     const { feedback } = weapon;
-    const muzzle = this.getMuzzlePosition(weapon.muzzleOffset, weapon.muzzleRise);
+    const muzzle = this.getMuzzlePosition(
+      baseAngle,
+      weapon.muzzleOffset,
+      weapon.muzzleRise,
+    );
     const thickness = Math.max(3, Math.round(feedback.muzzleLength * 0.28));
     const flash = this.scene.add
       .rectangle(
@@ -128,9 +138,8 @@ export class WeaponFeedback {
         0.96,
       )
       .setOrigin(0, 0.5)
-      // The barrel's angle, not the aim angle. Mid-burst the weapon has already
-      // climbed, and a flash pinned to the crosshair floats off the muzzle.
-      .setRotation(this.display.rotation)
+      // The shot's own direction, climb included — see getMuzzlePosition.
+      .setRotation(this.climbedAngle(baseAngle))
       .setDepth(12);
     const core = this.scene.add
       .circle(muzzle.x, muzzle.y, Math.max(2, thickness * 0.55), 0xffffff, 0.9)
@@ -259,17 +268,22 @@ export class WeaponFeedback {
    * shooter's fist. The perpendicular flips with the weapon, otherwise firing
    * left would push the muzzle down through the grip instead of up over it.
    *
-   * Taken from the sprite's own rotation rather than from an aim angle, because
-   * once recoil climb is in play those two disagree — and it is the drawn barrel
-   * the player watches rounds leave.
+   * The geometry lives in muzzlePoint so it can be checked without a renderer.
    */
-  getMuzzlePosition(offset: number, rise = 0) {
-    const angle = this.display.rotation;
-    const lift = this.display.flipY ? rise : -rise;
-    return {
-      x: this.display.x + Math.cos(angle) * offset - Math.sin(angle) * lift,
-      y: this.display.y + Math.sin(angle) * offset + Math.cos(angle) * lift,
-    };
+  getMuzzlePosition(angle: number, offset: number, rise = 0) {
+    return muzzlePoint({
+      gripX: this.display.x,
+      gripY: this.display.y,
+      angle,
+      climb: this.climb,
+      mirrored: this.display.flipY,
+      offset,
+      rise,
+    });
+  }
+
+  private climbedAngle(angle: number) {
+    return angle + (this.display.flipY ? this.climb : -this.climb);
   }
 
   cancelHitStop() {

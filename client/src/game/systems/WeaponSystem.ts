@@ -153,6 +153,7 @@ export class WeaponSystem {
 
     for (const angle of angles) {
       const { x, y } = this.feedback.getMuzzlePosition(
+        angle,
         config.muzzleOffset,
         config.muzzleRise,
       );
@@ -161,7 +162,7 @@ export class WeaponSystem {
       });
     }
 
-    this.feedback.playFire(config, angles);
+    this.feedback.playFire(config, baseAngle, angles);
   }
 
   private computePelletAngles(

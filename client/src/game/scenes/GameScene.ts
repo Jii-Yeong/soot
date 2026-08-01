@@ -709,7 +709,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.updateWeaponLabel();
-    this.showWeaponEquipped(this.weaponSystem.activeConfig);
+
+    // The equip flourish is a camera flash and two tweens, and neither advances
+    // while the scene is paused — asked for from the pause menu they would sit
+    // frozen over the overlay until the player resumed. The swap itself still
+    // happens, which is the whole point of the button.
+    if (!this.paused) {
+      this.showWeaponEquipped(this.weaponSystem.activeConfig);
+    }
   };
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
