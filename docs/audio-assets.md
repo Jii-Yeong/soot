@@ -1323,6 +1323,70 @@ immediately at full level, loopable background bed, 88 BPM, D major
 도달한 테이크가 아직 하나도 없다. 그때는 벨·글로켄슈펠·윈드차임 같은 **금속 타격 계열**을
 넣는 것이 물리적으로 가장 빠른 길이고, 이는 편성 합의를 바꾸는 일이므로 사람이 정한다.
 
+**A5 — 곡의 종류를 바꾼다 (지금 쓸 것)**
+
+A4도 어둡다는 피드백이 나왔다. 리버브와 주법을 고쳐도 안 된다면 남은 것은 하나다.
+**곡의 종류를 잘못 잡고 있었다.**
+
+기획서의 외형 변화표를 다시 보면 5스테이지 주인공의 상태가 명시돼 있다.
+
+| 구간 | 외형 | 서사적 의미 |
+| --- | --- | --- |
+| 1~2 | 눈이 완전히 가려진 묶은 머리 | 감정 차단, 현실 회피, 생존에만 집중 |
+| 3 | 한쪽 눈이 드러남 | 인간들에게 벌어진 일을 직접 보기 시작함 |
+| 4 | 머리가 풀리고 양쪽 눈 노출 | 통제와 현실 감각이 무너짐 |
+| **5** | **강한 안광과 웃는 표정** | **광기, 전투 쾌감, 현실의 완전한 왜곡** |
+
+5스테이지 연출에는 "처치 시 피 대신 빛과 꽃잎, 주인공의 안광과 미소가 강해진다"까지
+붙어 있다. **주인공은 지금 웃으면서 죽이고 있고 그것을 즐기고 있다.**
+
+**그런데 지금까지의 return 프롬프트는 전부 관조하는 곡이었다.** `ambient`, `sustained`,
+`one continuous unchanging texture`, `spacious` — 정적인 패드를 요구하는 말들이고, 이것이
+`title`·`city`에 맞는 언어다. 그 둘은 실제로 관조하는 곡이었으니 맞았다.
+
+**그리고 그 언어가 어둠의 원인이기도 하다.** 지속음은 정의상 트랜지언트가 없고, 우리
+데이터에서 밝은 곡은 전부 트랜지언트가 많은 곡이었다. **정적인 텍스처를 요구하면서 밝기를
+같이 요구한 것이 애초에 서로 반대로 당기는 지시였다** — `muted` 대 `bright`와 같은 종류의
+실수를 세 번째로 반복한 셈이다.
+
+바꾸는 것은 이렇다.
+
+| 뺀다 | 이유 |
+| --- | --- |
+| `ambient` · `sustained` · `one continuous unchanging texture` | 트랜지언트를 없애는 말이고, 빌드 억제는 이미 다른 두 문장이 하고 있다 |
+| `blindingly bright` 같은 밝기 형용사 | 세 큐에 걸쳐 고역으로 번역되지 않는 것이 확인됐다 |
+
+| 넣는다 | 이유 |
+| --- | --- |
+| 빠른 아르페지오 · 트레몰로 · 하모닉스 | 밝기는 형용사가 아니라 트랜지언트에서 나온다 |
+| `everything played in the top two octaves` | 음역을 사실로 지정한다. 밝기 형용사의 대체물 |
+| `the sound of someone smiling while something terrible happens` | 기획서의 5스테이지 정서를 그대로 옮긴 문장 |
+
+멜로디 불안정(팀 방향)과 1분 반복, 대리석 홀, `light reverb`, 주법은 그대로 둔다. 근거가
+있는 것들이다.
+
+```
+ecstatic orchestral, everything played in the top two octaves, recorded in a
+vast hall of white marble and glass with hard bright reflections, high register
+strings played sul ponticello, glassy and metallic and full of upper partials,
+natural harmonics ringing above them, fast crystalline clean electric guitar
+arpeggio with light reverb running continuously, rapid shimmering tremolo in
+the violins, light cello underneath, choir-free, the sound of someone smiling
+while something terrible happens, the melody unsteady against it, wandering and
+never landing on the tonic, notes slipping a semitone out of place and
+correcting late, two violins drifting slightly out of tune with each other, a
+raised fourth souring every otherwise perfect chord, a single one minute
+passage that returns to its exact starting point and begins again unchanged,
+every minute sounds like every other minute, sparse, purely instrumental, the
+same handful of instruments from beginning to end, the final section sits at
+exactly the same level as the opening, starts immediately at full level,
+loopable background bed, 88 BPM, D major
+```
+
+**`sparse`는 남겼다.** 5스테이지는 공중전이라 총소리가 거의 끊기지 않으므로 악기 수는
+늘리지 않는다. **밀도를 올리는 것이 아니라 같은 수의 악기를 빠르게 움직이게 하는 것**이
+이 프롬프트의 요지다.
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1332,7 +1396,7 @@ immediately at full level, loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A4** | A · B · A2 · A3 | A는 루프 0.42 천장 (15번), B는 합창이 크레셴도를 부른다 (16번), A2는 밝기와 불안을 한 단어에 섞었고, A3까지도 `heavy reverb`를 들고 있었다 |
+| `return` | **A5** | A · B · A2 · A3 · A4 | 정적인 텍스처를 요구하면서 밝기를 같이 요구하고 있었다. A5에서 곡의 종류를 바꿨다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
