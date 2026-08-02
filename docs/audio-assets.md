@@ -1387,6 +1387,84 @@ loopable background bed, 88 BPM, D major
 늘리지 않는다. **밀도를 올리는 것이 아니라 같은 수의 악기를 빠르게 움직이게 하는 것**이
 이 프롬프트의 요지다.
 
+##### 23번 (A5) — 밝기는 잡혔고 이음매를 내줬다
+
+| | 15 (A) | 17 (A2) | 21 (A2) | **23 (A5)** |
+| --- | --- | --- | --- | --- |
+| 중 1~4k | -8.3 | -8.9 | -13.8 | **-7.8** |
+| 고 4~8k | -23.6 | -23.7 | -34.0 | **-21.9** |
+| 공기감 8~16k | -37.7 | -38.0 | -47.9 | **-33.9** |
+| 빌드 (전체 / 창) | +1.0 / -0.0 | +1.6 / -0.7 | +5.7 / +0.8 | +3.2 / **-2.7** |
+| 루프 (탐색 후) | 0.422 | **0.852** | 0.869 | 0.422 |
+
+**트랜지언트 판단이 맞았다.** 공기감이 종전 최고보다 4.1dB 올라왔고 고역과 중역도 전부
+return 최고값이다. 정적인 텍스처를 요구하는 말을 빼고 빠른 아르페지오·트레몰로·하모닉스를
+넣은 것이 그대로 대역에 나타났다.
+
+**대신 루프가 0.852에서 0.422로 내려갔다.** 원인은 inferno에서 템포로 확인한 것과 같다 —
+**단위 시간당 사건이 늘면 두 지점이 닮을 확률이 떨어진다.** 트랜지언트를 늘린다는 것이
+곧 사건을 늘린다는 뜻이므로 이 교환은 구조적이다.
+
+**다만 이 큐에는 inferno에 없던 카드가 있다.** 드럼이 없으므로 크로스페이드를 길게 걸 수
+있다. `title`이 2~4초를 쓰기로 한 것과 같은 이유이고, 긴 크로스페이드는 낮은 상관을 상당
+부분 덮는다. inferno에서는 킥이 플램으로 들려 쓸 수 없던 방법이다.
+
+창 안 빌드가 -2.7dB인 것은 짚어 둔다. 한 바퀴 도는 동안 서서히 작아졌다가 이음매에서
+되돌아온다는 뜻이다. 이음매 레벨차는 -0.92dB로 게이트 안이므로 단차로는 들리지 않지만,
+가공 때 구간을 다시 고를 여지는 있다.
+
+**A6 — 저역과 어택을 넣는다 (지금 쓸 것)**
+
+"너무 정적이다, 조금 더 터졌으면 좋겠다"는 피드백이 나왔다. **그 감각의 정체가 측정에
+그대로 있다.**
+
+| 곡 | 저역 0~250Hz |
+| --- | --- |
+| inferno 22 | **-1.2** |
+| alley 채택본 | -1.3 |
+| inferno 20 | -1.7 |
+| return 17 | -6.8 |
+| **return 23** | **-7.0** |
+
+**return 계열은 저역이 5~6dB 비어 있다.** 지금까지 밝기만 쫓느라 위쪽만 채웠고, 아래가
+없으면 아무리 반짝여도 무게가 실리지 않는다. **"터진다"는 대개 저역과 어택의 문제다.**
+
+두 가지를 넣는다.
+
+| 넣는 것 | 이유 |
+| --- | --- |
+| `timpani strikes`, `low double bass pushing underneath` | 비어 있는 저역을 채운다. 심벌 스웰은 넣지 않는다 — 크레셴도를 불러 루프를 깬다 |
+| `hard marcato attacks` | 활을 때리는 주법. 주법 단어가 형용사보다 강하게 먹는 것은 세 번 확인됐다 |
+
+**`sparse`는 이번에도 남긴다.** 밀도가 아니라 어택과 저역으로 터뜨리는 것이 요지다.
+이것으로도 부족하면 그때 `sparse`를 빼고 `AUDIO_MIX_CONFIG`의 `music`을 낮춘다 — 순서가
+그 반대가 되면 총소리가 묻힌다.
+
+**템포는 88을 유지한다.** 세 테이크 연속 79~80으로 나왔지만, 여기서 숫자를 올리면 저역·어택
+변경과 겹쳐 무엇이 들었는지 알 수 없다. 그리고 88은 city와 같은 템포로 잡아 둔 설계값이다.
+
+```
+ecstatic orchestral, driving and explosive, everything played in the top two
+octaves over a heavy low end, recorded in a vast hall of white marble and glass
+with hard bright reflections, high register strings played sul ponticello with
+hard marcato attacks, glassy and metallic and full of upper partials, natural
+harmonics ringing above them, fast crystalline clean electric guitar arpeggio
+with light reverb running continuously, rapid shimmering tremolo in the
+violins, timpani strikes and low double bass pushing underneath, choir-free,
+the sound of someone smiling while something terrible happens, the melody
+unsteady against it, wandering and never landing on the tonic, notes slipping a
+semitone out of place and correcting late, two violins drifting slightly out of
+tune with each other, a raised fourth souring every otherwise perfect chord, a
+single one minute passage that returns to its exact starting point and begins
+again unchanged, every minute sounds like every other minute, sparse, purely
+instrumental, the same handful of instruments from beginning to end, the final
+section sits at exactly the same level as the opening, starts immediately at
+full level, loopable background bed, 88 BPM, D major
+```
+
+**볼 지점은 저역이 -3dB 위로 올라오면서 공기감이 -34 근처를 지키는가이다.** 저역만 오르고
+고역이 내려가면 무게를 얻고 밝기를 잃은 것이므로 `timpani`를 뒤로 미룬다.
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1396,7 +1474,7 @@ loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A5** | A · B · A2 · A3 · A4 | 정적인 텍스처를 요구하면서 밝기를 같이 요구하고 있었다. A5에서 곡의 종류를 바꿨다 |
+| `return` | **A6** | A · B · A2 · A3 · A4 · A5 | A5까지 오면서 밝기는 잡혔고(공기감 -33.9) 남은 것은 저역과 어택이다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
@@ -1485,6 +1563,7 @@ private readonly handleDecoded = (key: string) => {
 | 20 | inferno | A3 | 181.5초 | Ten Ton Loom |
 | 21 | return | A2 | 175.1초 | Vigil in Concrete |
 | 22 | inferno | A3 | 182.4초 | Concrete Teeth |
+| 23 | return | A5 | 175.7초 | Smiling Through Glass |
 
 #### underground 측정 결과
 
