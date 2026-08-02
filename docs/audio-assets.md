@@ -1016,9 +1016,10 @@ duration, the final section sits at exactly the same level as the opening,
 starts immediately at full level, loopable background bed, 112 BPM, D minor
 ```
 
-**B — 현악이 앞이다**
+**B — 현악이 앞이다 (폐기됨)**
 
-분노가 기타에서 나오느냐 관현악에서 나오느냐를 가르는 대조다. 편성은 같고 순서만 바뀐다.
+분노가 기타에서 나오느냐 관현악에서 나오느냐를 가르는 대조였다. **답이 나왔으므로 더
+쓰지 않는다** — 14번 참고. 현악을 앞에 세우면 분노가 아니라 애도가 나온다.
 
 ```
 furious string orchestra, a half-remembered melody from an earlier darker piece
@@ -1031,6 +1032,31 @@ beginning to end, the same eight bars repeated over and over for the entire
 duration, starts immediately at full level, loopable background bed, 112 BPM,
 D minor
 ```
+
+**A2 — 속도를 되찾는 버전 (다음에 쓸 것)**
+
+13번이 좋은데 **alley보다 느리다**는 것 하나가 걸렸다. B가 폐기됐으므로 대조축을 편성에서
+**속도**로 옮긴다. 이제 물어야 할 것은 "무거운 지옥이냐 빠른 지옥이냐"이다.
+
+**`112 BPM`은 그대로 둔다.** 무시당했으니 빼자고 적었었는데, 숫자와 서술을 같이 바꾸면
+무엇이 들었는지 알 수 없다. 숫자는 두고 **속도 서술만 앞으로 당긴다.** `88 BPM`이 alley에서
+정확히 먹힌 것을 보면 모델이 숫자를 못 읽는 것이 아니라, `heavy`·`grinding` 같은 무게
+어휘가 템포를 끌어내린 쪽에 가깝다.
+
+```
+fast and violent orchestral metal, double-time drum kit driving relentlessly
+throughout, distorted electric guitar riff played fast and tight, low cello and
+viola sawing in unison with the guitar at speed, the same brooding D minor
+material from a back alley piece now burning and distorted, brass-free, hot and
+overdriven, furious and unrelenting, spacious and sparse, purely instrumental,
+one continuous unchanging texture, the same handful of instruments from
+beginning to end, the same eight bars repeated over and over for the entire
+duration, the final section sits at exactly the same level as the opening,
+starts immediately at full level, loopable background bed, 112 BPM, D minor
+```
+
+`heavy dark`를 `fast and violent`로 바꾸고 `double-time`을 드럼 바로 앞에 놓은 것이
+전부다. **무게 어휘를 빼고 속도 어휘를 그 자리에 넣었다.**
 
 **둘 다 안 되면 `alley` 채택본을 레퍼런스로 물린다.** 문장으로 파생을 지시하는 것이
 한계에 부딪히면 그때는 city → alley에서 쓰려던 수를 그대로 꺼낸다.
@@ -1074,10 +1100,14 @@ section sits at exactly the same level as the opening, starts immediately at
 full level, loopable background bed, 88 BPM, D major
 ```
 
-**B — 합창을 열어 보는 실험**
+**B — 합창을 열어 보는 실험 (폐기됨)**
 
 `purely instrumental`을 뺀 유일한 프롬프트다. 뺀 자리에 가사가 딸려 오지 않도록
-**"단어를 부르지 않는다"를 긍정형으로 명시**한다.
+**"단어를 부르지 않는다"를 긍정형으로 명시**했다.
+
+**결과는 16번이고, 편성 합의를 유지하는 쪽이 옳았다는 근거가 됐다.** 빌드 +4.3dB로 기준
+1.5dB를 크게 넘겼다. 합창은 정의상 쌓아 올리는 편성이라 `never settle`과 `the same
+eight bars`로 눌러도 이기지 못했다. 자세한 것은 아래 return 측정 결과 참고.
 
 ```
 overexposed bright orchestral, recorded in a vast hall of white marble and glass
@@ -1090,6 +1120,30 @@ and sparse, one continuous unchanging texture, the same handful of instruments
 from beginning to end, the same eight bars repeated over and over for the entire
 duration, the final section sits at exactly the same level as the opening,
 starts immediately at full level, loopable background bed, 88 BPM, D major
+```
+
+**A2 — 이음매를 노리는 버전 (다음에 쓸 것)**
+
+15번(A)은 편성과 밝기는 맞았는데 **루프 상관이 어디를 잡아도 0.42가 천장**이었다. 반면
+합창이 들어간 16번은 60초 주기가 뚜렷해 0.894까지 나왔다. **반복 구조는 합창이 아니라
+다른 데서 왔다는 뜻**이므로, 합창 없이 그 구조만 가져오는 것이 다음 수다.
+
+바꾼 것은 반복 지시의 **단위를 못 박은 것** 하나다. `the same eight bars`는 지금까지
+모든 프롬프트에 있었지만 15번에서 작동하지 않았다. 길이를 초로 주고 되돌아오라고
+명시한다.
+
+```
+blindingly bright orchestral, recorded in a vast hall of white marble and glass
+with hard bright reflections, high register strings soaring and overexposed,
+ecstatic and radiant, glassy shimmering textures pushed past comfort,
+crystalline clean electric guitar arpeggio with heavy reverb, light cello
+underneath, choir-free, rapturous in a way that should not feel good,
+unresolved suspended chords that keep opening upward and never settle, a single
+one minute passage that returns to its exact starting point and begins again
+unchanged, every minute sounds like every other minute, spacious and sparse,
+purely instrumental, the same handful of instruments from beginning to end, the
+final section sits at exactly the same level as the opening, starts immediately
+at full level, loopable background bed, 88 BPM, D major
 ```
 
 #### 일정이 곡 수를 정한다 — 우선순위는 3 → 4 → 5
@@ -1151,6 +1205,8 @@ SFX가 파일 없는 큐를 조용히 건너뛰는 것과는 다른 동작이다
 | 12 | underground | B | 178.9초 | Slow Breathing Walls |
 | 13 | inferno | A | 138.9초 | Midnight Foundry |
 | 14 | inferno | B | 177.5초 | After the Prayer |
+| 15 | return | A | 176.3초 | Cathedral of Glass |
+| 16 | return | B | 174.3초 | Suspended in White |
 
 #### underground 측정 결과
 
@@ -1282,6 +1338,75 @@ enclosed`(B)가 공기감 -50대를 만들었다. 밝기 형용사는 실패했�
 쪽에 가깝다.
 
 후보는 `candidates/inferno/`에 Opus 64kbps로 넣었다.
+
+#### return 측정 결과
+
+| | 15 (A) | 16 (B, 합창) | 참고: city 원본 |
+| --- | --- | --- | --- |
+| 길이 | 176.3초 | 174.3초 | — |
+| 빌드 | **+1.0** | **+4.3** | +4.5 |
+| 박 | 0.640 @ 159.25 | 0.776 @ 159.25 | 0.676 @ 88.5 |
+| 저 / 중저 / 중 / 고 | -7.3 / -4.7 / **-8.3** / -23.6 | -7.3 / -4.5 / -8.8 / -25.6 | — |
+| 공기감 8~16k | **-37.7** | -39.1 | -29.8 |
+| 루프 (도구 기본) | 0.391 | 0.235 | 0.430 |
+| **루프 (구간 탐색 후)** | 0.422 | **0.894** | — |
+
+##### 공간 서술은 절반 성공했다
+
+`in a vast hall of white marble and glass with hard bright reflections`를 넣은 결과
+**공기감이 title 테이크들(-41.0 ~ -46.6)보다 3~9dB 올라왔다.** 방향은 맞았다. 다만
+city 원본(-29.8)에는 8dB 못 미친다.
+
+**더 흥미로운 것은 밝기가 다른 대역으로 왔다는 것이다.**
+
+| | 중 1~4k | 고 4~8k | 공기감 8~16k |
+| --- | --- | --- | --- |
+| 15 (return A) | **-8.3** | -23.6 | -37.7 |
+| 13 (inferno A) | -21 | -27 | -29.8 |
+| 12 (underground B) | -15.8 | -36.9 | -50.4 |
+| alley 채택본 | -17.1 | -23.2 | -29.0 |
+
+**중역 -8.3은 지금까지 잰 모든 곡 중 압도적으로 높다.** 대리석 홀은 초고역 반사보다
+**중역 충만**으로 번역됐다. 곡이 또렷하고 꽉 차 있다는 뜻이고, 과노출된 천국이라는 목표와
+어긋나지 않는다.
+
+다만 **중저 250Hz~1kHz가 -4.7로 차 있다.** inferno A가 -12.6으로 비켜준 것과 대조적이고,
+이 대역은 `smg-fire`(+0.8)와 `enemy-hit`(+2.2)가 앉는 자리다. 5스테이지는 공중전이라
+총소리가 거의 끊기지 않는다. **탈락 사유는 아니다** — 주파수 슬로팅으로 곡을 떨어뜨리지
+않기로 했고, 묻히면 `AUDIO_MIX_CONFIG`의 `music`을 낮추는 편이 싸다. 다만 다섯 곡 중
+이 곡에서 그럴 가능성이 가장 높다는 것은 적어 둔다.
+
+##### 합창은 크레셴도를 데려왔다
+
+**16번은 빌드 +4.3dB로 즉시 탈락이다.** 윤곽이 -19.7에서 시작해 138초에 -9.5까지 올라가는
+10dB짜리 크레셴도다. 편집으로 못 고치는 항목에서 떨어졌다.
+
+원인은 합창으로 본다. 합창은 정의상 쌓아 올리는 편성이고, `never settle`과 `the same
+eight bars repeated over and over`를 넣어도 이기지 못했다. **`muted` 대 `bright`,
+`thins out` 대 `never builds`에 이어 세 번째로 확인된 같은 종류의 충돌이다** — 편성이
+가진 성질은 억제 문장보다 강하다.
+
+**편성 합의를 유지하기로 한 판단이 실측으로 지지됐다.** 실험이라고 명시하고 뽑았기 때문에
+이 결과가 근거로 남는다.
+
+##### 그런데 16번이 훨씬 잘 돈다
+
+버리기 전에 하나 짚어야 한다. **16번의 루프 상관이 36초에서 0.894이고, 어느 시작점에서
+훑어도 정확히 60.0초 주기가 나온다.**
+
+| 시작점 | 15 (A) | 16 (B) |
+| --- | --- | --- |
+| 36s | 0.392 | **0.894** (60.0초) |
+| 48s | 0.381 | 0.862 (60.0초) |
+| 60s | **0.422** | 0.576 (60.0초) |
+| 72s | — | 0.711 (60.0초) |
+
+15번은 어디를 잡아도 0.42가 천장이다. **반복 구조가 합창에서 온 것이라고 볼 이유는 없다** —
+합창은 레벨을 밀어 올렸지 주기를 만들지 않는다. 그러므로 **합창 없이 그 주기만 가져오는
+것이 다음 수**이고, 위 A2 프롬프트가 그 시도다.
+
+후보는 `candidates/return/`에 Opus 64kbps로 넣었다. **16번도 남긴다** — 탈락한 이유와
+동시에 노려야 할 구조를 같이 들고 있기 때문이다.
 
 **return에 그대로 써먹는다.** 천국은 다섯 곡 중 유일하게 밝아야 하는 곡인데 밝기 형용사만으로는
 안 된다는 것이 title에서 확인됐다. 그래서 위 return 프롬프트 A·B에 **반사가 강한 넓은
