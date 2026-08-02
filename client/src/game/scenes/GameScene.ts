@@ -594,6 +594,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
+    // A scene restart — which is how the admin stage jump works — reuses this
+    // instance, so every field still points at the previous run's game objects
+    // and those are already destroyed. The control hint is the one create()
+    // writes to before createCombatUi() has rebuilt it: applyStageMovementMode
+    // runs inside createCombatSystems, and setText on a destroyed Text reaches
+    // for a canvas that is gone.
+    this.controlHintText = undefined;
     this.currentStageIndex =
       this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
     this.requestedStartingStageIndex = undefined;
