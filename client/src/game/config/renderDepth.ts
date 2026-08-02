@@ -20,6 +20,11 @@ export const PLAYER_STACK_DEPTH = {
   shotTrace: 8.3,
   /** The support arm: over the torso it hinges on, under the gun it holds. */
   backArm: 8.5,
-  /** The weapon, which is the topmost part of the character. */
+  /** The weapon. */
   weapon: 9,
+  /**
+   * The trigger arm, and the only thing over the weapon: the near hand wraps
+   * the grip from the camera's side, so the gun passes behind it.
+   */
+  frontArm: 9.5,
 } as const;

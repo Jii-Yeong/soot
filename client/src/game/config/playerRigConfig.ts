@@ -102,3 +102,83 @@ export const WEAPON_GRIP_BY_FRAME: Record<
 > = {
   [PLAYER_JUMP_FRAMES.airborne]: { x: 7, y: 10 },
 };
+
+/**
+ * The near arm — the one on the trigger.
+ *
+ * The body has no arms of its own any more, so both hands come from the rig,
+ * and this is the second of them. It is not the back arm mirrored. The back arm
+ * reaches out to a handguard that sits 24 to 47px away depending on the weapon,
+ * so it has to solve for where along the barrel it can hold; the trigger hand
+ * sits on the grip, and the grip is already an offset from the player's centre.
+ * There is nothing to reach for.
+ *
+ * What does have to be decided is how much of the weapon's 160-degree swing the
+ * wrist carries — see `wristFollow` — and that only works because the elbow is
+ * never drawn. The sprite is the forearm from the fist to where the coat takes
+ * over; the shoulder is an aim target, not a pivot, so the distance to it can
+ * vary without the art having to stretch to cover it.
+ *
+ * Measured off front-arm.png and the armless body, same as the back arm.
+ */
+export const FRONT_ARM = {
+  texture: 'player-front-arm',
+  url: '/assets/player/front-arm.png',
+
+  /** 11x8 sprite; the fist's centre of mass is pixel (7.4, 3.3) of it. */
+  originX: 7.429 / 11,
+  originY: 3.286 / 8,
+
+  /**
+   * The near shoulder's offset from the player sprite's centre, for the poses
+   * that keep the standing attitude. Mirrors when facing left.
+   *
+   * The near side of the coat runs to x=-11 across every standing frame, so
+   * this sits 3px inside it. Deeper than that and the forearm reads as growing
+   * out of the sternum; on the edge, the stub's far end clears the silhouette
+   * at the extremes of the aim range and there is nothing to hide it.
+   */
+  shoulderFromCentreX: -8,
+  shoulderFromCentreY: -2,
+
+  /** The direction elbow-to-hand the art already points at rest. */
+  restAngle: -0.4636,
+
+  /**
+   * The trigger sits forward of and below the weapon sprite's origin, which is
+   * the top of the grip. Along the barrel, then perpendicular to it — the same
+   * pair the muzzle uses, and the perpendicular flips with the weapon for the
+   * same reason. Negative because the trigger is under the bore, not over it.
+   */
+  holdAlong: 2,
+  holdRise: -2,
+
+  /**
+   * How much of the weapon's rotation the wrist carries, 0 to 1.
+   *
+   * At 1 the forearm is welded to the weapon: aiming 80 degrees down swings it
+   * up off the chest and into open air, where the elbow this rig does not draw
+   * would have to be. At 0 the arm never moves and the hand meets the grip at
+   * an angle no wrist makes. 0.35 keeps the stub's far end inside the torso
+   * across the whole aim range, both facings and all four weapons, while the
+   * hand still visibly turns with the gun.
+   */
+  wristFollow: 0.35,
+} as const;
+
+/**
+ * The near shoulder for the poses that move it, the same way
+ * BACK_ARM_ELBOW_BY_FRAME covers the far one.
+ *
+ * The airborne pose curls forward, which narrows the near side of the coat from
+ * x=-11 to x=-8 and drops the joint 11px. Left on the standing anchor the
+ * forearm points at the chest instead of the shoulder and its far end swings
+ * clear of the body on the way down from a jump — the same failure the back arm
+ * had, on the other side.
+ */
+export const FRONT_ARM_SHOULDER_BY_FRAME: Record<
+  string,
+  { x: number; y: number }
+> = {
+  [PLAYER_JUMP_FRAMES.airborne]: { x: -5, y: 9 },
+};

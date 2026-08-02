@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { WEAPON_GRIP_BY_FRAME } from '@/game/config/playerRigConfig';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { BackArm } from '@/game/systems/BackArm';
+import { FrontArm } from '@/game/systems/FrontArm';
 import { muzzlePoint } from '@/game/systems/muzzlePoint';
 import type { WeaponConfig } from '@/game/config/weaponConfig';
 
@@ -42,6 +43,7 @@ export class WeaponFeedback {
   readonly display: Phaser.GameObjects.Image;
 
   private readonly backArm: BackArm;
+  private readonly frontArm: FrontArm;
   /** The arm needs the barrel length to know where the handguard runs out. */
   private weapon: WeaponConfig;
   private recoil = 0;
@@ -60,6 +62,7 @@ export class WeaponFeedback {
       .setDepth(PLAYER_STACK_DEPTH.weapon);
 
     this.backArm = new BackArm(scene, player);
+    this.frontArm = new FrontArm(scene, player);
     this.weapon = initialWeapon;
   }
 
@@ -108,6 +111,10 @@ export class WeaponFeedback {
     // After the weapon, never before: the arm is chasing where the gun ended up
     // this frame, recoil and climb included.
     this.backArm.update(this.display, aimingLeft, this.weapon.muzzleOffset);
+    // Same order and the same reason: it reads the weapon's final position, so
+    // it has to run after it. Unlike the back arm it needs no barrel length —
+    // the trigger hand is on the grip, and the grip is where the sprite is.
+    this.frontArm.update(this.display, aimingLeft);
   }
 
   setWeapon(weapon: WeaponConfig) {
@@ -123,6 +130,7 @@ export class WeaponFeedback {
   hide() {
     this.display.setVisible(false);
     this.backArm.hide();
+    this.frontArm.hide();
   }
 
   playFire(weapon: WeaponConfig, baseAngle: number, pelletAngles: number[]) {
