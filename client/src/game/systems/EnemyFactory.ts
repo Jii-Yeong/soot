@@ -10,6 +10,7 @@ import {
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
+import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
@@ -43,6 +44,7 @@ export class EnemyFactory {
     private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
     private readonly bossArena: BossArenaBounds,
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
+    private readonly flyingSprite?: FlyingSpriteConfig,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -99,7 +101,7 @@ export class EnemyFactory {
       this.scene,
       spawn.x,
       spawn.y,
-      'flying-enemy-placeholder',
+      this.flyingSprite?.texture ?? 'flying-enemy-placeholder',
       {
         health: FLYING_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: FLYING_ENEMY_COMBAT_CONFIG.aggroRadius,
@@ -108,6 +110,7 @@ export class EnemyFactory {
         fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: FLYING_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
         movement: spawn.movement,
+        sprite: this.flyingSprite,
       },
     );
     return this.finishSpawn(enemy, { collidesWithFloor: false });

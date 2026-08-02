@@ -12,6 +12,14 @@ import {
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
+  STAGE_ONE_FLYING_ANIMATIONS,
+  STAGE_ONE_FLYING_ATLAS_JSON,
+  STAGE_ONE_FLYING_ATLAS_KEY,
+  STAGE_ONE_FLYING_ATLAS_PNG,
+  STAGE_ONE_FLYING_LOOPING_TAGS,
+  STAGE_ONE_FLYING_TAG_FRAMES,
+} from '@/game/config/flyingEnemyAnimationConfig';
+import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
   PLAYER_IDLE_FRAMES,
@@ -37,6 +45,11 @@ export class BootScene extends Phaser.Scene {
     for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
       this.load.image(asset.key, asset.url);
     }
+    this.load.atlas(
+      STAGE_ONE_FLYING_ATLAS_KEY,
+      STAGE_ONE_FLYING_ATLAS_PNG,
+      STAGE_ONE_FLYING_ATLAS_JSON,
+    );
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
@@ -268,6 +281,22 @@ export class BootScene extends Phaser.Scene {
           duration,
         })),
         repeat: STAGE_ONE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
+      });
+    }
+    for (const [tag, frames] of Object.entries(
+      STAGE_ONE_FLYING_TAG_FRAMES,
+    ) as [
+      keyof typeof STAGE_ONE_FLYING_TAG_FRAMES,
+      (typeof STAGE_ONE_FLYING_TAG_FRAMES)[keyof typeof STAGE_ONE_FLYING_TAG_FRAMES],
+    ][]) {
+      this.anims.create({
+        key: STAGE_ONE_FLYING_ANIMATIONS[tag],
+        frames: frames.map(({ frame, duration }) => ({
+          key: STAGE_ONE_FLYING_ATLAS_KEY,
+          frame,
+          duration,
+        })),
+        repeat: STAGE_ONE_FLYING_LOOPING_TAGS.has(tag) ? -1 : 0,
       });
     }
   }

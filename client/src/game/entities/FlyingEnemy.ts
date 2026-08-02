@@ -3,8 +3,13 @@ import {
   AerialMovementMode,
   type AerialMovementConfig,
 } from '@/game/config/aerialMovementConfig';
+import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
 import { PLAYER_FLIGHT_BOUNDS } from '@/game/config/playerMovementConfig';
 import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+
+/** How fast a downed flyer plummets, in px/s (feeds the fall tween duration). */
+const DEATH_FALL_SPEED = 720;
 
 export type FlyingEnemyConfig = {
   health: number;
@@ -14,6 +19,7 @@ export type FlyingEnemyConfig = {
   fireInterval: number;
   muzzleOffset: number;
   movement?: AerialMovementConfig;
+  sprite?: FlyingSpriteConfig;
 };
 
 export class FlyingEnemy extends Enemy {
@@ -26,6 +32,9 @@ export class FlyingEnemy extends Enemy {
   private readonly fireInterval: number;
   private readonly anchorX: number;
   private readonly movement?: AerialMovementConfig;
+  private readonly sprite?: FlyingSpriteConfig;
+  private inHitPose = false;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -42,12 +51,87 @@ export class FlyingEnemy extends Enemy {
     this.fireInterval = config.fireInterval;
     this.anchorX = x;
     this.movement = config.movement;
+    this.sprite = config.sprite;
     this.projectile = { kind: 'flying', muzzleOffset: config.muzzleOffset };
 
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     // Flyers hover at platform height, so they render in front of terrain
     // (depth 5) instead of being hidden behind it — still under the player (8).
     this.setDepth(6);
+    this.applySprite();
+  }
+
+  /** The real atlas frame is padded, so size the body down to the drone. */
+  private applySprite() {
+    if (!this.sprite) {
+      return;
+    }
+
+    this.setScale(this.sprite.scale);
+    (this.body as Phaser.Physics.Arcade.Body).setSize(
+      this.sprite.bodyWidth,
+      this.sprite.bodyHeight,
+      true,
+    );
+    this.play(this.sprite.animations.idle);
+  }
+
+  /** Shows the flinch pose while staggered, then falls back to idle hover. */
+  private updateHitPose(time: number) {
+    if (!this.sprite) {
+      return;
+    }
+
+    const staggered = this.isStaggered(time);
+    if (staggered && !this.inHitPose) {
+      this.inHitPose = true;
+      this.play(this.sprite.animations.hit);
+    } else if (!staggered && this.inHitPose) {
+      this.inHitPose = false;
+      this.play(this.sprite.animations.idle);
+    }
+  }
+
+  /** Real-atlas flyers play their own death animation instead of the pop ghost. */
+  override get playsOwnDeathAnimation() {
+    return Boolean(this.sprite);
+  }
+
+  override defeat() {
+    if (!this.active || !this.sprite) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    // Stop combat/collision immediately; the wreck then falls and crumbles
+    // under a tween (physics stays off) before the object is removed.
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.enable = false;
+
+    const sprite = this.sprite;
+    // Phase 1: hold the first death frame while dropping to the ground.
+    this.play(sprite.animations.deathFall);
+    const restY = FLOOR_SURFACE_Y - this.displayHeight * 0.3;
+    const fallDistance = Math.max(0, restY - this.y);
+    this.scene.tweens.add({
+      targets: this,
+      y: this.y + fallDistance,
+      duration: Phaser.Math.Clamp(
+        (fallDistance / DEATH_FALL_SPEED) * 1000,
+        120,
+        900,
+      ),
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        // Phase 2: crumple on impact, then remove.
+        this.play(sprite.animations.deathLand);
+        this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
+          this.disableBody(true, true),
+        );
+      },
+    });
   }
 
   updateCombat(
@@ -55,9 +139,13 @@ export class FlyingEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     fireProjectile: EnemyProjectileAttack,
   ) {
-    if (!this.active) {
+    if (!this.active || this.dying) {
       return false;
     }
+
+    // Flinch only while a knockback stagger holds, so rapid low-knockback fire
+    // (SMG) doesn't lock the pose while a shotgun/rail hit clearly rocks it.
+    this.updateHitPose(time);
 
     const targetInRange = this.updateRangedAttack(
       time,

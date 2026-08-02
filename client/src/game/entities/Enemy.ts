@@ -19,6 +19,13 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   readonly usesHitFlash: boolean = true;
   /** Opacity used while the white fill tint is visible. */
   readonly hitFlashAlpha: number = 1;
+  /**
+   * Whether this enemy plays a death animation in its own `defeat()`, so the
+   * scene should skip the generic expanding-ghost death pop.
+   */
+  get playsOwnDeathAnimation(): boolean {
+    return false;
+  }
   readonly maxHealth: number;
   /** Set by ranged-style subclasses so GameScene can route fire without an instanceof check. */
   readonly projectile: EnemyProjectileProfile | null = null;

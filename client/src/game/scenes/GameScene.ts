@@ -264,6 +264,7 @@ export class GameScene extends Phaser.Scene {
         right: this.activeRoomConfig.exitX,
       },
       (phase) => gameEvents.emit('boss-phase-changed', phase),
+      this.stage.flyingSprite,
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
@@ -782,7 +783,7 @@ export class GameScene extends Phaser.Scene {
         enemy.y,
         this.weaponSystem.activeConfig.id,
       );
-    } else {
+    } else if (!enemy.playsOwnDeathAnimation) {
       this.spawnDeathPop(enemy);
     }
     enemy.defeat();

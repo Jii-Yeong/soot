@@ -1,4 +1,8 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import {
+  STAGE_ONE_FLYING_SPRITE,
+  type FlyingSpriteConfig,
+} from '@/game/config/flyingEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
@@ -40,6 +44,8 @@ export type StageConfig = {
   rooms: StageRooms;
   endEvent?: StageEndEvent;
   background?: StageBackground;
+  /** Real-atlas flying enemy art; stages without it use the placeholder. */
+  flyingSprite?: FlyingSpriteConfig;
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -59,6 +65,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     key: 'stage-01-bg',
     path: '/assets/backgrounds/stage-01.webp',
   },
+  flyingSprite: STAGE_ONE_FLYING_SPRITE,
   rooms: CITY_ROOMS,
 };
 
