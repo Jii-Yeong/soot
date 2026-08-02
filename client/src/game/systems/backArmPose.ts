@@ -12,6 +12,13 @@ export type BackArmInput = {
   mirrored: boolean;
   /** Grip to muzzle, so the hand knows where the handguard runs out. */
   barrel: number;
+  /**
+   * Where the shoulder is in the pose being drawn, as an offset from the
+   * sprite's centre. The caller resolves it per frame because the torso does
+   * not hold one attitude across the animation.
+   */
+  elbowFromCentreX: number;
+  elbowFromCentreY: number;
 };
 
 export type BackArmPose = {
@@ -40,13 +47,22 @@ const clamp = (value: number, low: number, high: number) =>
  * Kept apart from the sprite so the geometry can be checked without a renderer.
  */
 export function solveBackArmPose(input: BackArmInput): BackArmPose {
-  const { playerX, playerY, gripX, gripY, rotation, mirrored, barrel } = input;
+  const {
+    playerX,
+    playerY,
+    gripX,
+    gripY,
+    rotation,
+    mirrored,
+    barrel,
+    elbowFromCentreX,
+    elbowFromCentreY,
+  } = input;
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
 
-  const elbowX =
-    playerX + (mirrored ? -BACK_ARM.elbowFromCentreX : BACK_ARM.elbowFromCentreX);
-  const elbowY = playerY + BACK_ARM.elbowFromCentreY;
+  const elbowX = playerX + (mirrored ? -elbowFromCentreX : elbowFromCentreX);
+  const elbowY = playerY + elbowFromCentreY;
 
   // The barrel line lifted to the handguard, measured from the elbow. The lift
   // flips with the weapon for the same reason the muzzle does: aiming left

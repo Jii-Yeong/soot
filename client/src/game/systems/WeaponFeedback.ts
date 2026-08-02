@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { WEAPON_GRIP_BY_FRAME } from '@/game/config/playerRigConfig';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { BackArm } from '@/game/systems/BackArm';
 import { muzzlePoint } from '@/game/systems/muzzlePoint';
@@ -20,6 +21,8 @@ const GRIP_ORIGIN_Y = 14 / 24;
  */
 const HAND_FROM_CENTRE_X = 5;
 const HAND_FROM_CENTRE_Y = -3;
+
+const DEFAULT_GRIP = { x: HAND_FROM_CENTRE_X, y: HAND_FROM_CENTRE_Y };
 
 /**
  * Recoil settles on a half-life rather than a flat rate per millisecond. A flat
@@ -80,6 +83,8 @@ export class WeaponFeedback {
       aimPoint.y,
     );
     const aimingLeft = Math.cos(angle) < 0;
+    // The hand belongs to the pose on screen, same as the shoulder does.
+    const grip = WEAPON_GRIP_BY_FRAME[this.player.frame.name] ?? DEFAULT_GRIP;
     // Climb is always away from the ground, and the sprite is mirrored when
     // aiming left, so the sign has to follow the flip or the barrel dips.
     const climbed = angle + (aimingLeft ? this.climb : -this.climb);
@@ -91,9 +96,9 @@ export class WeaponFeedback {
       // pushes back along the aim vector from wherever the hand actually is.
       .setPosition(
         this.player.x +
-          (aimingLeft ? -HAND_FROM_CENTRE_X : HAND_FROM_CENTRE_X) -
+          (aimingLeft ? -grip.x : grip.x) -
           Math.cos(angle) * this.recoil,
-        this.player.y + HAND_FROM_CENTRE_Y - Math.sin(angle) * this.recoil,
+        this.player.y + grip.y - Math.sin(angle) * this.recoil,
       )
       .setRotation(climbed)
       .setFlipY(aimingLeft);

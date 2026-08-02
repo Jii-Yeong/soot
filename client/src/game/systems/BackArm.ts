@@ -1,7 +1,15 @@
 import Phaser from 'phaser';
-import { BACK_ARM } from '@/game/config/playerRigConfig';
+import {
+  BACK_ARM,
+  BACK_ARM_ELBOW_BY_FRAME,
+} from '@/game/config/playerRigConfig';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { solveBackArmPose } from '@/game/systems/backArmPose';
+
+const DEFAULT_ELBOW = {
+  x: BACK_ARM.elbowFromCentreX,
+  y: BACK_ARM.elbowFromCentreY,
+};
 
 /**
  * The support arm, hinged on the elbow.
@@ -28,6 +36,11 @@ export class BackArm {
   }
 
   update(weapon: Phaser.GameObjects.Image, mirrored: boolean, barrel: number) {
+    // The shoulder belongs to whichever pose is on screen this frame, so the
+    // anchor is read at draw time rather than fixed when the arm is built.
+    const elbow =
+      BACK_ARM_ELBOW_BY_FRAME[this.player.frame.name] ?? DEFAULT_ELBOW;
+
     const pose = solveBackArmPose({
       playerX: this.player.x,
       playerY: this.player.y,
@@ -36,6 +49,8 @@ export class BackArm {
       rotation: weapon.rotation,
       mirrored,
       barrel,
+      elbowFromCentreX: elbow.x,
+      elbowFromCentreY: elbow.y,
     });
 
     this.sprite
