@@ -1190,6 +1190,52 @@ final section sits at exactly the same level as the opening, starts immediately
 at full level, loopable background bed, 88 BPM, D major
 ```
 
+**A3 — 밝기와 불안을 층으로 나눈 버전 (지금 쓸 것)**
+
+**팀 논의 결과 방향이 하나 잡혔다. 분위기와 편성은 밝게 두고 멜로디를 불안정하게 만들어
+대비를 준다.**
+
+지금까지의 프롬프트는 그 둘을 **같은 형용사에 섞어 넣고 있었다.** `rapturous in a way
+that should not feel good`, `too beautiful to trust` 같은 표현은 밝음과 불편함을 한 단어
+안에서 동시에 요구한다. 모델이 그걸 받으면 둘 중 하나로 기울고, 실제로 21번은 통째로
+어두워졌다.
+
+**이 문서가 이미 두 번 확인한 성질이 여기 그대로 적용된다.** 악기 상태를 나타내는 단어가
+분위기 형용사보다 강하게 먹었고(`muted` 대 `bright`), 공간 서술이 밝기 형용사보다 강하게
+먹었다(콘크리트 방 대 `glassy`). **모델은 분위기보다 물리를 따른다.** 그러니 불안도
+분위기어가 아니라 **음악적 사실**로 적어야 한다.
+
+| 층 | 지시 방식 |
+| --- | --- |
+| 편성 · 음색 · 공간 | 밝게. 이미 검증된 대리석 홀 문장을 그대로 쓴다 |
+| 멜로디 · 화성 | **불안정하게.** 으뜸음에 착지하지 않기, 반음 어긋났다 늦게 고치기, 두 바이올린이 서로 조금 어긋나기, 증4도가 화음을 계속 상하게 하기 |
+
+`strings drifting slightly out of tune with each other`는 alley에서 "변질"을 만들어낸
+문장이고 거기서 효과가 확인됐다. 천국에서는 `slightly`가 핵심이다 — 무너지면 안 되고
+**어긋나기만 해야 한다.**
+
+`glassy shimmering textures`는 뺐다. title에서 고역으로 번역되지 않는 것이 확인됐고,
+같은 일을 대리석 홀 문장이 이미 하고 있어 자리만 차지한다.
+
+```
+blindingly bright orchestral, recorded in a vast hall of white marble and glass
+with hard bright reflections, high register strings soaring and overexposed,
+crystalline clean electric guitar arpeggio with heavy reverb, light cello
+underneath, choir-free, the ensemble radiant and golden throughout, the melody
+unsteady against it, wandering and never landing on the tonic, notes slipping a
+semitone out of place and correcting late, two violins drifting slightly out of
+tune with each other, a raised fourth souring every otherwise perfect chord, a
+single one minute passage that returns to its exact starting point and begins
+again unchanged, every minute sounds like every other minute, spacious and
+sparse, purely instrumental, the same handful of instruments from beginning to
+end, the final section sits at exactly the same level as the opening, starts
+immediately at full level, loopable background bed, 88 BPM, D major
+```
+
+**볼 지점은 공기감과 멜로디가 따로 노는가이다.** 공기감이 17번(-38.0) 수준을 유지하면서
+곡이 불안하게 들리면 성공이고, 21번처럼 -47대로 떨어지면 불안 지시가 밝기를 다시 끌어내린
+것이므로 멜로디 문장을 뒤로 미뤄야 한다.
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1199,7 +1245,7 @@ at full level, loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A2** | A · B | A는 루프 0.42 천장 (15번), B는 합창이 크레셴도를 부른다 (16번) |
+| `return` | **A3** | A · B · A2 | A는 루프 0.42 천장 (15번), B는 합창이 크레셴도를 부른다 (16번), A2는 밝기와 불안을 한 단어에 섞어 21번에서 통째로 어두워졌다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
@@ -1287,6 +1333,7 @@ private readonly handleDecoded = (key: string) => {
 | 19 | underground | B2 | 175.5초 | Just After They Left |
 | 20 | inferno | A3 | 181.5초 | Ten Ton Loom |
 | 21 | return | A2 | 175.1초 | Vigil in Concrete |
+| 22 | inferno | A3 | 182.4초 | Concrete Teeth |
 
 #### underground 측정 결과
 
@@ -1517,6 +1564,35 @@ enclosed`(B)가 공기감 -50대를 만들었다. 밝기 형용사는 실패했�
 20번은 **가장 밝다**(공기감 -24.8, 중 -12.2). 용암과 붉은 하늘이 배경이므로 밝은 것이
 어긋나지 않고, 중저는 -11.5로 여전히 총소리 자리를 비켜준다. 18번과는 사실상 호각이다 —
 20번이 빌드와 밝기, 18번이 박과 이음매에서 근소하게 앞선다.
+
+##### 22번 (A3) — 교환의 중간을 짚었다
+
+**20번과 같은 A3 프롬프트인데 템포가 145.75가 아니라 111.25로 나왔다.** 지시값 112에
+처음으로 붙은 테이크다. return 17번과 21번이 같은 프롬프트에서 밝기가 10dB 갈렸던 것과
+같은 종류의 편차이고, 이번에는 그 편차가 유리한 쪽으로 떨어졌다.
+
+| | 13 (A) | 18 (A2) | 20 (A3) | 22 (A3) |
+| --- | --- | --- | --- | --- |
+| 템포 | 84.25 | 145.75 | 145.75 | **111.25** |
+| 빌드 | -0.0 | +0.3 | -0.0 | +0.5 |
+| 박 | 0.616 | **0.697** | 0.569 | 0.493 |
+| 중저 250Hz~1k | **-12.6** | -11.1 | -11.5 | -12.1 |
+| 공기감 8~16k | -29.8 | -26.3 | **-24.8** | -25.3 |
+| 루프 (탐색 후) | **0.957** | 0.551 | 0.511 | **0.639** |
+
+**앞서 세운 가설이 세 번째 점으로 확인됐다.** 템포가 오르면 이음매가 내려간다.
+
+| 템포 | 84.25 | **111.25** | 145.75 |
+| --- | --- | --- | --- |
+| 루프 | 0.957 | **0.639** | 0.511 ~ 0.551 |
+
+22번은 그 곡선 위에서 **가장 쓸모 있는 지점**에 있다. alley 채택본(87.00)의 1.28배라
+낙차가 분명히 들리고, 공기감 -25.3으로 밝은 쪽이며, 이음매 0.639는 alley 채택본의 0.463과
+city 원본의 0.430을 넘는다. 중저 -12.1로 총소리 자리도 비켜준다.
+
+**속도를 얻으려면 이음매를 내놓아야 한다는 교환은 그대로다.** 다만 13번의 0.957이 아니면
+안 되는 것도 아니므로, **13번(느린 지옥) 대 22번(빠른 지옥)이 실질적인 결승**이고 18·20번은
+22번이 같은 축에서 더 낫다.
 
 #### return 측정 결과
 
