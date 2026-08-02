@@ -253,6 +253,20 @@ export class GameScene extends Phaser.Scene {
     this.emitEnemyHealth();
 
     this.terrainBuilder.build(roomConfig.terrain);
+
+    // A combat room's enemies are built with the room rather than when the
+    // player trips the entrance detector. Spawned at the detector they arrived
+    // inside the view — the nearest stands 376px past it and half a viewport is
+    // 640px — so a room read as materialising around the player instead of
+    // being walked into. Built with the room they are already there, already
+    // moving, and the detector only decides when the doors close.
+    //
+    // A boss keeps the old timing. Its aggro reaches 1500px, further than the
+    // whole 1829px boss room, so building it early would start the fight before
+    // the player had finished walking in.
+    if (roomConfig.kind === 'combat') {
+      this.spawnRoomEnemies();
+    }
   }
 
   private spawnRoomEnemies() {
@@ -290,11 +304,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startRoomEncounter() {
-    if (this.enemies.some((enemy) => enemy.active)) {
-      return;
+    // Combat rooms are populated by buildRoom; a boss room is still empty here.
+    if (this.enemies.length === 0) {
+      this.spawnRoomEnemies();
     }
 
-    this.spawnRoomEnemies();
     this.roomDirector.beginEncounter(this.enemies);
   }
 
