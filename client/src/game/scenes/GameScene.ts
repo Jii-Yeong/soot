@@ -101,6 +101,8 @@ export class GameScene extends Phaser.Scene {
       gameEvents.emit('health-changed', currentHealth, maxHealth),
   );
   private phase: GamePhase = 'boot';
+  /** Enemies past the floor line, dropping out of the level. */
+  private readonly fallingEnemies = new Set<Enemy>();
 
   constructor() {
     super('game');
@@ -283,6 +285,7 @@ export class GameScene extends Phaser.Scene {
    * player bullets and contact damage from hitting the next room's enemies.
    */
   private replaceEnemies(spawned: Enemy[]) {
+    this.fallingEnemies.clear();
     this.enemies.splice(0, this.enemies.length, ...spawned);
   }
 
@@ -704,7 +707,8 @@ export class GameScene extends Phaser.Scene {
     this.enemyRangeGraphics.clear();
 
     for (const enemy of this.enemies) {
-      if (!enemy.active) {
+      // On its way out of the level: it should not still be shooting.
+      if (!enemy.active || this.fallingEnemies.has(enemy)) {
         continue;
       }
 
@@ -793,11 +797,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Enemies walk off the ledges the player jumps, and the world bounds then
-   * hold them alive at the bottom of the screen: out of the fight, out of
-   * reach, and still counted, so the room can never lock open again. The
-   * player's own fall is a hazard they climb out of (handlePitFall); an enemy
-   * has no way back up, so the pit is what kills it.
+   * Enemies walk off the ledges the player jumps, and the world bounds caught
+   * them at the bottom of the screen: out of the fight, out of reach, and still
+   * counted, so the room could never lock open again. The player's own fall is
+   * a hazard they climb out of (handlePitFall); an enemy has no way back up.
+   *
+   * It falls out of frame rather than dying where it lands. Killing it on the
+   * world floor put a death burst along the bottom edge of the screen, which
+   * reads as an explosion at ground level and not as something dropping out of
+   * the level. So at the floor line it stops being part of the fight — the room
+   * lets go of it, its rounds go with it, and nothing solid is left to catch
+   * it — and it is only taken off the display once it is fully out of view.
    */
   private handleEnemyPitFalls() {
     for (const enemy of this.enemies) {
@@ -806,13 +816,31 @@ export class GameScene extends Phaser.Scene {
       }
 
       const body = enemy.body as Phaser.Physics.Arcade.Body | null;
-      // The whole body has to clear the floor line, not just dip below it, so
-      // an enemy standing at a pit's edge is never mistaken for one in it.
-      if (!body || body.top <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
+      if (!body) {
         continue;
       }
 
-      this.defeatEnemy(enemy);
+      if (this.fallingEnemies.has(enemy)) {
+        if (body.top > GAME_HEIGHT) {
+          this.fallingEnemies.delete(enemy);
+          enemy.defeat();
+        }
+        continue;
+      }
+
+      // Measured at the top edge, so the whole body has to be under the floor:
+      // an enemy standing at a pit's edge is never mistaken for one in it.
+      if (body.top <= FLOOR_SURFACE_Y) {
+        continue;
+      }
+
+      this.fallingEnemies.add(enemy);
+      body.setCollideWorldBounds(false);
+      body.checkCollision.none = true;
+      if (enemy.projectile) {
+        this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
+      }
+      this.roomDirector.notifyEnemyDefeated(enemy);
     }
   }
 
