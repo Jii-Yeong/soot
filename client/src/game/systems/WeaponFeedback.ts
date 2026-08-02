@@ -112,9 +112,8 @@ export class WeaponFeedback {
     // this frame, recoil and climb included.
     this.backArm.update(this.display, aimingLeft, this.weapon.muzzleOffset);
     // Same order and the same reason: it reads the weapon's final position, so
-    // it has to run after it. Unlike the back arm it needs no barrel length —
-    // the trigger hand is on the grip, and the grip is where the sprite is.
-    this.frontArm.update(this.display, aimingLeft);
+    // it has to run after it.
+    this.frontArm.update(this.display, aimingLeft, this.weapon.muzzleOffset);
   }
 
   setWeapon(weapon: WeaponConfig) {

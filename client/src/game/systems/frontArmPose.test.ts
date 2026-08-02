@@ -9,9 +9,9 @@ import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 import { solveFrontArmPose } from '@/game/systems/frontArmPose';
 
-/** Matches HAND_FROM_CENTRE in WeaponFeedback: where the grip hangs. */
 type Anchor = { x: number; y: number };
 
+/** Matches HAND_FROM_CENTRE in WeaponFeedback: where the grip hangs. */
 const DEFAULT_GRIP: Anchor = { x: 5, y: -3 };
 const DEFAULT_SHOULDER: Anchor = {
   x: FRONT_ARM.shoulderFromCentreX,
@@ -20,13 +20,7 @@ const DEFAULT_SHOULDER: Anchor = {
 
 const PLAYER = { x: 400, y: 300 };
 
-/**
- * Origin to the far edge of the drawn forearm in front-arm.png: the fist's
- * centre is at (7.43, 3.29) and the sleeve runs out at (1.0, 6.5).
- */
-const FOREARM_LENGTH = Math.hypot(7.429 - 1, 3.286 - 6.5);
-
-/** Every pose the rig has to hold, standing and airborne. */
+/** Every pose the rig has to hold: the standing attitude, and the jump curl. */
 const POSES = [
   { name: 'standing', grip: DEFAULT_GRIP, shoulder: DEFAULT_SHOULDER },
   {
@@ -39,7 +33,12 @@ const POSES = [
 function poseAt(
   degrees: number,
   mirrored: boolean,
-  { grip = DEFAULT_GRIP, shoulder = DEFAULT_SHOULDER, recoil = 0 } = {},
+  {
+    grip = DEFAULT_GRIP,
+    shoulder = DEFAULT_SHOULDER,
+    recoil = 0,
+    barrel = 24,
+  } = {},
 ) {
   // Aiming left mirrors the rig rather than rotating past vertical, so the
   // weapon's own rotation is measured from the facing direction either way.
@@ -55,126 +54,111 @@ function poseAt(
     gripY: PLAYER.y + grip.y - Math.sin(rotation) * recoil,
     rotation,
     mirrored,
+    barrel,
     shoulderFromCentreX: shoulder.x,
     shoulderFromCentreY: shoulder.y,
   });
 }
 
-/** The forearm's world direction, hand back towards the elbow. */
-function forearmDirection(
-  degrees: number,
-  mirrored: boolean,
-  options?: Parameters<typeof poseAt>[2],
-) {
-  const pose = poseAt(degrees, mirrored, options);
-  const local = FRONT_ARM.restAngle + Math.PI;
-  return pose.rotation + (mirrored ? -local : local);
-}
-
-/** The far end of the drawn forearm, relative to the player's centre. */
-function forearmEnd(
-  degrees: number,
-  mirrored: boolean,
-  options?: Parameters<typeof poseAt>[2],
-) {
-  const pose = poseAt(degrees, mirrored, options);
-  const direction = forearmDirection(degrees, mirrored, options);
-  return {
-    x: pose.handX + Math.cos(direction) * FOREARM_LENGTH - PLAYER.x,
-    y: pose.handY + Math.sin(direction) * FOREARM_LENGTH - PLAYER.y,
-  };
-}
-
 describe('front arm pose', () => {
-  it('keeps the hand on the trigger, not on the sprite origin', () => {
-    for (const degrees of [-90, -45, 0, 45, 90]) {
-      for (const mirrored of [false, true]) {
-        const rotation = mirrored
-          ? Math.PI - (degrees * Math.PI) / 180
-          : (degrees * Math.PI) / 180;
-        const pose = poseAt(degrees, mirrored);
-        const gripX =
-          PLAYER.x + (mirrored ? -DEFAULT_GRIP.x : DEFAULT_GRIP.x);
-        const gripY = PLAYER.y + DEFAULT_GRIP.y;
-
-        // Split the offset into the weapon's own axes. Along the barrel it is
-        // the trigger's setback; across it, the drop below the grip's top.
-        const offsetX = pose.handX - gripX;
-        const offsetY = pose.handY - gripY;
-        const along = offsetX * Math.cos(rotation) + offsetY * Math.sin(rotation);
-        const across =
-          -offsetX * Math.sin(rotation) + offsetY * Math.cos(rotation);
-
-        expect(along).toBeCloseTo(FRONT_ARM.holdAlong, 6);
-        // Rise is measured upwards and flips with the weapon, exactly as the
-        // muzzle's does, so aiming left must not push the hand through the grip.
-        expect(across).toBeCloseTo(
-          mirrored ? FRONT_ARM.holdRise : -FRONT_ARM.holdRise,
-          6,
-        );
-      }
-    }
-  });
-
-  it('buries the elbow end in the torso in every pose', () => {
-    // The rig never draws an elbow: the sprite is a 7.2px forearm stub and the
-    // shoulder is further off than that, so the difference has to disappear
-    // behind the coat rather than be reached for. Measured over both poses,
-    // both facings and the whole aim range, the stub's far end never gets more
-    // than 4px from the sprite's centre — the middle of a torso that runs 11px
-    // to the near side.
+  it('hinges on the shoulder, which never leaves the body', () => {
+    // The reason it is not pinned to the grip instead: recoil slides the weapon
+    // up to 16px, and an arm carried with it takes its own shoulder that far
+    // off the torso. This one is drawn whole, shoulder cap included, so that
+    // end has to be the fixed one.
     for (const pose of POSES) {
-      for (let degrees = -90; degrees <= 90; degrees += 5) {
-        for (const mirrored of [false, true]) {
-          const end = forearmEnd(degrees, mirrored, pose);
-          const where = `${pose.name} at ${degrees}deg mirrored=${mirrored}`;
+      for (const weapon of WEAPON_CONFIGS) {
+        for (const degrees of [-90, -45, 0, 45, 90]) {
+          const solved = poseAt(degrees, false, {
+            ...pose,
+            recoil: weapon.feedback.recoilDistance,
+            barrel: weapon.muzzleOffset,
+          });
 
-          expect(Math.abs(end.x), where).toBeLessThan(4);
-          expect(end.y, where).toBeGreaterThan(-8);
-          expect(end.y, where).toBeLessThan(14);
+          expect(solved.shoulderX).toBeCloseTo(PLAYER.x + pose.shoulder.x, 6);
+          expect(solved.shoulderY).toBeCloseTo(PLAYER.y + pose.shoulder.y, 6);
         }
       }
     }
   });
 
-  it('slides with recoil rather than swinging out on it', () => {
-    // Recoil drags the grip back along the aim vector and the hand goes with
-    // it, so the stub can leave the silhouette while the kick lasts — up to
-    // 2.3px of sleeve for the two heavy weapons, over the two frames it takes
-    // the 55ms half-life to bring them back. That is the arm being pulled, and
-    // it is fine. What would not be is the pose swinging the forearm out on its
-    // own, so the far end may never travel further than the recoil moved it.
+  it('keeps the forearm at its drawn length across the aim range', () => {
+    // Nothing here stretches. The hand slides along the weapon instead, so the
+    // solve has an exact answer at every angle rather than an approximate one.
     for (const pose of POSES) {
       for (const weapon of WEAPON_CONFIGS) {
-        const recoil = weapon.feedback.recoilDistance;
         for (let degrees = -90; degrees <= 90; degrees += 5) {
           for (const mirrored of [false, true]) {
-            const rest = forearmEnd(degrees, mirrored, pose);
-            const kicked = forearmEnd(degrees, mirrored, { ...pose, recoil });
-            const travelled = Math.hypot(kicked.x - rest.x, kicked.y - rest.y);
+            for (const recoil of [0, weapon.feedback.recoilDistance]) {
+              const { reach } = poseAt(degrees, mirrored, {
+                ...pose,
+                recoil,
+                barrel: weapon.muzzleOffset,
+              });
 
-            expect(
-              travelled,
-              `${pose.name} ${weapon.id} at ${degrees}deg mirrored=${mirrored}`,
-            ).toBeLessThanOrEqual(recoil + 1e-6);
+              // Not "close enough" — exact. Under a hundredth of a pixel over
+              // both poses, both facings, all four weapons and every angle.
+              expect(
+                Math.abs(reach - FRONT_ARM.length),
+                `${pose.name} ${weapon.id} at ${degrees}deg mirrored=${mirrored} recoil=${recoil}`,
+              ).toBeLessThan(0.01);
+            }
           }
         }
       }
     }
   });
 
-  it('turns the wrist with the weapon without following it all the way', () => {
-    // Both halves matter. A hand that ignores the gun meets the grip crossways;
-    // one that copies it is the case above.
+  it('holds the grip itself while nothing is recoiling', () => {
+    // The art was drawn on the body's own 96x96 frame, so at rest the hand is
+    // on the grip and the sprite lines up with the body pixel for pixel. The
+    // 3.3px of give is the aim range, not slop: pointed straight up or down the
+    // weapon's axis crosses the arm's circle just past the grip. Anything more
+    // means an anchor has drifted from the sprite it was measured off.
     for (const pose of POSES) {
-      const low = forearmDirection(-90, false, pose);
-      const high = forearmDirection(90, false, pose);
-      const swing = Math.abs(high - low);
-      // The weapon covers a half turn between straight up and straight down.
-      const weaponSwing = Math.PI;
+      for (const weapon of WEAPON_CONFIGS) {
+        for (let degrees = -90; degrees <= 90; degrees += 1) {
+          for (const mirrored of [false, true]) {
+            const { slide } = poseAt(degrees, mirrored, {
+              ...pose,
+              barrel: weapon.muzzleOffset,
+            });
 
-      expect(swing, pose.name).toBeGreaterThan(0.25);
-      expect(swing, pose.name).toBeLessThan(weaponSwing * 0.6);
+            expect(
+              slide,
+              `${pose.name} ${weapon.id} at ${degrees}deg mirrored=${mirrored}`,
+            ).toBeLessThan(3.5);
+          }
+        }
+      }
+    }
+  });
+
+  it('lets the weapon slide through the hand rather than past it', () => {
+    // Recoil is absorbed by the hand moving up the weapon, so the slide is
+    // bounded by the kick that caused it, and it may never leave the gun: not
+    // behind the grip, and no nearer the muzzle than the support hand goes.
+    for (const pose of POSES) {
+      for (const weapon of WEAPON_CONFIGS) {
+        const recoil = weapon.feedback.recoilDistance;
+        for (let degrees = -90; degrees <= 90; degrees += 5) {
+          for (const mirrored of [false, true]) {
+            const { slide } = poseAt(degrees, mirrored, {
+              ...pose,
+              recoil,
+              barrel: weapon.muzzleOffset,
+            });
+            const where = `${pose.name} ${weapon.id} at ${degrees}deg mirrored=${mirrored}`;
+
+            expect(slide, where).toBeGreaterThanOrEqual(FRONT_ARM.minSlide);
+            expect(slide, where).toBeLessThanOrEqual(
+              weapon.muzzleOffset - FRONT_ARM.muzzleClearance,
+            );
+            // The kick plus the same 3.3px the aim range accounts for above.
+            expect(slide, where).toBeLessThanOrEqual(recoil + 3.5);
+          }
+        }
+      }
     }
   });
 
@@ -193,17 +177,20 @@ describe('front arm pose', () => {
   });
 
   it('follows the pose that moves the shoulder', () => {
-    // The airborne pose drops the grip 13px and the joint with it. Left on the
+    // The airborne pose drops the hand 13px and the joint with it. Left on the
     // standing anchor the arm spans a distance the pose never intended, which
     // is the failure the back arm's per-frame table exists to avoid.
     const airborne = POSES[1];
-    const withOwnAnchor = poseAt(0, false, airborne).reach;
-    const withStandingAnchor = poseAt(0, false, {
+    const onOwnAnchor = poseAt(0, false, airborne);
+    const onStandingAnchor = poseAt(0, false, {
       grip: airborne.grip,
       shoulder: DEFAULT_SHOULDER,
-    }).reach;
+    });
 
-    expect(withOwnAnchor).toBeLessThan(withStandingAnchor - 5);
+    expect(onOwnAnchor.reach).toBeCloseTo(FRONT_ARM.length, 2);
+    // 5.4px short, on an arm 14.7px long. There is no slide that closes it:
+    // the hand simply cannot reach the gun from the standing shoulder.
+    expect(onStandingAnchor.reach - FRONT_ARM.length).toBeGreaterThan(5);
   });
 
   it('draws over the weapon it is holding', () => {

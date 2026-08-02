@@ -12,12 +12,12 @@ const DEFAULT_SHOULDER = {
 };
 
 /**
- * The trigger arm.
+ * The trigger arm, hinged on the shoulder.
  *
  * The only piece of the player drawn over the weapon, because it is the only
- * piece in front of it: a hand on a grip wraps the near side. Its elbow is
- * behind the torso and never drawn, which is what lets the forearm be one rigid
- * sprite — whatever the pose cannot account for, the coat hides.
+ * piece in front of it: the near hand wraps the grip from the camera's side.
+ * Like the back arm it reads where the weapon ended up and turns to meet it,
+ * and never moves the weapon.
  */
 export class FrontArm {
   private readonly sprite: Phaser.GameObjects.Image;
@@ -36,7 +36,7 @@ export class FrontArm {
     this.sprite.setVisible(false);
   }
 
-  update(weapon: Phaser.GameObjects.Image, mirrored: boolean) {
+  update(weapon: Phaser.GameObjects.Image, mirrored: boolean, barrel: number) {
     // Read at draw time for the same reason the back arm's elbow is: the
     // shoulder belongs to whichever pose is on screen this frame.
     const shoulder =
@@ -49,13 +49,14 @@ export class FrontArm {
       gripY: weapon.y,
       rotation: weapon.rotation,
       mirrored,
+      barrel,
       shoulderFromCentreX: shoulder.x,
       shoulderFromCentreY: shoulder.y,
     });
 
     this.sprite
       .setVisible(true)
-      .setPosition(pose.handX, pose.handY)
+      .setPosition(pose.shoulderX, pose.shoulderY)
       .setRotation(pose.rotation)
       .setFlipY(pose.flipY);
   }

@@ -107,78 +107,79 @@ export const WEAPON_GRIP_BY_FRAME: Record<
  * The near arm — the one on the trigger.
  *
  * The body has no arms of its own any more, so both hands come from the rig,
- * and this is the second of them. It is not the back arm mirrored. The back arm
- * reaches out to a handguard that sits 24 to 47px away depending on the weapon,
- * so it has to solve for where along the barrel it can hold; the trigger hand
- * sits on the grip, and the grip is already an offset from the player's centre.
- * There is nothing to reach for.
+ * and this is the second of them. Unlike the back arm this one is drawn whole,
+ * shoulder cap included, so both of its ends are constrained: the shoulder has
+ * to stay on the torso and the fist has to stay on the gun.
  *
- * What does have to be decided is how much of the weapon's 160-degree swing the
- * wrist carries — see `wristFollow` — and that only works because the elbow is
- * never drawn. The sprite is the forearm from the fist to where the coat takes
- * over; the shoulder is an aim target, not a pivot, so the distance to it can
- * vary without the art having to stretch to cover it.
+ * That rules out pinning it to the grip. Recoil slides the weapon back up to
+ * 16px, and an arm carried along with it puts its own shoulder that far off the
+ * body — the arm tears off rather than absorbs the kick.
  *
- * Measured off front-arm.png and the armless body, same as the back arm.
+ * So it hangs off the shoulder and holds the weapon the way the back arm does:
+ * the hand slides along the weapon's axis to wherever an arm of exactly this
+ * length reaches. At rest that point is the grip — within 3.3px of it across
+ * the whole aim range — and the art lines up with the body pixel for pixel,
+ * because it was drawn on the body's own frame. Under recoil the gun slides
+ * back through the hand instead of dragging it,
+ * which is what a recoiling weapon does anyway. Measured over both poses, both
+ * facings, all four weapons and the whole aim range, the forearm holds its
+ * drawn length exactly — it never stretches and never falls short.
+ *
+ * Every number here was measured off front-arm.png and the armless body.
  */
 export const FRONT_ARM = {
   texture: 'player-front-arm',
   url: '/assets/player/front-arm.png',
 
-  /** 11x8 sprite; the fist's centre of mass is pixel (7.4, 3.3) of it. */
-  originX: 7.429 / 11,
-  originY: 3.286 / 8,
+  /**
+   * 25x12 sprite, cropped out of a 96x96 canvas drawn in register with the body
+   * frames. The shoulder cap's centre of mass — its leftmost four columns — is
+   * pixel (2.41, 5.65) of the crop, and that is the joint it turns on.
+   */
+  originX: 2.412 / 25,
+  originY: 5.647 / 12,
 
   /**
    * The near shoulder's offset from the player sprite's centre, for the poses
    * that keep the standing attitude. Mirrors when facing left.
    *
-   * The near side of the coat runs to x=-11 across every standing frame, so
-   * this sits 3px inside it. Deeper than that and the forearm reads as growing
-   * out of the sternum; on the edge, the stub's far end clears the silhouette
-   * at the extremes of the aim range and there is nothing to hide it.
+   * Not chosen: the art was authored in register, so putting its grip pixel on
+   * the weapon's grip fixes where the shoulder has to be. Everything below
+   * follows from the same two points.
    */
-  shoulderFromCentreX: -8,
-  shoulderFromCentreY: -2,
+  shoulderFromCentreX: -9.59,
+  shoulderFromCentreY: -1.35,
 
-  /** The direction elbow-to-hand the art already points at rest. */
-  restAngle: -0.4636,
+  /** Shoulder to hand, and the direction the art already points at rest. */
+  length: 14.6809,
+  restAngle: -0.1124,
 
   /**
-   * The trigger sits forward of and below the weapon sprite's origin, which is
-   * the top of the grip. Along the barrel, then perpendicular to it — the same
-   * pair the muzzle uses, and the perpendicular flips with the weapon for the
-   * same reason. Negative because the trigger is under the bore, not over it.
-   */
-  holdAlong: 2,
-  holdRise: -2,
-
-  /**
-   * How much of the weapon's rotation the wrist carries, 0 to 1.
+   * Where along the weapon the hand may sit, measured from the grip.
    *
-   * At 1 the forearm is welded to the weapon: aiming 80 degrees down swings it
-   * up off the chest and into open air, where the elbow this rig does not draw
-   * would have to be. At 0 the arm never moves and the hand meets the grip at
-   * an angle no wrist makes. 0.35 keeps the stub's far end inside the torso
-   * across the whole aim range, both facings and all four weapons, while the
-   * hand still visibly turns with the gun.
+   * It never goes behind the grip — there is no gun back there to hold — and it
+   * stops the same 4px short of the muzzle the support hand does. At rest it
+   * stays within 3.3px of the grip; peak recoil on the rail rifle carries it
+   * 19px forward, and the 55ms half-life brings it back inside two frames.
    */
-  wristFollow: 0.35,
+  minSlide: 0,
+  muzzleClearance: 4,
 } as const;
 
 /**
  * The near shoulder for the poses that move it, the same way
  * BACK_ARM_ELBOW_BY_FRAME covers the far one.
  *
- * The airborne pose curls forward, which narrows the near side of the coat from
- * x=-11 to x=-8 and drops the joint 11px. Left on the standing anchor the
- * forearm points at the chest instead of the shoulder and its far end swings
- * clear of the body on the way down from a jump — the same failure the back arm
- * had, on the other side.
+ * Derived rather than measured off the silhouette: the arm is rigid and holds
+ * one attitude against the gun, so once WEAPON_GRIP_BY_FRAME says where the
+ * airborne pose carries the hand, the shoulder is that point less the same
+ * grip-to-shoulder offset the standing anchor uses. It lands just inside the
+ * curled torso's near edge, and the hand needs no slide to reach the grip from
+ * it — which is the check that it is right.
  */
 export const FRONT_ARM_SHOULDER_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: -5, y: 9 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: -7.59, y: 11.65 },
 };
