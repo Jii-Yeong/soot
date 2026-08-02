@@ -717,7 +717,7 @@ export class GameScene extends Phaser.Scene {
       angle,
       enemy.projectile.muzzleOffset,
     );
-    pool.fire(x, y, angle);
+    pool.fire(x, y, angle, { owner: enemy });
   };
 
   private muzzlePosition(
@@ -749,6 +749,13 @@ export class GameScene extends Phaser.Scene {
       );
     } else {
       this.spawnDeathPop(enemy);
+      // Rounds already in the air outlive the shooter otherwise, and a hit that
+      // lands after the enemy is gone reads as the game taking a free swing.
+      // Bosses keep theirs: their patterns are the fight, and clearing the
+      // screen on the last hit would erase the beat the fight ends on.
+      if (enemy.projectile) {
+        this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
+      }
     }
     enemy.defeat();
     this.roomDirector.notifyEnemyDefeated(enemy);

@@ -9,6 +9,11 @@ export type ProjectilePoolConfig = {
 
 export type FireOptions = {
   pierce?: number;
+  /**
+   * Who fired it. Kept so a shooter's rounds can be taken off the screen when
+   * the shooter dies; the pool itself never reads anything off it.
+   */
+  owner?: object;
 };
 
 export class ProjectilePool {
@@ -43,6 +48,9 @@ export class ProjectilePool {
       .setRotation(angle)
       .setDepth(8);
     projectile.setData('pierceRemaining', options.pierce ?? 0);
+    // Overwritten on every shot, so a recycled body never carries the last
+    // owner's tag into its next life.
+    projectile.setData('owner', options.owner ?? null);
     this.scene.physics.velocityFromRotation(
       angle,
       this.config.speed,
@@ -78,6 +86,37 @@ export class ProjectilePool {
   clear() {
     for (const child of this.group.getChildren()) {
       (child as Phaser.Physics.Arcade.Image).disableBody(true, true);
+    }
+  }
+
+  /**
+   * Takes one shooter's rounds off the screen, for when that shooter dies.
+   *
+   * The body goes down on the same frame — a round that still hits after its
+   * owner is gone is the thing this exists to prevent — and a ghost carries the
+   * fade. Fading the projectile itself would not work: the pool hands the body
+   * straight back out, so the tween would end up dragging the next shot's alpha
+   * down with it.
+   */
+  clearFrom(owner: object) {
+    for (const child of this.group.getChildren()) {
+      const projectile = child as Phaser.Physics.Arcade.Image;
+      if (!projectile.active || projectile.getData('owner') !== owner) {
+        continue;
+      }
+
+      const ghost = this.scene.add
+        .image(projectile.x, projectile.y, this.config.texture)
+        .setRotation(projectile.rotation)
+        .setDepth(projectile.depth);
+      this.scene.tweens.add({
+        targets: ghost,
+        alpha: 0,
+        duration: 80,
+        onComplete: () => ghost.destroy(),
+      });
+
+      projectile.disableBody(true, true);
     }
   }
 
