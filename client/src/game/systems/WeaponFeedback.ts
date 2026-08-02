@@ -237,8 +237,10 @@ export class WeaponFeedback {
       );
     }
 
-    const color = Phaser.Display.Color.IntegerToRGB(weapon.pickupColor);
-    this.scene.cameras.main.flash(90, color.r, color.g, color.b, false);
+    // No camera flash here. Filling the screen with the weapon's colour reads as
+    // damage or a scene change, and it is the one swap cue that costs the player
+    // sight of the room they are standing in. The ring and sparks say the same
+    // thing at the player, which is where they are already looking.
     this.scene.tweens.add({
       targets: [ring, sparks],
       alpha: 0,
