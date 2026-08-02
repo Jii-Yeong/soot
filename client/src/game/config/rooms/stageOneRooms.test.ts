@@ -39,9 +39,12 @@ describe('stage 1 room layout', () => {
 
     expect(walls).toEqual([0, 1]);
 
-    // Pits stay out of stage 1 entirely. Every open stretch here has a ledge
-    // overhead, and a full jump would put the player into its underside — see
-    // the sky-clearance rule in reachability.test.ts.
+    // Pits stay out of stage 1 for now. The reason they were kept out has
+    // gone — every open stretch here has a ledge overhead, which used to mean a
+    // full jump ended in its underside, and platforms are one-way now. What
+    // remains is a design question nobody has answered yet: stage 2 opens with
+    // two pits beside eight enemies, so somewhere before that the player should
+    // meet one on its own.
     for (const room of CITY_COMBAT_ROOMS) {
       expect(room.pits).toBeUndefined();
     }
