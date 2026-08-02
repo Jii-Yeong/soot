@@ -21,7 +21,7 @@ export class WeaponSystem {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly player: Phaser.Physics.Arcade.Sprite,
-    enemies: Enemy[],
+    private readonly enemies: Enemy[],
     weaponConfigs: readonly WeaponConfig[],
     startingWeaponId: string,
     private readonly canFire: () => boolean,
@@ -152,16 +152,56 @@ export class WeaponSystem {
     );
 
     for (const angle of angles) {
-      const { x, y } = this.feedback.getMuzzlePosition(
-        angle,
-        config.muzzleOffset,
-      );
-      weapon.pool.fire(x, y, angle, {
+      const muzzle = this.feedback.getMuzzlePosition(angle, config.muzzleOffset);
+      const origin = this.spawnOrigin(muzzle);
+
+      weapon.pool.fire(origin.x, origin.y, angle, {
         pierce: config.pierce,
       });
     }
 
     this.feedback.playFire(config, baseAngle, angles);
+  }
+
+  /**
+   * Where a round is born, given what is standing in front of the gun.
+   *
+   * Normally the muzzle. But the muzzle is 24 to 47px out along the barrel and
+   * nothing between the grip and it is ever tested, so an enemy standing on top
+   * of the player was a hole the round appeared on the far side of: their
+   * bodies are 44 to 48px wide, and every weapon but the SMG puts its muzzle
+   * past that. Point blank, the shot missed a target it was inside of.
+   *
+   * When something is in that stretch the round starts at the grip instead, and
+   * the normal projectile-enemy overlap does the rest — damage, knockback,
+   * pierce and feedback all keep running through one path. The muzzle flash
+   * stays where the barrel is, so nothing moves on screen except at the range
+   * where the muzzle was inside an enemy anyway.
+   */
+  private spawnOrigin(muzzle: { x: number; y: number }) {
+    const grip = this.feedback.display;
+    const barrel = new Phaser.Geom.Line(grip.x, grip.y, muzzle.x, muzzle.y);
+
+    for (const enemy of this.enemies) {
+      const body = enemy.active
+        ? (enemy.body as Phaser.Physics.Arcade.Body | null)
+        : null;
+      if (!body) {
+        continue;
+      }
+
+      const bounds = new Phaser.Geom.Rectangle(
+        body.x,
+        body.y,
+        body.width,
+        body.height,
+      );
+      if (Phaser.Geom.Intersects.LineToRectangle(barrel, bounds)) {
+        return { x: grip.x, y: grip.y };
+      }
+    }
+
+    return muzzle;
   }
 
   private computePelletAngles(
