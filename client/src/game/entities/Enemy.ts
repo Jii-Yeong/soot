@@ -15,6 +15,10 @@ export type EnemyProjectileProfile = {
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
   abstract readonly aggroIndicatorColor: number;
+  /** Whether this enemy uses the shared white damage flash. */
+  readonly usesHitFlash: boolean = true;
+  /** Opacity used while the white fill tint is visible. */
+  readonly hitFlashAlpha: number = 1;
   readonly maxHealth: number;
   /** Set by ranged-style subclasses so GameScene can route fire without an instanceof check. */
   readonly projectile: EnemyProjectileProfile | null = null;

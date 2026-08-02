@@ -103,31 +103,26 @@ export function App() {
                   무적 // {invincible ? 'ON' : 'OFF'}
                 </button>
 
-                <button
-                  type="button"
-                  className="admin-controls__button"
-                  onClick={() => goToStage(0)}
-                >
-                  1스테이지 가기
-                </button>
-
-                <button
-                  type="button"
-                  className="admin-controls__button"
-                  onClick={() => goToStageBoss(0)}
-                >
-                  1스테이지 보스 가기
-                </button>
-
-                {[2, 3, 4, 5].map((stageNumber) => (
-                  <button
+                {[1, 2, 3, 4, 5].map((stageNumber) => (
+                  <div
                     key={stageNumber}
-                    type="button"
-                    className="admin-controls__button"
-                    onClick={() => goToStage(stageNumber - 1)}
+                    className="admin-controls__stage-row"
                   >
-                    {stageNumber}스테이지 가기
-                  </button>
+                    <button
+                      type="button"
+                      className="admin-controls__button"
+                      onClick={() => goToStage(stageNumber - 1)}
+                    >
+                      {stageNumber}스테이지
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-controls__button admin-controls__button--boss"
+                      onClick={() => goToStageBoss(stageNumber - 1)}
+                    >
+                      보스
+                    </button>
+                  </div>
                 ))}
 
                 <button

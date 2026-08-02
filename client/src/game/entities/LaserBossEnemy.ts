@@ -13,12 +13,20 @@ import { BeamEffects } from '@/game/systems/BeamEffects';
 
 type PlayerDamageHandler = (damage: number) => void;
 
+const DEATH_POSE_HOLD_MS = 2000;
+const DEATH_FADE_MS = 650;
+
 export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
+  override readonly usesHitFlash: boolean = true;
+  override readonly hitFlashAlpha: number = 0.72;
+
   private readonly effects: BeamEffects;
   private readonly attackCycle: LaserAttackCycle;
   private aimAngle = 0;
   private laserHit = false;
-  private inBattlePose = false;
+  private activeSpriteAnimation?: string;
+  private recoilUntil = 0;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -38,8 +46,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
 
   /**
    * The real atlas frame is padded, so the physics body is sized to the
-   * character. The boss idles on a loop and only snaps to the braced battle
-   * frame while charging or firing (see {@link setBattlePose}).
+   * character. The supplied Aseprite tag names drive its pose animations.
    */
   private applyBossSprite() {
     if (!this.sprite) {
@@ -52,21 +59,16 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
       this.sprite.bodyHeight,
       true,
     );
-    this.play(this.sprite.idleAnimation);
+    this.playSpriteAnimation(this.sprite.animations.idle);
   }
 
-  private setBattlePose(active: boolean) {
-    if (!this.sprite || this.inBattlePose === active) {
+  private playSpriteAnimation(animation: string) {
+    if (!this.sprite || this.activeSpriteAnimation === animation) {
       return;
     }
 
-    this.inBattlePose = active;
-    if (active) {
-      this.anims.stop();
-      this.setFrame(this.sprite.battleFrame);
-    } else {
-      this.play(this.sprite.idleAnimation, true);
-    }
+    this.activeSpriteAnimation = animation;
+    this.play(animation, true);
   }
 
   updateCombat(
@@ -74,7 +76,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
-    if (!this.active) {
+    if (!this.active || this.dying) {
       this.effects.hideAll();
       return false;
     }
@@ -85,7 +87,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     if (!targetInRange) {
       this.setVelocityX(0);
       this.effects.hideAll();
-      this.setBattlePose(false);
+      this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
       return false;
     }
 
@@ -109,6 +111,41 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     this.effects.hideAll();
   }
 
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+
+    if (!this.sprite) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.clearTint().setAlpha(1);
+    this.playSpriteAnimation(this.sprite.animations.death);
+
+    // Stop combat and collisions immediately, but leave the final authored
+    // frame visible long enough to read before fading it out. The GameObject
+    // stays active so the two-frame death animation can advance.
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.enable = false;
+    this.scene.time.delayedCall(DEATH_POSE_HOLD_MS, () => {
+      if (!this.scene || !this.visible) {
+        return;
+      }
+
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        duration: DEATH_FADE_MS,
+        ease: 'Sine.easeIn',
+        onComplete: () => this.disableBody(true, true),
+      });
+    });
+  }
+
   override destroy(fromScene?: boolean) {
     this.effects.destroy();
     super.destroy(fromScene);
@@ -119,8 +156,16 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.effects.hideAll();
-    this.setBattlePose(false);
     this.moveToPreferredDistance(time, target);
+    if (time >= this.recoilUntil) {
+      // Walk while closing/backing off to the preferred distance; idle once settled.
+      const moving =
+        Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 1;
+      this.playSpriteAnimation(
+        (moving ? this.sprite?.animations.walk : this.sprite?.animations.idle) ??
+          '',
+      );
+    }
 
     if (this.attackCycle.isComplete(time)) {
       this.attackCycle.beginVolley(time, this.isEnraged);
@@ -133,7 +178,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
-    this.setBattlePose(true);
+    this.playSpriteAnimation(this.sprite?.animations.charge ?? '');
 
     if (this.attackCycle.shouldTrackAim(time)) {
       this.lockAimOn(target);
@@ -155,7 +200,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
-    this.setBattlePose(true);
+    this.playSpriteAnimation(this.sprite?.animations.fire ?? '');
     const muzzle = this.getMuzzlePosition();
     this.effects.updateBeam(muzzle, this.aimAngle);
 
@@ -169,6 +214,8 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     }
 
     this.effects.hideBeam();
+    this.recoilUntil = time + 280;
+    this.playSpriteAnimation(this.sprite?.animations.recoil ?? '');
     if (this.attackCycle.finishFiring(time, this.isEnraged)) {
       this.lockAimOn(target);
     }

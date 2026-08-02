@@ -136,6 +136,20 @@ input {
   text-align: left;
 }
 
+.admin-controls__stage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-controls__button--boss {
+  padding-right: 8px;
+  padding-left: 8px;
+  color: #e99ba3;
+  text-align: center;
+}
+
 .admin-controls__button--active {
   border-color: #6fd6a6;
   color: #b6ffe4;
