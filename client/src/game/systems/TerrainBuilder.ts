@@ -9,6 +9,23 @@ const TERRAIN_STYLE = {
 } as const;
 
 /**
+ * Which faces of a terrain piece stop anything.
+ *
+ * Platforms are one-way: you rise through them and land on top. There is one
+ * jump speed in this game, so a player clearing a gap climbs 130.7px whether
+ * they need it or not, and a solid underside turned every ordinary hop taken
+ * beneath a ledge into a headbutt. The level data had been bending around that
+ * — stage 1 carries no pits at all because every open stretch there has a ledge
+ * overhead — which is a lot of layout spent on a collision face nobody wants.
+ *
+ * Walls stay solid on every face. A wall is the thing you are meant to go over.
+ */
+export const terrainCollisionFaces = (type: TerrainPiece['type']) =>
+  type === 'wall'
+    ? { up: true, down: true, left: true, right: true }
+    : { up: true, down: false, left: false, right: false };
+
+/**
  * Builds a room's solid level geometry (platforms and walls) as static bodies
  * with placeholder visuals. The bodies live in one static group so a single
  * persistent player collider tracks them across rooms; `build` swaps the
@@ -40,7 +57,9 @@ export class TerrainBuilder {
       this.group.add(block);
       // A static body added to a shape isn't sized from the shape until it is
       // synced to the game object's current transform.
-      (block.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+      const body = block.body as Phaser.Physics.Arcade.StaticBody;
+      body.updateFromGameObject();
+      Object.assign(body.checkCollision, terrainCollisionFaces(piece.type));
     }
   }
 }
