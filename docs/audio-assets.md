@@ -870,6 +870,33 @@ alley — 목표는 city와 같은 88 BPM, 왜곡, 평평한 빌드
 **애초에 같은 축이 아니었다.** 서로 다른 방법으로 얻은 숫자를 한 표에 나란히 놓은 것이
 잘못이다. 앞으로 비교는 한 도구로 다시 잰 값끼리만 한다.
 
+### 가공 완료 — `inferno_ten-ton-loom.ogg`
+
+20번(`Ten Ton Loom`)을 채택해 가공했다.
+
+| 항목 | 값 |
+| --- | --- |
+| 루프 구간 | **48.000s ~ 112.240s (64.24초)** |
+| 크로스페이드 | 0.15초 · 리니어 |
+| 피크 | +0.21dBFS → **-3.0dBFS** |
+| 포맷 | Ogg Opus 80k · 640KB |
+
+**루프 지점은 상관이 아니라 마디로 정했다.** 후보가 둘이었고 상관은 사실상 같았다.
+
+| 구간 | 길이 | 상관 | 레벨차 | 마디 수 |
+| --- | --- | --- | --- | --- |
+| 30.00 → 96.78 | 66.78초 | 0.511 | -0.54dB | **40.555** |
+| **48.00 → 112.24** | **64.24초** | 0.507 | **-0.39dB** | **39.012** |
+
+145.75 BPM에서 한 마디가 1.6467초다. 30초 시작은 **반 마디가 어긋나** 킥이 밀리고,
+48초 시작은 39마디에 0.012마디(약 20ms) 오차로 떨어진다. **드럼이 있는 곡에서는 마디가
+상관을 이긴다** — 어긋난 킥은 상관 0.004 차이보다 훨씬 크게 들린다.
+
+크로스페이드는 규격대로 짧게(0.15초) 잡았다. 길면 킥이 두 번 치는 것처럼 들린다.
+
+이어붙여 검사한 결과 **이음매의 샘플 도약은 0.0024로 곡 내부 중앙값 0.0133보다 작다.**
+클릭이 생기지 않는다.
+
 ### title / alley
 
 `title`은 city 확정 후, `alley`는 city 결과물을 듣고 무엇을 무너뜨릴지 정한 뒤에 작성한다.
@@ -1236,6 +1263,66 @@ immediately at full level, loopable background bed, 88 BPM, D major
 곡이 불안하게 들리면 성공이고, 21번처럼 -47대로 떨어지면 불안 지시가 밝기를 다시 끌어내린
 것이므로 멜로디 문장을 뒤로 미뤄야 한다.
 
+**A4 — `heavy reverb`를 되돌리고 주법으로 밝힌다 (지금 쓸 것)**
+
+A3 결과물도 여전히 어둡다는 피드백이 나왔다. 여기서 프롬프트를 또 감으로 고치는 대신
+지금까지 잰 값을 전부 늘어놓았더니 **밝기가 무엇에서 나오는지가 분명하게 보였다.**
+
+| 큐 | 공기감 8~16k | 편성 |
+| --- | --- | --- |
+| inferno | **-24.8 ~ -29.8** | 디스토션 기타 + 드럼 |
+| alley | -29.0 | 디스토션 기타 + 드럼 |
+| city | -29.8 | 클린 기타 아르페지오 + 가벼운 퍼커션 |
+| **return** | **-37.7 ~ -47.9** | 지속 현악 + 리버브 |
+| title | -41.0 ~ -46.6 | 지속 현악, 무박 |
+| underground | -50.4 ~ -52.9 | 첼로 + 콘크리트 공간 |
+
+**우리 데이터에서 가장 밝은 곡은 왜곡과 드럼이 있는 곡이다.** 고역은 밝은 분위기를
+지시해서 나오는 것이 아니라 **트랜지언트와 배음**에서 나온다. 지속되는 현악에 리버브를
+씌운 구성은 물리적으로 고역이 적고, return이 정확히 그 구성이다.
+
+**그리고 한 단어가 걸린다.**
+
+| | 기타 지시 | 공기감 |
+| --- | --- | --- |
+| city (채택) | `crystalline clean electric guitar arpeggio with **light** reverb` | **-29.8** |
+| return A · A2 · A3 | `crystalline clean electric guitar arpeggio with **heavy** reverb` | -37.7 ~ -47.9 |
+
+**같은 악기, 같은 아르페지오, 리버브 양만 다르고 8dB 이상 어둡다.** `heavy reverb`는
+city에서 옮겨 적으면서 내가 근거 없이 바꿔 넣은 단어다. 리버브 꼬리는 고역이 가장 먼저
+죽으므로(총소리 감쇠에서 이미 본 순서다: 고역 7ms, 중역 16ms, 저역 38ms) 길수록 고역
+비중이 떨어지고 트랜지언트도 뭉갠다.
+
+**두 가지를 같이 바꾼다.**
+
+1. `heavy reverb` → `light reverb`. 유일하게 근거가 있는 되돌림이다
+2. 현악에 **주법**을 준다. `sul ponticello`(브리지 근처 활)와 `natural harmonics`는
+   물리적으로 고배음이 강한 주법이다. **`muted`가 약음기를 뜻해 고역을 깎았던 것의 정확한
+   반대편**이고, 악기 상태를 나타내는 단어가 분위기 형용사를 이긴다는 성질을 그대로 쓴다
+
+**한 번에 둘을 바꾸므로 어느 쪽이 들었는지는 이 테이크로 알 수 없다.** 마감이 8월 4일이고
+둘 다 같은 방향을 가리키므로 지식보다 결과를 택했다.
+
+```
+blindingly bright orchestral, recorded in a vast hall of white marble and glass
+with hard bright reflections, high register strings played sul ponticello,
+glassy and metallic and full of upper partials, natural harmonics ringing above
+them, crystalline clean electric guitar arpeggio with light reverb, light cello
+underneath, choir-free, the ensemble radiant and golden throughout, the melody
+unsteady against it, wandering and never landing on the tonic, notes slipping a
+semitone out of place and correcting late, two violins drifting slightly out of
+tune with each other, a raised fourth souring every otherwise perfect chord, a
+single one minute passage that returns to its exact starting point and begins
+again unchanged, every minute sounds like every other minute, spacious and
+sparse, purely instrumental, the same handful of instruments from beginning to
+end, the final section sits at exactly the same level as the opening, starts
+immediately at full level, loopable background bed, 88 BPM, D major
+```
+
+**이번에도 -37dB대에 머무르면 편성을 건드려야 한다.** 지속 현악만으로 city 수준의 고역에
+도달한 테이크가 아직 하나도 없다. 그때는 벨·글로켄슈펠·윈드차임 같은 **금속 타격 계열**을
+넣는 것이 물리적으로 가장 빠른 길이고, 이는 편성 합의를 바꾸는 일이므로 사람이 정한다.
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1245,7 +1332,7 @@ immediately at full level, loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A3** | A · B · A2 | A는 루프 0.42 천장 (15번), B는 합창이 크레셴도를 부른다 (16번), A2는 밝기와 불안을 한 단어에 섞어 21번에서 통째로 어두워졌다 |
+| `return` | **A4** | A · B · A2 · A3 | A는 루프 0.42 천장 (15번), B는 합창이 크레셴도를 부른다 (16번), A2는 밝기와 불안을 한 단어에 섞었고, A3까지도 `heavy reverb`를 들고 있었다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
