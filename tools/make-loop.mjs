@@ -84,5 +84,10 @@ writeFileSync(outPath, wav);
 
 const seamBefore = 20 * Math.log10(peak);
 console.log(`길이 ${(loopFrames / RATE).toFixed(3)}초`);
-console.log(`크로스페이드 ${FADE.toFixed(2)}초 (등파워)`);
+// The curve is an argument, so print the one that ran. This line said 등파워
+// unconditionally, which is the wrong answer for every correlated seam — and a
+// correlated seam is the only kind worth choosing.
+console.log(
+  `크로스페이드 ${FADE.toFixed(2)}초 (${CURVE === 'power' ? '등파워' : '선형'})`,
+);
 console.log(`피크 ${seamBefore.toFixed(2)}dBFS → ${TARGET_DBFS.toFixed(1)}dBFS 로 정규화`);

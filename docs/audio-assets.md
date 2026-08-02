@@ -280,9 +280,13 @@ opening, starts immediately at full level, loopable background bed,
 | 순위 | 항목 | 기준 | 이유 |
 | --- | --- | --- | --- |
 | 1 | 후반 상승 / 구간 편차 | 상승 1.5dB 이하, 편차 3dB 이하 | 편집으로 못 고친다. 여기서 떨어지면 즉시 버린다 |
-| 2 | 공기감 8~16kHz | -24dB보다 위 | 밝은 도시 배경과 맞물린다 |
+| 2 | 공기감 8~16kHz | -24dB보다 위 (`audio-check.html` 기준) | 밝은 도시 배경과 맞물린다 |
 | 3 | 중역 1~4kHz | ~~-8dB보다 아래~~ **보류** | 실측이 아닌 추정치였고, 표본 11개가 도달 불가임을 보였다. 아래 항목 참고 |
 | 4 | 앞뒤 페이드 | — | 항상 잘라내면 되므로 **이것으로 탈락시키지 않는다** |
+
+**-24dB 기준은 `audio-check.html` 눈금이다.** 나중에 만든 `tools/measure-track.mjs`는
+창 길이와 기준 레벨이 달라 같은 곡이 6~9dB 낮게 나온다. city 채택본이 전자로 -20 대,
+후자로 -29.8이다. 도구를 섞어 이 기준에 대보면 전부 미달로 읽힌다.
 
 #### 첫 결과물에서 확인된 것
 
@@ -459,6 +463,11 @@ BPM을 몰라도 마디를 맞출 수 있었던 이유가 이것이다.
 **상관을 택했다.** 레벨차 2.3dB는 크로스페이드 0.8초에 걸쳐 완만히 오르므로 음악적 변동
 범위 안이지만, 상관이 낮으면 겹치는 두 소재가 따로 들린다.
 
+> 이 절의 0.576은 브라우저 `OfflineAudioContext`로 잰 값이다. 나중에 만든
+> `tools/measure-track.mjs`로 같은 지점을 재면 0.430이 나온다. 창 길이와 샘플레이트가
+> 다르므로 **다른 절의 숫자와 나란히 비교하지 말 것.** 판단 자체는 유효하다 — 어느
+> 도구로 재도 101초대가 24초 배수보다 압도적이다.
+
 **크로스페이드는 등파워가 아니라 리니어다.** 등파워는 서로 무관한 소재의 레벨을 지켜주는
 곡선인데, 잘 고른 루프 지점은 정의상 두 소재가 닮아 있어 오히려 최대 3dB를 더한다.
 실측으로 확인했다.
@@ -525,17 +534,48 @@ ffmpeg -i final.wav -c:a libopus -b:a 80k city.ogg
 
 ### 후보 파일 관리
 
-최종 판단은 귀로 하고 그 귀가 한 사람일 필요는 없으므로, **뽑은 테이크는 전부 저장소에 남겨
-두 사람이 같이 듣는다.** 측정값은 후보를 좁히는 데 쓰고 고르는 것은 사람이 한다.
+최종 판단은 귀로 하고 그 귀가 한 사람일 필요는 없으므로, **후보는 저장소에 남겨 두 사람이
+같이 듣는다.** 측정값은 후보를 좁히는 데 쓰고 고르는 것은 사람이 한다.
 
 | 위치 | 역할 |
 | --- | --- |
-| `client/src/assets/audio/candidates/<큐>/` | 그 큐로 생성한 모든 테이크. 원래 제목 그대로 둔다 |
+| `client/src/assets/audio/candidates/<큐>/` | 좁혀낸 후보. **청음용 Opus 64kbps 사본** |
+| `client/src/assets/audio/sources/` | **채택곡의 원본.** 가공은 반드시 여기서 시작한다 |
 | `client/src/assets/audio/music/`, `sfx/` | 현재 잠정 선택 하나. 파일명이 큐 이름으로 시작한다 |
+| GitHub 릴리스 `audio-takes-*` | 탈락 포함 **모든 테이크의 원본 MP3.** 저장소 밖 보관 |
 
-후보는 큐별로 나눈다(`candidates/city/`, 뒤이어 `candidates/title/`, `candidates/alley/`).
-한 폴더에 섞이면 어느 곡이 어느 큐 후보인지 알 수 없고, 점검 도구에서 폴더를 통째로 열 때도
-관계없는 곡이 딸려 온다.
+후보는 큐별로 나눈다(`candidates/title/`, `candidates/alley/`). 한 폴더에 섞이면 어느 곡이
+어느 큐 후보인지 알 수 없고, 점검 도구에서 폴더를 통째로 열 때도 관계없는 곡이 딸려 온다.
+파일명은 `take<번호>_원래제목`으로 둔다. **번호는 순위가 아니라 생성 순서**이고, 위 생성
+기록 표의 행 번호와 같다.
+
+#### 원본을 저장소에 전부 넣지 않는 이유
+
+city는 테이크 12개를 원본 MP3로 커밋했고 48MB가 들어갔다. 그 방식을 title·alley에도
+적용하면 +36.7MB이고, 스테이지 3~5까지 가면 100MB가 더 붙는다.
+
+**한 번 커밋한 것은 지워도 줄지 않는다.** `git rm`은 작업 트리에서만 없애고 blob은 히스토리에
+영구히 남으므로 클론 용량은 그대로다. 회수하려면 히스토리 재작성과 강제 푸시가 필요한데,
+공개 저장소에 협업자가 붙어 있는 동안 할 수 있는 일이 아니다. **그러므로 커밋 시점에
+결정해야 한다.**
+
+그래서 이렇게 나눈다.
+
+- **좁혀낸 후보만** 저장소에. 그것도 Opus 64kbps로. 5곡이 7.0MB다
+- **모든 원본은** 릴리스 첨부물로. 히스토리 비용이 0이고 진짜로 삭제할 수 있다
+- **채택곡의 원본만** `sources/`에. 마스터링 소스는 저장소 안에 있어야 한다
+
+city 채택본 원본을 `candidates/city/`에서 `sources/`로 옮긴 것은 **유지 비용이 0**이기
+때문이다. blob이 이미 히스토리에 있으므로 지워도 클론이 작아지지 않는다. 같은 값이면
+남겨서 언제든 다시 마스터링할 수 있게 두는 쪽이 낫다.
+
+**Opus 64kbps가 판정을 훼손하지 않음은 실측으로 확인했다.** 후보 5곡 전부를 원본과 사본으로
+재서 빌드는 동일, 대역은 최대 0.9dB 차이(4번 공기감 -41.2 → -40.3), 박 상관은 최대 0.017
+차이였다. 후보 사이의 격차가 5dB 이상이므로 순서가 뒤집히지 않는다. 다만 **가공은 사본으로
+하지 않는다** — 자르고 크로스페이드를 걸면 세대 손실이 쌓인다.
+
+`sources/`도 빌드에 실리지 않는다. 글롭이 `music`과 `sfx`만 이름으로 잡고
+`discoverFiles`가 한 번 더 폴더를 걸러내므로 이중으로 막혀 있다.
 
 **SFX 후보만 예외로 `candidates/sfx/` 한 폴더를 같이 쓴다.** 큐가 9개인데 폴더를 9개
 만들면 파일 하나짜리 폴더가 늘어날 뿐이다. 대신 **파일명을 `<큐>-<순위>_원본이름`으로**
@@ -549,17 +589,16 @@ ffmpeg -i final.wav -c:a libopus -b:a 80k city.ogg
 후보를 `music/`에 두면 안 되는 이유는 하나 더 있다. `city`로 시작하는 파일이 둘 이상이면
 이름이 짧은 쪽이 자동 선택되므로 어느 것이 재생 중인지 알 수 없게 된다.
 
-**듣고 비교하는 방법:** `tools/audio-check.html`을 더블클릭한다. **후보 목록이 바로 뜬다.**
-고르는 것도 여는 것도 필요 없고 재생만 하면 된다.
+**듣고 비교하는 방법:** `tools/audio-check.html`을 더블클릭하고 `candidates/<큐>/` 폴더의
+파일을 끌어다 놓는다. 여러 개를 한 번에 놓으면 비교표가 뜨고 각 행에서 바로 재생된다.
 
-측정 결과는 `tools/audio-candidates.js`에 저장돼 있다. 같은 파일이면 결과가 늘 같으므로 열
-때마다 다시 분석하지 않는다. 브라우저는 로컬 파일을 **재생**할 수는 있고 **바이트를 읽을**
-수는 없는데, 재생만 하면 되니 문제가 되지 않는다.
+**미리 구워둔 후보 목록(`tools/audio-candidates.js`)은 제거했다.** city 테이크 12개를 열
+때마다 재분석하지 않으려고 만든 캐시였고, city가 확정되면서 가리키던 파일이 없어졌다.
+그 12개의 측정값은 위의 city 테이크 표에 그대로 남아 있다. 그리고 측정의 기준 도구가
+`tools/measure-track.mjs`로 옮겨간 뒤로는 브라우저 값과 눈금이 달라 한 표에 섞을 수도 없다.
 
-**새 테이크를 측정할 때는** dev 서버를 띄우고 `?src=` 에 파일 경로를 넘긴다. 분석이 끝나면
-콘솔에 `[audio-check] manifest`가 찍히고, 그 내용을 `audio-candidates.js`의 `takes`에 붙여
-넣으면 다음부터는 모두가 분석 없이 바로 듣는다. 이 과정은 오디오 담당이 처리하므로 곡을
-고르는 쪽은 신경 쓸 필요가 없다.
+**역할이 갈렸다고 보면 된다.** 숫자는 `measure-track.mjs`로 재고, `audio-check.html`은
+**귀로 듣고 말로 된 판정을 보는** 용도로 쓴다.
 
 ### 가공 작업
 
@@ -578,6 +617,174 @@ ffmpeg -i final.wav -c:a libopus -b:a 80k city.ogg
 
 **저장 포맷은 Ogg Vorbis로 한다.** 편집 후 다시 mp3로 저장하면 세대 손실이 누적되고,
 wav는 3분 스테레오가 30MB를 넘는다. ogg는 용량이 mp3 수준이면서 게임이 그대로 인식한다.
+
+### title / alley 프롬프트와 생성 기록
+
+city와 달리 **Pro 모델이 곡 구조를 만들려는 성향과 싸우는 것**이 핵심 과제였다. Vertex 문서에
+"인트로·벌스·코러스·브릿지 같은 구조 요소를 이해한다"고 적혀 있고, 우리가 원하는 것은 구조가
+없는 정적인 베드다. city도 12초 인트로 빌드와 후반 크레셴도가 있었고, title 초기 테이크들은
+빌드가 +7.2dB, +3.8dB까지 갔다.
+
+세 방향을 각각 시도했다.
+
+**A — 드론 베드 + 반복 명시 + 템포 제거**
+
+```
+sustained ambient drone bed, delicate high register strings holding one
+unresolved suspended chord throughout, glassy shimmering textures, crystalline
+clean electric guitar sounding single notes that decay into silence, light
+cello sustaining underneath, free time with no pulse, rubato, no percussion of
+any kind, the harmony never moves to another chord, the same eight bars
+repeated over and over for the entire duration, every passage sounds like every
+other passage, spacious and sparse, open and luminous, calm and static, purely
+instrumental, starts immediately at full level, the final minute sits at
+exactly the same level as the opening minute, loopable background bed, D major
+```
+
+**BPM 숫자를 일부러 뺐다.** 박이 없어야 하는 곡에 템포를 주면 모델이 그리드를 만들 이유가
+생긴다. city는 아르페지오와 약한 퍼커션이 있어 필요했지만 title은 반대다.
+
+**B — 녹음물로 프레이밍**
+
+```
+a single held string chord recorded in a large empty hall, delicate high
+register violin and viola sustaining without vibrato, glassy shimmering air
+around them, one crystalline clean guitar note every few bars fading into the
+room, light cello drone underneath, free time, no pulse, no percussion, the
+same chord for the entire duration, nothing enters and nothing leaves, ambient
+field recording of one moment stretched out, purely instrumental, starts
+immediately at full level, loopable, D major
+```
+
+작곡이 아니라 "한 순간을 늘여놓은 필드 레코딩"이라고 하면 구조를 만들 명분이 없어지지
+않을까 하는 시도다.
+
+**C — 짧은 미니멀**
+
+```
+delicate high register strings sustained, glassy shimmering textures,
+crystalline clean electric guitar, light cello drone, free time, no pulse, one
+unchanging chord, spacious and sparse, purely instrumental, loopable, D major
+```
+
+프롬프트 길이 자체가 변수인지 보려는 것이다. 짧으면 모델이 구조를 붙일 여지가 줄어들 수 있다.
+
+**alley는 반대로 박이 있어야 한다.** 드럼이 처음 들어오는 곡이므로 88 BPM을 명시하고,
+city와 **같은 으뜸음 D**를 유지한 채 장조만 단조로 뒤집는다.
+
+```
+dark orchestral, low unsteady cello and viola, distorted electric guitar
+arpeggio detuned and grinding, sparse slow drum kit with kick and snare on a
+steady grid, strings drifting slightly out of tune with each other, decayed and
+menacing, familiar but wrong, purely instrumental, one continuous unchanging
+texture, the same handful of instruments from beginning to end, the same eight
+bars repeated over and over for the entire duration, the final section sits at
+exactly the same level as the opening, starts immediately at full level,
+loopable background bed, 88 BPM, D minor
+```
+
+**88 BPM은 실측값이다.** 문서 계획값은 90이었지만 채택된 city(`The_Center_of_the_Room`)는
+v2 테이크이고 온셋 자기상관으로 88.5가 나왔다. alley는 채택본에 맞춘다.
+
+alley B는 위에 `the same theme as a bright D major city piece now turned wrong`와
+`distorted electric guitar taking over the arpeggio the clean guitar used to play`를
+더해 **city 파생을 문장으로 명시한 것**이고, alley C는 드럼을 `full drum kit with a steady
+driving kick and snare pattern audible throughout`로 앞세운 것이다.
+
+#### 생성 기록 (10테이크)
+
+| 순서 | 큐 | 프롬프트 | 길이 | 제목 |
+| --- | --- | --- | --- | --- |
+| 1 | title | A | 179.6초 | The Glass Horizon |
+| 2 | title | B | 170.0초 | Sunlight Through the Atrium |
+| 3 | title | C | 176.5초 | The Longest Breath |
+| 4 | title | A | 169.6초 | Sunlight Through a Pane |
+| 5 | title | B | 179.1초 | Noon in the Atrium |
+| 6 | alley | A | 166.5초 | Under the Iron Ceiling |
+| 7 | alley | A | 130.2초 | The Unsteady Corridor |
+| 8 | alley | B | 136.0초 | Gravity of the Concrete |
+| 9 | alley | B | 127.4초 | The Warped Foundation |
+| 10 | alley | C | 166.7초 | Torsion of the Girders |
+
+제목이 곧 순서가 아니다. 2·3·4번은 생성 당시 제목을 확인하지 못해 비워두었고, 나중에
+받은 파일 순서와 **길이가 위치별로 전부 일치**하는 것으로 확정했다. 2번과 4번은 둘 다
+170초여서 길이만으로는 갈리지 않으므로 받은 순서를 근거로 삼는다.
+
+#### 측정 결과
+
+**기준은 city 원본이다.** 가공본과 비교하면 우리가 손본 결과와 모델 출력을 비교하는
+것이 되어 프롬프트의 성패를 알 수 없다. 아래는 전부 `tools/measure-track.mjs` 한 도구로
+다시 잰 값이다.
+
+title — 목표는 빌드 0, 박 0.3 이하, city 수준의 공기감
+
+| | city 원본 | 1 (A) | 2 (B) | 3 (C) | 4 (A) | 5 (B) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 빌드 | +4.5 | **-0.2** | +2.4 | +1.2 | +2.3 | **-0.6** |
+| 박 | 0.676 @ 88.5 | 0.498 @ 80 | 0.636 @ 159 | **0.370** @ 80 | 0.385 @ 80 | 0.444 @ 80 |
+| 공기감 8~16k | **-29.8** | -46.6 | -43.4 | **-41.0** | -41.2 | -41.7 |
+| 루프 상관 | 0.430 | 0.372 | 0.398 | 0.425 | 0.351 | **0.540** |
+
+**빌드 제어는 성공했다.** city 원본이 +4.5dB인데 1·5번은 사실상 0이다. Pro의 구조 생성
+성향을 프롬프트로 이긴 첫 사례이고, BPM 제거와 `the same eight bars repeated over and
+over`가 효과였을 가능성이 크다.
+
+**밝기 지시는 실패했다.** 전 테이크가 city보다 11~17dB 어둡다. 인코더 탓이 아니다 —
+city 원본도 같은 192kbps MP3인데 -29.8이다. 곡 내용의 차이다. `glassy shimmering`,
+`luminous`, `crystalline` 같은 어휘는 고역 에너지로 번역되지 않았다.
+
+**박도 실패했다.** `free time`, `no pulse`, `rubato`를 넣고 BPM을 빼도 5개 중 4개가
+80.25 BPM 그리드에 붙었다. 목표 0.3을 넘긴 테이크가 하나도 없다. 프롬프트로 박을
+없애는 것은 여기서 포기한다.
+
+alley — 목표는 city와 같은 88 BPM, 왜곡, 평평한 빌드
+
+| | 6 (A) | 7 (A) | 8 (B) | 9 (B) | 10 (C) |
+| --- | --- | --- | --- | --- | --- |
+| 빌드 | +2.7 | **-0.2** | +0.3 | +4.9 | +0.7 |
+| 박 | 0.480 @ 44.75 | 0.531 @ **87.00** | 0.479 @ **87.00** | 0.580 @ 116 | 0.714 @ 59.75 |
+| 공기감 8~16k | -30.9 | -29.0 | -31.0 | -27.9 | **-26.6** |
+| 루프 상관 | 0.587 | 0.451 | **0.594** | 0.839 | 0.471 |
+
+**alley는 오히려 city보다 밝다.** 왜곡이 배음을 만드니 물리적으로 맞다. 밝기를 직접
+지시해서 얻지 못한 고역을 왜곡 지시가 부산물로 만들어냈다.
+
+**88 BPM 지시는 먹혔다.** 7·8번이 87.00에 정확히 붙었고, 6번은 44.75 — 89.5의 절반이라
+하프타임으로 느껴지는 것이지 템포가 틀린 것은 아니다. 9·10번만 벗어났다.
+
+#### 후보
+
+후처리로 **못 고치는 것부터** 본다. 박은 아예 못 고치고, 공기감은 하이셸프로 올릴 수
+있으나 없는 내용을 만들지는 못하고, 루프는 구간 선택으로 개선되고, 빌드는 평탄부를
+잘라내면 사라진다.
+
+- **title → 3·4·5번.** 3번이 박·공기감 모두 선두다. **1번은 빠진다** — 공기감이 나머지보다
+  5dB 더 어둡고 루프도 하위다. 2번은 159 BPM에 박 0.636이라 타이틀 화면에 맞지 않는다.
+- **alley → 7·8번.** 둘 다 87.00 BPM이고 빌드가 평평하다. 9번은 루프 0.839가 가장 좋지만
+  빌드 +4.9dB라 곡 자체가 부풀어 탈락이다.
+
+최종 판단은 귀로 한다. 위 표는 들어볼 개수를 10개에서 5개로 줄이는 용도다.
+
+#### 앞서 기록했던 1번 측정값은 철회한다
+
+한때 1번을 "루프 상관 0.935, 크로스페이드가 들리지 않는다"고 적었다. **측정 도구의
+버그였다.** 두 가지가 겹쳤다.
+
+**대역을 자기 상한 아래에서 재고 있었다.** `ffmpeg`는 `-af` 필터를 소스 레이트로 걸고
+**그 다음에** `-ar`로 리샘플한다. 대역 필터를 통과시킨 뒤 11025Hz로 내리면 Nyquist가
+5.5kHz라 8~16kHz 통과대역은 전부 사라지고 필터 저지대역 누설만 남는다. 공기감이 항상
+-45~-53으로 나온 것이 그 누설이다. 대역 측정만 44100Hz로 분리해 고쳤다.
+
+**루프 탐색에 레벨 조건이 없었다.** 꼬리 페이드는 본체와 같은 소재를 작게 연주한
+것이므로 상관이 높게 나온다. 그래서 게이트 없는 탐색은 레벨이 12dB 떨어지는 이음매를
+1등으로 돌려준다. 1번의 0.935도 레벨차 -4.84dB 지점이었고, 5번은 -12.47dB 지점을
+골랐다. `±1.5dB` 안에 드는 후보만 상관으로 줄 세우도록 고쳤다. 1번의 실제 값은
+**0.372**다.
+
+**교훈은 도구가 아니라 절차다.** 문서에 남아 있던 city의 루프 0.576과 공기감 -32.9는
+브라우저 `OfflineAudioContext`로 잰 값이고 위 표는 `measure-track.mjs`로 잰 값이라
+**애초에 같은 축이 아니었다.** 서로 다른 방법으로 얻은 숫자를 한 표에 나란히 놓은 것이
+잘못이다. 앞으로 비교는 한 도구로 다시 잰 값끼리만 한다.
 
 ### title / alley
 
@@ -641,6 +848,33 @@ SFX  xmlhttprequest    113 KB   9건, 부팅 로더
 ```
 
 ### 점검 도구
+
+`tools/measure-track.mjs`가 후보 한 곡을 네 지표로 잰다. ffmpeg는 디코딩에만 쓰고 계산은
+전부 스크립트 안에서 하므로 실행마다 값이 흔들리지 않는다.
+
+```bash
+node tools/measure-track.mjs <파일> [--loop-from <초>]
+```
+
+| 지표 | 무엇을 보는가 |
+| --- | --- |
+| 빌드 | 앞뒤 레벨 차이. 곡이 커지면 루프 이음매가 레벨 점프가 된다 |
+| 박 | 온셋 자기상관. 큐에 따라 있어야 하기도 하고 없어야 하기도 하다 |
+| 대역 | 8~16kHz가 스테이지 1을 유리처럼 들리게 하는 성분이다 |
+| 루프 | 두 끝의 소재가 얼마나 닮았는지. 크로스페이드가 들리는지를 결정한다 |
+
+윤곽도 함께 출력하므로 인트로 빌드나 후반 크레셴도의 모양을 눈으로 확인할 수 있다.
+
+두 곳에 함정이 있어 코드에 주석으로 박아두었다. **대역은 44100Hz로 따로 디코딩한다** —
+`ffmpeg`가 필터를 먼저 걸고 리샘플하므로 다른 지표용 11025Hz로 재면 8~16kHz가 통째로
+사라진 자리에 저지대역 누설만 남는다. **루프는 레벨차 ±1.5dB 안의 후보만 줄 세운다** —
+꼬리 페이드는 본체와 같은 소재를 작게 연주한 것이라 상관이 높게 나오고, 게이트가 없으면
+레벨이 10dB 넘게 떨어지는 이음매가 1등이 된다. 조건에 드는 후보가 없으면 그렇다고 함께
+출력한다.
+
+**박이 탐색 하한 60에 붙어 나오면 경계에 걸린 것일 수 있다.** alley 6번이 60.00으로
+나왔는데 하한을 35로 넓히면 44.75(89.5의 절반)였다. 60이나 180이 나오면 범위를 넓혀
+다시 확인한다.
 
 `tools/audio-check.html`을 브라우저로 열고 음원을 끌어다 놓으면 아래 규격을 자동으로
 대조한다. 설치할 것은 없고 파일 하나로 동작한다. 여러 개를 한 번에 놓으면 **후보 비교표**가
@@ -785,10 +1019,42 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 개인·교육·상업 이용을 명시적으로 허용한다. 표기는 의무가 아니지만 크레딧에 한 줄
 `Sound effects by Kenney (kenney.nl)`를 넣는 편이 낫다. 비용이 없다.
 
-> **남은 것은 BGM 하나다.** 생성 경로는 Gemini 웹 앱으로 확정됐고, **해당 서비스 약관에서
-> 생성물의 이용 범위를 확인해 라이선스 칸을 채우는 일**만 남았다. 출력물에는 SynthID
-> 워터마크가 들어간다. 제출 빌드에 출처 미상 에셋이 들어가면 안 되므로 8월 8일 제출 전까지
-> 반드시 확정한다.
+### BGM 라이선스 — 확인한 것과 남은 위험
+
+Gemini 앱 Lyria로 만든 곡의 상태를 조사한 결과다. **결론부터: 잼 제출에는 문제가 없고,
+상업화하려면 여러 칸이 비어 있다.**
+
+| 항목 | 상태 |
+| --- | --- |
+| 소유권 | Google이 주장하지 않음. 일반 약관에 "Google won't claim ownership over that content" |
+| 저작자 표기 | 불필요 |
+| 상업 이용 **명시적 허가** | **없음.** Google 문서에서 "Commercial use rights"가 적힌 곳은 별도 제품인 Google Flow Music뿐 |
+| IP 배상 | **없음.** 소비자용 Gemini 앱은 대상이 아니고 Vertex AI 엔터프라이즈만 해당 |
+| 한국 내 저작권 등록 | **불가.** 아래 참고 |
+| SynthID 워터마크 | 전 출력에 삽입. 압축·포맷 변환에도 남으므로 우리 Ogg 변환 후에도 유지 |
+| 진행 중 분쟁 | 독립 뮤지션들이 Lyria 3 학습 데이터를 두고 Google을 상대로 소송 제기 |
+
+**한국 기준이 가장 명확하다.** 저작권법이 저작물을 "인간의 사상이나 감정을 표현한 창작물"로
+정의하므로 순수 AI 생성물은 보호 대상이 아니다. 문화체육관광부와 한국저작권위원회의 2025년
+생성형 AI 저작권 등록 안내에 따르면 **프롬프트 입력만으로는 창작적 기여로 인정되지 않고**,
+사람이 결과물을 실질적으로 수정하거나 독자적인 작곡을 더해야 보호된다. 판단 기준은
+**제어 가능성과 예측 가능성**이다. 음저협은 2025년 3월부터 AI 활용 신고 곡에 등록 유보를
+적용하고 있다.
+
+우리가 한 가공(루프 구간 선정, 크로스페이드, 정규화, 코덱 변환)은 **수정이지 작곡이 아니다.**
+따라서 이 곡들은 우리 저작물로 등록할 수 없다고 보는 것이 안전하다.
+
+**그것이 사용을 막지는 않는다.** 등록 불가는 "독점권을 주장할 수 없다"는 뜻이고 "쓸 수 없다"는
+뜻이 아니다. 무료 배포되는 잼 제출물에는 실질적 영향이 없다.
+
+> **다만 하나는 8월 8일 전에 확인해야 한다. 해커톤 규정이 제출물 에셋의 소유권이나 권리
+> 보유를 요구하는지 여부다.** 요구한다면 AI 생성 BGM이 그 조건을 만족하지 못할 수 있고,
+> 이는 약관 문제가 아니라 대회 규정 문제라 우리가 해결할 수 없다. 규정 문서를 확인해
+> 이 칸을 채워야 한다.
+
+상업화 이야기가 나오면 그때는 **Vertex AI로 다시 뽑는 것**이 답이다. 곡당 약 $0.08이고
+상업 이용이 명시돼 있으며 배상까지 붙는다. 그 시점에는 곡이 어떤 소리여야 하는지 정확히
+알고 있으므로 근접시키는 비용도 낮다.
 
 직접 제작한 경우 출처에 `자체 제작`, 라이선스에 `해당 없음`으로 기록한다.
 
