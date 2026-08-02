@@ -456,14 +456,22 @@ describe('level geometry against player metrics', () => {
           .slice(1)
           .map((piece, index) => piece.left - sorted[index].right);
         const worst = gaps.length > 0 ? Math.max(...gaps) : 0;
+        // Between the comfortable gap and the hard one a plain jump still
+        // clears it — the arc carries 280px and only the last 14 of those are
+        // out of reach without a dash. Collapsing that band into '대시 필요'
+        // called for a dash on gaps the player jumps, and said so about stage
+        // 4's 230px seams, which were sized to need neither. The dash line is
+        // HARD_GAP so this reads the same way the pit check does.
         const verdict =
           worst === 0
             ? '연속'
             : worst <= SAFE_GAP
               ? '점프로 이어짐'
-              : worst <= MAX_JUMP_DISTANCE + DASH_DISTANCE
-                ? '대시 필요'
-                : '끊김 (바닥으로 내려가야 함)';
+              : worst <= HARD_GAP
+                ? '빠듯한 점프'
+                : worst <= MAX_JUMP_DISTANCE + DASH_DISTANCE
+                  ? '대시 필요'
+                  : '끊김 (바닥으로 내려가야 함)';
         console.log(
           `  ${stage}/${room.id} y=${top}  조각 ${sorted.length}개  최대 간격 ${worst}px  → ${verdict}`,
         );
