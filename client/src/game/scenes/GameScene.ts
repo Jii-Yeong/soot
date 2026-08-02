@@ -10,6 +10,10 @@ import {
   PLAYER_ATLAS_KEY,
   PLAYER_INITIAL_FRAME,
 } from '@/game/config/playerAnimationConfig';
+import {
+  MovementMode,
+  PLAYER_FLIGHT_BOUNDS,
+} from '@/game/config/playerMovementConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import {
   placeRoomInStage,
@@ -332,7 +336,7 @@ export class GameScene extends Phaser.Scene {
     if (resetToStageEntrance) {
       this.player.setPosition(
         this.currentRoomConfig.entranceX + 90,
-        this.player.y,
+        this.stageEntranceY(),
       );
       this.player.setVelocity(0);
       this.resetCameraToRoomEntrance();
@@ -611,6 +615,21 @@ export class GameScene extends Phaser.Scene {
 
   private restorePlayerHealthForStage() {
     this.playerHealth.restore(this.stage.playerMaxHealth);
+  }
+
+  /**
+   * The height a stage starts the player at.
+   *
+   * Entering a stage used to keep whatever height the last one ended on, which
+   * costs nothing on the ground — gravity puts them on the floor either way.
+   * Stage 5 is flown, and the player arrives from stage 4's boss room standing
+   * on the floor at y≈618, past the bottom of the flight band. The clamp then
+   * pins them to its floor edge instead of the stage entrance.
+   */
+  private stageEntranceY() {
+    return this.stage.movementMode === MovementMode.FLIGHT
+      ? (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2
+      : GAME_HEIGHT - 120;
   }
 
   private applyStageMovementMode() {
