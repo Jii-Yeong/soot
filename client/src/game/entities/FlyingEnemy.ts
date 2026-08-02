@@ -10,6 +10,10 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 /** How fast a downed flyer plummets, in px/s (feeds the fall tween duration). */
 const DEATH_FALL_SPEED = 720;
+/** How long the crumpled wreck rests on the ground before fading out. */
+const DEATH_WRECK_HOLD_MS = 1000;
+/** Fade-out duration once the hold ends. */
+const DEATH_FADE_MS = 450;
 
 export type FlyingEnemyConfig = {
   health: number;
@@ -125,11 +129,22 @@ export class FlyingEnemy extends Enemy {
       ),
       ease: 'Quad.easeIn',
       onComplete: () => {
-        // Phase 2: crumple on impact, then remove.
+        // Phase 2: crumple on impact, hold the wreck briefly, then fade out.
         this.play(sprite.animations.deathLand);
-        this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
-          this.disableBody(true, true),
-        );
+        this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          this.scene.time.delayedCall(DEATH_WRECK_HOLD_MS, () => {
+            if (!this.active) {
+              return;
+            }
+            this.scene.tweens.add({
+              targets: this,
+              alpha: 0,
+              duration: DEATH_FADE_MS,
+              ease: 'Sine.easeIn',
+              onComplete: () => this.disableBody(true, true),
+            });
+          });
+        });
       },
     });
   }
