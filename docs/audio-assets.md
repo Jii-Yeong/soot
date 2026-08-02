@@ -1083,7 +1083,9 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 
 | 에셋 키 | 파일 | 출처 | 라이선스 | 저작자 표기 필요 | 표기 문구 |
 | --- | --- | --- | --- | --- | --- |
-| `bgm-city` | `city_the-center-of-the-room.ogg` | Gemini 웹 앱(gemini.google.com)의 Lyria 3 Pro로 생성, Google AI Pro 구독 | **확인 필요** | 불필요 | |
+| `bgm-title` | `title_sunlight-through-a-pane.ogg` | Gemini 웹 앱(gemini.google.com)의 Lyria 3 Pro로 생성, Google AI Pro 구독 | 잼 제출 가능 / 상업 이용 미보장 (아래 참고) | 불필요 | |
+| `bgm-city` | `city_the-center-of-the-room.ogg` | 〃 | 〃 | 불필요 | |
+| `bgm-alley` | `alley_the-unsteady-corridor.ogg` | 〃 | 〃 | 불필요 | |
 | `sfx-smg-fire` | `smg-fire_synth-dry.wav` | 자체 제작 (`tools/make-gunshot.mjs`) | 해당 없음 | 불필요 | |
 | `sfx-shotgun-fire` | `shotgun-fire_laser-large-000.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-enemy-hit` | `enemy-hit_impact-metal-medium-004.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
@@ -1098,6 +1100,23 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 **SFX는 전부 정리됐다.** 팩 3종의 `License.txt`를 직접 열어 확인했고 셋 다 CC0 1.0이며
 개인·교육·상업 이용을 명시적으로 허용한다. 표기는 의무가 아니지만 크레딧에 한 줄
 `Sound effects by Kenney (kenney.nl)`를 넣는 편이 낫다. 비용이 없다.
+
+### 크레딧 화면은 아직 없다 — 제출 전 만들어야 한다
+
+**표기할 것은 정해졌는데 표기할 자리가 없다.** `TitleScene`은 `SOOT`와 `PRESS ENTER` 두 줄이
+전부이고 게임 중 UI는 HUD뿐이라, 지금 저장소 어디에도 크레딧 문자열이 없다.
+
+**별도 크레딧 화면이 필요할 것으로 본다.** 타이틀 하단 한 줄로 처리하기에는 적을 대상이
+오디오 밖까지 걸친다.
+
+| 대상 | 표기 의무 | 적을 내용 |
+| --- | --- | --- |
+| SFX (Kenney 팩 3종) | 없음 (권장) | `Sound effects by Kenney (kenney.nl) — CC0 1.0` |
+| BGM 3곡 | 없음 | Gemini 앱 Lyria로 생성했다는 사실. 의무는 아니지만 SynthID 워터마크가 어차피 파일에 남아 있으므로 숨길 것이 아니다 |
+| 자체 합성 SFX 2개 | 없음 | `smg-fire`, `monitor-beep`. 자체 제작이라 표기할 제3자가 없다 |
+| 스프라이트 · 배경 | 없음 | **팀 자체 제작.** 에셋 커밋 작성자는 `Jii-Yeong`. 크레딧의 본래 목적이 제작자를 적는 것이므로 여기서는 빼지 않는다 |
+
+**표시할 이름은 아직 정하지 않았다.** 실명인지 핸들인지가 정해져야 문구를 확정할 수 있다.
 
 ### BGM 라이선스 — 확인한 것과 남은 위험
 
@@ -1127,10 +1146,10 @@ Gemini 앱 Lyria로 만든 곡의 상태를 조사한 결과다. **결론부터:
 **그것이 사용을 막지는 않는다.** 등록 불가는 "독점권을 주장할 수 없다"는 뜻이고 "쓸 수 없다"는
 뜻이 아니다. 무료 배포되는 잼 제출물에는 실질적 영향이 없다.
 
-> **다만 하나는 8월 8일 전에 확인해야 한다. 해커톤 규정이 제출물 에셋의 소유권이나 권리
-> 보유를 요구하는지 여부다.** 요구한다면 AI 생성 BGM이 그 조건을 만족하지 못할 수 있고,
-> 이는 약관 문제가 아니라 대회 규정 문제라 우리가 해결할 수 없다. 규정 문서를 확인해
-> 이 칸을 채워야 한다.
+> **해커톤 규정 확인은 끝났다. 제출물 에셋의 소유권이나 권리 보유를 요구하는 문구가
+> 규정에 없다.** 요구했다면 AI 생성 BGM이 조건을 만족하지 못했을 수 있고 그것은 약관
+> 문제가 아니라 대회 규정 문제라 우리가 해결할 수 없었을 것이다. 규정이 침묵하므로
+> 이 경로로 제출하는 데 남은 걸림돌은 없다.
 
 상업화 이야기가 나오면 그때는 **Vertex AI로 다시 뽑는 것**이 답이다. 곡당 약 $0.08이고
 상업 이용이 명시돼 있으며 배상까지 붙는다. 그 시점에는 곡이 어떤 소리여야 하는지 정확히
