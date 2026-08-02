@@ -47,6 +47,10 @@
         color: #7d8b93;
         font-size: 13px;
       }
+      .stage {
+        color: #b6ffe4;
+        white-space: nowrap;
+      }
       .filter {
         margin: 0;
         padding: 12px 14px;
@@ -192,8 +196,20 @@
     <h1>ASH//ERROR 음원 점검</h1>
     <p class="lead">후보를 듣고 고르는 페이지.</p>
 
-    <div id="compare"></div>
+    <!--
+      Measurements are baked into this file instead of being recomputed. The
+      numbers never change for a given take, and a page opened from the file
+      system cannot read the audio bytes anyway — only play them.
+    -->
+    <script src="audio-candidates.js"></script>
+
+    <!--
+      The player sits above the list. Comparing is a loop of play, read the
+      row, play the next one, and putting the controls under a table that
+      grows with every take means scrolling away from them to do it.
+    -->
     <div id="detail"></div>
+    <div id="compare"></div>
     <div id="out"></div>
 
     <!--
@@ -839,6 +855,26 @@
       }
 
       /**
+       * Every cue's takes share one table, so each row has to say which stage
+       * it is a candidate for. A file name alone does not: `take13` means
+       * nothing without the generation record open beside it.
+       */
+      const STAGE_LABELS = {
+        title: '타이틀',
+        city: '1 도시',
+        alley: '2 뒷골목',
+        underground: '3 지하도시',
+        inferno: '4 지옥',
+        return: '5 천국',
+        sfx: '효과음',
+      };
+
+      function stageLabel(entry) {
+        const folder = (entry.path ?? entry.url ?? '').split('/').at(-2);
+        return STAGE_LABELS[folder] ?? '—';
+      }
+
+      /**
        * Candidate comparison. The numbers narrow the field; the final pick is
        * made by ear, so every row carries its own player.
        */
@@ -900,7 +936,9 @@
         scroller.className = 'scroll';
         const table = document.createElement('table');
         const header = document.createElement('tr');
-        header.append(document.createElement('td'));
+        const stageHeader = document.createElement('td');
+        stageHeader.textContent = '스테이지';
+        header.append(stageHeader, document.createElement('td'));
         for (const [label] of columns) {
           const cell = document.createElement('td');
           cell.textContent = label;
@@ -914,6 +952,11 @@
         for (const entry of shown) {
           const summary = entry.summary;
           const row = document.createElement('tr');
+          const stage = document.createElement('td');
+          stage.className = 'stage';
+          stage.textContent = stageLabel(entry);
+          row.append(stage);
+
           const label = document.createElement('td');
           label.textContent = entry.name.split('/').pop();
 
@@ -1162,6 +1205,36 @@
           select(first, false);
         }
 
+        // Printed so a new take can be pasted into audio-candidates.js and
+        // stop being re-analysed by everyone who opens the page.
+        window.__manifest = entries
+          .filter((entry) => entry.metrics)
+          .map((entry) => ({ file: entry.name, metrics: entry.metrics }));
+        console.log(
+          '[audio-check] manifest',
+          JSON.stringify(window.__manifest),
+        );
+      }
+
+      /**
+       * Takes that were already measured. They appear the moment the page
+       * opens; playback needs no permission, only reading the bytes does.
+       */
+      if (window.AUDIO_CANDIDATES) {
+        for (const group of window.AUDIO_CANDIDATES) {
+          results.push(
+            ...group.takes.map((take) => ({
+              name: take.file,
+              url: group.base + take.file,
+              metrics: take.metrics,
+            })),
+          );
+        }
+
+        if (results.length > 0) {
+          renderComparison();
+          select(0, false);
+        }
       }
 
       // `?src=` runs against files the dev server already serves. Comma
@@ -1169,13 +1242,16 @@
       const source = new URLSearchParams(location.search).get('src');
       if (source) {
         runAll(
-          source.split(',').map((path) => ({ name: path.split('/').pop() })),
+          // The path is kept because `run` replaces `url` with a blob and the
+          // folder it came from is what says which stage this is a take for.
+          source.split(',').map((path) => ({
+            name: path.split('/').pop(),
+            path,
+          })),
           async (entry) => ({
-            buffer: await fetch(
-              source
-                .split(',')
-                .find((path) => path.endsWith(entry.name)),
-            ).then((response) => response.arrayBuffer()),
+            buffer: await fetch(entry.path).then((response) =>
+              response.arrayBuffer(),
+            ),
           }),
         );
       }
