@@ -871,6 +871,282 @@ alley — 목표는 city와 같은 88 BPM, 왜곡, 평평한 빌드
 특히 `alley`는 새로 뽑지 말고 city를 레퍼런스나 extend로 물려서 변형한다. 주제가 이어져야
 "세계의 변질"이 성립한다.
 
+### underground / inferno / return 프롬프트
+
+**기획서와 배경을 같이 놓고 시작했다.** 스테이지 1에서 배운 것이 "배경과 어긋난 정서를
+지시하면 프롬프트 안에서 태그끼리 싸운다"였고, 이 문서에 있던 한 줄짜리 방향성은
+**기획서를 줄이는 과정에서 가장 중요한 단어를 하나씩 흘리고 있었다.**
+
+| 스테이지 | 이 문서에 있던 요약 | 기획서 핵심 정서 | 흘린 것 |
+| --- | --- | --- | --- |
+| 3 지하도시 | 답답함 · 형광등 험 | 답답함, **상실감**, **너무 늦게 도착했다는 감각** | 상실감. 아래 참고 |
+| 4 지옥 | 분노 · 폭주 | 공포보다 분노가 앞서는 폭주. **도시와 지하도시의 기억이 악마적 형태로 뒤틀린 공간** | 파생 관계. 아래 참고 |
+| 5 천국 | 과노출된 불편한 아름다움 | 아름답지만 불편한 광기. **피해와 죽음조차 즐겁게 보인다** | 쾌감. 아래 참고 |
+
+배경 실물도 확인했다. 3은 초록 안개 낀 지하 판자촌에 좌판 · 널린 빨래 · 화분이 남아 있고,
+4는 용암 폭포와 붉은 하늘, 5는 흰빛으로 날아간 하늘과 금빛 신전이다. **4와 5는 기획서와
+배경이 일치한다.**
+
+#### 3스테이지는 압박이 아니라 상실이다
+
+이 문서의 요약은 "답답함 · 형광등 험"이었는데 기획서 원문은 **"답답함, 상실감, 너무 늦게
+도착했다는 감각"**이다. 적/오브젝트 항목에는 침구, 약병, **아이 그림**, 생존자 명단이
+적혀 있다.
+
+**형광등을 부정하는 것이 아니다.** 형광등은 기획서의 비주얼 팔레트 항목이고 배경에도 맞다.
+음악의 중심 소재로 삼지 않을 뿐이다. 50/60Hz 험은 **무기물의 소리**여서, 깔면 압박은
+생기지만 상실감은 생기지 않는다. 아이 그림이 걸려 있는 방의 소리가 아니다.
+
+**"너무 늦게 도착했다"가 이 곡의 전부다.** 이건 공포가 아니라 애도다. 스테이지 1의 공포가
+"세상은 멀쩡한데 내가 여기 있으면 안 된다"였다면 여기는 "내가 왔을 때 이미 끝나 있었다"이다.
+
+그래서 이 곡은 **첼로가 처음으로 노래해도 되는 유일한 곡**이다. city는 텅 빈 밝음이었고
+alley는 뒤틀림이었으므로 둘 다 선율을 허용하지 않았다. 여기서는 선율이 곧 사람의 흔적이고,
+애도에는 부를 대상이 있어야 한다.
+
+다만 alley에서 도착한 아포칼립스를 되돌리지는 않는다. **온기는 남아 있는 것이지 살아 있는
+것이 아니다.** 현악은 따뜻하되 화성은 alley보다 더 내려앉힌다.
+
+#### 조성 설계 — 다섯 곡이 전부 D다
+
+| 곡 | 조성 | BPM | 의도 |
+| --- | --- | --- | --- |
+| `title` | D major | 없음 | 밝고 정적. 아직 아무 일도 안 일어났다 |
+| `city` | D major / D lydian | 88 | 밝지만 착지하지 않는다 |
+| `alley` | D minor | 88 | 같은 으뜸음에서 장조 → 단조. 같은 도시가 뒤틀린 것 |
+| **`underground`** | **D phrygian** | **80** | 단조의 ♭2. 같은 D인데 한 칸 더 주저앉는다. 템포를 늦춰 걸음이 무거워진다 |
+| **`inferno`** | **D minor** | **112** | **조성은 alley와 같고 속도와 음색만 올린다.** 지옥이 새 세계가 아니라 같은 세계의 끝이라는 뜻 |
+| **`return`** | **D major** | **88** | city의 조성으로 돌아온다. THE RETURN이라는 이름 그대로다. 다만 이번엔 그 밝음이 잘못됐다는 것을 알고 듣는다 |
+
+으뜸음을 D로 고정하면 **조성만으로 서사가 읽힌다.** 밝다 → 뒤틀린다 → 주저앉는다 →
+타오른다 → 돌아온다, 그런데 돌아온 곳이 틀렸다. 같은으뜸조 전환이 city → alley에서
+통했던 이유가 그대로 확장된다.
+
+`inferno`에서 조성을 새로 바꾸지 않은 것이 이 설계의 핵심이다. 지옥에 새 조성을 주면
+**세계가 하나 더 생긴다.** 우리가 말하려는 것은 같은 세계가 끝까지 간 것이다.
+
+#### 편성은 그대로 간다
+
+현악(첼로 · 비올라 중심) + 일렉기타. 팀 합의 사항이므로 지옥에서 브라스로, 천국에서
+합창으로 빠지지 않는다. **가장 손쉬운 카드가 그 둘인데, 한 곡이라도 편성을 벗어나면 다섯
+곡이 한 작품으로 들리지 않는다.** 프롬프트에 `brass-free` / `choir-free`를 명시한 이유가
+이것이다.
+
+**딱 하나 `return` B안에서만 합창을 열어 본다.** 천국 연출에서 합창이 실제로 얼마나 강한
+카드인지는 들어봐야 알고, 그때 편성 합의를 바꿀지는 사람이 정한다. 실험이라는 것을
+알고 뽑는 것과 모르고 새는 것은 다르다.
+
+#### sparse는 3~5에서 더 중요하다
+
+`sparse` 계열은 어떤 경우에도 빼지 않는다는 원칙이 여기서 더 세진다. **3~5는 전투 밀도가
+1~2보다 높고, 특히 5스테이지는 공중전(`MovementMode.FLIGHT`)이라 총소리가 거의 끊기지
+않는다.** 지옥이 격렬해야 한다고 해서 밀도를 올리면 그 자리에 총소리가 들어갈 곳이 없다.
+
+**격렬함은 밀도가 아니라 음색으로 낸다.** 디스토션과 저역으로 만들고 악기 수는 늘리지
+않는다. 어차피 악기를 늘리면 후반 상승이 따라오므로 루프도 같이 깨진다.
+
+#### 3스테이지 곡은 갑자기 멈춰도 되는 곡이어야 한다
+
+스테이지 3에는 `endEvent: 'siege'`가 붙어 있다. 기획서상 **암전 후 총성과 금속 충돌음만
+재생하는 구간**이고, 화면이 없으므로 사운드가 연출의 전부다. 이때 브금이 계속 깔려 있으면
+연출이 통째로 죽는다.
+
+곡 설계에 걸리는 조건은 하나다. **어디서 끊어도 어색하지 않아야 한다.** 프롬프트가 이미
+요구하는 "여덟 마디 반복 · 시종 같은 레벨"이 그대로 이 조건이기도 하므로 추가로 넣을
+문장은 없다. 다만 **컷할지 페이드아웃할지는 `AudioDirector` 작업**이고 아직 손대지 않았다.
+
+#### underground
+
+**A — 첼로가 선율을 든다**
+
+```
+dark warm orchestral ambient, low cello playing a slow mournful melody, viola
+sustaining underneath, clean electric guitar with long reverb sounding single
+notes that decay into silence, damp and enclosed as if played in a low concrete
+room, percussion-free, spacious and sparse, empty and abandoned, an elegy for
+people who are already gone, the feeling of arriving too late, warmth left
+behind in a place where nobody remains, purely instrumental, one continuous
+unchanging texture, the same handful of instruments from beginning to end, the
+same eight bars repeated over and over for the entire duration, the final
+section sits at exactly the same level as the opening, starts immediately at
+full level, loopable background bed, 80 BPM, D phrygian
+```
+
+**B — 공간으로 프레이밍**
+
+title A/B에서 "녹음물로 프레이밍"이 구조 만들기를 억제하는 데 효과가 있었으므로 같은
+수를 쓴다. 여기서는 공간 자체가 정서를 만든다.
+
+```
+a slow cello lament recorded in a large underground concrete space, viola and
+double bass sustaining a low drone underneath, one clean electric guitar note
+every few bars fading into the room, heavy damp air, muffled and enclosed,
+percussion-free, mournful and still, the sound of a place people have left,
+grieving for something that ended before anyone arrived, nothing enters and
+nothing leaves, purely instrumental, the same eight bars
+repeated over and over for the entire duration, starts immediately at full
+level, loopable background bed, 80 BPM, D phrygian
+```
+
+#### inferno는 새 곡이 아니라 기억이다
+
+기획서가 지옥을 **"도시와 지하도시의 기억이 악마적 형태로 뒤틀린 공간"**으로 정의한다.
+장소가 아니라 기억이라는 것이 결정적이다. **alley가 city의 변질이었던 것과 정확히 같은
+관계를 한 번 더 쓰라는 뜻이다.**
+
+`alley`를 만들 때 세운 원칙이 그대로 적용된다. 새로 뽑지 말고 **앞 곡을 물려서 태운다.**
+주제가 무관하면 "기억이 뒤틀렸다"가 성립하지 않고 그냥 별개의 지옥 스테이지가 된다.
+
+조성을 alley와 같은 D minor로 둔 이유도 여기 있다. **새 조성을 주면 세계가 하나 더
+생긴다.** 우리가 말하려는 것은 같은 세계가 끝까지 간 것이다.
+
+#### inferno
+
+**A — 기타가 앞이다**
+
+```
+heavy dark orchestral, the same brooding D minor material from a back alley
+piece now burning and distorted, distorted electric guitar riff grinding low and
+steady, low cello and viola sawing in unison with the guitar, driving drum kit
+with a relentless kick and snare pattern audible throughout, brass-free, hot and
+overdriven, furious and unrelenting, spacious and sparse, purely instrumental,
+one continuous unchanging texture, the same handful of instruments from
+beginning to end, the same eight bars repeated over and over for the entire
+duration, the final section sits at exactly the same level as the opening,
+starts immediately at full level, loopable background bed, 112 BPM, D minor
+```
+
+**B — 현악이 앞이다**
+
+분노가 기타에서 나오느냐 관현악에서 나오느냐를 가르는 대조다. 편성은 같고 순서만 바뀐다.
+
+```
+furious string orchestra, a half-remembered melody from an earlier darker piece
+torn apart and played too fast, low cello and viola playing fast repeated
+tremolo figures, distorted electric guitar doubling them an octave below,
+driving drum kit with a relentless kick and snare pattern audible throughout,
+brass-free, molten and overdriven, the same rage held at one level and never
+peaking, sparse, purely instrumental, the same handful of instruments from
+beginning to end, the same eight bars repeated over and over for the entire
+duration, starts immediately at full level, loopable background bed, 112 BPM,
+D minor
+```
+
+**둘 다 안 되면 `alley` 채택본을 레퍼런스로 물린다.** 문장으로 파생을 지시하는 것이
+한계에 부딪히면 그때는 city → alley에서 쓰려던 수를 그대로 꺼낸다.
+
+`never peaking`은 `never building to a climax`와 같은 자리를 노린 문장이다. 분노는
+정의상 고조되려 하므로 이 곡이 다섯 중 후반 상승이 가장 나올 만하다. **측정에서 제일 먼저
+볼 항목이 여기서는 다이내믹이다.**
+
+#### return은 city의 재탕이 아니다 — 이번엔 즐기고 있다
+
+기획서의 천국 정서는 "아름답지만 불편한 광기"에서 끝나지 않고 **"피해와 죽음조차 즐겁게
+보인다"**로 이어진다. 같은 화면에서 주인공은 안광과 미소를 하고 있고, 외형 변화표의
+5스테이지 항목은 **"광기, 전투 쾌감, 현실의 완전한 왜곡"**이다.
+
+**이 차이가 city와 갈리는 지점이다.** city는 밝은 세계를 불편하게 바라보는 곡이었고
+플레이어는 관찰자였다. return에서 플레이어는 그 안에 들어가 있고 즐기고 있다. 관찰자의
+불편함을 한 번 더 쓰면 **곡이 city의 재탕이 되고, 서사에서 가장 멀리 온 지점이 가장 익숙한
+소리로 들린다.**
+
+그래서 이 곡만 **고양돼 있어야 한다.** 문제는 그것이 "후반 상승 금지"와 정면으로 부딪힌다는
+것이다. 고양을 레벨로 만들면 루프가 깨진다.
+
+**해법은 고양을 세로로 쌓는 것이다.** 처음부터 끝까지 같은 크기로, 다만 음역을 위로 몰고
+화성을 계속 위로 열어 둔다. 크기가 아니라 높이로 도취를 만들면 루프가 살아남는다.
+
+#### return
+
+**A — 편성 합의 유지**
+
+```
+blindingly bright orchestral, high register strings soaring and overexposed,
+ecstatic and radiant, glassy shimmering textures pushed past comfort,
+crystalline clean electric guitar arpeggio with heavy reverb, light cello
+underneath, choir-free, rapturous in a way that should not feel good,
+unresolved suspended chords that keep opening upward and never settle, too
+beautiful to trust, spacious and sparse, purely instrumental, one continuous
+unchanging texture, the same handful of instruments from beginning to end, the
+same eight bars repeated over and over for the entire duration, the final
+section sits at exactly the same level as the opening, starts immediately at
+full level, loopable background bed, 88 BPM, D major
+```
+
+**B — 합창을 열어 보는 실험**
+
+`purely instrumental`을 뺀 유일한 프롬프트다. 뺀 자리에 가사가 딸려 오지 않도록
+**"단어를 부르지 않는다"를 긍정형으로 명시**한다.
+
+```
+overexposed bright orchestral, high register strings soaring, a distant wordless
+choir far behind them holding vowels and singing no words, glassy shimmering
+textures, crystalline clean electric guitar arpeggio, light cello underneath,
+ecstatic and washed out, rapturous in a way that should not feel good,
+unresolved suspended chords that keep opening upward and never settle, spacious
+and sparse, one continuous unchanging texture, the same handful of instruments
+from beginning to end, the same eight bars repeated over and over for the entire
+duration, the final section sits at exactly the same level as the opening,
+starts immediately at full level, loopable background bed, 88 BPM, D major
+```
+
+#### 일정이 곡 수를 정한다 — 우선순위는 3 → 4 → 5
+
+기획서의 공통 작업 규칙에 **8월 5일부터 신규 기능 제한, 8월 7일부터 치명적 버그만 수정**이
+걸려 있다. 브금 추가는 신규 기능이므로 **실질 마감이 8월 4일**이다.
+
+동시에 사운드는 MVP 표에서 **SHOULD**이고 완료 기준이 "BGM 3~5개 또는 분위기별 루프,
+필수 효과음 / 무음 구간 없이 타격감 확보"다. **`title`·`city`·`alley` 세 곡으로 최소선은
+이미 충족돼 있다.** 지금 하는 일은 3~5개 구간의 위쪽을 채우는 것이지 미달을 메우는 것이
+아니다.
+
+따라서 셋을 다 못 넣더라도 게임은 기준을 만족한다. **순서만 지키면 된다.**
+
+| 순위 | 큐 | 근거 |
+| --- | --- | --- |
+| 1 | `underground` | 모든 플레이어가 지나간다. 4·5는 이탈자가 도달하지 못할 수 있다 |
+| 2 | `inferno` | 정서 낙차가 가장 크다. 여기서 alley가 계속 흐르면 지옥이 뒷골목처럼 들린다 |
+| 3 | `return` | 없을 때 대체가 가장 자연스럽다. `title`이 같은 D major라 급하면 그것으로 버틴다 |
+
+#### 지금 스테이지 3~5는 무음이다 — 폴백이 없다
+
+곡이 빠져도 직전 곡이 이어질 것이라 생각했는데 **코드를 읽어 보니 아니다.**
+
+`playMusic`은 `stopMusic()`을 먼저 부르고 그 다음에 `startMusic()`을 부른다.
+`startMusic()`은 `isLoaded(key)`가 거짓이면 그대로 돌아온다. 그래서 파일 없는 큐로
+전환하면 **직전 곡이 죽고 아무것도 시작되지 않는다.**
+
+```
+playMusic('bgm-underground')
+  → stopMusic()      직전 곡 정지 · 파기
+  → startMusic()     isLoaded 실패로 즉시 반환
+  = 무음
+```
+
+SFX가 파일 없는 큐를 조용히 건너뛰는 것과는 다른 동작이다. 효과음은 안 울리고 끝이지만
+브금은 **이미 울리던 것을 끄기 때문이다.**
+
+**이것은 MVP 완료 기준의 "무음 구간 없이"와 정면으로 충돌한다.** 지금 빌드는 3스테이지에
+진입하는 순간부터 엔딩까지 브금이 없다.
+
+두 가지 중 하나를 해야 한다.
+
+| 방법 | 내용 | 비용 |
+| --- | --- | --- |
+| 곡을 다 만든다 | 아래 프롬프트대로 3곡을 8월 4일까지 채운다 | 생성 · 선별 · 가공 3회 |
+| **폴백을 넣는다** | `startMusic()`이 실패할 곡이면 `stopMusic()`을 하지 않는다. 직전 곡이 계속 흐른다 | `playMusic` 몇 줄 |
+
+**폴백은 곡을 다 만들더라도 넣는 편이 낫다.** 파일이 늦게 도착하는 경우에도 같은 무음이
+생기기 때문이다. 다만 이건 오디오 코드 작업이고 곡 작업과 독립이므로 순서를 다투지 않는다.
+
+#### 생성 기록
+
+뽑는 대로 채운다. 비어 있는 것은 아직 생성하지 않았다는 뜻이다.
+
+| 순서 | 큐 | 프롬프트 | 길이 | 제목 |
+| --- | --- | --- | --- | --- |
+| | | | | |
+
 ### 브금은 부팅을 막지 않는다
 
 `BootScene`이 오디오를 전부 받은 뒤에야 타이틀 화면을 띄우던 구조였다. 문제는 비중이다.
