@@ -32,6 +32,30 @@ export const MELEE_ENEMY_COMBAT_CONFIG = {
   contactDamageCooldown: 700,
 } as const;
 
+/**
+ * Rod-swing melee behaviour (early stages): instead of dealing contact damage,
+ * the enemy closes to `attackRange`, winds the rod up, then sweeps it — only the
+ * active swing arc hurts the player, so the wind-up is a punishable tell.
+ */
+export const MELEE_SWING_CONFIG = {
+  /** Horizontal gap at which it stops chasing and commits to a swing.
+   *  Kept inside `reach` so a committed swing on a still target connects. */
+  attackRange: 92,
+  windupDuration: 340,
+  swingDuration: 200,
+  recoverDuration: 520,
+  /** Horizontal reach of the swing hitbox from the enemy centre. */
+  reach: 118,
+  /** Player must be within this vertical band of the enemy to be struck. */
+  verticalTolerance: 74,
+  damage: 15,
+  rodLength: 50,
+  rodThickness: 8,
+  rodColor: 0xcbb78a,
+} as const;
+
+export type MeleeSwingConfig = typeof MELEE_SWING_CONFIG;
+
 export const FLYING_ENEMY_COMBAT_CONFIG = {
   maxHealth: 45,
   aggroRadius: 560,

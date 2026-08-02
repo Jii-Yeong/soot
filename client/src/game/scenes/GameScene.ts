@@ -265,6 +265,7 @@ export class GameScene extends Phaser.Scene {
       },
       (phase) => gameEvents.emit('boss-phase-changed', phase),
       this.stage.flyingSprite,
+      this.stage.meleeSwing,
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
@@ -846,7 +847,8 @@ export class GameScene extends Phaser.Scene {
       (total, enemy) => total + enemy.maxHealth,
       0,
     );
-    gameEvents.emit('enemy-health-changed', current, max);
+    const isBoss = this.enemies.some((enemy) => enemy instanceof BossEnemy);
+    gameEvents.emit('enemy-health-changed', current, max, isBoss);
   }
 
   private createPlayerHitHandler(

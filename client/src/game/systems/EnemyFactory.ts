@@ -9,6 +9,7 @@ import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
+  type MeleeSwingConfig,
 } from '@/game/config/combatConfig';
 import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
@@ -45,6 +46,7 @@ export class EnemyFactory {
     private readonly bossArena: BossArenaBounds,
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
     private readonly flyingSprite?: FlyingSpriteConfig,
+    private readonly meleeSwing?: MeleeSwingConfig,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -74,7 +76,9 @@ export class EnemyFactory {
         moveSpeed: MELEE_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
         contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
+        swing: this.meleeSwing,
       },
+      this.damagePlayer,
     );
 
     return this.finishSpawn(enemy);

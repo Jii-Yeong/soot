@@ -1,5 +1,9 @@
 import type { MusicKey } from '@/game/config/audioConfig';
 import {
+  MELEE_SWING_CONFIG,
+  type MeleeSwingConfig,
+} from '@/game/config/combatConfig';
+import {
   STAGE_ONE_FLYING_SPRITE,
   type FlyingSpriteConfig,
 } from '@/game/config/flyingEnemyAnimationConfig';
@@ -46,6 +50,8 @@ export type StageConfig = {
   background?: StageBackground;
   /** Real-atlas flying enemy art; stages without it use the placeholder. */
   flyingSprite?: FlyingSpriteConfig;
+  /** When set, melee enemies swing a rod instead of dealing contact damage. */
+  meleeSwing?: MeleeSwingConfig;
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -66,6 +72,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-01.webp',
   },
   flyingSprite: STAGE_ONE_FLYING_SPRITE,
+  meleeSwing: MELEE_SWING_CONFIG,
   rooms: CITY_ROOMS,
 };
 
@@ -87,6 +94,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     key: 'stage-02-bg',
     path: '/assets/backgrounds/stage-02.webp',
   },
+  meleeSwing: MELEE_SWING_CONFIG,
   rooms: ALLEY_ROOMS,
 };
 
