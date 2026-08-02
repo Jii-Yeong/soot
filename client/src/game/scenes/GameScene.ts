@@ -142,6 +142,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.handlePitFall();
+    this.handleEnemyPitFalls();
 
     if (
       this.phase === 'room-cleared' &&
@@ -740,6 +741,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.defeatEnemy(enemy);
+  }
+
+  private defeatEnemy(enemy: Enemy) {
     gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
     if (enemy instanceof BossEnemy) {
       this.weaponDropDirector.dropBossReward(
@@ -759,6 +764,30 @@ export class GameScene extends Phaser.Scene {
     }
     enemy.defeat();
     this.roomDirector.notifyEnemyDefeated(enemy);
+  }
+
+  /**
+   * Enemies walk off the ledges the player jumps, and the world bounds then
+   * hold them alive at the bottom of the screen: out of the fight, out of
+   * reach, and still counted, so the room can never lock open again. The
+   * player's own fall is a hazard they climb out of (handlePitFall); an enemy
+   * has no way back up, so the pit is what kills it.
+   */
+  private handleEnemyPitFalls() {
+    for (const enemy of this.enemies) {
+      if (!enemy.active || enemy instanceof BossEnemy) {
+        continue;
+      }
+
+      const body = enemy.body as Phaser.Physics.Arcade.Body | null;
+      // The whole body has to clear the floor line, not just dip below it, so
+      // an enemy standing at a pit's edge is never mistaken for one in it.
+      if (!body || body.top <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
+        continue;
+      }
+
+      this.defeatEnemy(enemy);
+    }
   }
 
   /** A fading, expanding ghost of the enemy so a kill has a beat of weight. */
