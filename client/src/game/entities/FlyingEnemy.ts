@@ -11,9 +11,9 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 /** How fast a downed flyer plummets, in px/s (feeds the fall tween duration). */
 const DEATH_FALL_SPEED = 720;
 /** How long the crumpled wreck rests on the ground before fading out. */
-const DEATH_WRECK_HOLD_MS = 1000;
+const DEATH_WRECK_HOLD_MS = 400;
 /** Fade-out duration once the hold ends. */
-const DEATH_FADE_MS = 450;
+const DEATH_FADE_MS = 350;
 
 export type FlyingEnemyConfig = {
   health: number;
