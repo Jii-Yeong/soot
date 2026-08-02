@@ -988,6 +988,23 @@ repeated over and over for the entire duration, starts immediately at full
 level, loopable background bed, 80 BPM, D phrygian
 ```
 
+**B2 — 초 단위 반복으로 바꾼 버전 (지금 쓸 것)**
+
+12번이 이 프롬프트에서 나왔고 루프 0.604로 충분하지만, return에서 확인된 초 단위 지시를
+넣으면 더 올라갈 여지가 있다. 바꾼 것은 마지막 반복 문장 하나다.
+
+```
+a slow cello lament recorded in a large underground concrete space, viola and
+double bass sustaining a low drone underneath, one clean electric guitar note
+every few bars fading into the room, heavy damp air, muffled and enclosed,
+percussion-free, mournful and still, the sound of a place people have left,
+grieving for something that ended before anyone arrived, nothing enters and
+nothing leaves, purely instrumental, a single one minute passage that returns
+to its exact starting point and begins again unchanged, every minute sounds
+like every other minute, starts immediately at full level, loopable background
+bed, 80 BPM, D phrygian
+```
+
 #### inferno는 새 곡이 아니라 기억이다
 
 기획서가 지옥을 **"도시와 지하도시의 기억이 악마적 형태로 뒤틀린 공간"**으로 정의한다.
@@ -1057,6 +1074,28 @@ starts immediately at full level, loopable background bed, 112 BPM, D minor
 
 `heavy dark`를 `fast and violent`로 바꾸고 `double-time`을 드럼 바로 앞에 놓은 것이
 전부다. **무게 어휘를 빼고 속도 어휘를 그 자리에 넣었다.**
+
+**A3 — 속도를 지키면서 이음매를 되찾는 버전 (지금 쓸 것)**
+
+18번이 속도를 되찾는 대신 루프를 0.957에서 0.551로 잃었다. 그런데 **그 사이에 return에서
+초 단위 반복 지시가 루프를 0.42에서 0.85로 올린다는 것이 확인됐다.** 아직 inferno
+프롬프트에는 들어가 있지 않으므로 넣는다.
+
+바꾼 것은 `the same eight bars repeated over and over for the entire duration`을 초
+단위 문장으로 교체한 것 하나다.
+
+```
+fast and violent orchestral metal, double-time drum kit driving relentlessly
+throughout, distorted electric guitar riff played fast and tight, low cello and
+viola sawing in unison with the guitar at speed, the same brooding D minor
+material from a back alley piece now burning and distorted, brass-free, hot and
+overdriven, furious and unrelenting, spacious and sparse, purely instrumental,
+one continuous unchanging texture, the same handful of instruments from
+beginning to end, a single one minute passage that returns to its exact
+starting point and begins again unchanged, every minute sounds like every other
+minute, the final section sits at exactly the same level as the opening, starts
+immediately at full level, loopable background bed, 112 BPM, D minor
+```
 
 **둘 다 안 되면 `alley` 채택본을 레퍼런스로 물린다.** 문장으로 파생을 지시하는 것이
 한계에 부딪히면 그때는 city → alley에서 쓰려던 수를 그대로 꺼낸다.
@@ -1146,6 +1185,21 @@ final section sits at exactly the same level as the opening, starts immediately
 at full level, loopable background bed, 88 BPM, D major
 ```
 
+#### 지금 쓸 프롬프트
+
+여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
+근거로 남아 있으므로 지우지 않는다.
+
+| 큐 | 쓸 것 | 폐기 | 폐기 이유 |
+| --- | --- | --- | --- |
+| `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
+| `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
+| `return` | **A2** | A · B | A는 루프 0.42 천장 (15번), B는 합창이 크레셴도를 부른다 (16번) |
+
+셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
+무시당했고, `a single one minute passage that returns to its exact starting point`은
+return에서 루프 상관을 0.42에서 0.85로 올렸다. **마디는 모델이 세지 않고 초는 센다.**
+
 #### 일정이 곡 수를 정한다 — 우선순위는 3 → 4 → 5
 
 기획서의 공통 작업 규칙에 **8월 5일부터 신규 기능 제한, 8월 7일부터 치명적 버그만 수정**이
@@ -1182,18 +1236,34 @@ playMusic('bgm-underground')
 SFX가 파일 없는 큐를 조용히 건너뛰는 것과는 다른 동작이다. 효과음은 안 울리고 끝이지만
 브금은 **이미 울리던 것을 끄기 때문이다.**
 
-**이것은 MVP 완료 기준의 "무음 구간 없이"와 정면으로 충돌한다.** 지금 빌드는 3스테이지에
-진입하는 순간부터 엔딩까지 브금이 없다.
+지금 빌드는 3스테이지에 진입하는 순간부터 엔딩까지 브금이 없다.
 
-두 가지 중 하나를 해야 한다.
+**다만 이것은 곡을 채우면 사라진다.** 한때 이 자리에 "MVP 완료 기준과 정면 충돌하므로
+폴백을 넣어야 한다"고 적었는데, `handleDecoded`를 읽어 보니 과한 진단이었다.
 
-| 방법 | 내용 | 비용 |
-| --- | --- | --- |
-| 곡을 다 만든다 | 아래 프롬프트대로 3곡을 8월 4일까지 채운다 | 생성 · 선별 · 가공 3회 |
-| **폴백을 넣는다** | `startMusic()`이 실패할 곡이면 `stopMusic()`을 하지 않는다. 직전 곡이 계속 흐른다 | `playMusic` 몇 줄 |
+```
+private readonly handleDecoded = (key: string) => {
+  if (key === this.wantedMusic) {
+    this.startMusic();
+  }
+};
+```
 
-**폴백은 곡을 다 만들더라도 넣는 편이 낫다.** 파일이 늦게 도착하는 경우에도 같은 무음이
-생기기 때문이다. 다만 이건 오디오 코드 작업이고 곡 작업과 독립이므로 순서를 다투지 않는다.
+**늦게 도착한 파일도 여전히 원하는 곡이면 그때 재생된다.** 그러므로 파일이 존재하는 한
+무음은 영구적이지 않고 도착까지의 갭일 뿐이다. 게다가 현재+다음 선반입이 2~3분의
+리드타임을 주므로 그 갭도 실제로는 거의 생기지 않는다.
+
+**곡을 채우는 것이 곧 해결이다.** 폴백은 별도로 필요하지 않다.
+
+남는 경우는 둘뿐이고 둘 다 좁다.
+
+| 경우 | 결과 |
+| --- | --- |
+| `fetch` 실패 (`.catch(() => undefined)`) | 그 스테이지는 영구 무음. 직전 곡은 이미 멈춘 뒤다 |
+| 스테이지 점프 (관리자 버튼 · E2E 시작 스테이지) | 요청과 재생이 같은 순간이라 도착까지 1초 안팎의 갭 |
+
+**8월 4일 기능 동결을 감안하면 지금 손댈 일이 아니다.** 곡을 채우는 쪽이 같은 문제를
+해결하면서 완료 기준도 올린다.
 
 #### 생성 기록
 
