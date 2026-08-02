@@ -1465,6 +1465,69 @@ full level, loopable background bed, 88 BPM, D major
 **볼 지점은 저역이 -3dB 위로 올라오면서 공기감이 -34 근처를 지키는가이다.** 저역만 오르고
 고역이 내려가면 무게를 얻고 밝기를 잃은 것이므로 `timpani`를 뒤로 미룬다.
 
+**A7 — 밝기는 스펙트럼이 아니라 화성이었다 (지금 쓸 것)**
+
+23번은 **측정상 return 최고로 밝은 테이크**인데 여전히 밝게 들리지 않는다는 피드백이
+나왔다. 네 번째다. **그러면 측정하는 것과 듣는 것이 다른 것이다.**
+
+프롬프트를 세어 보니 원인이 있었다. **불협을 만드는 지시가 일곱 개 들어 있었다.**
+
+```
+sul ponticello                                  브리지 활 — 차갑고 긁는 음색
+glassy and metallic                             금속성
+the melody unsteady against it                  불안정
+wandering and never landing on the tonic        해결 안 됨
+notes slipping a semitone out of place          반음 어긋남
+two violins drifting slightly out of tune       음정 어긋남
+a raised fourth souring every perfect chord     증4도 — 가장 불협한 음정
+```
+
+**`heavy reverb` 한 단어를 찾아냈다고 좋아하는 동안 이쪽에 일곱 개를 쌓고 있었다.**
+태그가 많을수록 서로 상쇄된다는 것을 문서에 적어 두고도 같은 함정을 밟았다.
+
+**두 가지를 헷갈리고 있었다.**
+
+| | |
+| --- | --- |
+| **스펙트럼상 밝기** | 8~16kHz 에너지. 측정되는 값 |
+| **들리는 밝기** | **장조 화성이 해결되는가.** 측정에 안 잡힌다 |
+
+증4도로 화음을 계속 상하게 하면 고역이 아무리 많아도 밝게 들리지 않는다. 그리고
+`sul ponticello`는 스펙트럼상 밝지만 **정서적으로는 차갑고 불길하다** — 밝음이 아니라
+서늘함을 만드는 주법이다. **내가 고른 밝기 장치들이 전부 "차갑고 불안한" 쪽을 가리키고
+있었다.**
+
+바꾸는 것은 이렇다.
+
+| | 이전 | A7 |
+| --- | --- | --- |
+| 불안 장치 | **7개** | **1개** — `the melody never quite landing on the tonic` |
+| 화성 | 지시 없음 (불협 지시만 7개) | `bright resolved major triads throughout` 명시 |
+| 현악 음색 | `sul ponticello`, `metallic` | `singing with a full open tone` |
+
+**팀 방향인 "멜로디 불안정으로 대비"는 유지하되 실 한 오라기로 남긴다.** 대비는 바탕이
+밝을 때만 성립하고, 지금까지는 바탕까지 같이 어두웠다.
+
+```
+radiant major key orchestral, warm and consonant, driving and explosive,
+everything played in the top two octaves over a heavy low end, recorded in a
+vast hall of white marble and glass with hard bright reflections, high register
+violins singing with a full open tone, natural harmonics ringing above them,
+fast crystalline clean electric guitar arpeggio with light reverb running
+continuously, timpani strikes and low double bass pushing underneath,
+choir-free, bright resolved major triads throughout, joyful and overexposed,
+the sound of someone smiling while something terrible happens, the melody never
+quite landing on the tonic while everything under it stays bright and resolved,
+a single one minute passage that returns to its exact starting point and begins
+again unchanged, every minute sounds like every other minute, sparse, purely
+instrumental, the same handful of instruments from beginning to end, the final
+section sits at exactly the same level as the opening, starts immediately at
+full level, loopable background bed, 88 BPM, D major
+```
+
+**이번에는 밝게 들리는지만 본다.** 대역은 이미 23번에서 충분한 값이 나왔으므로, A7이
+그보다 조금 어두워도 귀에 밝으면 그쪽이 맞다. **측정으로 이 큐를 고르지 않는다.**
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1474,7 +1537,7 @@ full level, loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A6** | A · B · A2 · A3 · A4 · A5 | A5까지 오면서 밝기는 잡혔고(공기감 -33.9) 남은 것은 저역과 어택이다 |
+| `return` | **A7** | A ~ A6 | 불협 지시가 일곱 개 쌓여 스펙트럼이 밝아도 어둡게 들렸다. A7에서 하나로 줄이고 장조 화성을 명시 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
