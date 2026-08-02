@@ -1061,7 +1061,8 @@ D minor
 **A — 편성 합의 유지**
 
 ```
-blindingly bright orchestral, high register strings soaring and overexposed,
+blindingly bright orchestral, recorded in a vast hall of white marble and glass
+with hard bright reflections, high register strings soaring and overexposed,
 ecstatic and radiant, glassy shimmering textures pushed past comfort,
 crystalline clean electric guitar arpeggio with heavy reverb, light cello
 underneath, choir-free, rapturous in a way that should not feel good,
@@ -1079,7 +1080,8 @@ full level, loopable background bed, 88 BPM, D major
 **"단어를 부르지 않는다"를 긍정형으로 명시**한다.
 
 ```
-overexposed bright orchestral, high register strings soaring, a distant wordless
+overexposed bright orchestral, recorded in a vast hall of white marble and glass
+with hard bright reflections, high register strings soaring, a distant wordless
 choir far behind them holding vowels and singing no words, glassy shimmering
 textures, crystalline clean electric guitar arpeggio, light cello underneath,
 ecstatic and washed out, rapturous in a way that should not feel good,
@@ -1141,11 +1143,83 @@ SFX가 파일 없는 큐를 조용히 건너뛰는 것과는 다른 동작이다
 
 #### 생성 기록
 
-뽑는 대로 채운다. 비어 있는 것은 아직 생성하지 않았다는 뜻이다.
+번호는 title·alley 표에서 이어진다. 뽑는 대로 채운다.
 
 | 순서 | 큐 | 프롬프트 | 길이 | 제목 |
 | --- | --- | --- | --- | --- |
-| | | | | |
+| 11 | underground | A | 177.2초 | A Place Left Behind |
+| 12 | underground | B | 178.9초 | Slow Breathing Walls |
+
+#### underground 측정 결과
+
+| | 11 (A) | 12 (B) | 참고: city 원본 |
+| --- | --- | --- | --- |
+| 빌드 | +0.5 | **-0.6** | +4.5 |
+| 박 | **0.375** @ 159.25 | 0.505 @ **79.00** | 0.676 @ 88.5 |
+| 공기감 8~16k | -52.1 | -50.4 | -29.8 |
+| 저 / 중저 / 중 | -3.6 / -5.9 / -15.8 | -3.3 / -6.5 / -15.8 | — |
+| 루프 상관 (도구 기본) | 0.343 | 0.399 | 0.430 |
+| **루프 상관 (구간 탐색 후)** | **0.370** | **0.604** | — |
+
+**빌드는 둘 다 통과다.** 기준 1.5dB 이하에 +0.5와 -0.6이므로 여기서 갈리지 않는다.
+`the same handful of instruments from beginning to end`가 세 번째 곡에서도 작동했다.
+
+**루프에서 갈렸고, 그 차이는 고칠 수 없는 종류다.** 도구 기본값만 보면 0.343 대 0.399로
+근소한데, 시작점을 12·18·30·36·42초로 옮겨 가며 훑으면 격차가 벌어진다.
+
+| 시작점 | 11 (A) | 12 (B) |
+| --- | --- | --- |
+| 12s | 0.275 | 0.418 |
+| 18s | 0.333 | 0.472 |
+| 24s (기본) | 0.343 | 0.399 |
+| 30s | 0.296 | 0.448 |
+| 36s | 0.356 | **0.604** |
+| 42s | 0.370 | 0.499 |
+
+**A는 어디를 잡아도 0.37이 천장이다.** 루프는 구간 선택으로 개선되는 항목이라고 적어
+두었는데, A는 그 여지를 다 써도 안 올라간다는 것이 실측으로 나왔다. 반면 B는 36초에서
+**0.604**가 나오고 이는 alley 채택본(0.594)과 city 원본(0.430)을 모두 넘는다.
+
+B의 그 지점은 **36.00s → 156.00s로 정확히 120.0초**이고 레벨차도 -0.42dB로 작다.
+길이 규격(60초~3분)도 만족한다.
+
+**박은 A가 낮지만 이 곡에서는 탈락 사유가 아니다.** title은 무박이 요구 조건이어서 0.3
+이하를 목표로 삼았지만, underground는 걸음이 무거운 애도 곡이라 느린 맥동이 오히려 맞는다.
+게다가 B의 79.00 BPM은 프롬프트의 `80 BPM`에 정확히 붙은 값이고, A의 159.25는 그 2배로
+잡힌 것이라 **둘 다 템포 지시는 따랐다.**
+
+**어둡기는 의도대로다.** 둘 다 공기감 -50대로 지금까지 잰 모든 테이크 중 가장 어둡다.
+초록 안개 낀 지하가 배경이고 정서가 상실감이므로 여기서는 감점이 아니다.
+
+##### 밝기 지시가 실패했던 이유를 여기서 알았다
+
+title에서 `glassy shimmering`, `crystalline`, `luminous`를 넣고도 city보다 11~17dB
+어두워서 "밝기 어휘는 고역으로 번역되지 않는다"고 적었다. 그런데 이번에는 **공간을 서술한
+문장이 정확히 그 일을 했다.**
+
+`damp and enclosed as if played in a low concrete room`(A)과 `muffled and
+enclosed`(B)가 공기감 -50대를 만들었다. 밝기 형용사는 실패했는데 **공간 서술은 성공했다.**
+
+이것은 문서에 이미 있는 "악기 상태를 나타내는 단어가 분위기 형용사보다 강하게 먹는다"와
+같은 종류의 현상이다. `muted`가 약음기를 뜻해 고역을 깎았듯, 낮은 콘크리트 방은 물리적으로
+고역이 죽는 공간이다. **모델은 분위기보다 물리를 따른다.**
+
+##### 측정상 결론 — 12번(B)
+
+**빌드는 비기고, 어둡기는 둘 다 의도대로이며, 박은 A가 낮지만 이 곡의 탈락 사유가 아니다.
+남는 것은 루프이고 거기서 B가 0.604 대 0.370으로 이긴다.** 그리고 그 항목이 하필
+**구간 선택으로도 고칠 수 없다는 것을 A에서 직접 확인했다.**
+
+**다만 이것은 후보를 좁힌 결과이지 채택이 아니다.** city에서 측정 최하위였던 곡을 사람이
+골랐고 그 판단이 옳았다. 둘 다 `candidates/underground/`에 있으니 듣고 정한다.
+
+후보는 방침대로 **Opus 64kbps 사본**으로 넣었다(각 1.5MB). 사본이 판정을 훼손하지 않는지
+이번에도 확인했다 — 12번의 루프 상관이 원본 0.604, 사본 0.598로 0.006 차이다.
+
+**return에 그대로 써먹는다.** 천국은 다섯 곡 중 유일하게 밝아야 하는 곡인데 밝기 형용사만으로는
+안 된다는 것이 title에서 확인됐다. 그래서 위 return 프롬프트 A·B에 **반사가 강한 넓은
+공간**(`in a vast hall of white marble and glass`)을 넣었다. 낮은 콘크리트 방이 고역을
+죽였다면 대리석과 유리는 반대로 살린다.
 
 ### 브금은 부팅을 막지 않는다
 
