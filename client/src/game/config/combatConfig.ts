@@ -30,6 +30,21 @@ export const MELEE_ENEMY_COMBAT_CONFIG = {
   moveSpeed: 190,
   contactDamage: 15,
   contactDamageCooldown: 700,
+  /**
+   * Pacing while nobody is in range. Rooms are built with their enemies now, so
+   * the player walks into one already occupied — but an enemy standing at
+   * perfect attention reads as one waiting to be switched on. A slow beat
+   * around where it was placed reads as something that was already there.
+   *
+   * Well under the 190 it chases at: the gear change is what tells the player
+   * they have been noticed.
+   */
+  patrolRange: 90,
+  patrolSpeed: 70,
+  /** Clear of a pit edge by more than half a 48px-wide body. */
+  patrolEdgeMargin: 28,
+  /** Any shorter and the turns come often enough to read as twitching. */
+  patrolMinimumSpan: 60,
 } as const;
 
 export const FLYING_ENEMY_COMBAT_CONFIG = {

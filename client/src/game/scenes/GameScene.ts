@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
+  MELEE_ENEMY_COMBAT_CONFIG,
   PLAYER_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
@@ -48,6 +49,7 @@ import {
   FLOOR_TILE,
   FloorBuilder,
 } from '@/game/systems/FloorBuilder';
+import { patrolSpan } from '@/game/systems/patrolSpan';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
@@ -284,6 +286,16 @@ export class GameScene extends Phaser.Scene {
         right: this.activeRoomConfig.exitX,
       },
       (phase) => gameEvents.emit('boss-phase-changed', phase),
+      (spawnX) =>
+        patrolSpan({
+          spawnX,
+          range: MELEE_ENEMY_COMBAT_CONFIG.patrolRange,
+          left: this.activeRoomConfig.entranceX,
+          right: this.activeRoomConfig.exitX,
+          pits: this.activeRoomConfig.pits,
+          edgeMargin: MELEE_ENEMY_COMBAT_CONFIG.patrolEdgeMargin,
+          minimumSpan: MELEE_ENEMY_COMBAT_CONFIG.patrolMinimumSpan,
+        }),
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),

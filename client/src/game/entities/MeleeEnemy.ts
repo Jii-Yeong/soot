@@ -7,6 +7,8 @@ export type MeleeEnemyConfig = {
   moveSpeed: number;
   contactDamage: number;
   contactDamageCooldown: number;
+  /** Where it may pace while unaware. Absent means there is no room to. */
+  patrol?: { left: number; right: number; speed: number };
 };
 
 export class MeleeEnemy extends Enemy {
@@ -16,6 +18,8 @@ export class MeleeEnemy extends Enemy {
   private readonly moveSpeed: number;
   private readonly contactDamage: number;
   private readonly contactDamageCooldown: number;
+  private readonly patrol?: MeleeEnemyConfig['patrol'];
+  private patrolHeading: -1 | 1;
   private contactDamageReadyAt = 0;
 
   constructor(
@@ -31,6 +35,11 @@ export class MeleeEnemy extends Enemy {
     this.moveSpeed = config.moveSpeed;
     this.contactDamage = config.contactDamage;
     this.contactDamageCooldown = config.contactDamageCooldown;
+    this.patrol = config.patrol;
+    // Set off toward the longer half of its beat, so a patrol that was cut
+    // short on one side by a pit does not open by turning around.
+    this.patrolHeading =
+      this.patrol && x - this.patrol.left > this.patrol.right - x ? -1 : 1;
   }
 
   updateCombat(
@@ -57,7 +66,7 @@ export class MeleeEnemy extends Enemy {
     }
 
     if (!targetInRange) {
-      this.setVelocityX(0);
+      this.patrolStep();
       return false;
     }
 
@@ -66,6 +75,27 @@ export class MeleeEnemy extends Enemy {
     this.setVelocityX(direction * this.moveSpeed);
 
     return true;
+  }
+
+  /**
+   * The beat it walks while nothing is in range. The turn is taken on reaching
+   * an end rather than on a timer, so an enemy knocked or chased outside its
+   * span walks back into it instead of pacing wherever it was left.
+   */
+  private patrolStep() {
+    if (!this.patrol) {
+      this.setVelocityX(0);
+      return;
+    }
+
+    if (this.x <= this.patrol.left) {
+      this.patrolHeading = 1;
+    } else if (this.x >= this.patrol.right) {
+      this.patrolHeading = -1;
+    }
+
+    this.setFlipX(this.patrolHeading < 0);
+    this.setVelocityX(this.patrolHeading * this.patrol.speed);
   }
 
   override tryContactAttack(time: number) {

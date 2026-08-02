@@ -14,6 +14,7 @@ import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import type { PatrolBounds } from '@/game/systems/patrolSpan';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
 import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
@@ -43,8 +44,21 @@ export class EnemyFactory {
     private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
     private readonly bossArena: BossArenaBounds,
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
+    /**
+     * The stretch of floor an enemy placed here may pace, already cut to the
+     * room's pits and edges. The factory does not know the room's shape, and
+     * the answer is fixed at placement, so the scene works it out.
+     */
+    private readonly patrolBoundsFor: (spawnX: number) => PatrolBounds | null,
   ) {
     this.intensity = intensity ?? 1;
+  }
+
+  private patrolFor(spawnX: number) {
+    const bounds = this.patrolBoundsFor(spawnX);
+    return bounds
+      ? { ...bounds, speed: MELEE_ENEMY_COMBAT_CONFIG.patrolSpeed }
+      : undefined;
   }
 
   create(spawn: EnemySpawnConfig): Enemy {
@@ -72,6 +86,7 @@ export class EnemyFactory {
         moveSpeed: MELEE_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
         contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
+        patrol: this.patrolFor(spawn.x),
       },
     );
 
