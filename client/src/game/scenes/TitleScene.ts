@@ -5,6 +5,7 @@ import {
   STAGES,
 } from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
+import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -31,10 +32,16 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const background = STAGES[STARTING_STAGE_INDEX]?.background;
+    const startingStage = STAGES[STARTING_STAGE_INDEX];
+    const background = startingStage?.background;
+    let queued = false;
 
     if (background && !this.textures.exists(background.key)) {
       this.load.image(background.key, background.path);
+      queued = true;
+    }
+    queued = new StageAssetPreloader(this).preload(startingStage) || queued;
+    if (queued && !this.load.isLoading()) {
       this.load.start();
     }
 

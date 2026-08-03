@@ -43,6 +43,7 @@ import {
 } from '@/game/systems/FloorBuilder';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
+import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
 import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
@@ -77,6 +78,7 @@ export class GameScene extends Phaser.Scene {
   private weaponDropDirector!: WeaponDropDirector;
   private weaponSystem!: WeaponSystem;
   private stageEndEventDirector!: StageEndEventDirector;
+  private stageAssetPreloader!: StageAssetPreloader;
   private equipKey!: Phaser.Input.Keyboard.Key;
   private enemyProjectiles!: ProjectilePool;
   private flyingEnemyProjectiles!: ProjectilePool;
@@ -119,6 +121,8 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('playing');
 
     this.configureRoomWorld();
+    this.stageAssetPreloader = new StageAssetPreloader(this);
+    this.preloadStageAssets();
     this.backdropDirector = new BackdropDirector(this);
     this.showStageBackdrop();
     this.floorBuilder = new FloorBuilder(this);
@@ -371,6 +375,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private enterCurrentRoom(stageChanged = false) {
+    if (stageChanged) {
+      this.preloadStageAssets();
+    }
+
     this.configureRoomWorld();
     this.rebuildFloorForRoom();
     this.showStageBackdrop();
@@ -434,6 +442,13 @@ export class GameScene extends Phaser.Scene {
       this.roomWorldWidth,
       STAGES[this.currentStageIndex + 1],
     );
+  }
+
+  private preloadStageAssets() {
+    // The current stage is normally warm already; retry it if speculative
+    // loading failed, then fetch exactly one stage ahead during active play.
+    this.stageAssetPreloader.preload(this.stage);
+    this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
   }
 
   private createCombatSystems() {

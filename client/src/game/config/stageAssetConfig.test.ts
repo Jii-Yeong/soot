@@ -1,0 +1,46 @@
+import { describe, expect, it } from 'vitest';
+import {
+  STAGE_ONE_CONFIG,
+  STAGE_THREE_CONFIG,
+  STAGE_TWO_CONFIG,
+} from '@/game/config/stageConfig';
+import { getStageAssetManifest } from '@/game/config/stageAssetConfig';
+
+describe('stage asset manifests', () => {
+  it('groups enemy atlases and terrain images by owning stage', () => {
+    const stageOne = getStageAssetManifest(STAGE_ONE_CONFIG);
+    const stageTwo = getStageAssetManifest(STAGE_TWO_CONFIG);
+
+    expect(stageOne.enemyAtlases.map(({ texture }) => texture)).toEqual([
+      'stage-1-flying',
+      'stage-1-ranged',
+      'stage-1-neared',
+    ]);
+    expect(stageTwo.enemyAtlases.map(({ texture }) => texture)).toEqual([
+      'stage-2-flying',
+      'stage-2-ranged',
+      'stage-2-neared',
+    ]);
+    expect(stageTwo.terrainImages.map(({ key }) => key)).toEqual([
+      'stage-2-floor-left',
+      'stage-2-floor-middle',
+      'stage-2-floor-right',
+      'stage-2-stool-left',
+      'stage-2-stool-middle',
+      'stage-2-stool-right',
+    ]);
+  });
+
+  it('returns no optional gameplay art for a placeholder-only stage', () => {
+    expect(getStageAssetManifest(STAGE_THREE_CONFIG)).toEqual({
+      enemyAtlases: [],
+      terrainImages: [],
+    });
+  });
+
+  it('reuses the resolved manifest for repeated room transitions', () => {
+    expect(getStageAssetManifest(STAGE_TWO_CONFIG)).toBe(
+      getStageAssetManifest(STAGE_TWO_CONFIG),
+    );
+  });
+});

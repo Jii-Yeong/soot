@@ -329,6 +329,39 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
   expect(requestedBackgrounds.has('stage-05.webp')).toBe(false);
 });
 
+test('loads enemy and terrain art one stage ahead', async ({ page }) => {
+  const requestedAssets = new Set<string>();
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (/\/assets\/(enemies|terrain)\/stage-[12]-/.test(pathname)) {
+      requestedAssets.add(pathname.split('/').at(-1) ?? '');
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await expect
+    .poll(
+      () =>
+        requestedAssets.has('stage-1-neared.png') &&
+        requestedAssets.has('stage-1-floor-left.png'),
+    )
+    .toBe(true);
+  expect([...requestedAssets].some((asset) => asset.startsWith('stage-2-'))).toBe(
+    false,
+  );
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await expect
+    .poll(
+      () =>
+        requestedAssets.has('stage-2-neared.png') &&
+        requestedAssets.has('stage-2-floor-left.png'),
+    )
+    .toBe(true);
+});
+
 test('waits for the entrance detector before starting combat', async ({
   page,
 }) => {

@@ -11,9 +11,6 @@ import {
   STAGE_ONE_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
-import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
-import { FLYING_ENEMY_ANIMATION_ATLASES } from '@/game/config/flyingEnemyAnimationConfig';
-import { MELEE_ENEMY_ANIMATION_ATLASES } from '@/game/config/meleeEnemyAnimationConfig';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
@@ -21,8 +18,6 @@ import {
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
-import { RANGED_ENEMY_ANIMATION_ATLASES } from '@/game/config/rangedEnemyAnimationConfig';
-import { ALL_TERRAIN_SKINS } from '@/game/config/terrainSkinConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
 export class BootScene extends Phaser.Scene {
@@ -44,19 +39,6 @@ export class BootScene extends Phaser.Scene {
     for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
       this.load.image(asset.key, asset.url);
     }
-    for (const atlas of [
-      ...FLYING_ENEMY_ANIMATION_ATLASES,
-      ...RANGED_ENEMY_ANIMATION_ATLASES,
-      ...MELEE_ENEMY_ANIMATION_ATLASES,
-    ]) {
-      this.load.atlas(atlas.texture, atlas.png, atlas.json);
-    }
-    for (const skin of ALL_TERRAIN_SKINS) {
-      for (const slice of [skin.left, skin.middle, skin.right]) {
-        this.load.image(slice.key, slice.path);
-      }
-    }
-
     // Four small PNGs, a kilobyte each. They load with the boot batch rather
     // than in the background because the player is holding one the instant the
     // stage starts.
@@ -269,31 +251,6 @@ export class BootScene extends Phaser.Scene {
           duration,
         })),
         repeat: STAGE_ONE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
-    }
-    for (const atlas of FLYING_ENEMY_ANIMATION_ATLASES) {
-      this.createEnemyAnimations(atlas);
-    }
-    for (const atlas of RANGED_ENEMY_ANIMATION_ATLASES) {
-      this.createEnemyAnimations(atlas);
-    }
-    for (const atlas of MELEE_ENEMY_ANIMATION_ATLASES) {
-      this.createEnemyAnimations(atlas);
-    }
-  }
-
-  private createEnemyAnimations<TTag extends string>(
-    atlas: EnemyAnimationAtlasConfig<TTag>,
-  ) {
-    for (const tag of Object.keys(atlas.tagFrames) as TTag[]) {
-      this.anims.create({
-        key: atlas.animations[tag],
-        frames: atlas.tagFrames[tag].map(({ frame, duration }) => ({
-          key: atlas.texture,
-          frame,
-          duration,
-        })),
-        repeat: atlas.loopingTags.has(tag) ? -1 : 0,
       });
     }
   }
