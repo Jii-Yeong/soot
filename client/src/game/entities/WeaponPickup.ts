@@ -23,7 +23,10 @@ export class WeaponPickup extends Phaser.Physics.Arcade.Sprite {
 
     this.setDepth(7).setBounce(0.22).setDragX(220);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(Math.max(22, this.width), Math.max(12, this.height), true);
+    // A fixed box rather than the frame. Weapon sprites share a 72x24 canvas
+    // that is mostly transparent padding, so tracing the frame would give a
+    // pickup a hitbox three times wider than the gun the player can see.
+    body.setSize(44, 18, true);
 
     this.label = scene.add
       .text(x, y - 27, weapon.label, {

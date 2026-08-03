@@ -153,6 +153,22 @@ describe('AudioDirector', () => {
     expect(played[0].config.volume).toBeGreaterThan(0);
   });
 
+  it('plays one burst-rifle cue for every volley event', () => {
+    const { game, played } = createFakeGame({
+      loaded: ['sfx-burst-rifle-fire'],
+    });
+    director = new AudioDirector(game);
+
+    for (let round = 0; round < 3; round += 1) {
+      gameEvents.emit('weapon-fired', 'burst-rifle', 0, 0);
+    }
+
+    expect(played).toHaveLength(3);
+    expect(played.every((cue) => cue.key === 'sfx-burst-rifle-fire')).toBe(
+      true,
+    );
+  });
+
   it('drops repeated hit cues that land inside the same throttle window', () => {
     const { game, played } = createFakeGame({ loaded: ['sfx-enemy-hit'] });
     director = new AudioDirector(game);
