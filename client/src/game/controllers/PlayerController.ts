@@ -34,6 +34,8 @@ const LANDING_POSE_DURATION = 260;
 const COYOTE_TIME = 90;
 /** A jump pressed this long before landing still fires on touchdown. */
 const JUMP_BUFFER_TIME = 110;
+/** How long jump input is ignored after entering a portal (shares the up/W key). */
+const JUMP_SUPPRESS_AFTER_PORTAL = 200;
 /** How fast a boss grab drags the player toward it. */
 const GRAB_PULL_SPEED = 700;
 /**
@@ -53,6 +55,7 @@ export class PlayerController {
   private invulnerable = false;
   private lastGroundedAt = 0;
   private jumpBufferedUntil = 0;
+  private jumpSuppressedUntil = 0;
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
@@ -190,7 +193,12 @@ export class PlayerController {
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.up) ||
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.space);
 
-    if (jumpPressed) {
+    // Ignore the jump input (and any buffered one) briefly after a portal
+    // transition, so the up/W press that entered the portal doesn't also hop in
+    // the next room.
+    if (time <= this.jumpSuppressedUntil) {
+      this.jumpBufferedUntil = 0;
+    } else if (jumpPressed) {
       this.jumpBufferedUntil = time + JUMP_BUFFER_TIME;
     }
 
@@ -332,6 +340,15 @@ export class PlayerController {
   stop() {
     this.finishDash();
     this.player.setVelocity(0);
+  }
+
+  /**
+   * Drops any pending jump and briefly ignores new jump input — called when the
+   * player leaves through a portal, since up/W both enters it and jumps.
+   */
+  cancelJump() {
+    this.jumpBufferedUntil = 0;
+    this.jumpSuppressedUntil = this.scene.time.now + JUMP_SUPPRESS_AFTER_PORTAL;
   }
 
   get isInvulnerable() {

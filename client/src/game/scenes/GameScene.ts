@@ -337,6 +337,7 @@ export class GameScene extends Phaser.Scene {
   private advanceToNextRoom() {
     this.setPhase('transitioning');
     this.playerController.stop();
+    this.playerController.cancelJump();
     this.player.setVelocity(0);
     this.weaponSystem.clearProjectiles();
     this.cameras.main.flash(180, 182, 255, 228);
