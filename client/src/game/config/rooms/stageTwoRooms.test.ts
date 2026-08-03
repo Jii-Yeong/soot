@@ -10,6 +10,7 @@ import { ALLEY_ROOM_ONE, ALLEY_ROOM_TWO } from './stageTwoRooms';
 
 const PLAYER_ENTRY_X = 64 + 90;
 const MINIMUM_ENTRY_BREATHER = 300;
+const FIRST_PIT_END_TO_AGGRO_BREATHER = 100;
 
 function activationX(spawn: EnemySpawnConfig) {
   switch (spawn.type) {
@@ -33,6 +34,19 @@ function activationX(spawn: EnemySpawnConfig) {
 }
 
 describe('stage 2 room entry layout', () => {
+  it('introduces the first pit before any enemy can pressure the jump', () => {
+    const firstPit = ALLEY_ROOM_ONE.pits![0]!;
+    const firstEnemyActivation = Math.min(
+      ...ALLEY_ROOM_ONE.enemySpawns.map(activationX),
+    );
+
+    expect(firstPit.width).toBeLessThanOrEqual(196);
+    expect(firstPit.x).toBeGreaterThan(PLAYER_ENTRY_X);
+    expect(firstEnemyActivation - (firstPit.x + firstPit.width)).toBeGreaterThanOrEqual(
+      FIRST_PIT_END_TO_AGGRO_BREATHER,
+    );
+  });
+
   it('keeps both room entrances out of every enemy activation radius', () => {
     for (const room of [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO]) {
       const earliestActivation = Math.min(

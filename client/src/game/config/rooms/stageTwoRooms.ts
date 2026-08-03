@@ -52,9 +52,11 @@ export const ALLEY_ROOM_ONE = defineRoom({
     // Exit barrier at the far door.
     { type: 'wall', x: 3380, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
-  // Drainage gaps between clusters — jump across, or drop in and take damage.
+  // The first pit is a quiet, short crossing. It appears before the first
+  // enemy's activation range, so stage 2 introduces falling without stacking
+  // a shot or a pursuer onto the same jump. The later pit is the combat test.
   pits: [
-    { x: 1650, width: 150 },
+    { x: 300, width: 120 },
     { x: 2450, width: 160 },
   ],
 });

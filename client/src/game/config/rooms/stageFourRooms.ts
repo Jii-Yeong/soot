@@ -43,6 +43,10 @@ export const INFERNO_ROOM_ONE = defineRoom({
     { type: 'platform', x: 2110, y: LEDGE_Y, width: 280, height: 22 },
     { type: 'platform', x: 2620, y: LEDGE_Y, width: 280, height: 22 },
     { type: 'platform', x: 3130, y: LEDGE_Y, width: 300, height: 22 },
+    // A low barrier follows each early shooter and comes before the flier.
+    // It briefly cuts the firing line, then a running jump clears the route.
+    { type: 'wall', x: 1500, y: GAME_HEIGHT - 140, width: 44, height: 76 },
+    { type: 'wall', x: 2500, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
   pits: [
     { x: 1050, width: 200 },
@@ -86,6 +90,12 @@ export const INFERNO_ROOM_TWO = defineRoom({
     // create a voluntary firing angle during the room's dense middle.
     { type: 'platform', x: 1120, y: HIGH_LEDGE_Y, width: 200, height: 22 },
     { type: 'platform', x: 2600, y: HIGH_LEDGE_Y, width: 200, height: 22 },
+    // The dense room adds barriers to the ground line. The first separates
+    // the opening from the two-pursuer peak; the next two sit under elevated
+    // spans, so taking height becomes a deliberate bypass instead of a stop.
+    { type: 'wall', x: 1720, y: GAME_HEIGHT - 140, width: 44, height: 76 },
+    { type: 'wall', x: 2200, y: GAME_HEIGHT - 140, width: 44, height: 76 },
+    { type: 'wall', x: 2700, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
   pits: [
     { x: 1000, width: 150 },
