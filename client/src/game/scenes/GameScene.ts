@@ -178,7 +178,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private rebuildFloorForStage() {
-    this.floorBuilder.build(this.stage.rooms, Boolean(this.stage.background));
+    this.floorBuilder.build(
+      this.stage.rooms,
+      Boolean(this.stage.background),
+      this.stage.showFloor,
+    );
   }
 
   private createPlayer() {
@@ -266,6 +270,8 @@ export class GameScene extends Phaser.Scene {
       (phase) => gameEvents.emit('boss-phase-changed', phase),
       this.stage.flyingSprite,
       this.stage.meleeSwing,
+      this.stage.rangedSprite,
+      this.stage.meleeSprite,
     );
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),

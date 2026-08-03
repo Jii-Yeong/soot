@@ -114,10 +114,14 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (targetInRange && !this.isStaggered(time) && time >= this.nextFireAt) {
       fireProjectile(this, target);
       this.nextFireAt = time + fireInterval;
+      this.onRangedFire(time);
     }
 
     return targetInRange;
   }
+
+  /** Hook for subclasses to react to a shot (e.g. play an attack animation). */
+  protected onRangedFire(_time: number) {}
 
   takeDamage(amount: number) {
     if (!this.active) {

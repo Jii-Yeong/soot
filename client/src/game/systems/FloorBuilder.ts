@@ -8,6 +8,8 @@ import {
 
 export const FLOOR_TILE = 64;
 export const FLOOR_SURFACE_Y = GAME_HEIGHT - FLOOR_TILE;
+/** Behind characters (enemies 0, player 8) but in front of the backdrop (-10). */
+const FLOOR_DEPTH = -9;
 
 export type PitBounds = { start: number; end: number };
 
@@ -27,7 +29,11 @@ export class FloorBuilder {
     this.group = scene.physics.add.staticGroup();
   }
 
-  build(rooms: readonly RoomConfig[], backdropSuppliesGround: boolean) {
+  build(
+    rooms: readonly RoomConfig[],
+    backdropSuppliesGround: boolean,
+    showFloor = false,
+  ) {
     this.group.clear(true, true);
     this.pits = rooms.flatMap((_, index) =>
       (placeRoomInStage(rooms, index).pits ?? []).map((pit) => ({
@@ -41,17 +47,22 @@ export class FloorBuilder {
       if (this.isOverPit(x)) {
         continue;
       }
-      this.group.create(
+      const tile = this.group.create(
         x,
         FLOOR_SURFACE_Y + FLOOR_TILE / 2,
         'floor-placeholder',
-      );
+      ) as Phaser.GameObjects.Image;
+      // Sit behind characters so they stand on top of the band.
+      tile.setDepth(FLOOR_DEPTH);
     }
 
-    // Real backdrop art normally supplies the ground, so the placeholder tiles
-    // stay hidden — but a stage with pits needs its blocks visible so the gaps
-    // between them read as holes.
-    this.group.setVisible(!backdropSuppliesGround || this.pits.length > 0);
+    // Show the floor band when the stage opts in (a placeholder to skin with a
+    // pixel tile). Otherwise the real backdrop art supplies the ground and the
+    // tiles stay hidden — except a stage with pits needs them visible so the
+    // gaps between them read as holes.
+    this.group.setVisible(
+      showFloor || !backdropSuppliesGround || this.pits.length > 0,
+    );
   }
 
   private isOverPit(x: number) {

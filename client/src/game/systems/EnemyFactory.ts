@@ -12,6 +12,8 @@ import {
   type MeleeSwingConfig,
 } from '@/game/config/combatConfig';
 import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
+import type { MeleeSpriteConfig } from '@/game/config/meleeEnemyAnimationConfig';
+import type { RangedSpriteConfig } from '@/game/config/rangedEnemyAnimationConfig';
 import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
@@ -47,6 +49,8 @@ export class EnemyFactory {
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
     private readonly flyingSprite?: FlyingSpriteConfig,
     private readonly meleeSwing?: MeleeSwingConfig,
+    private readonly rangedSprite?: RangedSpriteConfig,
+    private readonly meleeSprite?: MeleeSpriteConfig,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -69,7 +73,7 @@ export class EnemyFactory {
       this.scene,
       spawn.x,
       spawn.y,
-      'melee-enemy-placeholder',
+      this.meleeSprite?.texture ?? 'melee-enemy-placeholder',
       {
         health: MELEE_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: MELEE_ENEMY_COMBAT_CONFIG.aggroRadius,
@@ -77,6 +81,7 @@ export class EnemyFactory {
         contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
         swing: this.meleeSwing,
+        sprite: this.meleeSprite,
       },
       this.damagePlayer,
     );
@@ -89,12 +94,16 @@ export class EnemyFactory {
       this.scene,
       spawn.x,
       spawn.y,
-      'enemy-placeholder',
+      this.rangedSprite?.texture ?? 'enemy-placeholder',
       {
         health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
         fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: RANGED_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
+        moveSpeed: RANGED_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
+        preferredDistance: RANGED_ENEMY_COMBAT_CONFIG.preferredDistance,
+        distanceTolerance: RANGED_ENEMY_COMBAT_CONFIG.distanceTolerance,
+        sprite: this.rangedSprite,
       },
     );
     return this.finishSpawn(enemy);

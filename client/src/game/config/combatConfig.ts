@@ -14,6 +14,12 @@ export const RANGED_ENEMY_COMBAT_CONFIG = {
   maxHealth: 100,
   aggroRadius: 520,
   fireInterval: 900,
+  /** Repositioning speed; slower than the player so it can still be run down. */
+  moveSpeed: 135,
+  /** Ideal firing gap: it advances when farther and backpedals when closer. */
+  preferredDistance: 360,
+  /** Deadzone around the preferred gap so it isn't twitching in and out. */
+  distanceTolerance: 55,
   projectile: {
     texture: 'enemy-bullet-placeholder',
     speed: 430,

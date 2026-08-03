@@ -20,11 +20,27 @@ import {
   STAGE_ONE_FLYING_TAG_FRAMES,
 } from '@/game/config/flyingEnemyAnimationConfig';
 import {
+  STAGE_ONE_MELEE_ANIMATIONS,
+  STAGE_ONE_MELEE_ATLAS_JSON,
+  STAGE_ONE_MELEE_ATLAS_KEY,
+  STAGE_ONE_MELEE_ATLAS_PNG,
+  STAGE_ONE_MELEE_LOOPING_TAGS,
+  STAGE_ONE_MELEE_TAG_FRAMES,
+} from '@/game/config/meleeEnemyAnimationConfig';
+import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
+import {
+  STAGE_ONE_RANGED_ANIMATIONS,
+  STAGE_ONE_RANGED_ATLAS_JSON,
+  STAGE_ONE_RANGED_ATLAS_KEY,
+  STAGE_ONE_RANGED_ATLAS_PNG,
+  STAGE_ONE_RANGED_LOOPING_TAGS,
+  STAGE_ONE_RANGED_TAG_FRAMES,
+} from '@/game/config/rangedEnemyAnimationConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -49,6 +65,16 @@ export class BootScene extends Phaser.Scene {
       STAGE_ONE_FLYING_ATLAS_KEY,
       STAGE_ONE_FLYING_ATLAS_PNG,
       STAGE_ONE_FLYING_ATLAS_JSON,
+    );
+    this.load.atlas(
+      STAGE_ONE_RANGED_ATLAS_KEY,
+      STAGE_ONE_RANGED_ATLAS_PNG,
+      STAGE_ONE_RANGED_ATLAS_JSON,
+    );
+    this.load.atlas(
+      STAGE_ONE_MELEE_ATLAS_KEY,
+      STAGE_ONE_MELEE_ATLAS_PNG,
+      STAGE_ONE_MELEE_ATLAS_JSON,
     );
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
@@ -297,6 +323,38 @@ export class BootScene extends Phaser.Scene {
           duration,
         })),
         repeat: STAGE_ONE_FLYING_LOOPING_TAGS.has(tag) ? -1 : 0,
+      });
+    }
+    for (const [tag, frames] of Object.entries(
+      STAGE_ONE_RANGED_TAG_FRAMES,
+    ) as [
+      keyof typeof STAGE_ONE_RANGED_TAG_FRAMES,
+      (typeof STAGE_ONE_RANGED_TAG_FRAMES)[keyof typeof STAGE_ONE_RANGED_TAG_FRAMES],
+    ][]) {
+      this.anims.create({
+        key: STAGE_ONE_RANGED_ANIMATIONS[tag],
+        frames: frames.map(({ frame, duration }) => ({
+          key: STAGE_ONE_RANGED_ATLAS_KEY,
+          frame,
+          duration,
+        })),
+        repeat: STAGE_ONE_RANGED_LOOPING_TAGS.has(tag) ? -1 : 0,
+      });
+    }
+    for (const [tag, frames] of Object.entries(
+      STAGE_ONE_MELEE_TAG_FRAMES,
+    ) as [
+      keyof typeof STAGE_ONE_MELEE_TAG_FRAMES,
+      (typeof STAGE_ONE_MELEE_TAG_FRAMES)[keyof typeof STAGE_ONE_MELEE_TAG_FRAMES],
+    ][]) {
+      this.anims.create({
+        key: STAGE_ONE_MELEE_ANIMATIONS[tag],
+        frames: frames.map(({ frame, duration }) => ({
+          key: STAGE_ONE_MELEE_ATLAS_KEY,
+          frame,
+          duration,
+        })),
+        repeat: STAGE_ONE_MELEE_LOOPING_TAGS.has(tag) ? -1 : 0,
       });
     }
   }

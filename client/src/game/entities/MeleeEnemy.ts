@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { MeleeSwingConfig } from '@/game/config/combatConfig';
+import type { MeleeSpriteConfig } from '@/game/config/meleeEnemyAnimationConfig';
 import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 export type MeleeEnemyConfig = {
   health: number;
@@ -8,8 +10,10 @@ export type MeleeEnemyConfig = {
   moveSpeed: number;
   contactDamage: number;
   contactDamageCooldown: number;
-  /** When set, the enemy attacks by swinging a rod instead of dealing contact damage. */
+  /** When set, the enemy attacks by swinging instead of dealing contact damage. */
   swing?: MeleeSwingConfig;
+  /** Real-atlas art; the swing then shows as an attack anim + slash VFX. */
+  sprite?: MeleeSpriteConfig;
 };
 
 type MeleeState = 'chase' | 'windup' | 'swing' | 'recover';
@@ -24,6 +28,20 @@ const ROD_REST_ANGLE = 0.38;
 const ROD_RAISED_ANGLE = -2.05;
 const ROD_FORWARD_ANGLE = 0.85;
 
+/** Slash VFX geometry (right-facing); mirrored when the enemy faces left. */
+const SLASH_DEPTH = 9;
+const SLASH_INNER_RADIUS = 30;
+const SLASH_OUTER_RADIUS = 96;
+const SLASH_START_ANGLE = -1.95;
+const SLASH_END_ANGLE = 0.8;
+/** Angular width of the blade trail, in radians. */
+const SLASH_ARC = 0.95;
+const SLASH_COLOR = 0xbff4ff;
+
+/** Death corpse timing for the real-atlas variant (matches the other mobs). */
+const DEATH_HOLD_MS = 400;
+const DEATH_FADE_MS = 350;
+
 export class MeleeEnemy extends Enemy {
   readonly aggroRadius: number;
   readonly aggroIndicatorColor = 0xf08b52;
@@ -34,12 +52,16 @@ export class MeleeEnemy extends Enemy {
   private contactDamageReadyAt = 0;
 
   private readonly swing?: MeleeSwingConfig;
+  private readonly sprite?: MeleeSpriteConfig;
   private readonly damagePlayer?: PlayerDamageHandler;
   private readonly rod?: Phaser.GameObjects.Rectangle;
+  private readonly slash?: Phaser.GameObjects.Graphics;
   private attackState: MeleeState = 'chase';
   private stateStartedAt = 0;
   private stateEndsAt = 0;
   private swingConnected = false;
+  private activeAnimation?: string;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -56,15 +78,51 @@ export class MeleeEnemy extends Enemy {
     this.contactDamage = config.contactDamage;
     this.contactDamageCooldown = config.contactDamageCooldown;
     this.swing = config.swing;
+    this.sprite = config.sprite;
     this.damagePlayer = damagePlayer;
 
-    if (this.swing) {
+    if (this.sprite) {
+      this.slash = scene.add.graphics().setDepth(SLASH_DEPTH);
+      this.applySprite();
+    } else if (this.swing) {
       this.rod = scene.add
-        .rectangle(x, y, this.swing.rodLength, this.swing.rodThickness, this.swing.rodColor)
+        .rectangle(
+          x,
+          y,
+          this.swing.rodLength,
+          this.swing.rodThickness,
+          this.swing.rodColor,
+        )
         .setOrigin(0.12, 0.5)
         .setDepth(this.depth);
       this.positionRod(ROD_REST_ANGLE);
     }
+  }
+
+  /**
+   * The real atlas frame is padded, so size the body down and bottom-align it to
+   * the fighter's feet (play the idle frame first so the body maps to the atlas
+   * frame, not the placeholder it was constructed with).
+   */
+  private applySprite() {
+    if (!this.sprite) {
+      return;
+    }
+
+    this.setScale(this.sprite.scale);
+    this.playAnimation(this.sprite.animations.idle);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(this.sprite.bodyWidth, this.sprite.bodyHeight);
+    body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
+    // Spawn with feet exactly on the floor: the tall padded body otherwise
+    // spawns overlapping a floor tile and tunnels through it.
+    this.setY(
+      FLOOR_SURFACE_Y -
+        this.sprite.bodyOffsetY -
+        this.sprite.bodyHeight +
+        this.displayOriginY,
+    );
+    body.reset(this.x, this.y);
   }
 
   updateCombat(
@@ -72,7 +130,7 @@ export class MeleeEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
-    if (!this.active) {
+    if (!this.active || this.dying) {
       return false;
     }
 
@@ -112,12 +170,12 @@ export class MeleeEnemy extends Enemy {
     targetInRange: boolean,
   ) {
     // A stagger interrupts the wind-up so a well-timed knockback-heavy shot
-    // cancels the swing; the rod snaps back to rest.
+    // cancels the swing; visuals snap back to rest.
     if (this.isStaggered(time)) {
       if (this.attackState !== 'chase') {
         this.attackState = 'chase';
       }
-      this.positionRod(ROD_REST_ANGLE);
+      this.restVisual();
       return targetInRange;
     }
 
@@ -144,10 +202,9 @@ export class MeleeEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     targetInRange: boolean,
   ) {
-    this.positionRod(ROD_REST_ANGLE);
-
     if (!targetInRange) {
       this.setVelocityX(0);
+      this.restVisual();
       return;
     }
 
@@ -162,22 +219,31 @@ export class MeleeEnemy extends Enemy {
     if (horizontalDistance <= swing.attackRange && withinHeight) {
       this.beginState('windup', time, swing.windupDuration);
       this.setVelocityX(0);
+      this.beginAttackVisual();
       return;
     }
 
     this.setVelocityX(direction * this.moveSpeed);
+    // Walk while closing in (sprite), or carry the rod at rest.
+    if (this.sprite) {
+      this.playAnimation(this.sprite.animations.walk);
+    } else {
+      this.positionRod(ROD_REST_ANGLE);
+    }
   }
 
   private updateWindup(time: number) {
     this.setVelocityX(0);
-    // Raise the rod over the windup so the incoming swing is clearly telegraphed.
-    this.positionRod(
-      Phaser.Math.Linear(
-        ROD_REST_ANGLE,
-        ROD_RAISED_ANGLE,
-        this.stateProgress(time),
-      ),
-    );
+    if (this.rod) {
+      // Raise the rod over the windup so the incoming swing is telegraphed.
+      this.positionRod(
+        Phaser.Math.Linear(
+          ROD_REST_ANGLE,
+          ROD_RAISED_ANGLE,
+          this.stateProgress(time),
+        ),
+      );
+    }
 
     if (time >= this.stateEndsAt) {
       this.beginState('swing', time, this.swing!.swingDuration);
@@ -188,14 +254,16 @@ export class MeleeEnemy extends Enemy {
   private updateSwing(time: number, target: Phaser.Physics.Arcade.Sprite) {
     this.setVelocityX(0);
     const progress = this.stateProgress(time);
-    // Fast overhead chop: ease-out so the arc snaps down.
-    this.positionRod(
-      Phaser.Math.Linear(
-        ROD_RAISED_ANGLE,
-        ROD_FORWARD_ANGLE,
-        1 - (1 - progress) * (1 - progress),
-      ),
-    );
+    // Ease-out so the arc snaps down.
+    const swingCurve = 1 - (1 - progress) * (1 - progress);
+
+    if (this.slash) {
+      this.drawSlash(swingCurve, 1 - progress);
+    } else if (this.rod) {
+      this.positionRod(
+        Phaser.Math.Linear(ROD_RAISED_ANGLE, ROD_FORWARD_ANGLE, swingCurve),
+      );
+    }
 
     if (!this.swingConnected && this.swingHits(target)) {
       this.swingConnected = true;
@@ -203,19 +271,24 @@ export class MeleeEnemy extends Enemy {
     }
 
     if (time >= this.stateEndsAt) {
+      this.slash?.clear();
       this.beginState('recover', time, this.swing!.recoverDuration);
     }
   }
 
   private updateRecover(time: number) {
     this.setVelocityX(0);
-    this.positionRod(
-      Phaser.Math.Linear(
-        ROD_FORWARD_ANGLE,
-        ROD_REST_ANGLE,
-        this.stateProgress(time),
-      ),
-    );
+    if (this.sprite) {
+      this.playAnimation(this.sprite.animations.idle);
+    } else if (this.rod) {
+      this.positionRod(
+        Phaser.Math.Linear(
+          ROD_FORWARD_ANGLE,
+          ROD_REST_ANGLE,
+          this.stateProgress(time),
+        ),
+      );
+    }
 
     if (time >= this.stateEndsAt) {
       this.attackState = 'chase';
@@ -235,16 +308,82 @@ export class MeleeEnemy extends Enemy {
     );
   }
 
+  /** Rest pose: rod carried low, or walk/idle for the real sprite. */
+  private restVisual() {
+    if (this.sprite) {
+      const moving = Math.abs(this.body?.velocity.x ?? 0) > 1;
+      this.playAnimation(
+        moving ? this.sprite.animations.walk : this.sprite.animations.idle,
+      );
+    } else {
+      this.positionRod(ROD_REST_ANGLE);
+    }
+    this.slash?.clear();
+  }
+
+  private beginAttackVisual() {
+    if (this.sprite) {
+      this.playAnimation(this.sprite.animations.attack);
+    }
+  }
+
+  private drawSlash(sweep: number, fade: number) {
+    if (!this.slash) {
+      return;
+    }
+
+    const facing = this.flipX ? -1 : 1;
+    const cx = this.x + facing * HAND_OFFSET_X;
+    const cy = this.y + HAND_OFFSET_Y;
+    const leadRight = Phaser.Math.Linear(
+      SLASH_START_ANGLE,
+      SLASH_END_ANGLE,
+      sweep,
+    );
+    const trailRight = leadRight - SLASH_ARC;
+    // Mirror the arc across the vertical axis when facing left.
+    const a = facing === 1 ? trailRight : Math.PI - leadRight;
+    const b = facing === 1 ? leadRight : Math.PI - trailRight;
+    const alpha = 0.2 + fade * 0.55;
+
+    this.slash
+      .clear()
+      .fillStyle(SLASH_COLOR, alpha)
+      .beginPath();
+    this.slash.arc(cx, cy, SLASH_OUTER_RADIUS, a, b, false);
+    this.slash.arc(cx, cy, SLASH_INNER_RADIUS, b, a, true);
+    this.slash.closePath();
+    this.slash.fillPath();
+    // Bright leading edge.
+    this.slash
+      .lineStyle(3, 0xffffff, alpha)
+      .beginPath();
+    this.slash.arc(cx, cy, SLASH_OUTER_RADIUS, a, b, false);
+    this.slash.strokePath();
+  }
+
   private positionRod(angleForRight: number) {
     if (!this.rod) {
       return;
     }
 
     const facing = this.flipX ? -1 : 1;
-    this.rod.setPosition(this.x + facing * HAND_OFFSET_X, this.y + HAND_OFFSET_Y);
+    this.rod.setPosition(
+      this.x + facing * HAND_OFFSET_X,
+      this.y + HAND_OFFSET_Y,
+    );
     // Mirror the angle when facing left so the rod stays on the front side.
     this.rod.setRotation(facing === 1 ? angleForRight : Math.PI - angleForRight);
     this.rod.setDepth(this.depth);
+  }
+
+  private playAnimation(key: string) {
+    if (this.activeAnimation === key) {
+      return;
+    }
+
+    this.activeAnimation = key;
+    this.play(key, true);
   }
 
   private beginState(state: MeleeState, time: number, duration: number) {
@@ -265,13 +404,45 @@ export class MeleeEnemy extends Enemy {
     );
   }
 
+  override get playsOwnDeathAnimation() {
+    return Boolean(this.sprite);
+  }
+
+  override defeat() {
+    if (!this.active || !this.sprite) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.playAnimation(this.sprite.animations.death);
+    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.scene.time.delayedCall(DEATH_HOLD_MS, () => {
+        if (!this.active) {
+          return;
+        }
+        this.scene.tweens.add({
+          targets: this,
+          alpha: 0,
+          duration: DEATH_FADE_MS,
+          ease: 'Sine.easeIn',
+          onComplete: () => this.disableBody(true, true),
+        });
+      });
+    });
+  }
+
   protected override onDefeated() {
     super.onDefeated();
     this.rod?.destroy();
+    this.slash?.destroy();
   }
 
   override destroy(fromScene?: boolean) {
     this.rod?.destroy();
+    this.slash?.destroy();
     super.destroy(fromScene);
   }
 

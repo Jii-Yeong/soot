@@ -7,7 +7,15 @@ import {
   STAGE_ONE_FLYING_SPRITE,
   type FlyingSpriteConfig,
 } from '@/game/config/flyingEnemyAnimationConfig';
+import {
+  STAGE_ONE_MELEE_SPRITE,
+  type MeleeSpriteConfig,
+} from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
+import {
+  STAGE_ONE_RANGED_SPRITE,
+  type RangedSpriteConfig,
+} from '@/game/config/rangedEnemyAnimationConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
 import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
@@ -48,10 +56,19 @@ export type StageConfig = {
   rooms: StageRooms;
   endEvent?: StageEndEvent;
   background?: StageBackground;
+  /**
+   * Render the bottom floor tiles as a visible band (a placeholder to later
+   * skin with a pixel-art tile), instead of letting the backdrop imply ground.
+   */
+  showFloor?: boolean;
   /** Real-atlas flying enemy art; stages without it use the placeholder. */
   flyingSprite?: FlyingSpriteConfig;
+  /** Real-atlas ranged enemy art; stages without it use the placeholder. */
+  rangedSprite?: RangedSpriteConfig;
   /** When set, melee enemies swing a rod instead of dealing contact damage. */
   meleeSwing?: MeleeSwingConfig;
+  /** Real-atlas melee enemy art (swing shown via attack anim + slash VFX). */
+  meleeSprite?: MeleeSpriteConfig;
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -72,7 +89,10 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-01.webp',
   },
   flyingSprite: STAGE_ONE_FLYING_SPRITE,
+  rangedSprite: STAGE_ONE_RANGED_SPRITE,
   meleeSwing: MELEE_SWING_CONFIG,
+  meleeSprite: STAGE_ONE_MELEE_SPRITE,
+  showFloor: true,
   rooms: CITY_ROOMS,
 };
 
