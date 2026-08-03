@@ -5,7 +5,11 @@ import {
 } from '@/game/config/aerialMovementConfig';
 import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
 import { PLAYER_FLIGHT_BOUNDS } from '@/game/config/playerMovementConfig';
-import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import {
+  Enemy,
+  ENEMY_DEPTH,
+  type EnemyProjectileAttack,
+} from '@/game/entities/Enemy';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 /** How fast a downed flyer plummets, in px/s (feeds the fall tween duration). */
@@ -60,8 +64,8 @@ export class FlyingEnemy extends Enemy {
 
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     // Flyers hover at platform height, so they render in front of terrain
-    // (depth 5) instead of being hidden behind it — still under the player (8).
-    this.setDepth(6);
+    // instead of being hidden behind it — still under the player (8).
+    this.setDepth(ENEMY_DEPTH);
     this.applySprite();
   }
 

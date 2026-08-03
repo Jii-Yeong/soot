@@ -7,6 +7,12 @@ export type EnemyProjectileAttack = (
 
 export type EnemyProjectileKind = 'ranged' | 'flying';
 
+/**
+ * Trash mobs render in front of terrain platforms (depth 5) so they aren't
+ * hidden behind 2nd/3rd-tier footholds, while staying under the player (8).
+ */
+export const ENEMY_DEPTH = 6;
+
 export type EnemyProjectileProfile = {
   kind: EnemyProjectileKind;
   muzzleOffset: number;

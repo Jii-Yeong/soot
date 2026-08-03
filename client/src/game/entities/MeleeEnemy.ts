@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
 import type { MeleeSwingConfig } from '@/game/config/combatConfig';
 import type { MeleeSpriteConfig } from '@/game/config/meleeEnemyAnimationConfig';
-import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import {
+  Enemy,
+  ENEMY_DEPTH,
+  type EnemyProjectileAttack,
+} from '@/game/entities/Enemy';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 export type MeleeEnemyConfig = {
@@ -80,6 +84,8 @@ export class MeleeEnemy extends Enemy {
     this.swing = config.swing;
     this.sprite = config.sprite;
     this.damagePlayer = damagePlayer;
+    // Render in front of terrain platforms (the rod/slash follow this.depth).
+    this.setDepth(ENEMY_DEPTH);
 
     if (this.sprite) {
       this.slash = scene.add.graphics().setDepth(SLASH_DEPTH);

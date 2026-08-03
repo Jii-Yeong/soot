@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import type { RangedSpriteConfig } from '@/game/config/rangedEnemyAnimationConfig';
-import { Enemy, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import {
+  Enemy,
+  ENEMY_DEPTH,
+  type EnemyProjectileAttack,
+} from '@/game/entities/Enemy';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 export type RangedEnemyConfig = {
@@ -50,6 +54,8 @@ export class RangedEnemy extends Enemy {
     this.distanceTolerance = config.distanceTolerance;
     this.projectile = { kind: 'ranged', muzzleOffset: config.muzzleOffset };
     this.sprite = config.sprite;
+    // Render in front of terrain platforms, under the player.
+    this.setDepth(ENEMY_DEPTH);
     this.applySprite();
   }
 
