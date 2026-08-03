@@ -31,12 +31,16 @@ export class TerrainBuilder {
 
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
+      const skinned = Boolean(stoolSkin) && piece.type === 'platform';
+      // Skinned platforms take the art's thickness so collision matches the
+      // pixel slab; the top surface (piece.y) is unchanged either way.
+      const height = skinned ? stoolSkin!.height : piece.height;
       const block = this.scene.add
         .rectangle(
           piece.x + piece.width / 2,
-          piece.y + piece.height / 2,
+          piece.y + height / 2,
           piece.width,
-          piece.height,
+          height,
           style.fill,
         )
         .setStrokeStyle(2, style.edge, 0.9)
@@ -47,13 +51,13 @@ export class TerrainBuilder {
       // synced to the game object's current transform.
       (block.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
 
-      if (stoolSkin && piece.type === 'platform') {
+      if (skinned) {
         // Keep the block as the physics body but hide it under the pixel skin.
         block.setVisible(false);
         this.skinObjects.push(
           ...drawSliceSkin(
             this.scene,
-            stoolSkin,
+            stoolSkin!,
             piece.x,
             piece.x + piece.width,
             piece.y,

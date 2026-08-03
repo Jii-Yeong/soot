@@ -2,9 +2,10 @@ import Phaser from 'phaser';
 import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
 
 /**
- * Draws a horizontal 3-slice skin (left cap + tiled middle + right cap) across
- * [startX, endX], with its surface aligned to `surfaceY`. Returns the created
- * game objects so the caller can destroy them on rebuild. Physics is unaffected.
+ * Draws a horizontal 3-slice skin across [startX, endX] with its surface aligned
+ * to `surfaceY`: one middle image stretched across the whole span (so there are
+ * no repeat seams), with the left/right caps laid on top of its ends. Returns
+ * the created objects so the caller can destroy them on rebuild.
  */
 export function drawSliceSkin(
   scene: Phaser.Scene,
@@ -24,6 +25,14 @@ export function drawSliceSkin(
     return obj;
   };
 
+  // Middle first, spanning the full width so nothing shows between the pieces.
+  add(
+    scene.add
+      .image(startX, topY, skin.middle.key)
+      .setOrigin(0, 0)
+      .setDisplaySize(span, skin.height),
+  );
+
   // Caps shrink to fit if the span is too narrow to hold both at full width.
   const capWidth = Math.min(
     skin.left.width,
@@ -31,31 +40,18 @@ export function drawSliceSkin(
   );
   const rightWidth = Math.min(skin.right.width, Math.max(0, span - capWidth));
 
-  const left = scene.add
-    .image(startX, topY, skin.left.key)
-    .setOrigin(0, 0)
-    .setDisplaySize(capWidth, skin.height);
-  add(left);
-
-  const right = scene.add
-    .image(endX - rightWidth, topY, skin.right.key)
-    .setOrigin(0, 0)
-    .setDisplaySize(rightWidth, skin.height);
-  add(right);
-
-  const middleWidth = span - capWidth - rightWidth;
-  if (middleWidth > 0) {
-    const middle = scene.add
-      .tileSprite(
-        startX + capWidth,
-        topY,
-        middleWidth,
-        skin.height,
-        skin.middle.key,
-      )
-      .setOrigin(0, 0);
-    add(middle);
-  }
+  add(
+    scene.add
+      .image(startX, topY, skin.left.key)
+      .setOrigin(0, 0)
+      .setDisplaySize(capWidth, skin.height),
+  );
+  add(
+    scene.add
+      .image(endX - rightWidth, topY, skin.right.key)
+      .setOrigin(0, 0)
+      .setDisplaySize(rightWidth, skin.height),
+  );
 
   return created;
 }
