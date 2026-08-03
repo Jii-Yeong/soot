@@ -1,16 +1,15 @@
-/**
- * Real sprite atlas for the stage-1 flying enemy.
- *
- * Frame names mirror the supplied Aseprite JSON (bare indices "0".."5") and the
- * tag ranges/durations are copied from its `frameTags`. Flying enemies in later
- * stages keep the generated placeholder until they get their own art, so this is
- * attached per-stage via `StageConfig.flyingSprite`.
- */
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
+
+/** Real sprite atlases for stage-specific flying enemies. */
 const frameName = (index: number) => `${index}`;
 
 export const STAGE_ONE_FLYING_ATLAS_KEY = 'stage-1-flying';
 export const STAGE_ONE_FLYING_ATLAS_PNG = '/assets/enemies/stage-1-flying.png';
 export const STAGE_ONE_FLYING_ATLAS_JSON = '/assets/enemies/stage-1-flying.json';
+
+export const STAGE_TWO_FLYING_ATLAS_KEY = 'stage-2-flying';
+export const STAGE_TWO_FLYING_ATLAS_PNG = '/assets/enemies/stage-2-flying.png';
+export const STAGE_TWO_FLYING_ATLAS_JSON = '/assets/enemies/stage-2-flying.json';
 
 export const STAGE_ONE_FLYING_ANIMATIONS = {
   idle: 'stage-1-flying-idle',
@@ -21,7 +20,14 @@ export const STAGE_ONE_FLYING_ANIMATIONS = {
   deathLand: 'stage-1-flying-death-land',
 } as const;
 
-type StageOneFlyingTag = keyof typeof STAGE_ONE_FLYING_ANIMATIONS;
+export const STAGE_TWO_FLYING_ANIMATIONS = {
+  idle: 'stage-2-flying-idle',
+  hit: 'stage-2-flying-hit',
+  deathFall: 'stage-2-flying-death-fall',
+  deathLand: 'stage-2-flying-death-land',
+} as const;
+
+type FlyingTag = keyof typeof STAGE_ONE_FLYING_ANIMATIONS;
 
 /**
  * Frame ranges and frame times from the supplied atlas JSON. The atlas `death`
@@ -29,7 +35,7 @@ type StageOneFlyingTag = keyof typeof STAGE_ONE_FLYING_ANIMATIONS;
  * a downed flyer drops before it breaks apart.
  */
 export const STAGE_ONE_FLYING_TAG_FRAMES: Record<
-  StageOneFlyingTag,
+  FlyingTag,
   readonly { frame: string; duration: number }[]
 > = {
   idle: [0, 1].map((index) => ({ frame: frameName(index), duration: 180 })),
@@ -41,9 +47,10 @@ export const STAGE_ONE_FLYING_TAG_FRAMES: Record<
   ],
 };
 
-export const STAGE_ONE_FLYING_LOOPING_TAGS = new Set<StageOneFlyingTag>([
-  'idle',
-]);
+export const STAGE_TWO_FLYING_TAG_FRAMES = STAGE_ONE_FLYING_TAG_FRAMES;
+
+export const STAGE_ONE_FLYING_LOOPING_TAGS = new Set<FlyingTag>(['idle']);
+export const STAGE_TWO_FLYING_LOOPING_TAGS = STAGE_ONE_FLYING_LOOPING_TAGS;
 
 /**
  * A flying enemy's real-atlas rendering: the padded atlas frame is bigger than
@@ -51,7 +58,7 @@ export const STAGE_ONE_FLYING_LOOPING_TAGS = new Set<StageOneFlyingTag>([
  */
 export type FlyingSpriteConfig = {
   texture: string;
-  animations: typeof STAGE_ONE_FLYING_ANIMATIONS;
+  animations: Record<FlyingTag, string>;
   scale: number;
   bodyWidth: number;
   bodyHeight: number;
@@ -64,3 +71,29 @@ export const STAGE_ONE_FLYING_SPRITE: FlyingSpriteConfig = {
   bodyWidth: 50,
   bodyHeight: 42,
 };
+
+export const STAGE_TWO_FLYING_SPRITE: FlyingSpriteConfig = {
+  ...STAGE_ONE_FLYING_SPRITE,
+  texture: STAGE_TWO_FLYING_ATLAS_KEY,
+  animations: STAGE_TWO_FLYING_ANIMATIONS,
+};
+
+export const FLYING_ENEMY_ANIMATION_ATLASES: readonly EnemyAnimationAtlasConfig<FlyingTag>[] =
+  [
+    {
+      texture: STAGE_ONE_FLYING_ATLAS_KEY,
+      png: STAGE_ONE_FLYING_ATLAS_PNG,
+      json: STAGE_ONE_FLYING_ATLAS_JSON,
+      animations: STAGE_ONE_FLYING_ANIMATIONS,
+      tagFrames: STAGE_ONE_FLYING_TAG_FRAMES,
+      loopingTags: STAGE_ONE_FLYING_LOOPING_TAGS,
+    },
+    {
+      texture: STAGE_TWO_FLYING_ATLAS_KEY,
+      png: STAGE_TWO_FLYING_ATLAS_PNG,
+      json: STAGE_TWO_FLYING_ATLAS_JSON,
+      animations: STAGE_TWO_FLYING_ANIMATIONS,
+      tagFrames: STAGE_TWO_FLYING_TAG_FRAMES,
+      loopingTags: STAGE_TWO_FLYING_LOOPING_TAGS,
+    },
+  ];

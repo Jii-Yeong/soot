@@ -1,16 +1,15 @@
-/**
- * Real sprite atlas for the stage-1 melee enemy.
- *
- * Frame names mirror the supplied Aseprite JSON (bare indices "0".."7") and the
- * tag ranges/durations are copied from its `frameTags`. Melee enemies in later
- * stages keep the generated placeholder + rod rectangle until they get their own
- * art, so this is attached per-stage via `StageConfig.meleeSprite`.
- */
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
+
+/** Real sprite atlases for stage-specific melee enemies. */
 const frameName = (index: number) => `${index}`;
 
 export const STAGE_ONE_MELEE_ATLAS_KEY = 'stage-1-neared';
 export const STAGE_ONE_MELEE_ATLAS_PNG = '/assets/enemies/stage-1-neared.png';
 export const STAGE_ONE_MELEE_ATLAS_JSON = '/assets/enemies/stage-1-neared.json';
+
+export const STAGE_TWO_MELEE_ATLAS_KEY = 'stage-2-neared';
+export const STAGE_TWO_MELEE_ATLAS_PNG = '/assets/enemies/stage-2-neared.png';
+export const STAGE_TWO_MELEE_ATLAS_JSON = '/assets/enemies/stage-2-neared.json';
 
 export const STAGE_ONE_MELEE_ANIMATIONS = {
   idle: 'stage-1-neared-idle',
@@ -19,11 +18,18 @@ export const STAGE_ONE_MELEE_ANIMATIONS = {
   death: 'stage-1-neared-death',
 } as const;
 
-type StageOneMeleeTag = keyof typeof STAGE_ONE_MELEE_ANIMATIONS;
+export const STAGE_TWO_MELEE_ANIMATIONS = {
+  idle: 'stage-2-neared-idle',
+  walk: 'stage-2-neared-walk',
+  attack: 'stage-2-neared-attack',
+  death: 'stage-2-neared-death',
+} as const;
+
+type MeleeTag = keyof typeof STAGE_ONE_MELEE_ANIMATIONS;
 
 /** Frame ranges and frame times copied from the supplied atlas JSON. */
 export const STAGE_ONE_MELEE_TAG_FRAMES: Record<
-  StageOneMeleeTag,
+  MeleeTag,
   readonly { frame: string; duration: number }[]
 > = {
   idle: [0, 1].map((index) => ({ frame: frameName(index), duration: 130 })),
@@ -38,10 +44,13 @@ export const STAGE_ONE_MELEE_TAG_FRAMES: Record<
   ],
 };
 
-export const STAGE_ONE_MELEE_LOOPING_TAGS = new Set<StageOneMeleeTag>([
+export const STAGE_TWO_MELEE_TAG_FRAMES = STAGE_ONE_MELEE_TAG_FRAMES;
+
+export const STAGE_ONE_MELEE_LOOPING_TAGS = new Set<MeleeTag>([
   'idle',
   'walk',
 ]);
+export const STAGE_TWO_MELEE_LOOPING_TAGS = STAGE_ONE_MELEE_LOOPING_TAGS;
 
 /**
  * A melee enemy's real-atlas rendering: the padded atlas frame is bigger than
@@ -51,7 +60,7 @@ export const STAGE_ONE_MELEE_LOOPING_TAGS = new Set<StageOneMeleeTag>([
  */
 export type MeleeSpriteConfig = {
   texture: string;
-  animations: typeof STAGE_ONE_MELEE_ANIMATIONS;
+  animations: Record<MeleeTag, string>;
   scale: number;
   bodyWidth: number;
   bodyHeight: number;
@@ -72,3 +81,29 @@ export const STAGE_ONE_MELEE_SPRITE: MeleeSpriteConfig = {
   bodyOffsetX: 66,
   bodyOffsetY: 50,
 };
+
+export const STAGE_TWO_MELEE_SPRITE: MeleeSpriteConfig = {
+  ...STAGE_ONE_MELEE_SPRITE,
+  texture: STAGE_TWO_MELEE_ATLAS_KEY,
+  animations: STAGE_TWO_MELEE_ANIMATIONS,
+};
+
+export const MELEE_ENEMY_ANIMATION_ATLASES: readonly EnemyAnimationAtlasConfig<MeleeTag>[] =
+  [
+    {
+      texture: STAGE_ONE_MELEE_ATLAS_KEY,
+      png: STAGE_ONE_MELEE_ATLAS_PNG,
+      json: STAGE_ONE_MELEE_ATLAS_JSON,
+      animations: STAGE_ONE_MELEE_ANIMATIONS,
+      tagFrames: STAGE_ONE_MELEE_TAG_FRAMES,
+      loopingTags: STAGE_ONE_MELEE_LOOPING_TAGS,
+    },
+    {
+      texture: STAGE_TWO_MELEE_ATLAS_KEY,
+      png: STAGE_TWO_MELEE_ATLAS_PNG,
+      json: STAGE_TWO_MELEE_ATLAS_JSON,
+      animations: STAGE_TWO_MELEE_ANIMATIONS,
+      tagFrames: STAGE_TWO_MELEE_TAG_FRAMES,
+      loopingTags: STAGE_TWO_MELEE_LOOPING_TAGS,
+    },
+  ];

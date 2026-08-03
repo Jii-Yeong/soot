@@ -83,6 +83,36 @@ describe('stage configuration', () => {
     });
   });
 
+  it('uses the supplied stage 2 art for every standard enemy role', () => {
+    expect(STAGE_TWO_CONFIG.meleeSprite).toMatchObject({
+      texture: 'stage-2-neared',
+      animations: {
+        idle: 'stage-2-neared-idle',
+        walk: 'stage-2-neared-walk',
+        attack: 'stage-2-neared-attack',
+        death: 'stage-2-neared-death',
+      },
+    });
+    expect(STAGE_TWO_CONFIG.rangedSprite).toMatchObject({
+      texture: 'stage-2-ranged',
+      animations: {
+        idle: 'stage-2-ranged-idle',
+        walk: 'stage-2-ranged-walk',
+        attack: 'stage-2-ranged-attack',
+        death: 'stage-2-ranged-death',
+      },
+    });
+    expect(STAGE_TWO_CONFIG.flyingSprite).toMatchObject({
+      texture: 'stage-2-flying',
+      animations: {
+        idle: 'stage-2-flying-idle',
+        hit: 'stage-2-flying-hit',
+        deathFall: 'stage-2-flying-death-fall',
+        deathLand: 'stage-2-flying-death-land',
+      },
+    });
+  });
+
   it('loads the supplied stage 3 background with the same structure', () => {
     expect(STAGE_THREE_CONFIG.background).toEqual({
       key: 'stage-03-bg',

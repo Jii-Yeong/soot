@@ -487,6 +487,41 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   ).toHaveAttribute('aria-valuemax', '115');
 });
 
+test('stage two spawns each standard enemy with its supplied atlas', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '2스테이지', exact: true })
+    .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '115');
+
+  await triggerCurrentRoom(page);
+  const textures = await page.evaluate(() => {
+    type RuntimeEnemy = { texture: { key: string } };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    return (game.scene.getScene('game') as RuntimeScene).enemies.map(
+      ({ texture }) => texture.key,
+    );
+  });
+
+  expect(new Set(textures)).toEqual(
+    new Set(['stage-2-neared', 'stage-2-ranged', 'stage-2-flying']),
+  );
+});
+
 test('admin menu scrolls instead of overflowing a short viewport', async ({
   page,
 }) => {

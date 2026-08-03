@@ -1,16 +1,15 @@
-/**
- * Real sprite atlas for the stage-1 ranged enemy.
- *
- * Frame names mirror the supplied Aseprite JSON (bare indices "0".."7") and the
- * tag ranges/durations are copied from its `frameTags`. Ranged enemies in later
- * stages keep the generated placeholder until they get their own art, so this is
- * attached per-stage via `StageConfig.rangedSprite`.
- */
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
+
+/** Real sprite atlases for stage-specific ranged enemies. */
 const frameName = (index: number) => `${index}`;
 
 export const STAGE_ONE_RANGED_ATLAS_KEY = 'stage-1-ranged';
 export const STAGE_ONE_RANGED_ATLAS_PNG = '/assets/enemies/stage-1-ranged.png';
 export const STAGE_ONE_RANGED_ATLAS_JSON = '/assets/enemies/stage-1-ranged.json';
+
+export const STAGE_TWO_RANGED_ATLAS_KEY = 'stage-2-ranged';
+export const STAGE_TWO_RANGED_ATLAS_PNG = '/assets/enemies/stage-2-ranged.png';
+export const STAGE_TWO_RANGED_ATLAS_JSON = '/assets/enemies/stage-2-ranged.json';
 
 export const STAGE_ONE_RANGED_ANIMATIONS = {
   idle: 'stage-1-ranged-idle',
@@ -19,11 +18,18 @@ export const STAGE_ONE_RANGED_ANIMATIONS = {
   death: 'stage-1-ranged-death',
 } as const;
 
-type StageOneRangedTag = keyof typeof STAGE_ONE_RANGED_ANIMATIONS;
+export const STAGE_TWO_RANGED_ANIMATIONS = {
+  idle: 'stage-2-ranged-idle',
+  walk: 'stage-2-ranged-walk',
+  attack: 'stage-2-ranged-attack',
+  death: 'stage-2-ranged-death',
+} as const;
+
+type RangedTag = keyof typeof STAGE_ONE_RANGED_ANIMATIONS;
 
 /** Frame ranges and frame times copied from the supplied atlas JSON. */
 export const STAGE_ONE_RANGED_TAG_FRAMES: Record<
-  StageOneRangedTag,
+  RangedTag,
   readonly { frame: string; duration: number }[]
 > = {
   idle: [0, 1].map((index) => ({ frame: frameName(index), duration: 100 })),
@@ -35,10 +41,13 @@ export const STAGE_ONE_RANGED_TAG_FRAMES: Record<
   ],
 };
 
-export const STAGE_ONE_RANGED_LOOPING_TAGS = new Set<StageOneRangedTag>([
+export const STAGE_TWO_RANGED_TAG_FRAMES = STAGE_ONE_RANGED_TAG_FRAMES;
+
+export const STAGE_ONE_RANGED_LOOPING_TAGS = new Set<RangedTag>([
   'idle',
   'walk',
 ]);
+export const STAGE_TWO_RANGED_LOOPING_TAGS = STAGE_ONE_RANGED_LOOPING_TAGS;
 
 /**
  * A ranged enemy's real-atlas rendering: the padded atlas frame is bigger than
@@ -46,7 +55,7 @@ export const STAGE_ONE_RANGED_LOOPING_TAGS = new Set<StageOneRangedTag>([
  */
 export type RangedSpriteConfig = {
   texture: string;
-  animations: typeof STAGE_ONE_RANGED_ANIMATIONS;
+  animations: Record<RangedTag, string>;
   scale: number;
   bodyWidth: number;
   bodyHeight: number;
@@ -67,3 +76,29 @@ export const STAGE_ONE_RANGED_SPRITE: RangedSpriteConfig = {
   bodyOffsetX: 44,
   bodyOffsetY: 26,
 };
+
+export const STAGE_TWO_RANGED_SPRITE: RangedSpriteConfig = {
+  ...STAGE_ONE_RANGED_SPRITE,
+  texture: STAGE_TWO_RANGED_ATLAS_KEY,
+  animations: STAGE_TWO_RANGED_ANIMATIONS,
+};
+
+export const RANGED_ENEMY_ANIMATION_ATLASES: readonly EnemyAnimationAtlasConfig<RangedTag>[] =
+  [
+    {
+      texture: STAGE_ONE_RANGED_ATLAS_KEY,
+      png: STAGE_ONE_RANGED_ATLAS_PNG,
+      json: STAGE_ONE_RANGED_ATLAS_JSON,
+      animations: STAGE_ONE_RANGED_ANIMATIONS,
+      tagFrames: STAGE_ONE_RANGED_TAG_FRAMES,
+      loopingTags: STAGE_ONE_RANGED_LOOPING_TAGS,
+    },
+    {
+      texture: STAGE_TWO_RANGED_ATLAS_KEY,
+      png: STAGE_TWO_RANGED_ATLAS_PNG,
+      json: STAGE_TWO_RANGED_ATLAS_JSON,
+      animations: STAGE_TWO_RANGED_ANIMATIONS,
+      tagFrames: STAGE_TWO_RANGED_TAG_FRAMES,
+      loopingTags: STAGE_TWO_RANGED_LOOPING_TAGS,
+    },
+  ];

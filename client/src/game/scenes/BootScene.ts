@@ -11,22 +11,9 @@ import {
   STAGE_ONE_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
-import {
-  STAGE_ONE_FLYING_ANIMATIONS,
-  STAGE_ONE_FLYING_ATLAS_JSON,
-  STAGE_ONE_FLYING_ATLAS_KEY,
-  STAGE_ONE_FLYING_ATLAS_PNG,
-  STAGE_ONE_FLYING_LOOPING_TAGS,
-  STAGE_ONE_FLYING_TAG_FRAMES,
-} from '@/game/config/flyingEnemyAnimationConfig';
-import {
-  STAGE_ONE_MELEE_ANIMATIONS,
-  STAGE_ONE_MELEE_ATLAS_JSON,
-  STAGE_ONE_MELEE_ATLAS_KEY,
-  STAGE_ONE_MELEE_ATLAS_PNG,
-  STAGE_ONE_MELEE_LOOPING_TAGS,
-  STAGE_ONE_MELEE_TAG_FRAMES,
-} from '@/game/config/meleeEnemyAnimationConfig';
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
+import { FLYING_ENEMY_ANIMATION_ATLASES } from '@/game/config/flyingEnemyAnimationConfig';
+import { MELEE_ENEMY_ANIMATION_ATLASES } from '@/game/config/meleeEnemyAnimationConfig';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
@@ -34,14 +21,7 @@ import {
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
-import {
-  STAGE_ONE_RANGED_ANIMATIONS,
-  STAGE_ONE_RANGED_ATLAS_JSON,
-  STAGE_ONE_RANGED_ATLAS_KEY,
-  STAGE_ONE_RANGED_ATLAS_PNG,
-  STAGE_ONE_RANGED_LOOPING_TAGS,
-  STAGE_ONE_RANGED_TAG_FRAMES,
-} from '@/game/config/rangedEnemyAnimationConfig';
+import { RANGED_ENEMY_ANIMATION_ATLASES } from '@/game/config/rangedEnemyAnimationConfig';
 import { ALL_TERRAIN_SKINS } from '@/game/config/terrainSkinConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
@@ -64,21 +44,13 @@ export class BootScene extends Phaser.Scene {
     for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
       this.load.image(asset.key, asset.url);
     }
-    this.load.atlas(
-      STAGE_ONE_FLYING_ATLAS_KEY,
-      STAGE_ONE_FLYING_ATLAS_PNG,
-      STAGE_ONE_FLYING_ATLAS_JSON,
-    );
-    this.load.atlas(
-      STAGE_ONE_RANGED_ATLAS_KEY,
-      STAGE_ONE_RANGED_ATLAS_PNG,
-      STAGE_ONE_RANGED_ATLAS_JSON,
-    );
-    this.load.atlas(
-      STAGE_ONE_MELEE_ATLAS_KEY,
-      STAGE_ONE_MELEE_ATLAS_PNG,
-      STAGE_ONE_MELEE_ATLAS_JSON,
-    );
+    for (const atlas of [
+      ...FLYING_ENEMY_ANIMATION_ATLASES,
+      ...RANGED_ENEMY_ANIMATION_ATLASES,
+      ...MELEE_ENEMY_ANIMATION_ATLASES,
+    ]) {
+      this.load.atlas(atlas.texture, atlas.png, atlas.json);
+    }
     for (const skin of ALL_TERRAIN_SKINS) {
       for (const slice of [skin.left, skin.middle, skin.right]) {
         this.load.image(slice.key, slice.path);
@@ -299,52 +271,29 @@ export class BootScene extends Phaser.Scene {
         repeat: STAGE_ONE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
       });
     }
-    for (const [tag, frames] of Object.entries(
-      STAGE_ONE_FLYING_TAG_FRAMES,
-    ) as [
-      keyof typeof STAGE_ONE_FLYING_TAG_FRAMES,
-      (typeof STAGE_ONE_FLYING_TAG_FRAMES)[keyof typeof STAGE_ONE_FLYING_TAG_FRAMES],
-    ][]) {
-      this.anims.create({
-        key: STAGE_ONE_FLYING_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_ONE_FLYING_ATLAS_KEY,
-          frame,
-          duration,
-        })),
-        repeat: STAGE_ONE_FLYING_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
+    for (const atlas of FLYING_ENEMY_ANIMATION_ATLASES) {
+      this.createEnemyAnimations(atlas);
     }
-    for (const [tag, frames] of Object.entries(
-      STAGE_ONE_RANGED_TAG_FRAMES,
-    ) as [
-      keyof typeof STAGE_ONE_RANGED_TAG_FRAMES,
-      (typeof STAGE_ONE_RANGED_TAG_FRAMES)[keyof typeof STAGE_ONE_RANGED_TAG_FRAMES],
-    ][]) {
-      this.anims.create({
-        key: STAGE_ONE_RANGED_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_ONE_RANGED_ATLAS_KEY,
-          frame,
-          duration,
-        })),
-        repeat: STAGE_ONE_RANGED_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
+    for (const atlas of RANGED_ENEMY_ANIMATION_ATLASES) {
+      this.createEnemyAnimations(atlas);
     }
-    for (const [tag, frames] of Object.entries(
-      STAGE_ONE_MELEE_TAG_FRAMES,
-    ) as [
-      keyof typeof STAGE_ONE_MELEE_TAG_FRAMES,
-      (typeof STAGE_ONE_MELEE_TAG_FRAMES)[keyof typeof STAGE_ONE_MELEE_TAG_FRAMES],
-    ][]) {
+    for (const atlas of MELEE_ENEMY_ANIMATION_ATLASES) {
+      this.createEnemyAnimations(atlas);
+    }
+  }
+
+  private createEnemyAnimations<TTag extends string>(
+    atlas: EnemyAnimationAtlasConfig<TTag>,
+  ) {
+    for (const tag of Object.keys(atlas.tagFrames) as TTag[]) {
       this.anims.create({
-        key: STAGE_ONE_MELEE_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_ONE_MELEE_ATLAS_KEY,
+        key: atlas.animations[tag],
+        frames: atlas.tagFrames[tag].map(({ frame, duration }) => ({
+          key: atlas.texture,
           frame,
           duration,
         })),
-        repeat: STAGE_ONE_MELEE_LOOPING_TAGS.has(tag) ? -1 : 0,
+        repeat: atlas.loopingTags.has(tag) ? -1 : 0,
       });
     }
   }

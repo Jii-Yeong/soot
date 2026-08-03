@@ -5,15 +5,18 @@ import {
 } from '@/game/config/combatConfig';
 import {
   STAGE_ONE_FLYING_SPRITE,
+  STAGE_TWO_FLYING_SPRITE,
   type FlyingSpriteConfig,
 } from '@/game/config/flyingEnemyAnimationConfig';
 import {
   STAGE_ONE_MELEE_SPRITE,
+  STAGE_TWO_MELEE_SPRITE,
   type MeleeSpriteConfig,
 } from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
   STAGE_ONE_RANGED_SPRITE,
+  STAGE_TWO_RANGED_SPRITE,
   type RangedSpriteConfig,
 } from '@/game/config/rangedEnemyAnimationConfig';
 import {
@@ -126,7 +129,10 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     key: 'stage-02-bg',
     path: '/assets/backgrounds/stage-02.webp',
   },
+  flyingSprite: STAGE_TWO_FLYING_SPRITE,
+  rangedSprite: STAGE_TWO_RANGED_SPRITE,
   meleeSwing: MELEE_SWING_CONFIG,
+  meleeSprite: STAGE_TWO_MELEE_SPRITE,
   terrainSkin: STAGE_TWO_STOOL_SKIN,
   rooms: ALLEY_ROOMS,
 };
