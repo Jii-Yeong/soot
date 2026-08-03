@@ -23,11 +23,20 @@ async function holdKeyFor(page: Page, key: string, duration: number) {
 }
 
 async function enterGame(page: Page) {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await enterTitle(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
   await triggerCurrentRoom(page);
+}
+
+async function enterTitle(page: Page) {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'start');
+
+  const bounds = await getCanvasBounds(page);
+  const startButton = getCanvasPoint(bounds, 640, 402);
+  await page.mouse.click(startButton.x, startButton.y);
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
 }
 
 async function triggerCurrentRoom(page: Page) {
@@ -193,6 +202,16 @@ test('boots the Phaser canvas', async ({ page }) => {
   await expect(canvas).toHaveAttribute('height', '720');
 });
 
+test('enters the title from the start screen with a key press', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'start');
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+});
+
 test('shows the title before the stage one background finishes loading', async ({
   page,
 }) => {
@@ -212,7 +231,7 @@ test('shows the title before the stage one background finishes loading', async (
   });
 
   try {
-    await page.goto('/');
+    await enterTitle(page);
     await backgroundRequested;
     await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
 
@@ -238,8 +257,7 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
     }
   });
 
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await enterTitle(page);
   expect(requestedBackgrounds).toEqual(new Set(['stage-01.webp']));
 
   await page.keyboard.press('Enter');
@@ -255,8 +273,7 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
 test('waits for the entrance detector before starting combat', async ({
   page,
 }) => {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await enterTitle(page);
   await page.keyboard.press('Enter');
 
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
@@ -282,8 +299,7 @@ test('waits for the entrance detector before starting combat', async ({
 test('cannot damage visible enemies before crossing the entrance detector', async ({
   page,
 }) => {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await enterTitle(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
 
@@ -404,8 +420,7 @@ test('melee enemy pursues the player and deals contact damage', async ({
 });
 
 test('invincibility mode prevents player health loss', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await enterTitle(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
 
@@ -438,8 +453,7 @@ test('invincibility mode prevents player health loss', async ({ page }) => {
 test('admin menu closes and jumps directly to a selected stage', async ({
   page,
 }) => {
-  await page.goto('/');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await enterTitle(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
 

@@ -53,7 +53,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     this.createRuntimeTextures();
     this.createAnimations();
-    this.scene.start('title');
+    this.scene.start('start');
   }
 
   /**

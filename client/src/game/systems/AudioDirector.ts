@@ -98,9 +98,10 @@ export class AudioDirector {
   }
 
   /**
-   * Music is fetched after boot rather than during it. Sound effects total
-   * 113KB while one track is over a megabyte, so loading music in BootScene
-   * meant the title screen waited on a file nothing needs yet.
+   * Stage music is fetched after boot rather than during it. The title track
+   * is the exception: BootScene preloads it so title playback can be attempted
+   * as soon as the player passes the browser's start prompt. Sound effects
+   * total 113KB while one track is over a megabyte.
    *
    * Only the track that is about to be needed is fetched, plus the one for the
    * stage after it. Fetching every track up front would mean a player who
@@ -274,7 +275,7 @@ export class AudioDirector {
     this.music.play();
   }
 
-  /** Web Audio stays locked until the first gesture, which is the title ENTER. */
+  /** Web Audio stays locked until the player clicks the start prompt. */
   private readonly handleUnlocked = () => {
     this.music?.play();
   };
