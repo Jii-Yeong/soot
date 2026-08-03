@@ -88,6 +88,69 @@ input {
     inset 0 0 18px rgba(255, 94, 35, 0.08);
 }
 
+/* Above the HUD and the admin menu, below nothing. A pause that something else
+   can be clicked through is not a pause. */
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 10, 11, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.pause-overlay__panel {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-width: 260px;
+  padding: 32px 40px;
+  border: 1px solid #33424a;
+  background: rgba(7, 10, 11, 0.92);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.pause-overlay__eyebrow {
+  color: #6fd6a6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+}
+
+.pause-overlay__title {
+  color: #d8dfdc;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.pause-overlay__resume {
+  margin-top: 8px;
+  padding: 11px 34px;
+  border: 1px solid #6fd6a6;
+  color: #b6ffe4;
+  background: rgba(21, 57, 45, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+}
+
+.pause-overlay__resume:hover,
+.pause-overlay__resume:focus-visible {
+  color: #070a0b;
+  background: #b6ffe4;
+  outline: none;
+}
+
+.pause-overlay__hint {
+  color: #5f6c72;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
 .admin-controls {
   position: absolute;
   top: clamp(64px, 8vw, 84px);
@@ -129,6 +192,22 @@ input {
   background: rgba(7, 10, 11, 0.94);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(6px);
+  /* Eleven entries no longer clear a short viewport, and a debug menu running
+     off the bottom of the screen hides the very control you reached for. */
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.admin-controls__group {
+  margin-top: 4px;
+  color: #5f6c72;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.admin-controls__group:first-child {
+  margin-top: 0;
 }
 
 .admin-controls__button {

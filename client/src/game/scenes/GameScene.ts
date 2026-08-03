@@ -21,6 +21,7 @@ import {
   type StageEndEvent,
 } from '@/game/config/stageConfig';
 import { getStageExitPlan } from '@/game/config/stageProgression';
+import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
   STARTING_WEAPON_ID,
@@ -98,6 +99,7 @@ export class GameScene extends Phaser.Scene {
       gameEvents.emit('health-changed', currentHealth, maxHealth),
   );
   private phase: GamePhase = 'boot';
+  private paused = false;
 
   constructor() {
     super('game');
@@ -133,7 +135,7 @@ export class GameScene extends Phaser.Scene {
     this.bindInputHandlers();
   }
 
-  update(time: number, delta: number) {
+  update(time: number) {
     if (
       this.phase === 'dead' ||
       this.phase === 'ending' ||
@@ -161,6 +163,36 @@ export class GameScene extends Phaser.Scene {
       this.weaponSystem.activeConfig,
     );
 
+    if (this.phase === 'playing') {
+      this.updateEnemyCombat(time);
+    }
+  }
+
+  /**
+   * Everything that has to be placed where the player actually is this frame:
+   * the weapon, both arms, the aim guide, and the shot that leaves the muzzle.
+   *
+   * Deliberately not in `update`. Arcade physics steps the bodies on the
+   * scene's UPDATE event and only writes the result back to the sprites on
+   * POST_UPDATE, which is after `update` has run — so anything reading
+   * `player.x` there gets last frame's position while the body renders at this
+   * frame's. The gap is one frame of travel: a few pixels while running, and
+   * 9.3px vertically off a 560px/s jump, reversing sign at the apex. The arms
+   * sagged to the waist on the way up and rode over the face on the way down,
+   * which is the "the arm moves at a different speed than the body" this fixes.
+   *
+   * No anchor could have corrected it. The rig was placing the arm correctly
+   * against a position the body had already left.
+   */
+  private updateAiming(time: number, delta: number) {
+    if (
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
+    ) {
+      return;
+    }
+
     const pointer = this.input.activePointer;
     const aimPoint = pointer.positionToCamera(
       this.cameras.main,
@@ -170,10 +202,6 @@ export class GameScene extends Phaser.Scene {
 
     if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
-    }
-
-    if (this.phase === 'playing') {
-      this.updateEnemyCombat(time);
     }
   }
 
@@ -199,7 +227,7 @@ export class GameScene extends Phaser.Scene {
     // Enemies default to the same depth (0) and are added to the display
     // list after the player, so without this they render on top of the
     // player whenever a melee enemy closes to contact range.
-    this.player.setDepth(8);
+    this.player.setDepth(PLAYER_STACK_DEPTH.body);
     this.physics.add.collider(this.player, this.floorBuilder.group);
   }
 
@@ -556,8 +584,19 @@ export class GameScene extends Phaser.Scene {
       'admin-stage-boss-requested',
       this.handleAdminStageBossRequested,
     );
+    gameEvents.on('admin-weapon-requested', this.handleAdminWeaponRequested);
+    gameEvents.on('pause-toggle-requested', this.handlePauseToggleRequested);
+
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.updateAiming, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      // This one is `on`, and the scene restarts onto the same emitter, so it
+      // has to come off or every restart adds another rig update.
+      this.events.off(
+        Phaser.Scenes.Events.POST_UPDATE,
+        this.updateAiming,
+        this,
+      );
       this.input.off('pointerdown', this.handlePointerDown, this);
       keyboard.off('keydown-R', this.handleRestartInput, this);
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
@@ -567,6 +606,11 @@ export class GameScene extends Phaser.Scene {
         'admin-stage-boss-requested',
         this.handleAdminStageBossRequested,
       );
+      gameEvents.off('admin-weapon-requested', this.handleAdminWeaponRequested);
+      gameEvents.off('pause-toggle-requested', this.handlePauseToggleRequested);
+      // A scene that shuts down while paused would leave the overlay up over
+      // whatever replaces it.
+      this.setPaused(false);
     });
   }
 
@@ -680,6 +724,7 @@ export class GameScene extends Phaser.Scene {
 
     this.requestedStartingStageIndex = stageIndex;
     this.requestedStartingRoomIndex = 0;
+    this.setPaused(false);
     this.scene.restart();
   };
 
@@ -690,7 +735,68 @@ export class GameScene extends Phaser.Scene {
 
     this.requestedStartingStageIndex = stageIndex;
     this.requestedStartingRoomIndex = STAGES[stageIndex].rooms.length - 1;
+    this.setPaused(false);
     this.scene.restart();
+  };
+
+  /**
+   * Death and the ending already hold the screen with their own prompts, and
+   * boot has nothing to pause, so those three are left alone.
+   */
+  private canPause() {
+    return (
+      this.phase !== 'boot' && this.phase !== 'dead' && this.phase !== 'ending'
+    );
+  }
+
+  private handlePauseToggleRequested = () => {
+    if (this.paused) {
+      this.setPaused(false);
+      return;
+    }
+
+    if (this.canPause()) {
+      this.setPaused(true);
+    }
+  };
+
+  private setPaused(paused: boolean) {
+    if (this.paused === paused) {
+      return;
+    }
+
+    this.paused = paused;
+    // Pausing the scene stops its update loop, timers and physics in one call,
+    // which is what keeps a hit-stop or a burst timer from firing behind the
+    // overlay and resolving the moment the player looks away.
+    if (paused) {
+      this.scene.pause();
+    } else {
+      this.scene.resume();
+    }
+    gameEvents.emit('pause-changed', paused);
+  }
+
+  /**
+   * Hands the player a weapon without one having to drop. Every weapon is
+   * already instantiated at scene start, so this is the same path `E` takes —
+   * it just skips the pickup. Restarting the stage to test the rail rifle was
+   * the alternative, and the drop tables do not guarantee it appears at all.
+   */
+  private handleAdminWeaponRequested = (weaponId: string) => {
+    if (!this.weaponSystem.equip(weaponId)) {
+      return;
+    }
+
+    this.updateWeaponLabel();
+
+    // The equip flourish is a camera flash and two tweens, and neither advances
+    // while the scene is paused — asked for from the pause menu they would sit
+    // frozen over the overlay until the player resumed. The swap itself still
+    // happens, which is the whole point of the button.
+    if (!this.paused) {
+      this.showWeaponEquipped(this.weaponSystem.activeConfig);
+    }
   };
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
@@ -994,22 +1100,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawAimGuide(aimPoint: Phaser.Math.Vector2) {
-    const angle = Phaser.Math.Angle.Between(
-      this.player.x,
-      this.player.y,
-      aimPoint.x,
-      aimPoint.y,
-    );
-    const guideLength = 58;
-
+    // Only the crosshair. The 58px stub that used to run from the player is
+    // redundant now that the weapon sprite points where the shot goes, and it
+    // drew straight over the barrel.
     this.aimGraphics.clear();
-    this.aimGraphics.lineStyle(2, 0xf0a35b, 0.9);
-    this.aimGraphics.lineBetween(
-      this.player.x,
-      this.player.y,
-      this.player.x + Math.cos(angle) * guideLength,
-      this.player.y + Math.sin(angle) * guideLength,
-    );
     this.aimGraphics.lineStyle(1, 0xb6ffe4, 0.75);
     this.aimGraphics.strokeCircle(aimPoint.x, aimPoint.y, 8);
     this.aimGraphics.lineBetween(

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HealthMeter } from '@/app/components/HealthMeter';
 import { useGameUiEvents } from '@/app/hooks/useGameUiEvents';
 import { PhaserGame } from '@/game/PhaserGame';
+import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 import { useGameUiStore } from '@/stores/gameUiStore';
@@ -21,6 +22,7 @@ export function App() {
     roomState,
     weaponId,
     nearbyWeaponId,
+    paused,
   } = useGameUiStore();
   const { invincible, toggleInvincible } = useGameSettingsStore();
 
@@ -34,6 +36,12 @@ export function App() {
   const goToStageBoss = (stageIndex: number) => {
     setAdminOpen(false);
     gameEvents.emit('admin-stage-boss-requested', stageIndex);
+  };
+
+  // The menu stays open: swapping weapons is something you do several times in
+  // a row while checking one, unlike jumping stages.
+  const giveWeapon = (id: string) => {
+    gameEvents.emit('admin-weapon-requested', id);
   };
 
   return (
@@ -78,6 +86,24 @@ export function App() {
             )}
           </div>
 
+          {paused && (
+            <div className="pause-overlay" role="dialog" aria-modal="true">
+              <div className="pause-overlay__panel">
+                <p className="pause-overlay__eyebrow">SYSTEM HALT</p>
+                <h2 className="pause-overlay__title">일시정지</h2>
+                <button
+                  type="button"
+                  className="pause-overlay__resume"
+                  onClick={() => gameEvents.emit('pause-toggle-requested')}
+                  autoFocus
+                >
+                  재개
+                </button>
+                <p className="pause-overlay__hint">ESC 로도 재개됩니다</p>
+              </div>
+            </div>
+          )}
+
           <div className="admin-controls">
             <button
               type="button"
@@ -120,6 +146,24 @@ export function App() {
                   일반 몬스터 체력 // {showEnemyHealth ? 'ON' : 'OFF'}
                 </button>
 
+                <p className="admin-controls__group">무기</p>
+                {WEAPON_CONFIGS.map((weapon) => (
+                  <button
+                    key={weapon.id}
+                    type="button"
+                    className={`admin-controls__button${
+                      weaponId === weapon.id
+                        ? ' admin-controls__button--active'
+                        : ''
+                    }`}
+                    aria-pressed={weaponId === weapon.id}
+                    onClick={() => giveWeapon(weapon.id)}
+                  >
+                    {weapon.label} 지급
+                  </button>
+                ))}
+
+                <p className="admin-controls__group">스테이지</p>
                 {[1, 2, 3, 4, 5].map((stageNumber) => (
                   <div
                     key={stageNumber}
