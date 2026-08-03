@@ -71,15 +71,18 @@ export const BACK_ARM = {
  * 4px inside the silhouette as the standing anchor, so a pose moves the elbow
  * exactly as far as it moves the joint and no further.
  *
- * This used to read (6, 12). Ten of those pixels were not the pose at all —
- * they were the airborne frame sitting 10px low in its own canvas, which the
- * atlas now corrects. What is left is the lean.
+ * Ten of these twelve pixels are not the pose. The airborne frame is exported
+ * 10px lower in its own 96x96 canvas than every other frame in the sheet, so
+ * the whole character sits that far lower on screen while it is showing, and
+ * every anchor here has to follow it down or the arm is left behind. Fixing
+ * the export would remove the 10 from all three of these tables at once, but
+ * that is the source .aseprite file, not this rig, and it stays as drawn.
  */
 export const BACK_ARM_ELBOW_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: 2 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: 12 },
 };
 
 /**
@@ -93,21 +96,19 @@ export const BACK_ARM_ELBOW_BY_FRAME: Record<
  * gun is the end that is in the wrong place. Dropping both puts the reach error
  * back to zero.
  *
- * All that is left of it is the lean. It used to read (7, 10), and the 10 was
- * never the pose — it was the airborne frame sitting 10px low in its own
- * canvas, which the atlas now corrects. Carrying that correction in the rig
- * only ever moved the arm; the body kept sinking, and the character dropped and
- * popped 10px every time the jump changed pose.
+ * Ten of these pixels are the sheet's own offset for this frame rather than
+ * the pose — see BACK_ARM_ELBOW_BY_FRAME — and the rest is the lean.
  *
- * Kept in step with FRONT_ARM_SHOULDER_BY_FRAME. The two have to move together:
- * three pixels of disagreement between hand and shoulder become an angle, and
- * the trigger arm rests at a visibly different attitude than it does standing.
+ * Kept in step with FRONT_ARM_SHOULDER_BY_FRAME. The two have to move
+ * together: three pixels of disagreement between hand and shoulder become an
+ * angle, and the trigger arm rests at a visibly different attitude than it
+ * does standing.
  */
 export const WEAPON_GRIP_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: -3 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: 7 },
 };
 
 /**
@@ -189,18 +190,17 @@ export const FRONT_ARM = {
  * The near shoulder for the poses that move it, the same way
  * BACK_ARM_ELBOW_BY_FRAME covers the far one.
  *
- * Only the lean. The 10px this used to carry belonged to the atlas, not the
- * pose — see WEAPON_GRIP_BY_FRAME — and the frame is registered now.
+ * The frame's own 10px offset plus the lean, exactly as WEAPON_GRIP_BY_FRAME
+ * carries them — the two are one rigid piece and have to move as one.
  *
- * Verified against the pose rather than assumed: the shoulder cap stays covered
- * on the curled torso through the whole aim range from here, and the arm holds
- * the same attitude it holds standing.
+ * Verified against the pose rather than assumed: the arm holds the same
+ * attitude in flight that it holds standing, to six decimals.
  */
 export const FRONT_ARM_SHOULDER_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: -8.09, y: -0.85 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: -8.09, y: 9.15 },
 };
 
 /**
