@@ -12,7 +12,6 @@ function createScene() {
     setStrokeStyle: vi.fn().mockReturnThis(),
     setVisible: vi.fn().mockReturnThis(),
   };
-  const entranceDetector = { destroy: vi.fn() };
   const statusText = {
     destroy: vi.fn(),
     setColor: vi.fn().mockReturnThis(),
@@ -22,18 +21,15 @@ function createScene() {
     setText: vi.fn().mockReturnThis(),
   };
   const playerCollider = { active: true, destroy: vi.fn() };
-  const entranceOverlap = { destroy: vi.fn() };
   const scene = {
     add: {
       rectangle: vi.fn(() => doorView),
       text: vi.fn(() => statusText),
-      zone: vi.fn(() => entranceDetector),
     },
     physics: {
       add: {
         collider: vi.fn(() => playerCollider),
         existing: vi.fn(),
-        overlap: vi.fn(() => entranceOverlap),
       },
     },
     scale: { height: 720, width: 1280 },
@@ -58,7 +54,6 @@ describe('RoomDirector', () => {
         enemySpawns: [],
       }),
       onStateChanged: vi.fn(),
-      onEntranceDetected: vi.fn(),
     });
 
     director.beginEncounter([]);

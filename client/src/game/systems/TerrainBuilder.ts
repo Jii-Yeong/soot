@@ -26,9 +26,16 @@ export const terrainCollisionFaces = (type: TerrainPiece['type']) =>
     ? { up: true, down: true, left: true, right: true }
     : { up: true, down: false, left: false, right: false };
 
-/** Platforms change routes and firing angles; only walls stop regular shots. */
-export const terrainBlocksProjectiles = (type: TerrainPiece['type']) =>
-  type === 'wall';
+/** Projectile geometry is solid from every direction, including platform undersides. */
+export const projectileCollisionFaces = {
+  up: true,
+  down: true,
+  left: true,
+  right: true,
+};
+
+/** Every terrain piece is solid to player and enemy projectiles. */
+export const terrainBlocksProjectiles = (_type: TerrainPiece['type']) => true;
 
 export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
   terrainBlocksProjectiles(
@@ -43,13 +50,16 @@ export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
  */
 export class TerrainBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
+  readonly projectileGroup: Phaser.Physics.Arcade.StaticGroup;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.physics.add.staticGroup();
+    this.projectileGroup = scene.physics.add.staticGroup();
   }
 
   build(pieces: readonly TerrainPiece[] = []) {
     this.group.clear(true, true);
+    this.projectileGroup.clear(true, true);
 
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
@@ -72,6 +82,26 @@ export class TerrainBuilder {
       const body = block.body as Phaser.Physics.Arcade.StaticBody;
       body.updateFromGameObject();
       Object.assign(body.checkCollision, terrainCollisionFaces(piece.type));
+
+      // Player movement keeps platforms one-way. Projectiles instead use a
+      // separate, invisible body so every face of the same visual geometry is
+      // solid without turning a jump into a headbutt.
+      const projectileBlocker = this.scene.add
+        .rectangle(
+          piece.x + piece.width / 2,
+          piece.y + piece.height / 2,
+          piece.width,
+          piece.height,
+          0,
+          0,
+        )
+        .setVisible(false);
+      projectileBlocker.setData(TERRAIN_TYPE_DATA_KEY, piece.type);
+      this.projectileGroup.add(projectileBlocker);
+      const projectileBody =
+        projectileBlocker.body as Phaser.Physics.Arcade.StaticBody;
+      projectileBody.updateFromGameObject();
+      Object.assign(projectileBody.checkCollision, projectileCollisionFaces);
     }
   }
 }

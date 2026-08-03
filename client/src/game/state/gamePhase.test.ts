@@ -25,7 +25,7 @@ describe('game phase', () => {
     }
   });
 
-  it('keeps a visible room non-interactive until its entrance locks', () => {
+  it('only enables enemy damage during an active encounter or cleared exit', () => {
     expect(canPlayerFireInRoom('playing', 'idle')).toBe(false);
     expect(canPlayerFireInRoom('playing', 'locked')).toBe(true);
     expect(canPlayerFireInRoom('playing', 'cleared')).toBe(false);

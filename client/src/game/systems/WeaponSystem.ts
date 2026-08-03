@@ -26,6 +26,7 @@ export class WeaponSystem {
     startingWeaponId: string,
     private readonly canFire: () => boolean,
     private readonly onEnemyHit: EnemyHitListener,
+    private readonly canDamageEnemies: () => boolean = canFire,
   ) {
     this.activeWeaponIndex = Math.max(
       0,
@@ -64,6 +65,9 @@ export class WeaponSystem {
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
     this.feedback.update(delta, aimPoint);
+    for (const weapon of this.weapons) {
+      weapon.pool.clearOutsideCamera(this.scene.cameras.main);
+    }
   }
 
   blockProjectilesWith(
@@ -88,13 +92,14 @@ export class WeaponSystem {
       aimPoint.y,
     );
     const { config } = weapon;
+    const canDamage = this.canDamageEnemies();
 
     for (let burstIndex = 0; burstIndex < config.burstCount; burstIndex += 1) {
       const fireVolley = () => {
         if (!this.canFire() || this.activeWeapon !== weapon) {
           return;
         }
-        this.fireVolley(weapon, baseAngle);
+        this.fireVolley(weapon, baseAngle, canDamage);
       };
 
       if (burstIndex === 0) {
@@ -145,7 +150,11 @@ export class WeaponSystem {
     return this.weapons[this.activeWeaponIndex];
   }
 
-  private fireVolley(weapon: WeaponRuntime, baseAngle: number) {
+  private fireVolley(
+    weapon: WeaponRuntime,
+    baseAngle: number,
+    canDamage: boolean,
+  ) {
     const { config } = weapon;
     const angles = this.computePelletAngles(
       baseAngle,
@@ -164,6 +173,7 @@ export class WeaponSystem {
 
     for (const angle of angles) {
       weapon.pool.fire(origin.x, origin.y, angle, {
+        canDamage,
         pierce: config.pierce,
       });
     }
@@ -243,7 +253,17 @@ export class WeaponSystem {
           ? (secondObject as Phaser.Physics.Arcade.Image)
           : (firstObject as Phaser.Physics.Arcade.Image);
 
-      if (!this.canFire() || !enemy || !bullet.active || !enemy.active) {
+      if (!enemy || !bullet.active || !enemy.active) {
+        return;
+      }
+
+      if (!this.isVisibleToPlayer(enemy)) {
+        bullet.disableBody(true, true);
+        return;
+      }
+
+      if (!bullet.getData('canDamage') || !this.canDamageEnemies()) {
+        bullet.disableBody(true, true);
         return;
       }
 
@@ -267,5 +287,12 @@ export class WeaponSystem {
     }
 
     return secondObject instanceof Enemy ? secondObject : null;
+  }
+
+  private isVisibleToPlayer(enemy: Enemy) {
+    return Phaser.Geom.Intersects.RectangleToRectangle(
+      this.scene.cameras.main.worldView,
+      enemy.getBounds(),
+    );
   }
 }

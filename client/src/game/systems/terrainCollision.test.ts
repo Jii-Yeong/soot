@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   terrainBlocksProjectiles,
   terrainCollisionFaces,
+  projectileCollisionFaces,
 } from '@/game/systems/TerrainBuilder';
 
 describe('terrain collision faces', () => {
@@ -28,8 +29,17 @@ describe('terrain collision faces', () => {
     });
   });
 
-  it('lets regular projectiles pass through platforms but not walls', () => {
-    expect(terrainBlocksProjectiles('platform')).toBe(false);
+  it('blocks regular projectiles with every terrain piece', () => {
+    expect(terrainBlocksProjectiles('platform')).toBe(true);
     expect(terrainBlocksProjectiles('wall')).toBe(true);
+  });
+
+  it('uses solid collision faces for projectiles without changing player movement', () => {
+    expect(projectileCollisionFaces).toEqual({
+      up: true,
+      down: true,
+      left: true,
+      right: true,
+    });
   });
 });

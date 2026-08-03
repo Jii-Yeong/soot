@@ -13,11 +13,7 @@ type RoomDirectorOptions = {
   player: Phaser.Physics.Arcade.Sprite;
   config: RoomConfig;
   onStateChanged: (state: RoomState) => void;
-  onEntranceDetected: () => void;
 };
-
-const ENTRANCE_DETECTOR_OFFSET_X = 200;
-const ENTRANCE_DETECTOR_WIDTH = 72;
 
 export class RoomDirector {
   private readonly enemies = new Set<Phaser.GameObjects.GameObject>();
@@ -25,10 +21,7 @@ export class RoomDirector {
   private readonly player: Phaser.Physics.Arcade.Sprite;
   private readonly config: RoomConfig;
   private readonly onStateChanged: (state: RoomState) => void;
-  private readonly onEntranceDetected: () => void;
   private readonly exit: RoomDoor;
-  private readonly entranceDetector: Phaser.GameObjects.Zone;
-  private readonly entranceOverlap: Phaser.Physics.Arcade.Collider;
   private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
 
@@ -37,20 +30,8 @@ export class RoomDirector {
     this.player = options.player;
     this.config = options.config;
     this.onStateChanged = options.onStateChanged;
-    this.onEntranceDetected = options.onEntranceDetected;
 
-    const detectorX = this.config.entranceX + ENTRANCE_DETECTOR_OFFSET_X;
     this.exit = this.createDoor(this.config.exitX);
-    this.entranceDetector = this.createEntranceDetector(detectorX);
-    this.entranceOverlap = this.scene.physics.add.overlap(
-      this.player,
-      this.entranceDetector,
-      () => {
-        if (this.state === 'idle') {
-          this.onEntranceDetected();
-        }
-      },
-    );
     this.statusText = this.scene.add
       .text(this.scene.scale.width / 2, 154, '', {
         color: '#ff7180',
@@ -64,8 +45,6 @@ export class RoomDirector {
   }
 
   destroy() {
-    this.entranceOverlap.destroy();
-    this.entranceDetector.destroy();
     this.exit.playerCollider.destroy();
     this.scene.tweens.killTweensOf(this.exit.view);
     this.exit.view.destroy();
@@ -122,17 +101,6 @@ export class RoomDirector {
     const playerCollider = this.scene.physics.add.collider(this.player, view);
 
     return { view, body, playerCollider };
-  }
-
-  private createEntranceDetector(x: number) {
-    const detector = this.scene.add.zone(
-      x,
-      this.scene.scale.height / 2,
-      ENTRANCE_DETECTOR_WIDTH,
-      this.scene.scale.height,
-    );
-    this.scene.physics.add.existing(detector, true);
-    return detector;
   }
 
   private clearRoom() {

@@ -15,9 +15,8 @@ export function canPlayerFireInPhase(phase: GamePhase) {
 }
 
 /**
- * A combat room may be visible before its entrance trigger is crossed, but it
- * is not interactive yet. Cleared rooms keep free firing while the player
- * walks to the next entrance.
+ * Damage is only enabled during a locked encounter. Cleared rooms keep free
+ * firing while the player walks to the next room.
  */
 export function canPlayerFireInRoom(phase: GamePhase, roomState: RoomState) {
   return (

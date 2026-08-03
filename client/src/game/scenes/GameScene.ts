@@ -38,6 +38,7 @@ import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import {
+  canPlayerFireInPhase,
   canPlayerFireInRoom,
   type GamePhase,
 } from '@/game/state/gamePhase';
@@ -210,7 +211,7 @@ export class GameScene extends Phaser.Scene {
     this.drawAimGuide(aimPoint);
 
     if (
-      canPlayerFireInRoom(this.phase, this.roomState) &&
+      canPlayerFireInPhase(this.phase) &&
       pointer.leftButtonDown()
     ) {
       this.weaponSystem.tryFire(aimPoint, time);
@@ -281,7 +282,6 @@ export class GameScene extends Phaser.Scene {
       player: this.player,
       config: roomConfig,
       onStateChanged: (state) => this.handleRoomStateChanged(state),
-      onEntranceDetected: () => this.startRoomEncounter(),
     });
 
     for (const enemy of this.enemies) {
@@ -294,19 +294,12 @@ export class GameScene extends Phaser.Scene {
 
     this.terrainBuilder.build(roomConfig.terrain);
 
-    // A combat room's enemies are built with the room rather than when the
-    // player trips the entrance detector. Spawned at the detector they arrived
-    // inside the view — the nearest stands 376px past it and half a viewport is
-    // 640px — so a room read as materialising around the player instead of
-    // being walked into. Built with the room they are already there, but stay
-    // inert and non-interactive until the detector decides when combat starts.
-    //
-    // A boss keeps the old timing. Its aggro reaches 1500px, further than the
-    // whole 1829px boss room, so building it early would start the fight before
-    // the player had finished walking in.
+    // Every room starts as a live encounter. Enemies are present as the room
+    // opens, so entering a stage never has an invisible combat trigger.
     if (roomConfig.kind === 'combat') {
       this.spawnRoomEnemies();
     }
+    this.startRoomEncounter();
   }
 
   private spawnRoomEnemies() {
@@ -479,11 +472,12 @@ export class GameScene extends Phaser.Scene {
       this.enemies,
       WEAPON_CONFIGS,
       STARTING_WEAPON_ID,
-      () => canPlayerFireInRoom(this.phase, this.roomState),
+      () => canPlayerFireInPhase(this.phase),
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
+      () => canPlayerFireInRoom(this.phase, this.roomState),
     );
     this.weaponSystem.blockProjectilesWith(
-      this.terrainBuilder.group,
+      this.terrainBuilder.projectileGroup,
       isProjectileBlocker,
     );
     this.weaponDropDirector = new WeaponDropDirector(
@@ -505,11 +499,11 @@ export class GameScene extends Phaser.Scene {
       flying: this.flyingEnemyProjectiles,
     };
     this.enemyProjectiles.collideWith(
-      this.terrainBuilder.group,
+      this.terrainBuilder.projectileGroup,
       isProjectileBlocker,
     );
     this.flyingEnemyProjectiles.collideWith(
-      this.terrainBuilder.group,
+      this.terrainBuilder.projectileGroup,
       isProjectileBlocker,
     );
     this.physics.add.overlap(
@@ -754,6 +748,8 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('room-state-changed', state);
 
     if (state === 'locked') {
+      // Clear shots from the previous room before this encounter begins.
+      this.weaponSystem?.clearProjectiles();
       this.emitEnemyHealth();
       return;
     }
@@ -857,7 +853,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (
-      !canPlayerFireInRoom(this.phase, this.roomState) ||
+      !canPlayerFireInPhase(this.phase) ||
       pointer.button !== 0
     ) {
       return;
@@ -930,6 +926,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleEnemyHit(enemy: Enemy, defeated: boolean) {
+    // Damage applies only while this room's encounter is active.
+    if (this.phase !== 'playing' || this.roomState !== 'locked') {
+      return;
+    }
+
     this.emitEnemyHealth();
     gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
 

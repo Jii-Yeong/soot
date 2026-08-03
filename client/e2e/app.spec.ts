@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 const ROOM_TRANSITION_TIMEOUT = 10_000;
 const SINGLE_ROOM_TEST_TIMEOUT = 75_000;
-const CITY_ROOM_ONE_MAX_HEALTH = 470;
-const CITY_ROOM_TWO_MAX_HEALTH = 530;
+const CITY_ROOM_ONE_MAX_HEALTH = 425;
+const CITY_ROOM_TWO_MAX_HEALTH = 425;
 
 async function whileHoldingKey(
   page: Page,
@@ -26,7 +26,6 @@ async function enterGame(page: Page) {
   await enterTitle(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
-  await triggerCurrentRoom(page);
 }
 
 async function enterTitle(page: Page) {
@@ -37,16 +36,6 @@ async function enterTitle(page: Page) {
   const startButton = getCanvasPoint(bounds, 640, 402);
   await page.mouse.click(startButton.x, startButton.y);
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
-}
-
-async function triggerCurrentRoom(page: Page) {
-  await whileHoldingKey(page, 'KeyD', async () => {
-    await expect(page.locator('main')).toHaveAttribute(
-      'data-room-state',
-      'locked',
-      { timeout: ROOM_TRANSITION_TIMEOUT },
-    );
-  });
 }
 
 async function getCanvasBounds(page: Page) {
@@ -129,8 +118,6 @@ const CITY_ROOM_ONE_GROUND_TARGETS: FireTarget[] = [
   [1120, 630, 2500],
 ];
 
-const CITY_ROOM_ONE_FLYING_TARGET: FireTarget = [820, 460, 1200];
-
 async function clearRoom(
   page: Page,
   bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
@@ -147,24 +134,15 @@ async function clearCityRoomOne(
 ) {
   await clearRoom(page, bounds, CITY_ROOM_ONE_GROUND_TARGETS);
 
-  // The flying enemy is protected by the first platform. Climb onto it before
-  // firing instead of relying on the old through-platform shot path.
-  await whileHoldingKey(page, 'KeyD', async () => {
-    await page.keyboard.down('Space');
-    await page.waitForTimeout(100);
-    await page.keyboard.up('Space');
-    await page.waitForTimeout(650);
-  });
-  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
-
-  // Continue through the mid and far clusters while firing along the ground,
-  // then sweep the upper screen for the flying enemy that follows from the
-  // middle and can finish on either side of the player.
+  // Continue through the ground encounters. The last flier is above a two-tier
+  // platform, so it cannot be damaged from the floor now that terrain blocks
+  // both sides' shots.
   await runAndFireAt(page, bounds, 1120, 630, 8000);
-  await holdKeyFor(page, 'KeyD', 1300);
-  await fireAt(page, bounds, 300, 360, 1200);
-  await fireAt(page, bounds, 450, 360, 1200);
-  await fireAt(page, bounds, 600, 360, 1200);
+  await holdKeyFor(page, 'KeyD', 2000);
+  await whileHoldingKey(page, 'Space', () => page.waitForTimeout(100));
+  await page.waitForTimeout(900);
+  await whileHoldingKey(page, 'Space', () => page.waitForTimeout(100));
+  await page.waitForTimeout(900);
   await fireAt(page, bounds, 640, 360, 1200);
 }
 
@@ -270,20 +248,13 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
   expect(requestedBackgrounds.has('stage-05.webp')).toBe(false);
 });
 
-test('waits for the entrance detector before starting combat', async ({
+test('starts combat as soon as the room opens', async ({
   page,
 }) => {
   await enterTitle(page);
   await page.keyboard.press('Enter');
 
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
-  await expect(page.locator('main')).toHaveAttribute('data-room-state', 'idle');
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '0');
-
-  await triggerCurrentRoom(page);
-
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
@@ -294,23 +265,6 @@ test('waits for the entrance detector before starting combat', async ({
     'aria-valuenow',
     CITY_ROOM_ONE_MAX_HEALTH.toString(),
   );
-});
-
-test('cannot damage visible enemies before crossing the entrance detector', async ({
-  page,
-}) => {
-  await enterTitle(page);
-  await page.keyboard.press('Enter');
-  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
-
-  const bounds = await getCanvasBounds(page);
-  await fireAt(page, bounds, 640, 630, 900);
-  await expect(page.locator('main')).toHaveAttribute('data-room-state', 'idle');
-
-  await triggerCurrentRoom(page);
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', CITY_ROOM_ONE_MAX_HEALTH.toString());
 });
 
 test('enters the game and shows the React HUD', async ({ page }) => {
@@ -397,7 +351,7 @@ test('enemy detects the player and deals ranged damage', async ({ page }) => {
     CITY_ROOM_ONE_MAX_HEALTH.toString(),
   );
 
-  await holdKeyFor(page, 'KeyD', 1500);
+  await holdKeyFor(page, 'KeyD', 2600);
 
   await expect(healthMeter).not.toHaveAttribute('aria-valuenow', '100', {
     timeout: 5000,
@@ -436,7 +390,6 @@ test('invincibility mode prevents player health loss', async ({ page }) => {
     'true',
   );
 
-  await triggerCurrentRoom(page);
   const healthMeter = page.getByRole('meter', { name: 'Player health' });
   await holdKeyFor(page, 'KeyD', 1000);
   await page.waitForTimeout(2000);
@@ -501,27 +454,14 @@ test('player fire damages the enemy without stopping combat', async ({
 
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '459', { timeout: 5000 });
+  ).toHaveAttribute('aria-valuenow', '414', { timeout: 5000 });
   expect(runtimeErrors).toEqual([]);
-});
-
-test('platforms do not block player projectiles', async ({ page }) => {
-  await enterGame(page);
-  await page.waitForTimeout(1000);
-
-  const bounds = await getCanvasBounds(page);
-  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
-
-  await expect(page.getByRole('meter', { name: 'Enemy health' })).not.toHaveAttribute(
-    'aria-valuenow',
-    CITY_ROOM_ONE_MAX_HEALTH.toString(),
-    { timeout: 5000 },
-  );
 });
 
 test('locks the room until every spawned enemy is defeated', async ({
   page,
 }) => {
+  test.setTimeout(45_000);
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
@@ -570,7 +510,6 @@ test('player death stops combat and supports a fast restart', async ({
   await page.keyboard.press('KeyR');
 
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
-  await triggerCurrentRoom(page);
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
   await expect(
     page.getByRole('meter', { name: 'Enemy health' }),

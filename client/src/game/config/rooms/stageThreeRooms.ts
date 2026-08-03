@@ -10,10 +10,9 @@ import {
 // the catwalk early and cross above it. The catwalk is deliberately 126px above
 // the floor, inside the 130.7px jump, so either choice remains available.
 //
-// A platform is not cover. Player and enemy shots pass through it, so the high
-// route only changes height, distance, and shot angle. There are no walls here
-// because this stage is about keeping footing, not introducing a new place to
-// hide from bullets.
+// Catwalks also block shots. The high route therefore changes height, distance,
+// shot angle, and available cover. There are no walls here because this stage
+// is about keeping footing rather than forcing full-body obstacles.
 const CATWALK_Y = GAME_HEIGHT - 190;
 const HIGH_LEDGE_Y = GAME_HEIGHT - 290;
 
@@ -26,8 +25,8 @@ export const UNDERGROUND_ROOM_ONE = defineRoom({
     { type: 'melee', x: 460, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 900, y: GAME_HEIGHT - 120 },
     // Middle: the first flying enemy joins after the player has chosen a
-    // route once. The nearby catwalk changes the firing angle, not the bullet
-    // collision.
+    // route once. The nearby catwalk gives the player a firing-angle and cover
+    // choice.
     { type: 'flying', x: 1300, y: GAME_HEIGHT - 310 },
     { type: 'melee', x: 1600, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 1950, y: GAME_HEIGHT - 120 },

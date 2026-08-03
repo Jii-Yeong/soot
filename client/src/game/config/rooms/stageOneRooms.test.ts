@@ -1,13 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { PLAYER_COMBAT_CONFIG } from '@/game/config/combatConfig';
+import {
+  FLYING_ENEMY_COMBAT_CONFIG,
+  MELEE_ENEMY_COMBAT_CONFIG,
+  PLAYER_COMBAT_CONFIG,
+  RANGED_ENEMY_COMBAT_CONFIG,
+} from '@/game/config/combatConfig';
+import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { CITY_ROOM_ONE, CITY_ROOM_TWO } from './stageOneRooms';
 
 const CITY_COMBAT_ROOMS = [CITY_ROOM_ONE, CITY_ROOM_TWO];
-
-/** Same derivation reachability.test.ts uses: v^2 / 2g against world gravity. */
 const MAX_JUMP_HEIGHT =
   (PLAYER_COMBAT_CONFIG.jumpSpeed * PLAYER_COMBAT_CONFIG.jumpSpeed) / (2 * 1200);
+const MAX_LOWER_TIER_HOP =
+  PLAYER_COMBAT_CONFIG.moveSpeed *
+  ((2 * PLAYER_COMBAT_CONFIG.jumpSpeed) / 1200) *
+  0.95;
+
+function activationX(spawn: EnemySpawnConfig) {
+  switch (spawn.type) {
+    case 'melee':
+      return spawn.x - MELEE_ENEMY_COMBAT_CONFIG.aggroRadius;
+    case 'ranged':
+      return spawn.x - RANGED_ENEMY_COMBAT_CONFIG.aggroRadius;
+    case 'flying': {
+      const verticalDistance = Math.abs(spawn.y - (GAME_HEIGHT - 120));
+      return (
+        spawn.x -
+        Math.sqrt(
+          FLYING_ENEMY_COMBAT_CONFIG.aggroRadius ** 2 -
+            verticalDistance ** 2,
+        )
+      );
+    }
+    case 'boss':
+      throw new Error('stage 1 combat room does not contain a boss');
+  }
+}
 
 describe('stage 1 room layout', () => {
   it('uses the ground and two sparse, jump-reachable platform tiers', () => {
@@ -27,60 +57,55 @@ describe('stage 1 room layout', () => {
     }
   });
 
-  it('teaches the barrier once and never digs a pit', () => {
-    // This rule used to be "stage 1 has no walls at all", which read as
-    // simplicity but cost the player their only safe meeting with a barrier:
-    // stage 2 opens with three of them beside eight enemies and two pits.
-    // One barrier, in the second room, in a quiet stretch — enough to learn
-    // the shape without turning the stage into a platforming course.
-    const walls = CITY_COMBAT_ROOMS.map(
-      (room) => room.terrain?.filter(({ type }) => type === 'wall').length ?? 0,
-    );
-
-    expect(walls).toEqual([0, 1]);
-
-    // Pits stay out of stage 1 for now. The reason they were kept out has
-    // gone — every open stretch here has a ledge overhead, which used to mean a
-    // full jump ended in its underside, and platforms are one-way now. What
-    // remains is a design question nobody has answered yet: stage 2 opens with
-    // two pits beside eight enemies, so somewhere before that the player should
-    // meet one on its own.
+  it('keeps the first stage free of walls and pits', () => {
     for (const room of CITY_COMBAT_ROOMS) {
+      const walls = room.terrain?.filter(({ type }) => type === 'wall') ?? [];
+      expect(walls).toEqual([]);
       expect(room.pits).toBeUndefined();
     }
   });
 
-  it('meets the barrier with nothing else asking for attention', () => {
-    // A first barrier standing next to an enemy is not a lesson, it is one more
-    // thing happening. Whatever else moves in this room, the stretch around
-    // x2000 stays empty on both sides.
-    const QUIET_MARGIN = 200;
-    const wall = (CITY_ROOM_TWO.terrain ?? []).find(
-      ({ type }) => type === 'wall',
-    );
-    if (!wall) {
-      throw new Error('stage 1 room 02 has no barrier to keep quiet');
-    }
+  it('keeps lower-tier transfers within a normal jump', () => {
+    for (const room of CITY_COMBAT_ROOMS) {
+      const lowerTier = (room.terrain ?? [])
+        .filter(({ type, y }) => type === 'platform' && y === GAME_HEIGHT - 180)
+        .sort((first, second) => first.x - second.x);
 
-    for (const spawn of CITY_ROOM_TWO.enemySpawns) {
-      const distance =
-        spawn.x < wall.x
-          ? wall.x - spawn.x
-          : spawn.x - (wall.x + wall.width);
-      expect(
-        distance,
-        `${spawn.type} at x=${spawn.x} crowds the barrier at x=${wall.x}`,
-      ).toBeGreaterThanOrEqual(QUIET_MARGIN);
+      for (let index = 1; index < lowerTier.length; index += 1) {
+        const previous = lowerTier[index - 1]!;
+        const current = lowerTier[index]!;
+        expect(current.x - (previous.x + previous.width)).toBeLessThanOrEqual(
+          MAX_LOWER_TIER_HOP,
+        );
+      }
     }
   });
 
+  it('keeps the opening melee beat clear of overhead terrain', () => {
+    const firstEnemy = CITY_ROOM_ONE.enemySpawns[0]!;
+    const firstPlatform = Math.min(
+      ...(CITY_ROOM_ONE.terrain ?? []).map(({ x }) => x),
+    );
+
+    expect(firstPlatform).toBeGreaterThan(firstEnemy.x);
+  });
+
+  it('gives the first three room 01 beats room to activate one at a time', () => {
+    const opening = CITY_ROOM_ONE.enemySpawns.slice(0, 3).map(activationX);
+
+    expect(opening[1]! - opening[0]!).toBeGreaterThanOrEqual(500);
+    expect(opening[2]! - opening[1]!).toBeGreaterThanOrEqual(500);
+  });
+
+  it('leaves a breather before room 02’s final combined encounter', () => {
+    const quietSpawns = CITY_ROOM_TWO.enemySpawns.filter(
+      ({ x }) => x > 1840 && x < 2700,
+    );
+
+    expect(quietSpawns).toEqual([]);
+  });
+
   it('builds room 02 toward the boss door rather than away from it', () => {
-    // The room used to open on its own peak — five of eight inside x560~1160,
-    // both fliers among them — and then thin out all the way to the door, so
-    // the stage got easier as the boss got closer. Weight past the midpoint is
-    // the cheap way to state "the climax is at the end", and it is the exact
-    // check the old layout failed: its spawns averaged x1425 against a 1828
-    // midpoint.
     const midpoint = CITY_ROOM_TWO.worldWidth / 2;
     const spawns = CITY_ROOM_TWO.enemySpawns;
     const meanX =
@@ -88,24 +113,17 @@ describe('stage 1 room layout', () => {
 
     expect(meanX).toBeGreaterThan(midpoint);
 
-    // And the fliers — the type the ground cannot answer — belong to the peak,
-    // not to the doorway the player walks in through.
     for (const flier of spawns.filter(({ type }) => type === 'flying')) {
-      expect(
-        flier.x,
-        `flier at x=${flier.x} sits in the room's opening half`,
-      ).toBeGreaterThan(midpoint);
+      expect(flier.x, `flier at x=${flier.x} sits in the opening half`).toBeGreaterThan(
+        midpoint,
+      );
     }
 
-    // The run up to the door stays clear, so the boss is not entered mid-fight.
     const lastSpawn = Math.max(...spawns.map(({ x }) => x));
     expect(CITY_ROOM_TWO.exitX - lastSpawn).toBeGreaterThanOrEqual(400);
   });
 
   it('offers a reachable height option alongside every late flier', () => {
-    // Ground shots can reach fliers, so a ledge is not a required answer or
-    // projectile cover. Stage 1 still places one nearby so the player can
-    // choose a different height and firing angle during the late encounters.
     const unreachable: string[] = [];
 
     for (const room of CITY_COMBAT_ROOMS) {

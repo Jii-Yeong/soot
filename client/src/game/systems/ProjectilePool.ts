@@ -10,6 +10,8 @@ export type ProjectilePoolConfig = {
 
 export type FireOptions = {
   pierce?: number;
+  /** Whether this round was fired after the room's encounter began. */
+  canDamage?: boolean;
   /**
    * Who fired it. Kept so a shooter's rounds can be taken off the screen when
    * the shooter dies; the pool itself never reads anything off it.
@@ -53,6 +55,7 @@ export class ProjectilePool {
       .setRotation(angle)
       .setDepth(PLAYER_STACK_DEPTH.projectile);
     projectile.setData('pierceRemaining', options.pierce ?? 0);
+    projectile.setData('canDamage', options.canDamage ?? true);
     // Overwritten on every shot, so a recycled body never carries the last
     // owner's tag into its next life.
     projectile.setData('owner', options.owner ?? null);
@@ -108,6 +111,30 @@ export class ProjectilePool {
 
     for (const child of this.group.getChildren()) {
       (child as Phaser.Physics.Arcade.Image).disableBody(true, true);
+    }
+  }
+
+  /**
+   * Keeps a projectile pool inside the current combat view.
+   *
+   * This is used for player weapons so a round cannot travel ahead into an
+   * encounter the player has not seen yet. Enemy pools keep their full
+   * lifetimes: the player is necessarily in view when one can hit them.
+   */
+  clearOutsideCamera(camera: Phaser.Cameras.Scene2D.Camera) {
+    if (!this.group.children) {
+      return;
+    }
+
+    const view = camera.worldView;
+    for (const child of this.group.getChildren()) {
+      const projectile = child as Phaser.Physics.Arcade.Image;
+      if (
+        projectile.active &&
+        !Phaser.Geom.Rectangle.Contains(view, projectile.x, projectile.y)
+      ) {
+        projectile.disableBody(true, true);
+      }
     }
   }
 
