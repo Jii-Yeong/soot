@@ -12,7 +12,6 @@ type RoomPortal = {
   view: Phaser.GameObjects.Graphics;
   zone: Phaser.GameObjects.Zone;
   body: Phaser.Physics.Arcade.StaticBody;
-  playerOverlap: Phaser.Physics.Arcade.Collider;
 };
 
 type RoomDirectorOptions = {
@@ -29,6 +28,8 @@ const ENTRANCE_DETECTOR_WIDTH = 72;
 const PORTAL_WIDTH = 64;
 const PORTAL_HEIGHT = 128;
 const PORTAL_OVERLAP_PADDING = 28;
+/** How far below its resting spot the portal starts before rising into view. */
+const PORTAL_RISE = 96;
 
 export class RoomDirector {
   private readonly enemies = new Set<Phaser.GameObjects.GameObject>();
@@ -85,7 +86,6 @@ export class RoomDirector {
     this.exit.playerCollider.destroy();
     this.scene.tweens.killTweensOf(this.exit.view);
     this.exit.view.destroy();
-    this.portal.playerOverlap.destroy();
     this.portal.zone.destroy();
     this.scene.tweens.killTweensOf(this.portal.view);
     this.portal.view.destroy();
@@ -180,23 +180,24 @@ export class RoomDirector {
     this.scene.physics.add.existing(zone, true);
     const body = zone.body as Phaser.Physics.Arcade.StaticBody;
     body.enable = false;
-    const playerOverlap = this.scene.physics.add.overlap(
-      this.player,
-      zone,
-      () => this.requestExit(),
-    );
-    playerOverlap.active = false;
 
-    return { view, zone, body, playerOverlap };
+    return { view, zone, body };
   }
 
-  private requestExit() {
-    if (this.state !== 'cleared' || this.exitRequested) {
+  /**
+   * Called when the player presses up/W: only leaves through an open portal the
+   * player is actually standing in, so walking past it no longer transitions.
+   */
+  tryExit() {
+    if (
+      this.state !== 'cleared' ||
+      this.exitRequested ||
+      !this.scene.physics.overlap(this.player, this.portal.zone)
+    ) {
       return;
     }
 
     this.exitRequested = true;
-    this.portal.playerOverlap.active = false;
     this.onExitRequested();
   }
 
@@ -210,22 +211,28 @@ export class RoomDirector {
       duration: 300,
       onComplete: () => this.exit.view.setVisible(false),
     });
+    // Rise into place from below rather than fading in on the spot.
+    const restY = this.config.door.y;
     this.portal.body.enable = true;
-    this.portal.playerOverlap.active = true;
-    this.portal.view.setVisible(true).setAlpha(0).setScale(0.82, 0.9);
+    this.portal.view
+      .setVisible(true)
+      .setAlpha(0)
+      .setScale(0.9, 0.7)
+      .setPosition(this.config.exitX, restY + PORTAL_RISE);
     this.scene.tweens.add({
       targets: this.portal.view,
+      y: restY,
       alpha: 1,
       scaleX: 1,
       scaleY: 1,
-      duration: 260,
+      duration: 360,
       ease: 'Back.easeOut',
       onComplete: () => {
+        // Settle into a gentle vertical bob once it has arrived.
         this.scene.tweens.add({
           targets: this.portal.view,
-          scaleX: 1.08,
-          scaleY: 0.96,
-          duration: 720,
+          y: restY - 6,
+          duration: 900,
           yoyo: true,
           repeat: -1,
           ease: 'Sine.easeInOut',
@@ -262,7 +269,7 @@ export class RoomDirector {
     if (this.state === 'cleared') {
       const result = this.config.kind === 'boss' ? 'BOSS DEFEATED' : 'CLEAR';
       this.statusText
-        .setText(`${this.config.label}  //  ${result}  //  PORTAL OPEN`)
+        .setText(`${this.config.label}  //  ${result}  //  ↑ / W TO ENTER PORTAL`)
         .setColor('#b6ffe4');
     }
   }

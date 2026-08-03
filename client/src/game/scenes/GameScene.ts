@@ -598,6 +598,8 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', this.handlePointerDown, this);
     keyboard.on('keydown-R', this.handleRestartInput, this);
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
+    keyboard.on('keydown-UP', this.handlePortalEnter, this);
+    keyboard.on('keydown-W', this.handlePortalEnter, this);
     gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
     gameEvents.on(
       'admin-stage-boss-requested',
@@ -619,6 +621,8 @@ export class GameScene extends Phaser.Scene {
       this.input.off('pointerdown', this.handlePointerDown, this);
       keyboard.off('keydown-R', this.handleRestartInput, this);
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
+      keyboard.off('keydown-UP', this.handlePortalEnter, this);
+      keyboard.off('keydown-W', this.handlePortalEnter, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
       gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
       gameEvents.off(
@@ -729,6 +733,13 @@ export class GameScene extends Phaser.Scene {
   private handleRestartInput() {
     if (this.phase === 'dead' || this.phase === 'ending') {
       this.scene.restart();
+    }
+  }
+
+  /** Up/W leaves a cleared room, but only while standing in its open portal. */
+  private handlePortalEnter() {
+    if (this.phase === 'room-cleared') {
+      this.roomDirector.tryExit();
     }
   }
 

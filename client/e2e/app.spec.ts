@@ -212,10 +212,9 @@ async function clearCityRoomOne(
 
 async function enterExitPortal(page: Page) {
   await whileHoldingKey(page, 'KeyD', async () => {
-    // The portal opens at the far end of a cleared room. Run-up jump repeatedly
-    // across the room's remaining terrain until entering it starts the next
-    // independent arena. A held jump is needed because Phaser's JustDown misses
-    // a too-quick tap.
+    // The portal opens at the far end of a cleared room and only lets the player
+    // through on an up/W press while standing in it. ArrowUp both hops the
+    // run-up terrain and enters the portal, so tap it until the next arena locks.
     for (let hop = 0; hop < 34; hop += 1) {
       const roomState = await page
         .locator('main')
@@ -223,9 +222,9 @@ async function enterExitPortal(page: Page) {
       if (roomState === 'locked') {
         return;
       }
-      await page.keyboard.down('Space');
+      await page.keyboard.down('ArrowUp');
       await page.waitForTimeout(70);
-      await page.keyboard.up('Space');
+      await page.keyboard.up('ArrowUp');
       await page.waitForTimeout(300);
     }
     await expect(page.locator('main')).toHaveAttribute(

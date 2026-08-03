@@ -37,8 +37,8 @@ function createScene() {
   };
   const playerCollider = { active: true, destroy: vi.fn() };
   const entranceOverlap = { destroy: vi.fn() };
-  const portalOverlap = { active: true, destroy: vi.fn() };
-  let portalCallback = () => {};
+  // Controls the synchronous "is the player in the portal?" test.
+  const portalContact = { value: true };
   const scene = {
     add: {
       graphics: vi.fn(() => portalView),
@@ -53,20 +53,9 @@ function createScene() {
       add: {
         collider: vi.fn(() => playerCollider),
         existing: vi.fn(),
-        overlap: vi
-          .fn()
-          .mockReturnValueOnce(entranceOverlap)
-          .mockImplementationOnce(
-            (
-              _player: Phaser.GameObjects.GameObject,
-              _zone: Phaser.GameObjects.GameObject,
-              callback: () => void,
-            ) => {
-              portalCallback = callback;
-              return portalOverlap;
-            },
-          ),
+        overlap: vi.fn(() => entranceOverlap),
       },
+      overlap: vi.fn(() => portalContact.value),
     },
     scale: { height: 720, width: 1280 },
     tweens: {
@@ -75,20 +64,12 @@ function createScene() {
     },
   } as unknown as Phaser.Scene;
 
-  return {
-    doorBody,
-    playerCollider,
-    portalBody,
-    portalOverlap,
-    requestPortalExit: () => portalCallback(),
-    scene,
-  };
+  return { doorBody, playerCollider, portalBody, portalContact, scene };
 }
 
 describe('RoomDirector', () => {
-  it('replaces the locked exit with an active portal when cleared', () => {
-    const { doorBody, playerCollider, portalBody, portalOverlap, scene } =
-      createScene();
+  it('replaces the locked exit with an open portal when cleared', () => {
+    const { doorBody, playerCollider, portalBody, scene } = createScene();
     const director = new RoomDirector({
       scene,
       player: {} as Phaser.Physics.Arcade.Sprite,
@@ -107,11 +88,10 @@ describe('RoomDirector', () => {
     expect(playerCollider.active).toBe(false);
     expect(doorBody.enable).toBe(false);
     expect(portalBody.enable).toBe(true);
-    expect(portalOverlap.active).toBe(true);
   });
 
-  it('requests the next room only once when the cleared portal is entered', () => {
-    const { requestPortalExit, scene } = createScene();
+  it('leaves only while standing in a cleared portal, and only once', () => {
+    const { portalContact, scene } = createScene();
     const onExitRequested = vi.fn();
     const director = new RoomDirector({
       scene,
@@ -126,13 +106,21 @@ describe('RoomDirector', () => {
       onExitRequested,
     });
 
-    requestPortalExit();
+    // Not cleared yet: pressing to leave does nothing.
+    director.tryExit();
     expect(onExitRequested).not.toHaveBeenCalled();
 
     director.beginEncounter([]);
-    requestPortalExit();
-    requestPortalExit();
 
+    // Cleared but not standing in the portal: still no exit.
+    portalContact.value = false;
+    director.tryExit();
+    expect(onExitRequested).not.toHaveBeenCalled();
+
+    // Standing in the portal: leaves exactly once.
+    portalContact.value = true;
+    director.tryExit();
+    director.tryExit();
     expect(onExitRequested).toHaveBeenCalledOnce();
   });
 });
