@@ -8,8 +8,14 @@ export const FLOOR_TILE = 64;
 export const FLOOR_SURFACE_Y = GAME_HEIGHT - FLOOR_TILE;
 /** Behind characters (enemies 0, player 8) but in front of the backdrop (-10). */
 const FLOOR_DEPTH = -9;
+const ENEMY_PIT_BARRIER_WIDTH = 8;
+const ENEMY_PIT_BARRIER_HEIGHT = 160;
 
 export type PitBounds = { start: number; end: number };
+
+export function enemyPitBarrierXs(pits: readonly PitBounds[]) {
+  return pits.flatMap(({ start, end }) => [start, end]);
+}
 
 /**
  * Tiles the active room's floor as static bodies, leaving gaps where that room
@@ -21,11 +27,14 @@ export type PitBounds = { start: number; end: number };
  */
 export class FloorBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
+  /** Invisible pit-edge walls used only by grounded enemies. */
+  readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup;
   private pits: PitBounds[] = [];
   private skinObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.physics.add.staticGroup();
+    this.enemyPitBarriers = scene.physics.add.staticGroup();
   }
 
   build(
@@ -35,11 +44,23 @@ export class FloorBuilder {
     skin?: SliceSkinConfig,
   ) {
     this.group.clear(true, true);
+    this.enemyPitBarriers.clear(true, true);
     this.clearSkin();
     this.pits = (room.pits ?? []).map((pit) => ({
       start: pit.x,
       end: pit.x + pit.width,
     }));
+    for (const x of enemyPitBarrierXs(this.pits)) {
+      const barrier = this.scene.add.zone(
+        x,
+        FLOOR_SURFACE_Y - ENEMY_PIT_BARRIER_HEIGHT / 2,
+        ENEMY_PIT_BARRIER_WIDTH,
+        ENEMY_PIT_BARRIER_HEIGHT,
+      );
+      this.enemyPitBarriers.add(barrier);
+      const body = barrier.body as Phaser.Physics.Arcade.StaticBody;
+      body.updateFromGameObject();
+    }
 
     const width = room.worldWidth;
     for (let x = 32; x < width; x += FLOOR_TILE) {

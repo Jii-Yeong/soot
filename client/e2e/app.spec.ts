@@ -522,6 +522,78 @@ test('stage two spawns each standard enemy with its supplied atlas', async ({
   );
 });
 
+test('stage two ground enemies stop at pit edges instead of falling', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '2스테이지', exact: true })
+    .click();
+  await triggerCurrentRoom(page);
+
+  await page.evaluate(() => {
+    type RuntimeBody = { reset: (x: number, y: number) => void };
+    type RuntimeActor = {
+      body: RuntimeBody;
+      texture: { key: string };
+      x: number;
+      y: number;
+      setPosition: (x: number, y: number) => void;
+    };
+    type RuntimeScene = {
+      enemies: RuntimeActor[];
+      player: RuntimeActor;
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const melee = scene.enemies.find(
+      ({ texture }) => texture.key === 'stage-2-neared',
+    );
+    if (!melee) {
+      throw new Error('Missing stage 2 melee enemy');
+    }
+
+    // Put the player across room one's first pit and the melee enemy at its
+    // near edge. Its chase AI will continuously push into the enemy-only rail.
+    scene.player.setPosition(1900, 600);
+    scene.player.body.reset(1900, 600);
+    melee.setPosition(1550, melee.y);
+    melee.body.reset(1550, melee.y);
+  });
+
+  await page.waitForTimeout(1500);
+  const meleePosition = await page.evaluate(() => {
+    type RuntimeScene = {
+      enemies: Array<{
+        texture: { key: string };
+        x: number;
+        y: number;
+      }>;
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const melee = scene.enemies.find(
+      ({ texture }) => texture.key === 'stage-2-neared',
+    )!;
+    return { x: melee.x, y: melee.y };
+  });
+
+  expect(meleePosition.x).toBeLessThan(1650);
+  expect(meleePosition.y).toBeLessThan(656);
+});
+
 test('admin menu scrolls instead of overflowing a short viewport', async ({
   page,
 }) => {

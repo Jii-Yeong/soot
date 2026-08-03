@@ -280,6 +280,7 @@ export class GameScene extends Phaser.Scene {
     const enemyFactory = new EnemyFactory(
       this,
       this.floorBuilder.group,
+      this.floorBuilder.enemyPitBarriers,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
       (bossX, bossHalfWidth) =>

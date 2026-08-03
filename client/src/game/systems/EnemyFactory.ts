@@ -41,6 +41,7 @@ export class EnemyFactory {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
+    private readonly pitBarriers: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
     private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
@@ -216,6 +217,7 @@ export class EnemyFactory {
 
     if (options.collidesWithFloor) {
       this.scene.physics.add.collider(enemy, this.floor);
+      this.scene.physics.add.collider(enemy, this.pitBarriers);
     }
 
     this.scene.tweens.add({
