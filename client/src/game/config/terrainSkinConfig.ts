@@ -1,8 +1,8 @@
 /**
- * Horizontal 3-slice skins for stage-1 level geometry: a left cap, a tiled
- * middle, and a right cap sized to any span. The floor (1층) and the platform
- * "stools" (2·3층 발판) each get one. Physics stays on the existing bodies; these
- * are purely the visual overlay.
+ * Horizontal 3-slice skins for level geometry: a left cap, a tiled middle,
+ * and a right cap sized to any span. Floors and platform "stools" can each
+ * supply their own stage-specific skin. Physics stays on the existing bodies;
+ * these are purely the visual overlay.
  */
 export type SliceImage = {
   key: string;
@@ -68,7 +68,16 @@ export const STAGE_ONE_STOOL_SKIN: SliceSkinConfig = {
   surfaceInset: 3,
 };
 
+export const STAGE_TWO_STOOL_SKIN: SliceSkinConfig = {
+  left: asset('stage-2-stool-left', 38),
+  middle: asset('stage-2-stool-middle', 100),
+  right: asset('stage-2-stool-right', 38),
+  height: 35,
+  surfaceInset: 3,
+};
+
 export const ALL_TERRAIN_SKINS = [
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_TWO_STOOL_SKIN,
 ] as const;

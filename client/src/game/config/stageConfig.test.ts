@@ -61,6 +61,28 @@ describe('stage configuration', () => {
     });
   });
 
+  it('skins the stage 2 upper platforms with the supplied 3-slice art', () => {
+    expect(STAGE_TWO_CONFIG.terrainSkin).toMatchObject({
+      left: {
+        key: 'stage-2-stool-left',
+        path: '/assets/terrain/stage-2-stool-left.png',
+        width: 38,
+      },
+      middle: {
+        key: 'stage-2-stool-middle',
+        path: '/assets/terrain/stage-2-stool-middle.png',
+        width: 100,
+      },
+      right: {
+        key: 'stage-2-stool-right',
+        path: '/assets/terrain/stage-2-stool-right.png',
+        width: 38,
+      },
+      height: 35,
+      surfaceInset: 3,
+    });
+  });
+
   it('loads the supplied stage 3 background with the same structure', () => {
     expect(STAGE_THREE_CONFIG.background).toEqual({
       key: 'stage-03-bg',

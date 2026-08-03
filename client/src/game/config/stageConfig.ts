@@ -19,6 +19,7 @@ import {
 import {
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_TWO_STOOL_SKIN,
   type SliceSkinConfig,
 } from '@/game/config/terrainSkinConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
@@ -126,6 +127,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-02.webp',
   },
   meleeSwing: MELEE_SWING_CONFIG,
+  terrainSkin: STAGE_TWO_STOOL_SKIN,
   rooms: ALLEY_ROOMS,
 };
 
