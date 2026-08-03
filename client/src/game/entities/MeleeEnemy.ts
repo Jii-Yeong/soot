@@ -6,7 +6,7 @@ import {
   ENEMY_DEPTH,
   type EnemyProjectileAttack,
 } from '@/game/entities/Enemy';
-import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
 export type MeleeEnemyConfig = {
   health: number;
@@ -42,9 +42,6 @@ const SLASH_END_ANGLE = 0.8;
 const SLASH_ARC = 0.95;
 const SLASH_COLOR = 0xbff4ff;
 
-/** Death corpse timing for the real-atlas variant (matches the other mobs). */
-const DEATH_HOLD_MS = 400;
-const DEATH_FADE_MS = 350;
 
 export class MeleeEnemy extends Enemy {
   readonly aggroRadius: number;
@@ -60,11 +57,11 @@ export class MeleeEnemy extends Enemy {
   private readonly damagePlayer?: PlayerDamageHandler;
   private readonly rod?: Phaser.GameObjects.Rectangle;
   private readonly slash?: Phaser.GameObjects.Graphics;
+  private readonly rig?: GroundedEnemySprite;
   private attackState: MeleeState = 'chase';
   private stateStartedAt = 0;
   private stateEndsAt = 0;
   private swingConnected = false;
-  private activeAnimation?: string;
   private dying = false;
 
   constructor(
@@ -89,7 +86,8 @@ export class MeleeEnemy extends Enemy {
 
     if (this.sprite) {
       this.slash = scene.add.graphics().setDepth(SLASH_DEPTH);
-      this.applySprite();
+      this.rig = new GroundedEnemySprite(this, this.sprite);
+      this.rig.apply();
     } else if (this.swing) {
       this.rod = scene.add
         .rectangle(
@@ -103,32 +101,6 @@ export class MeleeEnemy extends Enemy {
         .setDepth(this.depth);
       this.positionRod(ROD_REST_ANGLE);
     }
-  }
-
-  /**
-   * The real atlas frame is padded, so size the body down and bottom-align it to
-   * the fighter's feet (play the idle frame first so the body maps to the atlas
-   * frame, not the placeholder it was constructed with).
-   */
-  private applySprite() {
-    if (!this.sprite) {
-      return;
-    }
-
-    this.setScale(this.sprite.scale);
-    this.playAnimation(this.sprite.animations.idle);
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(this.sprite.bodyWidth, this.sprite.bodyHeight);
-    body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
-    // Spawn with feet exactly on the floor: the tall padded body otherwise
-    // spawns overlapping a floor tile and tunnels through it.
-    this.setY(
-      FLOOR_SURFACE_Y -
-        this.sprite.bodyOffsetY -
-        this.sprite.bodyHeight +
-        this.displayOriginY,
-    );
-    body.reset(this.x, this.y);
   }
 
   updateCombat(
@@ -232,7 +204,7 @@ export class MeleeEnemy extends Enemy {
     this.setVelocityX(direction * this.moveSpeed);
     // Walk while closing in (sprite), or carry the rod at rest.
     if (this.sprite) {
-      this.playAnimation(this.sprite.animations.walk);
+      this.rig?.play(this.sprite.animations.walk);
     } else {
       this.positionRod(ROD_REST_ANGLE);
     }
@@ -285,7 +257,7 @@ export class MeleeEnemy extends Enemy {
   private updateRecover(time: number) {
     this.setVelocityX(0);
     if (this.sprite) {
-      this.playAnimation(this.sprite.animations.idle);
+      this.rig?.play(this.sprite.animations.idle);
     } else if (this.rod) {
       this.positionRod(
         Phaser.Math.Linear(
@@ -318,7 +290,7 @@ export class MeleeEnemy extends Enemy {
   private restVisual() {
     if (this.sprite) {
       const moving = Math.abs(this.body?.velocity.x ?? 0) > 1;
-      this.playAnimation(
+      this.rig?.play(
         moving ? this.sprite.animations.walk : this.sprite.animations.idle,
       );
     } else {
@@ -329,7 +301,7 @@ export class MeleeEnemy extends Enemy {
 
   private beginAttackVisual() {
     if (this.sprite) {
-      this.playAnimation(this.sprite.animations.attack);
+      this.rig?.play(this.sprite.animations.attack);
     }
   }
 
@@ -383,15 +355,6 @@ export class MeleeEnemy extends Enemy {
     this.rod.setDepth(this.depth);
   }
 
-  private playAnimation(key: string) {
-    if (this.activeAnimation === key) {
-      return;
-    }
-
-    this.activeAnimation = key;
-    this.play(key, true);
-  }
-
   private beginState(state: MeleeState, time: number, duration: number) {
     this.attackState = state;
     this.stateStartedAt = time;
@@ -415,29 +378,14 @@ export class MeleeEnemy extends Enemy {
   }
 
   override defeat() {
-    if (!this.active || !this.sprite) {
+    if (!this.active || !this.rig) {
       super.defeat();
       return;
     }
 
     this.dying = true;
     this.onDefeated();
-    (this.body as Phaser.Physics.Arcade.Body).enable = false;
-    this.playAnimation(this.sprite.animations.death);
-    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      this.scene.time.delayedCall(DEATH_HOLD_MS, () => {
-        if (!this.active) {
-          return;
-        }
-        this.scene.tweens.add({
-          targets: this,
-          alpha: 0,
-          duration: DEATH_FADE_MS,
-          ease: 'Sine.easeIn',
-          onComplete: () => this.disableBody(true, true),
-        });
-      });
-    });
+    this.rig.playDeath(() => this.disableBody(true, true));
   }
 
   protected override onDefeated() {

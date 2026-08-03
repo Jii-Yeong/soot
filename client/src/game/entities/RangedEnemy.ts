@@ -5,7 +5,7 @@ import {
   ENEMY_DEPTH,
   type EnemyProjectileAttack,
 } from '@/game/entities/Enemy';
-import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
 export type RangedEnemyConfig = {
   health: number;
@@ -20,9 +20,6 @@ export type RangedEnemyConfig = {
 
 /** How long the attack pose holds after a shot before returning to idle. */
 const ATTACK_POSE_MS = 220;
-/** How long the corpse rests before fading (matches the flyer's feel). */
-const DEATH_HOLD_MS = 400;
-const DEATH_FADE_MS = 350;
 
 export class RangedEnemy extends Enemy {
   readonly aggroRadius: number;
@@ -34,8 +31,8 @@ export class RangedEnemy extends Enemy {
   private readonly preferredDistance: number;
   private readonly distanceTolerance: number;
   private readonly sprite?: RangedSpriteConfig;
+  private readonly rig?: GroundedEnemySprite;
   private attackPoseUntil = 0;
-  private activeAnimation?: string;
   private dying = false;
 
   constructor(
@@ -56,33 +53,10 @@ export class RangedEnemy extends Enemy {
     this.sprite = config.sprite;
     // Render in front of terrain platforms, under the player.
     this.setDepth(ENEMY_DEPTH);
-    this.applySprite();
-  }
-
-  /**
-   * The real atlas frame is padded, so size the body down and bottom-align it to
-   * the shooter's feet (play the idle frame first so the body maps to the atlas
-   * frame, not the placeholder it was constructed with).
-   */
-  private applySprite() {
-    if (!this.sprite) {
-      return;
+    if (this.sprite) {
+      this.rig = new GroundedEnemySprite(this, this.sprite);
+      this.rig.apply();
     }
-
-    this.setScale(this.sprite.scale);
-    this.playAnimation(this.sprite.animations.idle);
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setSize(this.sprite.bodyWidth, this.sprite.bodyHeight);
-    body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
-    // Spawn with feet exactly on the floor so the tall padded body never spawns
-    // overlapping a floor tile (which would tunnel it through).
-    this.setY(
-      FLOOR_SURFACE_Y -
-        this.sprite.bodyOffsetY -
-        this.sprite.bodyHeight +
-        this.displayOriginY,
-    );
-    body.reset(this.x, this.y);
   }
 
   updateCombat(
@@ -106,7 +80,7 @@ export class RangedEnemy extends Enemy {
     // Attack pose wins briefly after a shot; otherwise walk while repositioning
     // or idle when holding at the preferred gap.
     if (this.sprite && time >= this.attackPoseUntil) {
-      this.playAnimation(
+      this.rig?.play(
         moving ? this.sprite.animations.walk : this.sprite.animations.idle,
       );
     }
@@ -151,7 +125,7 @@ export class RangedEnemy extends Enemy {
     }
 
     this.attackPoseUntil = time + ATTACK_POSE_MS;
-    this.playAnimation(this.sprite.animations.attack);
+    this.rig?.play(this.sprite.animations.attack);
   }
 
   override get playsOwnDeathAnimation() {
@@ -159,38 +133,13 @@ export class RangedEnemy extends Enemy {
   }
 
   override defeat() {
-    if (!this.active || !this.sprite) {
+    if (!this.active || !this.rig) {
       super.defeat();
       return;
     }
 
     this.dying = true;
     this.onDefeated();
-    // Freeze in place, play the death frames, hold the corpse, then fade out.
-    (this.body as Phaser.Physics.Arcade.Body).enable = false;
-    this.playAnimation(this.sprite.animations.death);
-    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      this.scene.time.delayedCall(DEATH_HOLD_MS, () => {
-        if (!this.active) {
-          return;
-        }
-        this.scene.tweens.add({
-          targets: this,
-          alpha: 0,
-          duration: DEATH_FADE_MS,
-          ease: 'Sine.easeIn',
-          onComplete: () => this.disableBody(true, true),
-        });
-      });
-    });
-  }
-
-  private playAnimation(key: string) {
-    if (this.activeAnimation === key) {
-      return;
-    }
-
-    this.activeAnimation = key;
-    this.play(key, true);
+    this.rig.playDeath(() => this.disableBody(true, true));
   }
 }
