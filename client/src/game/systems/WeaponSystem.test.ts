@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 import type Phaser from 'phaser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BURST_RIFLE_WEAPON_CONFIG } from '@/game/config/weaponConfig';
+import {
+  BURST_RIFLE_WEAPON_CONFIG,
+  SHOTGUN_WEAPON_CONFIG,
+} from '@/game/config/weaponConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
 
 const mocks = vi.hoisted(() => ({
   fireProjectile: vi.fn(),
   getMuzzlePosition: vi.fn(),
+  muzzleAngleScale: 0,
   playFire: vi.fn(),
 }));
 
@@ -54,7 +58,11 @@ vi.mock('@/game/systems/WeaponFeedback', () => ({
 
     getMuzzlePosition(...args: [number, number, number, number]) {
       mocks.getMuzzlePosition(...args);
-      return { x: 100, y: 200, rotation: args[0] };
+      return {
+        x: 100 + args[0] * mocks.muzzleAngleScale,
+        y: 200 + args[0] * mocks.muzzleAngleScale,
+        rotation: args[0],
+      };
     }
 
     playFire(...args: unknown[]) {
@@ -67,6 +75,7 @@ describe('WeaponSystem bursts', () => {
   afterEach(() => {
     mocks.fireProjectile.mockReset();
     mocks.getMuzzlePosition.mockReset();
+    mocks.muzzleAngleScale = 0;
     mocks.playFire.mockReset();
   });
 
@@ -122,5 +131,34 @@ describe('WeaponSystem bursts', () => {
     } finally {
       gameEvents.off('weapon-fired', onWeaponFired);
     }
+  });
+
+  it('spawns every shotgun pellet from the one central muzzle', () => {
+    const scene = {
+      physics: { add: { overlap: vi.fn() } },
+      time: { delayedCall: vi.fn() },
+    } as unknown as Phaser.Scene;
+    const player = { x: 100, y: 200 } as Phaser.Physics.Arcade.Sprite;
+    const system = new WeaponSystem(
+      scene,
+      player,
+      [],
+      [SHOTGUN_WEAPON_CONFIG],
+      SHOTGUN_WEAPON_CONFIG.id,
+      () => true,
+      () => {},
+    );
+    // Any per-pellet muzzle lookup would now produce a different coordinate.
+    mocks.muzzleAngleScale = 100;
+
+    system.tryFire({ x: 300, y: 200 } as Phaser.Math.Vector2, 0);
+
+    expect(mocks.fireProjectile).toHaveBeenCalledTimes(5);
+    expect(
+      new Set(
+        mocks.fireProjectile.mock.calls.map(([x, y]) => `${x},${y}`),
+      ),
+    ).toEqual(new Set(['100,200']));
+    expect(mocks.getMuzzlePosition).toHaveBeenCalledExactlyOnceWith(0, 47, 6.5, 0);
   });
 });

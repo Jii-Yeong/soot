@@ -158,13 +158,7 @@ export class WeaponSystem {
     );
 
     for (const angle of angles) {
-      const { x, y } = this.feedback.getMuzzlePosition(
-        angle,
-        config.muzzleOffset,
-        config.muzzleRise,
-        baseAngle,
-      );
-      weapon.pool.fire(x, y, angle, {
+      weapon.pool.fire(muzzle.x, muzzle.y, angle, {
         pierce: config.pierce,
       });
     }
