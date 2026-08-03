@@ -60,6 +60,20 @@ export const STAGE_ONE_FLOOR_SKIN: SliceSkinConfig = {
   capInset: { left: 36, right: 34 },
 };
 
+export const STAGE_TWO_FLOOR_SKIN: SliceSkinConfig = {
+  left: asset('stage-2-floor-left', 173),
+  middle: asset('stage-2-floor-middle', 169),
+  right: asset('stage-2-floor-right', 158),
+  height: 100,
+  surfaceInset: 4,
+  // Only x[16,152] of the middle is horizontally uniform; dark edge lines at
+  // x8 and x160 would repeat as seams, so crop to the flat interior and tile.
+  middleFit: 'tile',
+  middleTrim: { left: 16, right: 16 },
+  // Draw the middle over the caps' inner joints; show just their finished ends.
+  capInset: { left: 40, right: 34 },
+};
+
 export const STAGE_ONE_STOOL_SKIN: SliceSkinConfig = {
   left: asset('stage-1-stool-left', 55),
   middle: asset('stage-1-stool-middle', 68),
@@ -79,5 +93,6 @@ export const STAGE_TWO_STOOL_SKIN: SliceSkinConfig = {
 export const ALL_TERRAIN_SKINS = [
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_TWO_FLOOR_SKIN,
   STAGE_TWO_STOOL_SKIN,
 ] as const;

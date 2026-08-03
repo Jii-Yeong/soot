@@ -22,6 +22,7 @@ import {
 import {
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_TWO_FLOOR_SKIN,
   STAGE_TWO_STOOL_SKIN,
   type SliceSkinConfig,
 } from '@/game/config/terrainSkinConfig';
@@ -133,6 +134,8 @@ export const STAGE_TWO_CONFIG: StageConfig = {
   rangedSprite: STAGE_TWO_RANGED_SPRITE,
   meleeSwing: MELEE_SWING_CONFIG,
   meleeSprite: STAGE_TWO_MELEE_SPRITE,
+  showFloor: true,
+  floorSkin: STAGE_TWO_FLOOR_SKIN,
   terrainSkin: STAGE_TWO_STOOL_SKIN,
   rooms: ALLEY_ROOMS,
 };
