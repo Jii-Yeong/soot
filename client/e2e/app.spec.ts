@@ -139,6 +139,49 @@ async function clearRoom(
   }
 }
 
+async function finishActiveFlyers(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const target = await page.evaluate(() => {
+      type RuntimeScene = {
+        cameras: { main: { scrollX: number; scrollY: number } };
+        enemies: Array<{
+          active: boolean;
+          currentHealth: number;
+          x: number;
+          y: number;
+          constructor: { name: string };
+        }>;
+      };
+      type DebugGame = { scene: { getScene: (key: string) => unknown } };
+      const game = (window as unknown as { __game?: DebugGame }).__game!;
+      const scene = game.scene.getScene('game') as RuntimeScene;
+      const flyer = scene.enemies.find(
+        (enemy) =>
+          enemy.active &&
+          enemy.currentHealth > 0 &&
+          enemy.constructor.name === 'FlyingEnemy',
+      );
+      if (!flyer) {
+        return null;
+      }
+
+      return {
+        x: Math.min(1240, Math.max(40, flyer.x - scene.cameras.main.scrollX)),
+        y: Math.min(680, Math.max(40, flyer.y - scene.cameras.main.scrollY)),
+      };
+    });
+
+    if (!target) {
+      return;
+    }
+
+    await fireAt(page, bounds, target.x, target.y, 1200);
+  }
+}
+
 async function clearCityRoomOne(
   page: Page,
   bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
@@ -164,6 +207,7 @@ async function clearCityRoomOne(
   await fireAt(page, bounds, 450, 360, 1200);
   await fireAt(page, bounds, 600, 360, 1200);
   await fireAt(page, bounds, 640, 360, 1200);
+  await finishActiveFlyers(page, bounds);
 }
 
 async function enterExitPortal(page: Page) {
@@ -530,6 +574,9 @@ test('stage two ground enemies stop at pit edges instead of falling', async ({
   await page
     .getByRole('button', { name: '2스테이지', exact: true })
     .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '115');
   await triggerCurrentRoom(page);
 
   await page.evaluate(() => {

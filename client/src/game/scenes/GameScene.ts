@@ -68,6 +68,8 @@ export class GameScene extends Phaser.Scene {
   private currentStageIndex = STARTING_STAGE_INDEX;
   private requestedStartingStageIndex?: number;
   private requestedStartingRoomIndex?: number;
+  private requestedImmediateEncounter = false;
+  private startCurrentRoomImmediately = false;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -130,6 +132,11 @@ export class GameScene extends Phaser.Scene {
     this.stageEndEventDirector = new StageEndEventDirector(this);
     this.createCombatUi();
     this.bindInputHandlers();
+
+    if (this.startCurrentRoomImmediately) {
+      this.startCurrentRoomImmediately = false;
+      this.startRoomEncounter();
+    }
   }
 
   update(time: number) {
@@ -652,6 +659,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
+    this.startCurrentRoomImmediately = this.requestedImmediateEncounter;
+    this.requestedImmediateEncounter = false;
     this.currentStageIndex =
       this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
     this.requestedStartingStageIndex = undefined;
@@ -715,6 +724,7 @@ export class GameScene extends Phaser.Scene {
 
     this.requestedStartingStageIndex = stageIndex;
     this.requestedStartingRoomIndex = 0;
+    this.requestedImmediateEncounter = false;
     this.setPaused(false);
     this.scene.restart();
   };
@@ -726,6 +736,7 @@ export class GameScene extends Phaser.Scene {
 
     this.requestedStartingStageIndex = stageIndex;
     this.requestedStartingRoomIndex = STAGES[stageIndex].rooms.length - 1;
+    this.requestedImmediateEncounter = true;
     this.setPaused(false);
     this.scene.restart();
   };
