@@ -22,6 +22,10 @@ import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 import type { BossPhase } from '@/game/state/bossPhase';
+import {
+  connectEnemyToRoomGeometry,
+  type EnemyCollisionOptions,
+} from '@/game/systems/enemyCollision';
 
 type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   EnemySpawnConfig,
@@ -38,6 +42,7 @@ export class EnemyFactory {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
+    private readonly terrain: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
     private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
@@ -209,13 +214,16 @@ export class EnemyFactory {
 
   private finishSpawn<EnemyType extends Enemy>(
     enemy: EnemyType,
-    options: { collidesWithFloor: boolean } = { collidesWithFloor: true },
+    options: EnemyCollisionOptions = {},
   ) {
     enemy.setAlpha(0);
-
-    if (options.collidesWithFloor) {
-      this.scene.physics.add.collider(enemy, this.floor);
-    }
+    connectEnemyToRoomGeometry(
+      this.scene,
+      enemy,
+      this.floor,
+      this.terrain,
+      options,
+    );
 
     this.scene.tweens.add({
       targets: enemy,

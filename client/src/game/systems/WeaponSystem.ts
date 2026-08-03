@@ -230,7 +230,7 @@ export class WeaponSystem {
           ? (secondObject as Phaser.Physics.Arcade.Image)
           : (firstObject as Phaser.Physics.Arcade.Image);
 
-      if (!enemy || !bullet.active || !enemy.active) {
+      if (!this.canFire() || !enemy || !bullet.active || !enemy.active) {
         return;
       }
 

@@ -279,6 +279,24 @@ test('waits for the entrance detector before starting combat', async ({
   );
 });
 
+test('cannot damage visible enemies before crossing the entrance detector', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const bounds = await getCanvasBounds(page);
+  await fireAt(page, bounds, 640, 630, 900);
+  await expect(page.locator('main')).toHaveAttribute('data-room-state', 'idle');
+
+  await triggerCurrentRoom(page);
+  await expect(
+    page.getByRole('meter', { name: 'Enemy health' }),
+  ).toHaveAttribute('aria-valuenow', CITY_ROOM_ONE_MAX_HEALTH.toString());
+});
+
 test('enters the game and shows the React HUD', async ({ page }) => {
   await enterGame(page);
 

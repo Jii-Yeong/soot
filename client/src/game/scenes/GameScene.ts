@@ -37,7 +37,7 @@ import { BossEnemy } from '@/game/entities/BossEnemy';
 import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import {
-  canPlayerFireInPhase,
+  canPlayerFireInRoom,
   type GamePhase,
 } from '@/game/state/gamePhase';
 import { PlayerHealthState } from '@/game/state/playerHealthState';
@@ -103,6 +103,7 @@ export class GameScene extends Phaser.Scene {
       gameEvents.emit('health-changed', currentHealth, maxHealth),
   );
   private phase: GamePhase = 'boot';
+  private roomState: RoomState = 'idle';
   /** Enemies past the floor line, dropping out of the level. */
   private readonly fallingEnemies = new Set<Enemy>();
 
@@ -176,11 +177,14 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.update(delta, aimPoint);
     this.drawAimGuide(aimPoint);
 
-    if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
+    if (
+      canPlayerFireInRoom(this.phase, this.roomState) &&
+      pointer.leftButtonDown()
+    ) {
       this.weaponSystem.tryFire(aimPoint, time);
     }
 
-    if (this.phase === 'playing') {
+    if (this.phase === 'playing' && this.roomState === 'locked') {
       this.updateEnemyCombat(time);
     }
   }
@@ -237,6 +241,7 @@ export class GameScene extends Phaser.Scene {
 
   private buildRoom(roomConfig: RoomConfig) {
     this.weaponDropDirector?.clear();
+    this.weaponSystem?.clearProjectiles();
     this.roomDirector?.destroy();
     gameEvents.emit('boss-phase-changed', null);
     this.activeRoomConfig = roomConfig;
@@ -252,6 +257,8 @@ export class GameScene extends Phaser.Scene {
       enemy.destroy();
     }
     this.replaceEnemies([]);
+    this.roomState = 'idle';
+    gameEvents.emit('room-state-changed', this.roomState);
     this.emitEnemyHealth();
 
     this.terrainBuilder.build(roomConfig.terrain);
@@ -260,8 +267,8 @@ export class GameScene extends Phaser.Scene {
     // player trips the entrance detector. Spawned at the detector they arrived
     // inside the view — the nearest stands 376px past it and half a viewport is
     // 640px — so a room read as materialising around the player instead of
-    // being walked into. Built with the room they are already there, already
-    // moving, and the detector only decides when the doors close.
+    // being walked into. Built with the room they are already there, but stay
+    // inert and non-interactive until the detector decides when combat starts.
     //
     // A boss keeps the old timing. Its aggro reaches 1500px, further than the
     // whole 1829px boss room, so building it early would start the fight before
@@ -275,6 +282,7 @@ export class GameScene extends Phaser.Scene {
     const enemyFactory = new EnemyFactory(
       this,
       this.floorBuilder.group,
+      this.terrainBuilder.group,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
       (bossX, bossHalfWidth) =>
@@ -301,7 +309,6 @@ export class GameScene extends Phaser.Scene {
       enemyFactory.create(spawn),
     );
     this.replaceEnemies(spawned);
-    this.emitEnemyHealth();
   }
 
   /**
@@ -441,7 +448,7 @@ export class GameScene extends Phaser.Scene {
       this.enemies,
       WEAPON_CONFIGS,
       STARTING_WEAPON_ID,
-      () => canPlayerFireInPhase(this.phase),
+      () => canPlayerFireInRoom(this.phase, this.roomState),
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
     );
     this.weaponSystem.blockProjectilesWith(this.terrainBuilder.group);
@@ -639,7 +646,8 @@ export class GameScene extends Phaser.Scene {
     this.requestedStartingStageIndex = undefined;
     this.currentRoomIndex = 0;
     this.restorePlayerHealthForStage();
-    gameEvents.emit('room-state-changed', 'idle');
+    this.roomState = 'idle';
+    gameEvents.emit('room-state-changed', this.roomState);
   }
 
   private restorePlayerHealthForStage() {
@@ -680,7 +688,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleRoomStateChanged(state: RoomState) {
+    this.roomState = state;
     gameEvents.emit('room-state-changed', state);
+
+    if (state === 'locked') {
+      this.emitEnemyHealth();
+      return;
+    }
 
     if (state === 'cleared') {
       this.setPhase('room-cleared');
@@ -719,7 +733,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (!canPlayerFireInPhase(this.phase) || pointer.button !== 0) {
+    if (
+      !canPlayerFireInRoom(this.phase, this.roomState) ||
+      pointer.button !== 0
+    ) {
       return;
     }
 
@@ -897,6 +914,7 @@ export class GameScene extends Phaser.Scene {
       if (
         !enemy ||
         this.phase !== 'playing' ||
+        this.roomState !== 'locked' ||
         this.playerController.isInvulnerable
       ) {
         return;
