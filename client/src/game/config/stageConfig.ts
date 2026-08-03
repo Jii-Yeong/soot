@@ -16,6 +16,11 @@ import {
   STAGE_ONE_RANGED_SPRITE,
   type RangedSpriteConfig,
 } from '@/game/config/rangedEnemyAnimationConfig';
+import {
+  STAGE_ONE_FLOOR_SKIN,
+  STAGE_ONE_STOOL_SKIN,
+  type SliceSkinConfig,
+} from '@/game/config/terrainSkinConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
 import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
@@ -61,6 +66,10 @@ export type StageConfig = {
    * skin with a pixel-art tile), instead of letting the backdrop imply ground.
    */
   showFloor?: boolean;
+  /** Pixel 3-slice skin for the 1층 floor; physics stays on the floor tiles. */
+  floorSkin?: SliceSkinConfig;
+  /** Pixel 3-slice skin for the 2·3층 platforms (stools). */
+  terrainSkin?: SliceSkinConfig;
   /** Real-atlas flying enemy art; stages without it use the placeholder. */
   flyingSprite?: FlyingSpriteConfig;
   /** Real-atlas ranged enemy art; stages without it use the placeholder. */
@@ -93,6 +102,8 @@ export const STAGE_ONE_CONFIG: StageConfig = {
   meleeSwing: MELEE_SWING_CONFIG,
   meleeSprite: STAGE_ONE_MELEE_SPRITE,
   showFloor: true,
+  floorSkin: STAGE_ONE_FLOOR_SKIN,
+  terrainSkin: STAGE_ONE_STOOL_SKIN,
   rooms: CITY_ROOMS,
 };
 

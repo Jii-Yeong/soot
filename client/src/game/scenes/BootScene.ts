@@ -33,6 +33,7 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
+import { ALL_TERRAIN_SKINS } from '@/game/config/terrainSkinConfig';
 import {
   STAGE_ONE_RANGED_ANIMATIONS,
   STAGE_ONE_RANGED_ATLAS_JSON,
@@ -76,6 +77,11 @@ export class BootScene extends Phaser.Scene {
       STAGE_ONE_MELEE_ATLAS_PNG,
       STAGE_ONE_MELEE_ATLAS_JSON,
     );
+    for (const skin of ALL_TERRAIN_SKINS) {
+      for (const slice of [skin.left, skin.middle, skin.right]) {
+        this.load.image(slice.key, slice.path);
+      }
+    }
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 

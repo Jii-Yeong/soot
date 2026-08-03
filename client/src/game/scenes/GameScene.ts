@@ -182,6 +182,7 @@ export class GameScene extends Phaser.Scene {
       this.stage.rooms,
       Boolean(this.stage.background),
       this.stage.showFloor,
+      this.stage.floorSkin,
     );
   }
 
@@ -250,7 +251,7 @@ export class GameScene extends Phaser.Scene {
     this.replaceEnemies([]);
     this.emitEnemyHealth();
 
-    this.terrainBuilder.build(roomConfig.terrain);
+    this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
   }
 
   private spawnRoomEnemies() {

@@ -5,6 +5,8 @@ import {
   placeRoomInStage,
   stageWorldWidth,
 } from '@/game/config/roomPlacement';
+import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
+import { drawSliceSkin } from '@/game/systems/SliceSkin';
 
 export const FLOOR_TILE = 64;
 export const FLOOR_SURFACE_Y = GAME_HEIGHT - FLOOR_TILE;
@@ -24,8 +26,9 @@ export type PitBounds = { start: number; end: number };
 export class FloorBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
   private pits: PitBounds[] = [];
+  private skinObjects: Phaser.GameObjects.GameObject[] = [];
 
-  constructor(scene: Phaser.Scene) {
+  constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.physics.add.staticGroup();
   }
 
@@ -33,8 +36,10 @@ export class FloorBuilder {
     rooms: readonly RoomConfig[],
     backdropSuppliesGround: boolean,
     showFloor = false,
+    skin?: SliceSkinConfig,
   ) {
     this.group.clear(true, true);
+    this.clearSkin();
     this.pits = rooms.flatMap((_, index) =>
       (placeRoomInStage(rooms, index).pits ?? []).map((pit) => ({
         start: pit.x,
@@ -56,6 +61,25 @@ export class FloorBuilder {
       tile.setDepth(FLOOR_DEPTH);
     }
 
+    if (skin) {
+      // The pixel skin covers the ground, so the placeholder tiles only serve
+      // as physics; draw a 3-slice run across each solid (non-pit) span.
+      this.group.setVisible(false);
+      for (const [startX, endX] of this.solidSpans(width)) {
+        this.skinObjects.push(
+          ...drawSliceSkin(
+            this.scene,
+            skin,
+            startX,
+            endX,
+            FLOOR_SURFACE_Y,
+            FLOOR_DEPTH,
+          ),
+        );
+      }
+      return;
+    }
+
     // Show the floor band when the stage opts in (a placeholder to skin with a
     // pixel tile). Otherwise the real backdrop art supplies the ground and the
     // tiles stay hidden — except a stage with pits needs them visible so the
@@ -63,6 +87,30 @@ export class FloorBuilder {
     this.group.setVisible(
       showFloor || !backdropSuppliesGround || this.pits.length > 0,
     );
+  }
+
+  /** Contiguous solid floor runs across [0, width], i.e. the gaps between pits. */
+  private solidSpans(width: number): [number, number][] {
+    const sorted = [...this.pits].sort((a, b) => a.start - b.start);
+    const spans: [number, number][] = [];
+    let cursor = 0;
+    for (const pit of sorted) {
+      if (pit.start > cursor) {
+        spans.push([cursor, pit.start]);
+      }
+      cursor = Math.max(cursor, pit.end);
+    }
+    if (cursor < width) {
+      spans.push([cursor, width]);
+    }
+    return spans;
+  }
+
+  private clearSkin() {
+    for (const obj of this.skinObjects) {
+      obj.destroy();
+    }
+    this.skinObjects = [];
   }
 
   private isOverPit(x: number) {
