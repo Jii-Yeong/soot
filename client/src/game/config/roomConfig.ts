@@ -56,7 +56,7 @@ export type RoomConfig = {
   id: string;
   label: string;
   kind: 'combat' | 'boss';
-  /** How wide this room's segment is in the continuous stage. */
+  /** Width of this room's independent world. */
   worldWidth: number;
   entranceX: number;
   exitX: number;
@@ -85,7 +85,7 @@ export type RoomDefinition = Omit<
   'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'door'
 > & {
   kind?: RoomConfig['kind'];
-  /** Room segment width; the exit door sits near its right edge. */
+  /** Room width; the exit portal sits near its right edge after combat. */
   worldWidth?: number;
   /** Stage-specific door geometry, e.g. a full-height aerial barrier. */
   door?: Partial<RoomConfig['door']>;

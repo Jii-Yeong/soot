@@ -8,16 +8,27 @@ type RoomDoor = {
   playerCollider: Phaser.Physics.Arcade.Collider;
 };
 
+type RoomPortal = {
+  view: Phaser.GameObjects.Graphics;
+  zone: Phaser.GameObjects.Zone;
+  body: Phaser.Physics.Arcade.StaticBody;
+  playerOverlap: Phaser.Physics.Arcade.Collider;
+};
+
 type RoomDirectorOptions = {
   scene: Phaser.Scene;
   player: Phaser.Physics.Arcade.Sprite;
   config: RoomConfig;
   onStateChanged: (state: RoomState) => void;
   onEntranceDetected: () => void;
+  onExitRequested: () => void;
 };
 
 const ENTRANCE_DETECTOR_OFFSET_X = 200;
 const ENTRANCE_DETECTOR_WIDTH = 72;
+const PORTAL_WIDTH = 64;
+const PORTAL_HEIGHT = 128;
+const PORTAL_OVERLAP_PADDING = 28;
 
 export class RoomDirector {
   private readonly enemies = new Set<Phaser.GameObjects.GameObject>();
@@ -26,11 +37,14 @@ export class RoomDirector {
   private readonly config: RoomConfig;
   private readonly onStateChanged: (state: RoomState) => void;
   private readonly onEntranceDetected: () => void;
+  private readonly onExitRequested: () => void;
   private readonly exit: RoomDoor;
+  private readonly portal: RoomPortal;
   private readonly entranceDetector: Phaser.GameObjects.Zone;
   private readonly entranceOverlap: Phaser.Physics.Arcade.Collider;
   private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
+  private exitRequested = false;
 
   constructor(options: RoomDirectorOptions) {
     this.scene = options.scene;
@@ -38,6 +52,7 @@ export class RoomDirector {
     this.config = options.config;
     this.onStateChanged = options.onStateChanged;
     this.onEntranceDetected = options.onEntranceDetected;
+    this.onExitRequested = options.onExitRequested;
 
     const detectorX = this.config.entranceX + ENTRANCE_DETECTOR_OFFSET_X;
     this.exit = this.createDoor(this.config.exitX);
@@ -51,6 +66,7 @@ export class RoomDirector {
         }
       },
     );
+    this.portal = this.createPortal(this.config.exitX);
     this.statusText = this.scene.add
       .text(this.scene.scale.width / 2, 154, '', {
         color: '#ff7180',
@@ -69,6 +85,10 @@ export class RoomDirector {
     this.exit.playerCollider.destroy();
     this.scene.tweens.killTweensOf(this.exit.view);
     this.exit.view.destroy();
+    this.portal.playerOverlap.destroy();
+    this.portal.zone.destroy();
+    this.scene.tweens.killTweensOf(this.portal.view);
+    this.portal.view.destroy();
     this.statusText.destroy();
   }
 
@@ -135,6 +155,51 @@ export class RoomDirector {
     return detector;
   }
 
+  private createPortal(x: number): RoomPortal {
+    const height = Math.min(PORTAL_HEIGHT, this.config.door.height - 16);
+    const view = this.scene.add
+      .graphics()
+      .setPosition(x, this.config.door.y)
+      .setDepth(7)
+      .setVisible(false)
+      .setAlpha(0);
+    view.fillStyle(0x163d35, 0.7).fillEllipse(0, 0, PORTAL_WIDTH, height);
+    view
+      .lineStyle(4, 0xb6ffe4, 0.92)
+      .strokeEllipse(0, 0, PORTAL_WIDTH, height);
+    view
+      .lineStyle(1, 0xffffff, 0.75)
+      .strokeEllipse(0, 0, PORTAL_WIDTH - 18, height - 22);
+
+    const zone = this.scene.add.zone(
+      x,
+      this.config.door.y,
+      PORTAL_WIDTH + PORTAL_OVERLAP_PADDING,
+      height + PORTAL_OVERLAP_PADDING,
+    );
+    this.scene.physics.add.existing(zone, true);
+    const body = zone.body as Phaser.Physics.Arcade.StaticBody;
+    body.enable = false;
+    const playerOverlap = this.scene.physics.add.overlap(
+      this.player,
+      zone,
+      () => this.requestExit(),
+    );
+    playerOverlap.active = false;
+
+    return { view, zone, body, playerOverlap };
+  }
+
+  private requestExit() {
+    if (this.state !== 'cleared' || this.exitRequested) {
+      return;
+    }
+
+    this.exitRequested = true;
+    this.portal.playerOverlap.active = false;
+    this.onExitRequested();
+  }
+
   private clearRoom() {
     this.exit.playerCollider.active = false;
     this.exit.body.enable = false;
@@ -144,6 +209,28 @@ export class RoomDirector {
       alpha: 0,
       duration: 300,
       onComplete: () => this.exit.view.setVisible(false),
+    });
+    this.portal.body.enable = true;
+    this.portal.playerOverlap.active = true;
+    this.portal.view.setVisible(true).setAlpha(0).setScale(0.82, 0.9);
+    this.scene.tweens.add({
+      targets: this.portal.view,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 260,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: this.portal.view,
+          scaleX: 1.08,
+          scaleY: 0.96,
+          duration: 720,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+      },
     });
     this.setState('cleared');
   }
@@ -175,7 +262,7 @@ export class RoomDirector {
     if (this.state === 'cleared') {
       const result = this.config.kind === 'boss' ? 'BOSS DEFEATED' : 'CLEAR';
       this.statusText
-        .setText(`${this.config.label}  //  ${result}  //  EXIT UNLOCKED`)
+        .setText(`${this.config.label}  //  ${result}  //  PORTAL OPEN`)
         .setColor('#b6ffe4');
     }
   }

@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const ROOM_TRANSITION_TIMEOUT = 10_000;
-const SINGLE_ROOM_TEST_TIMEOUT = 75_000;
 const CITY_ROOM_ONE_MAX_HEALTH = 470;
 const CITY_ROOM_TWO_MAX_HEALTH = 530;
 
@@ -167,11 +166,12 @@ async function clearCityRoomOne(
   await fireAt(page, bounds, 640, 360, 1200);
 }
 
-async function advanceThroughDoor(page: Page) {
+async function enterExitPortal(page: Page) {
   await whileHoldingKey(page, 'KeyD', async () => {
-    // Rooms are long and end with an exit wall, so run-up jump repeatedly while
-    // crossing. A held jump (not a fast press) is needed — Phaser's JustDown
-    // misses a too-quick tap.
+    // The portal opens at the far end of a cleared room. Run-up jump repeatedly
+    // across the room's remaining terrain until entering it starts the next
+    // independent arena. A held jump is needed because Phaser's JustDown misses
+    // a too-quick tap.
     for (let hop = 0; hop < 34; hop += 1) {
       const roomState = await page
         .locator('main')
@@ -189,6 +189,31 @@ async function advanceThroughDoor(page: Page) {
       'locked',
       { timeout: ROOM_TRANSITION_TIMEOUT },
     );
+  });
+}
+
+async function clearCurrentRoomThroughRuntime(page: Page) {
+  await page.evaluate(() => {
+    type RuntimeEnemy = { active: boolean };
+    type RuntimeScene = {
+      enemies: RuntimeEnemy[];
+      roomDirector: {
+        notifyEnemyDefeated: (enemy: RuntimeEnemy) => void;
+      };
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    for (const enemy of scene.enemies.filter(({ active }) => active)) {
+      scene.roomDirector.notifyEnemyDefeated(enemy);
+    }
   });
 }
 
@@ -639,18 +664,14 @@ test('does not offer a weapon drop from a standard enemy', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
-test('advances to the next room after clearing the first and locks it again', async ({
+test('enters the clear portal and starts combat in the next room', async ({
   page,
 }) => {
-  test.setTimeout(SINGLE_ROOM_TEST_TIMEOUT);
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
   await enterGame(page);
-  await page.waitForTimeout(1000);
-
-  const bounds = await getCanvasBounds(page);
-  await clearCityRoomOne(page, bounds);
+  await clearCurrentRoomThroughRuntime(page);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-phase',
@@ -658,7 +679,7 @@ test('advances to the next room after clearing the first and locks it again', as
     { timeout: 5000 },
   );
 
-  await advanceThroughDoor(page);
+  await enterExitPortal(page);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',

@@ -1,10 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 import type { RoomConfig } from '@/game/config/roomConfig';
-import {
-  placeRoomInStage,
-  stageWorldWidth,
-} from '@/game/config/roomPlacement';
 import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
 import { drawSliceSkin } from '@/game/systems/SliceSkin';
 
@@ -16,12 +12,12 @@ const FLOOR_DEPTH = -9;
 export type PitBounds = { start: number; end: number };
 
 /**
- * Tiles a stage's floor as static bodies, leaving gaps where the stage's rooms
- * define pits, and stays the single source of truth for where those pits are.
+ * Tiles the active room's floor as static bodies, leaving gaps where that room
+ * defines pits, and stays the single source of truth for where those pits are.
  *
- * The floor group and its player collider persist across stages, so `build`
- * clears and re-tiles in place on every stage change — one stage's pits never
- * leak into the next.
+ * The floor group and its player collider persist across room transitions, so
+ * `build` clears and re-tiles in place — one room's pits never leak into the
+ * next independent arena.
  */
 export class FloorBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
@@ -33,21 +29,19 @@ export class FloorBuilder {
   }
 
   build(
-    rooms: readonly RoomConfig[],
+    room: RoomConfig,
     backdropSuppliesGround: boolean,
     showFloor = false,
     skin?: SliceSkinConfig,
   ) {
     this.group.clear(true, true);
     this.clearSkin();
-    this.pits = rooms.flatMap((_, index) =>
-      (placeRoomInStage(rooms, index).pits ?? []).map((pit) => ({
-        start: pit.x,
-        end: pit.x + pit.width,
-      })),
-    );
+    this.pits = (room.pits ?? []).map((pit) => ({
+      start: pit.x,
+      end: pit.x + pit.width,
+    }));
 
-    const width = stageWorldWidth(rooms);
+    const width = room.worldWidth;
     for (let x = 32; x < width; x += FLOOR_TILE) {
       if (this.isOverPit(x)) {
         continue;
