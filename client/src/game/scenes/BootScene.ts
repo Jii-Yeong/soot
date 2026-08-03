@@ -36,10 +36,11 @@ export class BootScene extends Phaser.Scene {
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
     for (const asset of assets) {
-      // Only sound effects block the title screen. Music is megabytes and
-      // nothing on the title needs it the instant boot ends, so AudioDirector
-      // fetches it in the background instead. See AudioDirector.loadMusic.
-      if (asset.key in MUSIC_CONFIG) {
+      // The title track is part of the title screen, not a later-stage luxury:
+      // preload it so entering the title can attempt playback immediately.
+      // The remaining music stays deferred in AudioDirector, keeping the boot
+      // download limited to the first screen and the compact SFX set.
+      if (asset.key in MUSIC_CONFIG && asset.key !== 'bgm-title') {
         continue;
       }
 

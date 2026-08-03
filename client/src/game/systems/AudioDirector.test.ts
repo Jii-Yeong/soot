@@ -214,6 +214,21 @@ describe('AudioDirector', () => {
     expect(added[0].playCount).toBe(1);
   });
 
+  it('plays the preloaded title track without downloading it again', () => {
+    const urls = captureFetches();
+    const { game, added } = createFakeGame({
+      loaded: ['bgm-title'],
+      canDecode: true,
+    });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('scene-changed', 'title');
+
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ key: 'bgm-title', playCount: 1 });
+    expect(urls).not.toContainEqual(expect.stringContaining('title'));
+  });
+
   it('fetches only the stage in play and the one after it', async () => {
     const urls = captureFetches();
     const { game } = createFakeGame({ canDecode: true });

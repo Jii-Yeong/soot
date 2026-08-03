@@ -116,7 +116,14 @@ export class AudioDirector {
   private requestMusic(key: MusicKey | undefined) {
     const manager = this.game.sound;
 
-    if (!key || this.requested.has(key) || !canDecode(manager)) {
+    // BootScene preloads the title track so it can start as soon as the title
+    // appears. Do not fetch and decode that same file a second time.
+    if (
+      !key ||
+      this.isLoaded(key) ||
+      this.requested.has(key) ||
+      !canDecode(manager)
+    ) {
       return;
     }
 
