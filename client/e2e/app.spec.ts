@@ -27,7 +27,15 @@ async function enterGame(page: Page) {
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await enableEnemyHealth(page);
   await triggerCurrentRoom(page);
+}
+
+async function enableEnemyHealth(page: Page) {
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  await adminButton.click();
+  await page.getByRole('button', { name: 'Enemy health display' }).click();
+  await adminButton.click();
 }
 
 async function triggerCurrentRoom(page: Page) {
@@ -261,9 +269,9 @@ test('waits for the entrance detector before starting combat', async ({
 
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
   await expect(page.locator('main')).toHaveAttribute('data-room-state', 'idle');
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveCount(
+    0,
+  );
 
   await triggerCurrentRoom(page);
 
@@ -271,9 +279,12 @@ test('waits for the entrance detector before starting combat', async ({
     'data-room-state',
     'locked',
   );
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute(
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveCount(
+    0,
+  );
+
+  await enableEnemyHealth(page);
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveAttribute(
     'aria-valuenow',
     CITY_ROOM_ONE_MAX_HEALTH.toString(),
   );
@@ -449,6 +460,27 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   await expect(
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuemax', '115');
+});
+
+test('shows boss health without enabling the standard enemy health HUD', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page.getByRole('button', { name: '보스' }).first().click();
+  await triggerCurrentRoom(page);
+
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole('meter', { name: 'Boss health' })).toHaveAttribute(
+    'aria-valuemax',
+    '500',
+  );
 });
 
 test('player fire damages the enemy without stopping combat', async ({

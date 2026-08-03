@@ -13,7 +13,11 @@ import type { RoomState } from '@/game/state/roomState';
  */
 type GameEventMap = {
   'health-changed': [current: number, max: number];
-  'enemy-health-changed': [current: number, max: number];
+  'enemy-health-changed': [
+    current: number,
+    max: number,
+    isBoss: boolean,
+  ];
   'boss-phase-changed': [phase: BossPhase | null];
   'phase-changed': [phase: GamePhase];
   'room-state-changed': [state: RoomState];

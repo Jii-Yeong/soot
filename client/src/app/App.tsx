@@ -8,11 +8,13 @@ import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
   const [adminOpen, setAdminOpen] = useState(false);
+  const [showEnemyHealth, setShowEnemyHealth] = useState(false);
   const {
     health,
     maxHealth,
     enemyHealth,
     enemyMaxHealth,
+    enemyIsBoss,
     bossPhase,
     scene,
     phase,
@@ -43,6 +45,7 @@ export function App() {
       data-weapon={weaponId}
       data-nearby-weapon={nearbyWeaponId ?? ''}
       data-invincible={invincible}
+      data-enemy-health-visible={enemyIsBoss || showEnemyHealth}
     >
       <PhaserGame />
       {scene === 'game' && (
@@ -54,13 +57,15 @@ export function App() {
               maxValue={maxHealth}
               variant="player"
             />
-            <HealthMeter
-              label="ENEMY"
-              value={enemyHealth}
-              maxValue={enemyMaxHealth}
-              variant="enemy"
-              bossPhase={bossPhase}
-            />
+            {(enemyIsBoss || showEnemyHealth) && (
+              <HealthMeter
+                label={enemyIsBoss ? 'BOSS' : 'ENEMY'}
+                value={enemyHealth}
+                maxValue={enemyMaxHealth}
+                variant="enemy"
+                bossPhase={enemyIsBoss ? bossPhase : null}
+              />
+            )}
             {bossPhase === 2 && (
               <div
                 className="boss-phase-alert"
@@ -101,6 +106,18 @@ export function App() {
                   onClick={toggleInvincible}
                 >
                   무적 // {invincible ? 'ON' : 'OFF'}
+                </button>
+
+                <button
+                  type="button"
+                  className={`admin-controls__button${
+                    showEnemyHealth ? ' admin-controls__button--active' : ''
+                  }`}
+                  aria-label="Enemy health display"
+                  aria-pressed={showEnemyHealth}
+                  onClick={() => setShowEnemyHealth((visible) => !visible)}
+                >
+                  일반 몬스터 체력 // {showEnemyHealth ? 'ON' : 'OFF'}
                 </button>
 
                 {[1, 2, 3, 4, 5].map((stageNumber) => (

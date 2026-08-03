@@ -11,8 +11,12 @@ export function useGameUiEvents() {
     const handleHealthChanged = (current: number, max: number) => {
       useGameUiStore.getState().setHealth(current, max);
     };
-    const handleEnemyHealthChanged = (current: number, max: number) => {
-      useGameUiStore.getState().setEnemyHealth(current, max);
+    const handleEnemyHealthChanged = (
+      current: number,
+      max: number,
+      isBoss: boolean,
+    ) => {
+      useGameUiStore.getState().setEnemyHealth(current, max, isBoss);
     };
     const handleBossPhaseChanged = (bossPhase: BossPhase | null) => {
       useGameUiStore.getState().setBossPhase(bossPhase);
