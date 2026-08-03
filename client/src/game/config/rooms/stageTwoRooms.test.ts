@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest';
+import {
+  FLYING_ENEMY_COMBAT_CONFIG,
+  MELEE_ENEMY_COMBAT_CONFIG,
+  RANGED_ENEMY_COMBAT_CONFIG,
+} from '@/game/config/combatConfig';
+import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import type { EnemySpawnConfig } from '@/game/config/roomConfig';
+import { ALLEY_ROOM_ONE, ALLEY_ROOM_TWO } from './stageTwoRooms';
+
+const PLAYER_ENTRY_X = 64 + 90;
+const MINIMUM_ENTRY_BREATHER = 300;
+
+function activationX(spawn: EnemySpawnConfig) {
+  switch (spawn.type) {
+    case 'melee':
+      return spawn.x - MELEE_ENEMY_COMBAT_CONFIG.aggroRadius;
+    case 'ranged':
+      return spawn.x - RANGED_ENEMY_COMBAT_CONFIG.aggroRadius;
+    case 'flying': {
+      const verticalDistance = Math.abs(spawn.y - (GAME_HEIGHT - 120));
+      return (
+        spawn.x -
+        Math.sqrt(
+          FLYING_ENEMY_COMBAT_CONFIG.aggroRadius ** 2 -
+            verticalDistance ** 2,
+        )
+      );
+    }
+    case 'boss':
+      throw new Error('stage 2 combat room does not contain a boss');
+  }
+}
+
+describe('stage 2 room entry layout', () => {
+  it('keeps both room entrances out of every enemy activation radius', () => {
+    for (const room of [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO]) {
+      const earliestActivation = Math.min(
+        ...room.enemySpawns.map(activationX),
+      );
+
+      expect(
+        earliestActivation - PLAYER_ENTRY_X,
+        `${room.id} attacks too soon after entry`,
+      ).toBeGreaterThanOrEqual(MINIMUM_ENTRY_BREATHER);
+    }
+  });
+
+  it.each([
+    ['alley-01', ALLEY_ROOM_ONE],
+    ['alley-02', ALLEY_ROOM_TWO],
+  ] as const)('ramps the %s opening instead of activating together', (_, room) => {
+    const opening = room.enemySpawns.slice(0, 3).map(activationX);
+
+    expect(opening[1]! - opening[0]!).toBeGreaterThanOrEqual(300);
+    expect(opening[2]! - opening[1]!).toBeGreaterThanOrEqual(180);
+  });
+});

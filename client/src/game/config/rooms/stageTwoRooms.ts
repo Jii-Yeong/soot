@@ -14,9 +14,10 @@ export const ALLEY_ROOM_ONE = defineRoom({
   intensity: 1.15,
   enemySpawns: [
     // Cluster A — the mouth of the alley.
-    { type: 'melee', x: 450, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 900, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 1150, y: GAME_HEIGHT - 300 },
+    // The entry stays quiet for over a screen quarter before the first aggro.
+    { type: 'melee', x: 950, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1400, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 1650, y: GAME_HEIGHT - 300 },
     // Cluster B — mid, past the first gap.
     { type: 'melee', x: 1950, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 2250, y: GAME_HEIGHT - 120 },
@@ -63,14 +64,15 @@ export const ALLEY_ROOM_TWO = defineRoom({
   label: 'ROOM 02',
   intensity: 1.2,
   enemySpawns: [
-    // Cluster A — a tight ambush at the entrance.
-    { type: 'melee', x: 450, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 700, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 600, y: GAME_HEIGHT - 320 },
-    { type: 'ranged', x: 1050, y: GAME_HEIGHT - 120 },
+    // Cluster A opens with one pursuer, then makes the first wall and gap
+    // meaningful: use the dumpster against a shooter, then cross under a flier.
+    { type: 'melee', x: 950, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1400, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 1650, y: GAME_HEIGHT - 320 },
     // Cluster B — mid, past the first gap.
-    { type: 'melee', x: 1750, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 2100, y: GAME_HEIGHT - 300 },
+    { type: 'melee', x: 1900, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 2050, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 2200, y: GAME_HEIGHT - 300 },
     // Cluster C — the far stretch.
     { type: 'ranged', x: 2600, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 3050, y: GAME_HEIGHT - 120 },

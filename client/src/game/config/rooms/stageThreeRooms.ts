@@ -21,19 +21,21 @@ export const UNDERGROUND_ROOM_ONE = defineRoom({
   label: 'ROOM 01',
   intensity: 1.25,
   enemySpawns: [
-    // Opening: a short ground fight before the first crossing.
-    { type: 'melee', x: 460, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 900, y: GAME_HEIGHT - 120 },
-    // Middle: the first flying enemy joins after the player has chosen a
-    // route once. The nearby catwalk gives the player a firing-angle and cover
-    // choice.
-    { type: 'flying', x: 1300, y: GAME_HEIGHT - 310 },
-    { type: 'melee', x: 1600, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 1950, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 2180, y: GAME_HEIGHT - 320 },
-    // Final cluster, followed by a clear approach to the boss door.
-    { type: 'melee', x: 2720, y: GAME_HEIGHT - 120 },
+    // The entry is a quiet approach to the first catwalk. The player meets a
+    // pursuer only after seeing the upper route that crosses the first gap.
+    { type: 'melee', x: 950, y: GAME_HEIGHT - 120 },
+    // The shooter waits beyond that crossing. This makes the catwalk a route
+    // choice, rather than putting an unavoidable shot in the doorway.
+    { type: 'ranged', x: 1450, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 1800, y: GAME_HEIGHT - 310 },
+    // Once the route has been used twice, the same three roles combine around
+    // the next crossings.
+    { type: 'melee', x: 2050, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 2600, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 2800, y: GAME_HEIGHT - 320 },
+    // Final pair, then a clear approach to the boss door.
     { type: 'ranged', x: 3100, y: GAME_HEIGHT - 120 },
+    { type: 'melee', x: 3150, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
     // Each catwalk covers its corresponding pit but begins early enough to be
@@ -56,19 +58,21 @@ export const UNDERGROUND_ROOM_TWO = defineRoom({
   label: 'ROOM 02',
   intensity: 1.35,
   enemySpawns: [
-    // The room starts with a familiar low route rather than a trap at the door.
-    { type: 'melee', x: 440, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 850, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 780, y: GAME_HEIGHT - 310 },
-    // The middle puts the route choice inside a mixed fight.
-    { type: 'melee', x: 1480, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 1640, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 1860, y: GAME_HEIGHT - 320 },
-    // The final trio is the local peak. Nothing is spawned after it, leaving
-    // the player time to finish the fight before entering the boss room.
-    { type: 'melee', x: 2200, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 2680, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 2840, y: GAME_HEIGHT - 300 },
+    // Repeat the readable first crossing before mixing the same roles more
+    // tightly than room 01.
+    { type: 'melee', x: 950, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 1450, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 1800, y: GAME_HEIGHT - 310 },
+    // The middle puts the route choice inside a mixed fight. The upper ledges
+    // give an optional angle, not a required detour.
+    { type: 'melee', x: 2100, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 2600, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 2750, y: GAME_HEIGHT - 320 },
+    // Final trio is the local peak. Nothing follows it, leaving time to reset
+    // before entering the boss room.
+    { type: 'melee', x: 2800, y: GAME_HEIGHT - 120 },
+    { type: 'ranged', x: 2950, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3150, y: GAME_HEIGHT - 300 },
   ],
   terrain: [
     { type: 'platform', x: 620, y: CATWALK_Y, width: 630, height: 22 },

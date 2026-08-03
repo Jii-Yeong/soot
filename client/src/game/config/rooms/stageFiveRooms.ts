@@ -33,11 +33,11 @@ export const RETURN_ROOM_ONE = defineRoom({
   intensity: 1.6,
   door: AERIAL_ROOM_DOOR,
   enemySpawns: [
-    // First contact: one slow hover in open space. No second enemy can aggro
-    // until the player has moved about 640px farther into the room.
+    // First contact comes after enough open air to establish the flight
+    // controls. No enemy can fire from the room entrance.
     {
       type: 'flying',
-      x: 520,
+      x: 1050,
       y: 360,
       movement: { mode: AerialMovementMode.HOVER },
     },
@@ -45,7 +45,7 @@ export const RETURN_ROOM_ONE = defineRoom({
     // with the opening hover.
     {
       type: 'flying',
-      x: 1260,
+      x: 1650,
       y: 200,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -57,13 +57,13 @@ export const RETURN_ROOM_ONE = defineRoom({
     // a clear diagonal route through the middle; neither is a piece of cover.
     {
       type: 'flying',
-      x: 1900,
+      x: 2250,
       y: 500,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 2160,
+      x: 2480,
       y: 220,
       movement: {
         mode: AerialMovementMode.ORBIT,
@@ -75,13 +75,13 @@ export const RETURN_ROOM_ONE = defineRoom({
     // not a wall of bodies across the same altitude.
     {
       type: 'flying',
-      x: 2860,
+      x: 3000,
       y: 520,
       movement: { mode: AerialMovementMode.HOVER },
     },
     {
       type: 'flying',
-      x: 3120,
+      x: 3260,
       y: 250,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -98,11 +98,11 @@ export const RETURN_ROOM_TWO = defineRoom({
   intensity: 1.7,
   door: AERIAL_ROOM_DOOR,
   enemySpawns: [
-    // Room 02 starts with the familiar two-height formation, then adds a
-    // patrol pair. These are brief combinations, not an uninterrupted swarm.
+    // Room 02 also gives a short entry lane, then starts from the familiar
+    // two-height formation before tightening into the final group.
     {
       type: 'flying',
-      x: 500,
+      x: 1050,
       y: 210,
       movement: {
         mode: AerialMovementMode.ORBIT,
@@ -112,13 +112,13 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 820,
+      x: 1450,
       y: 540,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 1380,
+      x: 1950,
       y: 170,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -128,7 +128,7 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 1700,
+      x: 2250,
       y: 480,
       movement: { mode: AerialMovementMode.HOVER },
     },
@@ -137,7 +137,7 @@ export const RETURN_ROOM_TWO = defineRoom({
     // them rather than being forced to brute-force a single horizontal lane.
     {
       type: 'flying',
-      x: 2080,
+      x: 2600,
       y: 250,
       movement: {
         mode: AerialMovementMode.ORBIT,
@@ -147,13 +147,13 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 2340,
+      x: 2850,
       y: 380,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 2580,
+      x: 3100,
       y: 500,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -161,7 +161,7 @@ export const RETURN_ROOM_TWO = defineRoom({
         rangeY: 70,
       },
     },
-    // No spawns after x=2580. The cleared formation leaves about 1,000px to
+    // No spawns after x=3100. The cleared formation leaves nearly 500px to
     // the full-height boss door: enough room to reset position and read the
     // arena transition before the Architect starts its bullet patterns.
   ],
