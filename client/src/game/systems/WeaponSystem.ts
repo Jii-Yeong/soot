@@ -105,7 +105,6 @@ export class WeaponSystem {
     }
 
     weapon.nextFireAt = time + config.fireInterval;
-    gameEvents.emit('weapon-fired', config.id, this.player.x, this.player.y);
   }
 
   equip(weaponId: string) {
@@ -151,11 +150,19 @@ export class WeaponSystem {
       config.spreadDegrees,
     );
 
+    const muzzle = this.feedback.getMuzzlePosition(
+      baseAngle,
+      config.muzzleOffset,
+      config.muzzleRise,
+      baseAngle,
+    );
+
     for (const angle of angles) {
       const { x, y } = this.feedback.getMuzzlePosition(
         angle,
         config.muzzleOffset,
         config.muzzleRise,
+        baseAngle,
       );
       weapon.pool.fire(x, y, angle, {
         pierce: config.pierce,
@@ -163,6 +170,9 @@ export class WeaponSystem {
     }
 
     this.feedback.playFire(config, baseAngle, angles);
+    // A burst is three physical volleys, so emit its cue per volley instead of
+    // once when the trigger only schedules the delayed rounds.
+    gameEvents.emit('weapon-fired', config.id, muzzle.x, muzzle.y);
   }
 
   private computePelletAngles(

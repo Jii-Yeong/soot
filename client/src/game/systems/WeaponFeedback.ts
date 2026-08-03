@@ -1,19 +1,12 @@
 import Phaser from 'phaser';
 import {
-  FRONT_ARM,
-  FRONT_ARM_SHOULDER_BY_FRAME,
-  WEAPON_GRIP_BY_FRAME,
-  WEAPON_SWING_RATE,
-  rigAnchor,
-} from '@/game/config/playerRigConfig';
-import {
   PLAYER_STACK_DEPTH,
   mirrorScaleY,
 } from '@/game/config/renderDepth';
 import { BackArm } from '@/game/systems/BackArm';
 import { FrontArm } from '@/game/systems/FrontArm';
 import { muzzlePoint } from '@/game/systems/muzzlePoint';
-import { weaponGripOffset } from '@/game/systems/weaponGrip';
+import { weaponGripPosition } from '@/game/systems/weaponGripPosition';
 import type { WeaponConfig } from '@/game/config/weaponConfig';
 
 /**
@@ -24,20 +17,6 @@ import type { WeaponConfig } from '@/game/config/weaponConfig';
  */
 const GRIP_ORIGIN_X = 18 / 72;
 const GRIP_ORIGIN_Y = 14 / 24;
-
-/**
- * Where that grip sits relative to the player sprite's centre. The player frame
- * is 96x96 with a centred origin and the hand is drawn at (53, 45), so the
- * weapon hangs 5px right of centre and 3px above it. Mirrored when aiming left.
- */
-const HAND_FROM_CENTRE_X = 5;
-const HAND_FROM_CENTRE_Y = -3;
-
-const DEFAULT_GRIP = { x: HAND_FROM_CENTRE_X, y: HAND_FROM_CENTRE_Y };
-const DEFAULT_SHOULDER = {
-  x: FRONT_ARM.shoulderFromCentreX,
-  y: FRONT_ARM.shoulderFromCentreY,
-};
 
 /**
  * Recoil settles on a half-life rather than a flat rate per millisecond. A flat
@@ -60,8 +39,6 @@ export class WeaponFeedback {
   private readonly frontArm: FrontArm;
   /** The arm needs the barrel length to know where the handguard runs out. */
   private weapon: WeaponConfig;
-  /** Which way the rig is mirrored. Read back by the muzzle and the climb. */
-  private mirrored = false;
   private recoil = 0;
   private climb = 0;
   private hitStopTimer?: Phaser.Time.TimerEvent;
@@ -101,55 +78,36 @@ export class WeaponFeedback {
       aimPoint.x,
       aimPoint.y,
     );
-    const aimingLeft = Math.cos(angle) < 0;
-    // The hand belongs to the pose on screen, same as the shoulder does.
-    const frame = this.player.frame.name;
-    const restGrip = rigAnchor(DEFAULT_GRIP, WEAPON_GRIP_BY_FRAME, frame);
-    const shoulder = rigAnchor(
-      DEFAULT_SHOULDER,
-      FRONT_ARM_SHOULDER_BY_FRAME,
-      frame,
-    );
-    // The hand rides an arc so the arm holding it has something to turn about;
-    // see weaponGripOffset. Off the base aim, not the climbed one: climb is the
-    // muzzle jumping in the hand, and the hand does not chase it. The offset
-    // comes back already mirrored.
-    const grip = weaponGripOffset({
-      shoulderX: shoulder.x,
-      shoulderY: shoulder.y,
-      restGripX: restGrip.x,
-      restGripY: restGrip.y,
+    const grip = weaponGripPosition({
+      playerX: this.player.x,
+      playerY: this.player.y,
+      frameName: this.player.frame.name,
       aim: angle,
-      mirrored: aimingLeft,
-      rate: WEAPON_SWING_RATE,
+      recoil: this.recoil,
     });
     // Climb is always away from the ground, and the sprite is mirrored when
     // aiming left, so the sign has to follow the flip or the barrel dips.
-    const climbed = angle + (aimingLeft ? this.climb : -this.climb);
+    const climbed = angle + (grip.mirrored ? this.climb : -this.climb);
 
-    this.mirrored = aimingLeft;
-    this.player.setFlipX(aimingLeft);
+    this.player.setFlipX(grip.mirrored);
     this.display
       .setVisible(true)
       // Anchored to the hand, not swung around the player's centre. Recoil then
       // pushes back along the aim vector from wherever the hand actually is.
-      .setPosition(
-        this.player.x + grip.x - Math.cos(angle) * this.recoil,
-        this.player.y + grip.y - Math.sin(angle) * this.recoil,
-      )
+      .setPosition(grip.gripX, grip.gripY)
       .setRotation(climbed)
       // Mirrored by scale, not setFlipY: see mirrorScaleY. Flipping would slide
       // the grip this sprite hangs from 4px up the receiver.
-      .setScale(1, mirrorScaleY(aimingLeft));
+      .setScale(1, mirrorScaleY(grip.mirrored));
 
     // Rides the body, not the weapon: it is the joint, and a joint that turns
     // with the arm is the gap it exists to close.
     // After the weapon, never before: the arm is chasing where the gun ended up
     // this frame, recoil and climb included.
-    this.backArm.update(this.display, aimingLeft, this.weapon.muzzleOffset);
+    this.backArm.update(this.display, grip.mirrored, this.weapon.muzzleOffset);
     // Same order and the same reason: it reads the weapon's final position, so
     // it has to run after it.
-    this.frontArm.update(this.display, aimingLeft, this.weapon.muzzleOffset);
+    this.frontArm.update(this.display, grip.mirrored, this.weapon.muzzleOffset);
   }
 
   setWeapon(weapon: WeaponConfig) {
@@ -187,7 +145,7 @@ export class WeaponFeedback {
       )
       .setOrigin(0, 0.5)
       // The shot's own direction, climb included — see getMuzzlePosition.
-      .setRotation(this.climbedAngle(baseAngle))
+      .setRotation(muzzle.rotation)
       .setDepth(12);
     const core = this.scene.add
       .circle(muzzle.x, muzzle.y, Math.max(2, thickness * 0.55), 0xffffff, 0.9)
@@ -320,20 +278,29 @@ export class WeaponFeedback {
    *
    * The geometry lives in muzzlePoint so it can be checked without a renderer.
    */
-  getMuzzlePosition(angle: number, offset: number, rise = 0) {
+  getMuzzlePosition(
+    angle: number,
+    offset: number,
+    rise = 0,
+    rigAngle = angle,
+  ) {
+    const grip = weaponGripPosition({
+      playerX: this.player.x,
+      playerY: this.player.y,
+      frameName: this.player.frame.name,
+      aim: rigAngle,
+      recoil: this.recoil,
+    });
+
     return muzzlePoint({
-      gripX: this.display.x,
-      gripY: this.display.y,
+      gripX: grip.gripX,
+      gripY: grip.gripY,
       angle,
       climb: this.climb,
-      mirrored: this.mirrored,
+      mirrored: grip.mirrored,
       offset,
       rise,
     });
-  }
-
-  private climbedAngle(angle: number) {
-    return angle + (this.mirrored ? this.climb : -this.climb);
   }
 
   cancelHitStop() {
