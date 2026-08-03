@@ -22,14 +22,14 @@ export const CITY_ROOM_ONE = defineRoom({
     // Introduce melee: walks at you, hurts on contact. Nothing else to read.
     { type: 'melee', x: 640, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 1020, y: GAME_HEIGHT - 120 },
-    // Introduce ranged, under the second-floor run at 1280~1900 so the ledge
-    // is available as cover the moment shooting starts mattering.
+    // Introduce ranged beneath the second-floor run at 1280~1900. The ledge
+    // offers a height choice, but does not block either side's shots.
     { type: 'ranged', x: 1620, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 2150, y: GAME_HEIGHT - 120 },
     // Combine the two that are now known.
     { type: 'melee', x: 2400, y: GAME_HEIGHT - 120 },
-    // Introduce flying last: it is the only one the ground cannot answer, and
-    // the 2380~2980 ledge underneath it is the answer.
+    // Introduce flying last. The nearby ledges offer a different height and
+    // firing angle, rather than acting as protection from its shots.
     { type: 'flying', x: 2900, y: GAME_HEIGHT - 260 },
     { type: 'flying', x: 3250, y: GAME_HEIGHT - 360 },
   ],
@@ -65,7 +65,8 @@ export const CITY_ROOM_TWO = defineRoom({
     // fought one at a time by anyone who wants to.
     { type: 'melee', x: 620, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 1000, y: GAME_HEIGHT - 120 },
-    // Develop: ranged under the 1400~1960 ledge, which is the cover for it.
+    // Develop: ranged under the 1400~1960 ledge, which changes the attack
+    // angle without shielding either combatant.
     { type: 'ranged', x: 1520, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 1760, y: GAME_HEIGHT - 120 },
     // Then a quiet stretch. The barrier at x2000 is the beat here — the first

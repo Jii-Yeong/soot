@@ -11,23 +11,21 @@ const AERIAL_ROOM_DOOR = {
   height: GAME_HEIGHT,
 };
 
-// The return is the only stage the player flies, so its level design is
-// vertical placement and rhythm rather than geometry — there is no terrain
-// here, and there should not be: the player cannot jump out of anywhere they
-// get wedged.
+// The return is the only flight stage. Its basic layout is therefore made of
+// enemy formations and open space, not platforms: flight has no jump-out
+// fallback, so even a harmless-looking wall can turn a tracking enemy into a
+// corner trap. There is intentionally no terrain, pit, or projectile cover in
+// either combat room. The full-height doors are the only hard boundaries.
 //
-// Two things were wrong with the first pass.
+// The usable flight band is y=128~600. Every anchor and patrol swing remains
+// inside it, while each room uses more than two thirds of its height. Staying
+// at the top or bottom is a temporary dodge, not a permanent safe lane.
 //
-// The flight band is y 128~600, and every enemy sat between 250 and 480 — under
-// half of it. The top and bottom hundred pixels were dead, so hugging either
-// edge took the player out of the whole pattern. Placement now spans 180~560,
-// about three quarters of the band, and each enemy's own movement range is kept
-// inside the player's limits so nothing drifts out of reach.
-//
-// And the spacing was metronomic: even x gaps, alternating high and low, all
-// the way through both rooms. There was no burst and no breather. Each room now
-// reads as introduce → develop → rest → spike, with the last room closing on a
-// tight trio at the boss door.
+// The stage rhythm is deliberately roomy: room 01 gives the player time to
+// settle into flight (single -> single -> pair -> pair); room 02 turns those
+// motions into short mixed formations and peaks at one three-enemy formation.
+// Its last ~1,000px are empty once the formation is cleared, so the boss is
+// entered after a reset rather than straight out of a chase.
 
 export const RETURN_ROOM_ONE = defineRoom({
   id: 'return-01',
@@ -35,68 +33,60 @@ export const RETURN_ROOM_ONE = defineRoom({
   intensity: 1.6,
   door: AERIAL_ROOM_DOOR,
   enemySpawns: [
+    // First contact: one slow hover in open space. No second enemy can aggro
+    // until the player has moved about 640px farther into the room.
     {
       type: 'flying',
-      x: 460,
-      y: 400,
+      x: 520,
+      y: 360,
       movement: { mode: AerialMovementMode.HOVER },
     },
+    // A high patrol makes the player use the vertical band without mixing it
+    // with the opening hover.
     {
       type: 'flying',
-      x: 900,
+      x: 1260,
       y: 200,
-      movement: { mode: AerialMovementMode.TRACK },
-    },
-    {
-      type: 'flying',
-      x: 1350,
-      y: 520,
       movement: {
         mode: AerialMovementMode.PATROL,
-        rangeX: 170,
+        rangeX: 150,
         rangeY: 55,
       },
     },
+    // First formation: a tracker below an orbiting target. Their offset leaves
+    // a clear diagonal route through the middle; neither is a piece of cover.
     {
       type: 'flying',
-      x: 1700,
-      y: 230,
-      movement: {
-        mode: AerialMovementMode.ORBIT,
-        rangeX: 130,
-        rangeY: 85,
-      },
-    },
-    {
-      type: 'flying',
-      x: 2250,
-      y: 560,
+      x: 1900,
+      y: 500,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 2480,
-      y: 200,
+      x: 2160,
+      y: 220,
       movement: {
-        mode: AerialMovementMode.PATROL,
-        rangeX: 190,
-        rangeY: 60,
+        mode: AerialMovementMode.ORBIT,
+        rangeX: 130,
+        rangeY: 70,
       },
     },
+    // Final room-01 pair after a long open reset. It is a low/high crossfire,
+    // not a wall of bodies across the same altitude.
     {
       type: 'flying',
-      x: 2700,
-      y: 430,
+      x: 2860,
+      y: 520,
       movement: { mode: AerialMovementMode.HOVER },
     },
     {
       type: 'flying',
-      x: 3300,
-      y: 330,
+      x: 3120,
+      y: 250,
       movement: {
-        mode: AerialMovementMode.ORBIT,
-        rangeX: 145,
-        rangeY: 90,
+        mode: AerialMovementMode.PATROL,
+        rangeX: 150,
+        rangeY: 60,
       },
     },
   ],
@@ -108,76 +98,72 @@ export const RETURN_ROOM_TWO = defineRoom({
   intensity: 1.7,
   door: AERIAL_ROOM_DOOR,
   enemySpawns: [
+    // Room 02 starts with the familiar two-height formation, then adds a
+    // patrol pair. These are brief combinations, not an uninterrupted swarm.
     {
       type: 'flying',
-      x: 420,
-      y: 230,
+      x: 500,
+      y: 210,
       movement: {
         mode: AerialMovementMode.ORBIT,
         rangeX: 120,
-        rangeY: 80,
+        rangeY: 70,
       },
     },
     {
       type: 'flying',
-      x: 700,
+      x: 820,
       y: 540,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 1100,
-      y: 200,
+      x: 1380,
+      y: 170,
       movement: {
         mode: AerialMovementMode.PATROL,
-        rangeX: 180,
-        rangeY: 65,
+        rangeX: 160,
+        rangeY: 35,
       },
     },
     {
       type: 'flying',
-      x: 1600,
-      y: 520,
+      x: 1700,
+      y: 480,
       movement: { mode: AerialMovementMode.HOVER },
     },
+    // The stage's peak: high orbit, centre tracker, and low patrol. The three
+    // anchors are vertically staggered so the player can read a route between
+    // them rather than being forced to brute-force a single horizontal lane.
     {
       type: 'flying',
-      x: 1900,
-      y: 180,
-      movement: { mode: AerialMovementMode.TRACK },
-    },
-    {
-      type: 'flying',
-      x: 2150,
-      y: 380,
-      movement: {
-        mode: AerialMovementMode.ORBIT,
-        rangeX: 150,
-        rangeY: 95,
-      },
-    },
-    {
-      type: 'flying',
-      x: 2900,
+      x: 2080,
       y: 250,
       movement: {
-        mode: AerialMovementMode.PATROL,
-        rangeX: 200,
-        rangeY: 55,
+        mode: AerialMovementMode.ORBIT,
+        rangeX: 135,
+        rangeY: 85,
       },
     },
     {
       type: 'flying',
-      x: 3120,
-      y: 470,
+      x: 2340,
+      y: 380,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 3350,
-      y: 330,
-      movement: { mode: AerialMovementMode.HOVER },
+      x: 2580,
+      y: 500,
+      movement: {
+        mode: AerialMovementMode.PATROL,
+        rangeX: 150,
+        rangeY: 70,
+      },
     },
+    // No spawns after x=2580. The cleared formation leaves about 1,000px to
+    // the full-height boss door: enough room to reset position and read the
+    // arena transition before the Architect starts its bullet patterns.
   ],
 });
 

@@ -16,6 +16,10 @@ export type FireOptions = {
   owner?: object;
 };
 
+type ProjectileBlockerFilter = (
+  blocker: Phaser.GameObjects.GameObject,
+) => boolean;
+
 export class ProjectilePool {
   readonly group: Phaser.Physics.Arcade.Group;
 
@@ -61,12 +65,22 @@ export class ProjectilePool {
     return projectile;
   }
 
-  /** Deactivates projectiles as soon as they strike solid room geometry. */
-  collideWith(blockers: Phaser.Physics.Arcade.StaticGroup) {
+  /** Deactivates projectiles only when the supplied geometry permits it. */
+  collideWith(
+    blockers: Phaser.Physics.Arcade.StaticGroup,
+    blocksProjectile: ProjectileBlockerFilter = () => true,
+  ) {
     this.scene.physics.add.collider(
       this.group,
       blockers,
       this.handleBlockerHit,
+      (firstObject, secondObject) => {
+        const blocker =
+          firstObject instanceof Phaser.Physics.Arcade.Image
+            ? secondObject
+            : firstObject;
+        return blocksProjectile(blocker as Phaser.GameObjects.GameObject);
+      },
     );
   }
 

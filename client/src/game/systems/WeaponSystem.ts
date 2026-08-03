@@ -66,9 +66,12 @@ export class WeaponSystem {
     this.feedback.update(delta, aimPoint);
   }
 
-  blockProjectilesWith(terrain: Phaser.Physics.Arcade.StaticGroup) {
+  blockProjectilesWith(
+    terrain: Phaser.Physics.Arcade.StaticGroup,
+    blocksProjectile: (blocker: Phaser.GameObjects.GameObject) => boolean,
+  ) {
     for (const weapon of this.weapons) {
-      weapon.pool.collideWith(terrain);
+      weapon.pool.collideWith(terrain, blocksProjectile);
     }
   }
 

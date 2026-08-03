@@ -53,7 +53,10 @@ import { patrolSpan } from '@/game/systems/patrolSpan';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
-import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
+import {
+  isProjectileBlocker,
+  TerrainBuilder,
+} from '@/game/systems/TerrainBuilder';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
 import { useGameSettingsStore } from '@/stores/gameSettingsStore';
@@ -451,7 +454,10 @@ export class GameScene extends Phaser.Scene {
       () => canPlayerFireInRoom(this.phase, this.roomState),
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
     );
-    this.weaponSystem.blockProjectilesWith(this.terrainBuilder.group);
+    this.weaponSystem.blockProjectilesWith(
+      this.terrainBuilder.group,
+      isProjectileBlocker,
+    );
     this.weaponDropDirector = new WeaponDropDirector(
       this,
       this.floorBuilder.group,
@@ -470,8 +476,14 @@ export class GameScene extends Phaser.Scene {
       ranged: this.enemyProjectiles,
       flying: this.flyingEnemyProjectiles,
     };
-    this.enemyProjectiles.collideWith(this.terrainBuilder.group);
-    this.flyingEnemyProjectiles.collideWith(this.terrainBuilder.group);
+    this.enemyProjectiles.collideWith(
+      this.terrainBuilder.group,
+      isProjectileBlocker,
+    );
+    this.flyingEnemyProjectiles.collideWith(
+      this.terrainBuilder.group,
+      isProjectileBlocker,
+    );
     this.physics.add.overlap(
       this.enemyProjectiles.group,
       this.player,
@@ -641,6 +653,12 @@ export class GameScene extends Phaser.Scene {
     // runs inside createCombatSystems, and setText on a destroyed Text reaches
     // for a canvas that is gone.
     this.controlHintText = undefined;
+    // Phaser reuses the Scene instance on restart, but destroys the previous
+    // physics groups. buildRoom runs before createCombatSystems replaces these
+    // fields, so leave no stale pools or directors for its optional cleanup.
+    this.weaponDropDirector = undefined!;
+    this.weaponSystem = undefined!;
+    this.roomDirector = undefined!;
     this.currentStageIndex =
       this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
     this.requestedStartingStageIndex = undefined;

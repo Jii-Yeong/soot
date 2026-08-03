@@ -268,6 +268,26 @@ describe('level geometry against player metrics', () => {
     expect(order[order.length - 1]).toBe('flying');
   });
 
+  it('leaves a reset stretch before every boss door', () => {
+    // The last encounter must end far enough before a boss door for the player
+    // to reload, reset their position, and read the arena transition. One third
+    // of a viewport is the minimum here; anything shorter feels like walking
+    // straight from the final enemy's fire into the boss's opening move.
+    const MINIMUM_BOSS_APPROACH = 400;
+
+    for (const stage of STAGES) {
+      const roomBeforeBoss = stage.rooms.at(-2)!;
+      const lastSpawn = Math.max(
+        ...roomBeforeBoss.enemySpawns.map(({ x }) => x),
+      );
+
+      expect(
+        roomBeforeBoss.exitX - lastSpawn,
+        `${stage.id}/${roomBeforeBoss.id} leaves too little room before its boss`,
+      ).toBeGreaterThanOrEqual(MINIMUM_BOSS_APPROACH);
+    }
+  });
+
   it('keeps a flight stage inside the band the player can fly', () => {
     // The one stage the player flies has no floor to stand on and no jump to
     // measure, so its geometry is the box the flight controller clamps them to.

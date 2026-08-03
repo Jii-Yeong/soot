@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { terrainCollisionFaces } from '@/game/systems/TerrainBuilder';
+import {
+  terrainBlocksProjectiles,
+  terrainCollisionFaces,
+} from '@/game/systems/TerrainBuilder';
 
 describe('terrain collision faces', () => {
   it('lets a platform be entered from below and stood on from above', () => {
@@ -23,5 +26,10 @@ describe('terrain collision faces', () => {
       left: true,
       right: true,
     });
+  });
+
+  it('lets regular projectiles pass through platforms but not walls', () => {
+    expect(terrainBlocksProjectiles('platform')).toBe(false);
+    expect(terrainBlocksProjectiles('wall')).toBe(true);
   });
 });

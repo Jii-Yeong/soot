@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { TerrainPiece } from '@/game/config/roomConfig';
 
 const TERRAIN_DEPTH = 5;
+const TERRAIN_TYPE_DATA_KEY = 'terrain-type';
 
 const TERRAIN_STYLE = {
   platform: { fill: 0x9aa4ab, edge: 0xe8eef1 },
@@ -9,7 +10,7 @@ const TERRAIN_STYLE = {
 } as const;
 
 /**
- * Which faces of a terrain piece stop anything.
+ * Which faces of a terrain piece stop character physics.
  *
  * Platforms are one-way: you rise through them and land on top. There is one
  * jump speed in this game, so a player clearing a gap climbs 130.7px whether
@@ -24,6 +25,15 @@ export const terrainCollisionFaces = (type: TerrainPiece['type']) =>
   type === 'wall'
     ? { up: true, down: true, left: true, right: true }
     : { up: true, down: false, left: false, right: false };
+
+/** Platforms change routes and firing angles; only walls stop regular shots. */
+export const terrainBlocksProjectiles = (type: TerrainPiece['type']) =>
+  type === 'wall';
+
+export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
+  terrainBlocksProjectiles(
+    terrain.getData(TERRAIN_TYPE_DATA_KEY) as TerrainPiece['type'],
+  );
 
 /**
  * Builds a room's solid level geometry (platforms and walls) as static bodies
@@ -53,6 +63,8 @@ export class TerrainBuilder {
         )
         .setStrokeStyle(2, style.edge, 0.9)
         .setDepth(TERRAIN_DEPTH);
+
+      block.setData(TERRAIN_TYPE_DATA_KEY, piece.type);
 
       this.group.add(block);
       // A static body added to a shape isn't sized from the shape until it is

@@ -501,18 +501,17 @@ test('player fire damages the enemy without stopping combat', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
-test('platforms block player projectiles', async ({ page }) => {
+test('platforms do not block player projectiles', async ({ page }) => {
   await enterGame(page);
   await page.waitForTimeout(1000);
 
   const bounds = await getCanvasBounds(page);
   await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
 
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute(
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).not.toHaveAttribute(
     'aria-valuenow',
     CITY_ROOM_ONE_MAX_HEALTH.toString(),
+    { timeout: 5000 },
   );
 });
 

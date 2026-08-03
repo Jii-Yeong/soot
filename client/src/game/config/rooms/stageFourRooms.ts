@@ -11,6 +11,8 @@ import {
 // 196px safe gap, and the pits go from 150 to 200. Nothing here is past the
 // 266px limit or needs a dash; it is the same jump the player has made a
 // hundred times, with less room to be sloppy about it.
+// The raised route changes height and movement choices only. It is not a
+// projectile shield: the one-way platforms are deliberately not used as cover.
 const LEDGE_Y = GAME_HEIGHT - 190;
 const HIGH_LEDGE_Y = GAME_HEIGHT - 290;
 
@@ -19,6 +21,8 @@ export const INFERNO_ROOM_ONE = defineRoom({
   label: 'ROOM 01',
   intensity: 1.45,
   enemySpawns: [
+    // The floor remains the straightforward route through the pits. The
+    // elevated route repeats familiar combat with tighter jump timing.
     { type: 'melee', x: 420, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 700, y: GAME_HEIGHT - 120 },
     // Moved out of what is now a pit, and onto the floor beneath a span.
@@ -28,8 +32,8 @@ export const INFERNO_ROOM_ONE = defineRoom({
     { type: 'ranged', x: 1850, y: GAME_HEIGHT - 120 },
     { type: 'flying', x: 2100, y: GAME_HEIGHT - 300 },
     { type: 'melee', x: 2700, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 3200, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 3260, y: GAME_HEIGHT - 280 },
+    { type: 'ranged', x: 2880, y: GAME_HEIGHT - 120 },
+    { type: 'flying', x: 3120, y: GAME_HEIGHT - 280 },
   ],
   terrain: [
     { type: 'platform', x: 560, y: LEDGE_Y, width: 300, height: 22 },
@@ -53,6 +57,8 @@ export const INFERNO_ROOM_TWO = defineRoom({
   label: 'ROOM 02',
   intensity: 1.55,
   enemySpawns: [
+    // Room two is a denser version of the same route, with walls as the only
+    // dependable cover and two optional high positions.
     { type: 'melee', x: 400, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 650, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 1150, y: GAME_HEIGHT - 120 },
@@ -63,7 +69,10 @@ export const INFERNO_ROOM_TWO = defineRoom({
     { type: 'flying', x: 2150, y: GAME_HEIGHT - 300 },
     { type: 'melee', x: 2700, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 3100, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 3250, y: GAME_HEIGHT - 280 },
+    // The final pair is the room's last spike. Moving this flier back leaves
+    // more than 400px clear before the door, so the boss is entered after the
+    // fight rather than while its last shots are still on screen.
+    { type: 'flying', x: 3120, y: GAME_HEIGHT - 280 },
   ],
   terrain: [
     { type: 'platform', x: 540, y: LEDGE_Y, width: 280, height: 22 },
@@ -72,7 +81,8 @@ export const INFERNO_ROOM_TWO = defineRoom({
     { type: 'platform', x: 2030, y: LEDGE_Y, width: 260, height: 22 },
     { type: 'platform', x: 2520, y: LEDGE_Y, width: 260, height: 22 },
     { type: 'platform', x: 3010, y: LEDGE_Y, width: 300, height: 22 },
-    // Two high perches, both sitting on a span so the climb costs no gap.
+    // Two high perches, both sitting on a span so the climb costs no gap. They
+    // change firing angles and movement choices; they are not bullet shields.
     { type: 'platform', x: 1120, y: HIGH_LEDGE_Y, width: 200, height: 22 },
     { type: 'platform', x: 2600, y: HIGH_LEDGE_Y, width: 200, height: 22 },
     // Barriers on the landing side of a pit. The two pits beside them are 50px

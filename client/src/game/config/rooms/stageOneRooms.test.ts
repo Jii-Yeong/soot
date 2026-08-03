@@ -102,17 +102,10 @@ describe('stage 1 room layout', () => {
     expect(CITY_ROOM_TWO.exitX - lastSpawn).toBeGreaterThanOrEqual(400);
   });
 
-  it('puts a ledge under every flier the ground cannot answer', () => {
-    // Room 01 states the rule in its own comments — the flier is the one enemy
-    // the ground cannot answer, and the ledge beneath it is the answer. It only
-    // holds while a ledge is actually there. Both rooms used to break it: the
-    // high fliers sat past the last third-floor bridge, 296px and 180px over
-    // anything standable against a 130.7px jump, leaving the player to shoot up
-    // and nothing else.
-    //
-    // Scoped to stage 1 on purpose. Stages 2~4 have five fliers that fail this
-    // today, and stage 5 is flown rather than jumped, so its band coverage rule
-    // in reachability.test.ts is the one that applies there.
+  it('offers a reachable height option alongside every late flier', () => {
+    // Ground shots can reach fliers, so a ledge is not a required answer or
+    // projectile cover. Stage 1 still places one nearby so the player can
+    // choose a different height and firing angle during the late encounters.
     const unreachable: string[] = [];
 
     for (const room of CITY_COMBAT_ROOMS) {

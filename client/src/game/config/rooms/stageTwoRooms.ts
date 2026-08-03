@@ -74,7 +74,9 @@ export const ALLEY_ROOM_TWO = defineRoom({
     // Cluster C — the far stretch.
     { type: 'ranged', x: 2600, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 3050, y: GAME_HEIGHT - 120 },
-    { type: 'flying', x: 3220, y: GAME_HEIGHT - 300 },
+    // Keep the final flier far enough from the door that this remains the
+    // room's last fight rather than spilling directly into the boss approach.
+    { type: 'flying', x: 3100, y: GAME_HEIGHT - 300 },
   ],
   terrain: [
     // Two-tier perches early, then ledges across the run.
