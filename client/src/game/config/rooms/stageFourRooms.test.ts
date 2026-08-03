@@ -12,7 +12,7 @@ describe('stage four barrier routes', () => {
       (room) => room.terrain?.filter(({ type }) => type === 'wall').length ?? 0,
     );
 
-    expect(wallCounts).toEqual([2, 3]);
+    expect(wallCounts).toEqual([2, 2]);
   });
 
   it('keeps every barrier out of a pit', () => {
@@ -25,6 +25,24 @@ describe('stage four barrier routes', () => {
             true,
           );
         }
+      }
+    }
+  });
+
+  it('puts each barrier between completed and upcoming combat pockets', () => {
+    for (const room of infernoRooms) {
+      const walls = room.terrain?.filter(({ type }) => type === 'wall') ?? [];
+      const spawns = [...room.enemySpawns].sort((first, second) => first.x - second.x);
+
+      for (const wall of walls) {
+        const before = spawns.filter(({ x }) => x < wall.x).at(-1);
+        const after = spawns.find(({ x }) => x > wall.x + wall.width);
+
+        // The barrier follows a flier, which cannot be trapped by it, and the
+        // next ground encounter starts beyond it. A ground enemy is therefore
+        // never authored across the wall from the player during its own beat.
+        expect(before?.type).toBe('flying');
+        expect(after?.type).toBe('melee');
       }
     }
   });
