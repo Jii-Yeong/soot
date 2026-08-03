@@ -343,11 +343,14 @@ export class GameScene extends Phaser.Scene {
     this.playerController.cancelJump();
     this.player.setVelocity(0);
     this.weaponSystem.clearProjectiles();
-    this.cameras.main.flash(180, 182, 255, 228);
 
     if (this.currentRoomIndex + 1 < this.stage.rooms.length) {
       this.currentRoomIndex += 1;
       this.enterCurrentRoom();
+      // Flash only after the (heavy, synchronous) room rebuild, so the effect
+      // animates over clean frames instead of freezing at full opacity for the
+      // whole rebuild frame — which read as a stuck mint screen.
+      this.cameras.main.flash(180, 182, 255, 228);
       return;
     }
 
