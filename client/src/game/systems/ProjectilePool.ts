@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 
 export type ProjectilePoolConfig = {
   texture: string;
@@ -50,7 +51,7 @@ export class ProjectilePool {
       .setActive(true)
       .setVisible(true)
       .setRotation(angle)
-      .setDepth(8);
+      .setDepth(PLAYER_STACK_DEPTH.projectile);
     projectile.setData('pierceRemaining', options.pierce ?? 0);
     // Overwritten on every shot, so a recycled body never carries the last
     // owner's tag into its next life.

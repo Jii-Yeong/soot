@@ -15,6 +15,8 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
+import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
+import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -32,6 +34,15 @@ export class BootScene extends Phaser.Scene {
       STAGE_ONE_BOSS_ATLAS_PNG,
       STAGE_ONE_BOSS_ATLAS_JSON,
     );
+
+    // Four small PNGs, a kilobyte each. They load with the boot batch rather
+    // than in the background because the player is holding one the instant the
+    // stage starts.
+    for (const weapon of WEAPON_CONFIGS) {
+      this.load.image(weapon.displayTexture, `/assets/weapons/${weapon.id}.png`);
+    }
+    this.load.image(BACK_ARM.texture, BACK_ARM.url);
+    this.load.image(FRONT_ARM.texture, FRONT_ARM.url);
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
@@ -81,37 +92,32 @@ export class BootScene extends Phaser.Scene {
 
   private createRuntimeTextures() {
     const graphics = this.make.graphics({ x: 0, y: 0 }, false);
-    const createWeaponPlaceholder = (
-      key: string,
-      width: number,
-      accent: number,
-      options: { longBarrel?: boolean; wideMuzzle?: boolean } = {},
-    ) => {
-      graphics.clear();
-      graphics.fillStyle(0x161b1d);
-      graphics.fillRect(2, 3, width - 7, 7);
-      graphics.fillStyle(0x3a454a);
-      graphics.fillRect(5, 1, Math.floor(width * 0.42), 4);
-      graphics.fillStyle(accent);
-      graphics.fillRect(8, 4, Math.floor(width * 0.38), 2);
-      graphics.fillStyle(0x0b0d0e);
-      graphics.fillRect(10, 10, 6, 4);
-      graphics.fillRect(0, 5, 6, 5);
-      graphics.fillStyle(0x79878d);
-      graphics.fillRect(
-        width - (options.longBarrel ? 9 : 7),
-        options.wideMuzzle ? 3 : 5,
-        options.longBarrel ? 9 : 7,
-        options.wideMuzzle ? 6 : 3,
-      );
-      graphics.generateTexture(key, width, 14);
-    };
 
-    graphics.fillStyle(0xf4c66d);
-    graphics.fillRect(0, 0, 16, 4);
-    graphics.fillStyle(0xfff4c7);
-    graphics.fillRect(12, 0, 4, 4);
-    graphics.generateTexture('bullet-placeholder', 16, 4);
+    // One round per weapon, drawn from that weapon's own identity colour. The
+    // four weapons used to share three textures, so an SMG burst and a burst
+    // rifle volley were indistinguishable in flight.
+    for (const weapon of WEAPON_CONFIGS) {
+      const { color, tipColor, length, thickness, round } = weapon.projectile;
+      graphics.clear();
+      if (round) {
+        const radius = thickness / 2;
+        graphics.fillStyle(color);
+        graphics.fillCircle(radius, radius, radius);
+        // Lit on the leading side, so a pellet still reads as travelling.
+        graphics.fillStyle(tipColor);
+        graphics.fillCircle(radius + radius * 0.35, radius, radius * 0.45);
+      } else {
+        graphics.fillStyle(color);
+        graphics.fillRect(0, 0, length, thickness);
+        graphics.fillStyle(tipColor);
+        graphics.fillRect(length - Math.ceil(length * 0.3), 0, Math.ceil(length * 0.3), thickness);
+      }
+      graphics.generateTexture(
+        weapon.texture,
+        round ? thickness : length,
+        thickness,
+      );
+    }
 
     graphics.clear();
     graphics.fillStyle(0xe45d68);
@@ -201,28 +207,6 @@ export class BootScene extends Phaser.Scene {
       );
     }
 
-    graphics.clear();
-    graphics.fillStyle(0xffe1a8);
-    graphics.fillCircle(4, 4, 4);
-    graphics.generateTexture('shotgun-pellet-placeholder', 8, 8);
-
-    graphics.clear();
-    graphics.fillStyle(0xd5a8ff);
-    graphics.fillRect(0, 1, 20, 3);
-    graphics.fillStyle(0xffffff);
-    graphics.fillRect(14, 0, 6, 5);
-    graphics.generateTexture('rail-bolt-placeholder', 20, 5);
-
-    createWeaponPlaceholder('weapon-smg-placeholder', 34, 0xb6ffe4);
-    createWeaponPlaceholder('weapon-shotgun-placeholder', 42, 0xf0a35b, {
-      wideMuzzle: true,
-    });
-    createWeaponPlaceholder('weapon-burst-placeholder', 39, 0x8fb8ff, {
-      longBarrel: true,
-    });
-    createWeaponPlaceholder('weapon-rail-placeholder', 48, 0xd5a8ff, {
-      longBarrel: true,
-    });
     graphics.clear();
     graphics.fillStyle(0x202629);
     graphics.fillRect(0, 0, 64, 64);

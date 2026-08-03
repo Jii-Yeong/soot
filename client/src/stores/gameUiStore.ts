@@ -16,6 +16,7 @@ type GameUiState = {
   weaponId: string;
   weaponLabel: string;
   nearbyWeaponId: string | null;
+  paused: boolean;
   setHealth: (health: number, maxHealth: number) => void;
   setEnemyHealth: (health: number, maxHealth: number) => void;
   setBossPhase: (bossPhase: BossPhase | null) => void;
@@ -24,6 +25,7 @@ type GameUiState = {
   setRoomState: (roomState: RoomState) => void;
   setWeapon: (weaponId: string, weaponLabel: string) => void;
   setNearbyWeapon: (nearbyWeaponId: string | null) => void;
+  setPaused: (paused: boolean) => void;
 };
 
 export const useGameUiStore = create<GameUiState>((set) => ({
@@ -38,6 +40,7 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   weaponId: 'smg',
   weaponLabel: 'SMG',
   nearbyWeaponId: null,
+  paused: false,
   setHealth: (health, maxHealth) => set({ health, maxHealth }),
   setEnemyHealth: (enemyHealth, enemyMaxHealth) =>
     set({ enemyHealth, enemyMaxHealth }),
@@ -47,4 +50,5 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   setRoomState: (roomState) => set({ roomState }),
   setWeapon: (weaponId, weaponLabel) => set({ weaponId, weaponLabel }),
   setNearbyWeapon: (nearbyWeaponId) => set({ nearbyWeaponId }),
+  setPaused: (paused) => set({ paused }),
 }));

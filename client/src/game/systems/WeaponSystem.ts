@@ -108,7 +108,6 @@ export class WeaponSystem {
     }
 
     weapon.nextFireAt = time + config.fireInterval;
-    gameEvents.emit('weapon-fired', config.id, this.player.x, this.player.y);
   }
 
   equip(weaponId: string) {
@@ -154,16 +153,25 @@ export class WeaponSystem {
       config.spreadDegrees,
     );
 
-    for (const angle of angles) {
-      const muzzle = this.feedback.getMuzzlePosition(angle, config.muzzleOffset);
-      const origin = this.spawnOrigin(muzzle);
+    const muzzle = this.feedback.getMuzzlePosition(
+      baseAngle,
+      config.muzzleOffset,
+      config.muzzleRise,
+      baseAngle,
+    );
 
+    const origin = this.spawnOrigin(muzzle);
+
+    for (const angle of angles) {
       weapon.pool.fire(origin.x, origin.y, angle, {
         pierce: config.pierce,
       });
     }
 
     this.feedback.playFire(config, baseAngle, angles);
+    // A burst is three physical volleys, so emit its cue per volley instead of
+    // once when the trigger only schedules the delayed rounds.
+    gameEvents.emit('weapon-fired', config.id, muzzle.x, muzzle.y);
   }
 
   /**
@@ -182,7 +190,9 @@ export class WeaponSystem {
    * where the muzzle was inside an enemy anyway.
    */
   private spawnOrigin(muzzle: { x: number; y: number }) {
-    const grip = this.feedback.display;
+    // The rendered rig is present in game. The player fallback keeps the
+    // collision correction valid for lightweight scene/test harnesses too.
+    const grip = this.feedback.display ?? this.player;
     const barrel = new Phaser.Geom.Line(grip.x, grip.y, muzzle.x, muzzle.y);
 
     for (const enemy of this.enemies) {
