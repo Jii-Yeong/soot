@@ -126,10 +126,10 @@ export class RoomDirector {
   }
 
   private createPortal(x: number): RoomPortal {
-    const height = Math.min(PORTAL_HEIGHT, this.config.door.height - 16);
+    const height = Math.min(PORTAL_HEIGHT, this.config.portal.height - 16);
     const view = this.scene.add
       .graphics()
-      .setPosition(x, this.config.door.y)
+      .setPosition(x, this.config.portal.y)
       .setDepth(7)
       .setVisible(false)
       .setAlpha(0);
@@ -143,7 +143,7 @@ export class RoomDirector {
 
     const zone = this.scene.add.zone(
       x,
-      this.config.door.y,
+      this.config.portal.y,
       PORTAL_WIDTH + PORTAL_OVERLAP_PADDING,
       height + PORTAL_OVERLAP_PADDING,
     );
@@ -173,7 +173,7 @@ export class RoomDirector {
 
   private clearRoom() {
     // Rise into place from below rather than fading in on the spot.
-    const restY = this.config.door.y;
+    const restY = this.config.portal.y;
     this.portal.body.enable = true;
     this.portal.view
       .setVisible(true)

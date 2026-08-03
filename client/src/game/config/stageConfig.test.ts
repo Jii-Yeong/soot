@@ -162,15 +162,15 @@ describe('stage configuration', () => {
     }
   });
 
-  it('prevents flight from bypassing stage five exit doors', () => {
+  it('centres the stage five clear portal for aerial rooms', () => {
     expect(
       STAGE_FIVE_CONFIG.rooms.every(
-        (room) => room.door.height === 720 && room.door.y === 360,
+        (room) => room.portal.height === 720 && room.portal.y === 360,
       ),
     ).toBe(true);
     expect(
       STAGES.slice(0, 4).every((stage) =>
-        stage.rooms.every((room) => room.door.height === 180),
+        stage.rooms.every((room) => room.portal.height === 180),
       ),
     ).toBe(true);
   });

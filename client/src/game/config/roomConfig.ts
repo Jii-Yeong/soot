@@ -60,9 +60,9 @@ export type RoomConfig = {
   worldWidth: number;
   entranceX: number;
   exitX: number;
-  door: {
+  /** Vertical placement of the clear portal that opens near the exit. */
+  portal: {
     y: number;
-    width: number;
     height: number;
   };
   enemySpawns: EnemySpawnConfig[];
@@ -74,39 +74,38 @@ export type RoomConfig = {
 
 export type StageRooms = readonly [RoomConfig, RoomConfig, RoomConfig];
 
-const ROOM_DOOR = {
+const ROOM_PORTAL = {
   y: GAME_HEIGHT - 154,
-  width: 32,
   height: 180,
 };
 
 export type RoomDefinition = Omit<
   RoomConfig,
-  'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'door'
+  'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'portal'
 > & {
   kind?: RoomConfig['kind'];
   /** Room width; the exit portal sits near its right edge after combat. */
   worldWidth?: number;
-  /** Stage-specific door geometry, e.g. a full-height aerial barrier. */
-  door?: Partial<RoomConfig['door']>;
+  /** Stage-specific portal placement, e.g. screen-centred for an aerial room. */
+  portal?: Partial<RoomConfig['portal']>;
 };
 
 export const defineRoom = ({
   worldWidth = ROOM_WORLD_WIDTH,
-  door,
+  portal,
   ...definition
 }: RoomDefinition): RoomConfig => ({
   kind: 'combat',
   worldWidth,
   entranceX: 64,
   exitX: worldWidth - 64,
-  door: { ...ROOM_DOOR, ...door },
+  portal: { ...ROOM_PORTAL, ...portal },
   ...definition,
 });
 
 export type BossRoomDefinition = Pick<
   RoomDefinition,
-  'id' | 'label' | 'intensity' | 'door'
+  'id' | 'label' | 'intensity' | 'portal'
 > & {
   variant: BossVariant;
   /** Override the boss-room width (e.g. a bigger boss needs more arena). */
