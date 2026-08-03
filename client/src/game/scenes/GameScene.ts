@@ -10,6 +10,7 @@ import {
   PLAYER_ATLAS_KEY,
   PLAYER_INITIAL_FRAME,
 } from '@/game/config/playerAnimationConfig';
+import { MovementMode } from '@/game/config/playerMovementConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import {
   STARTING_STAGE_INDEX,
@@ -59,6 +60,8 @@ const PIT_FALL_DAMAGE = 12;
 const PIT_RESPAWN_LIFT = 60;
 const PLAYER_START_Y = GAME_HEIGHT - 120;
 const ROOM_ENTRY_OFFSET_X = 116;
+/** On a ground stage, the player drops in from this height, as if out of the portal. */
+const PORTAL_DROP_HEIGHT = 170;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -383,7 +386,11 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     this.rebuildFloorForRoom();
     this.showStageBackdrop();
-    this.player.setPosition(this.getStartingPlayerX(), PLAYER_START_Y);
+    // Drop in from a little above the ground so the player falls out of the
+    // portal into the room (flight stages have no gravity, so they arrive level).
+    const drop =
+      this.stage.movementMode === MovementMode.GROUND ? PORTAL_DROP_HEIGHT : 0;
+    this.player.setPosition(this.getStartingPlayerX(), PLAYER_START_Y - drop);
     this.player.setVelocity(0);
     this.resetCameraToRoomEntrance();
 
