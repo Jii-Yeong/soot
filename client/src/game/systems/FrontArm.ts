@@ -2,8 +2,12 @@ import Phaser from 'phaser';
 import {
   FRONT_ARM,
   FRONT_ARM_SHOULDER_BY_FRAME,
+  rigAnchor,
 } from '@/game/config/playerRigConfig';
-import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
+import {
+  PLAYER_STACK_DEPTH,
+  mirrorScaleY,
+} from '@/game/config/renderDepth';
 import { solveFrontArmPose } from '@/game/systems/frontArmPose';
 
 const DEFAULT_SHOULDER = {
@@ -39,8 +43,11 @@ export class FrontArm {
   update(weapon: Phaser.GameObjects.Image, mirrored: boolean, barrel: number) {
     // Read at draw time for the same reason the back arm's elbow is: the
     // shoulder belongs to whichever pose is on screen this frame.
-    const shoulder =
-      FRONT_ARM_SHOULDER_BY_FRAME[this.player.frame.name] ?? DEFAULT_SHOULDER;
+    const shoulder = rigAnchor(
+      DEFAULT_SHOULDER,
+      FRONT_ARM_SHOULDER_BY_FRAME,
+      this.player.frame.name,
+    );
 
     const pose = solveFrontArmPose({
       playerX: this.player.x,
@@ -58,6 +65,7 @@ export class FrontArm {
       .setVisible(true)
       .setPosition(pose.shoulderX, pose.shoulderY)
       .setRotation(pose.rotation)
-      .setFlipY(pose.flipY);
+      // By scale, not setFlipY: see mirrorScaleY.
+      .setScale(1, mirrorScaleY(pose.flipY));
   }
 }

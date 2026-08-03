@@ -134,7 +134,7 @@ export class GameScene extends Phaser.Scene {
     this.bindInputHandlers();
   }
 
-  update(time: number, delta: number) {
+  update(time: number) {
     if (
       this.phase === 'dead' ||
       this.phase === 'ending' ||
@@ -162,6 +162,36 @@ export class GameScene extends Phaser.Scene {
       this.weaponSystem.activeConfig,
     );
 
+    if (this.phase === 'playing') {
+      this.updateEnemyCombat(time);
+    }
+  }
+
+  /**
+   * Everything that has to be placed where the player actually is this frame:
+   * the weapon, both arms, the aim guide, and the shot that leaves the muzzle.
+   *
+   * Deliberately not in `update`. Arcade physics steps the bodies on the
+   * scene's UPDATE event and only writes the result back to the sprites on
+   * POST_UPDATE, which is after `update` has run — so anything reading
+   * `player.x` there gets last frame's position while the body renders at this
+   * frame's. The gap is one frame of travel: a few pixels while running, and
+   * 9.3px vertically off a 560px/s jump, reversing sign at the apex. The arms
+   * sagged to the waist on the way up and rode over the face on the way down,
+   * which is the "the arm moves at a different speed than the body" this fixes.
+   *
+   * No anchor could have corrected it. The rig was placing the arm correctly
+   * against a position the body had already left.
+   */
+  private updateAiming(time: number, delta: number) {
+    if (
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
+    ) {
+      return;
+    }
+
     const pointer = this.input.activePointer;
     const aimPoint = pointer.positionToCamera(
       this.cameras.main,
@@ -171,10 +201,6 @@ export class GameScene extends Phaser.Scene {
 
     if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
-    }
-
-    if (this.phase === 'playing') {
-      this.updateEnemyCombat(time);
     }
   }
 
@@ -547,7 +573,16 @@ export class GameScene extends Phaser.Scene {
     gameEvents.on('admin-weapon-requested', this.handleAdminWeaponRequested);
     gameEvents.on('pause-toggle-requested', this.handlePauseToggleRequested);
 
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.updateAiming, this);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      // This one is `on`, and the scene restarts onto the same emitter, so it
+      // has to come off or every restart adds another rig update.
+      this.events.off(
+        Phaser.Scenes.Events.POST_UPDATE,
+        this.updateAiming,
+        this,
+      );
       this.input.off('pointerdown', this.handlePointerDown, this);
       keyboard.off('keydown-R', this.handleRestartInput, this);
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);

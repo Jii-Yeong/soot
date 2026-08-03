@@ -100,14 +100,24 @@ describe('back arm pose', () => {
     }
   });
 
-  it('follows the shoulder down in the airborne pose', () => {
-    // The falling body curls forward and drops the shoulder 11.5px. Anchored to
-    // the standing offset the arm hung off the chest, which is the one place
-    // this rig was visibly wrong once the armless sprite went in.
+  it('follows the shoulder into the airborne lean', () => {
+    // The falling body curls forward and carries the shoulder with it, so the
+    // elbow has to go too — anchored to the standing offset the arm hung off
+    // the chest.
+    //
+    // The offset is small now, and that is the point. It used to drop 11px,
+    // ten of which were not the pose: the airborne frame sat 10px low in its
+    // own canvas and every table in this rig was quietly paying for it. The
+    // atlas carries that correction now, so what is left here is the lean.
     const airborne = BACK_ARM_ELBOW_BY_FRAME[PLAYER_JUMP_FRAMES.airborne];
 
     expect(airborne).toBeDefined();
-    expect(airborne.y - BACK_ARM.elbowFromCentreY).toBeGreaterThan(8);
+    expect(
+      Math.hypot(
+        airborne.x - BACK_ARM.elbowFromCentreX,
+        airborne.y - BACK_ARM.elbowFromCentreY,
+      ),
+    ).toBeLessThan(4);
 
     const standing = poseAt(0, false, 24);
     const falling = poseAt(0, false, 24, airborne);

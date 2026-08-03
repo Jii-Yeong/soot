@@ -64,27 +64,27 @@ export const BACK_ARM = {
 /**
  * Poses that carry the shoulder somewhere the default anchor does not follow.
  *
- * One anchor for every frame works only while the torso holds one attitude. It
- * does not: in the airborne pose the body curls forward and the shoulder drops
- * to y=57.5 of the 96x96 frame, 11.5px below where it sits in every other pose.
- * Pinned to the standing anchor the arm hangs off the chest instead of the
- * shoulder, which is what reads as wrong on the way down from a jump.
+ * One anchor for every frame works only while the torso holds one attitude, and
+ * the airborne curl leans it forward. Measured by diffing this sprite against
+ * the armed one it replaced: the pixels that disappeared are the front arm, and
+ * where they met the torso is the shoulder. The value is then buried the same
+ * 4px inside the silhouette as the standing anchor, so a pose moves the elbow
+ * exactly as far as it moves the joint and no further.
  *
- * Measured by diffing this sprite against the armed one it replaced: the pixels
- * that disappeared are the front arm, and where they met the torso is the
- * shoulder. Each value is then buried the same 4px inside the silhouette as the
- * standing anchor, so a pose moves the elbow exactly as far as it moves the
- * joint and no further.
+ * This used to read (6, 12). Ten of those pixels were not the pose at all —
+ * they were the airborne frame sitting 10px low in its own canvas, which the
+ * atlas now corrects. What is left is the lean.
  */
 export const BACK_ARM_ELBOW_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: 12 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: 2 },
 };
 
 /**
- * Where the weapon hangs, for the poses that move the hand holding it.
+ * Where the weapon rests, for the poses that move the hand holding it. The aim
+ * swings it from here; see WEAPON_SWING_RATE.
  *
  * The gun has to move with the shoulder or the arm cannot span the two. That is
  * not a preference: with the grip fixed and the elbow on the airborne shoulder,
@@ -93,14 +93,21 @@ export const BACK_ARM_ELBOW_BY_FRAME: Record<
  * gun is the end that is in the wrong place. Dropping both puts the reach error
  * back to zero.
  *
- * The same diff that located the shoulder locates the hand: the airborne pose
- * carries it 13px down and 2px forward from where it rests standing.
+ * All that is left of it is the lean. It used to read (7, 10), and the 10 was
+ * never the pose — it was the airborne frame sitting 10px low in its own
+ * canvas, which the atlas now corrects. Carrying that correction in the rig
+ * only ever moved the arm; the body kept sinking, and the character dropped and
+ * popped 10px every time the jump changed pose.
+ *
+ * Kept in step with FRONT_ARM_SHOULDER_BY_FRAME. The two have to move together:
+ * three pixels of disagreement between hand and shoulder become an angle, and
+ * the trigger arm rests at a visibly different attitude than it does standing.
  */
 export const WEAPON_GRIP_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: 7, y: 10 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: 6, y: -3 },
 };
 
 /**
@@ -117,13 +124,13 @@ export const WEAPON_GRIP_BY_FRAME: Record<
  *
  * So it hangs off the shoulder and holds the weapon the way the back arm does:
  * the hand slides along the weapon's axis to wherever an arm of exactly this
- * length reaches. At rest that point is the grip — within 3.3px of it across
- * the whole aim range — and the art lines up with the body pixel for pixel,
- * because it was drawn on the body's own frame. Under recoil the gun slides
- * back through the hand instead of dragging it,
- * which is what a recoiling weapon does anyway. Measured over both poses, both
- * facings, all four weapons and the whole aim range, the forearm holds its
- * drawn length exactly — it never stretches and never falls short.
+ * length reaches. At rest that point is a few pixels up the receiver from the
+ * grip — see the burial note on the anchor below — and the art lines up with
+ * the body pixel for pixel, because it was drawn on the body's own frame. Under
+ * recoil the gun slides back through the hand instead of dragging it, which is
+ * what a recoiling weapon does anyway. Measured over both poses, both facings,
+ * all four weapons and the whole aim range, the forearm holds its drawn length
+ * exactly — it never stretches and never falls short.
  *
  * Every number here was measured off front-arm.png and the armless body.
  */
@@ -143,12 +150,24 @@ export const FRONT_ARM = {
    * The near shoulder's offset from the player sprite's centre, for the poses
    * that keep the standing attitude. Mirrors when facing left.
    *
-   * Not chosen: the art was authored in register, so putting its grip pixel on
-   * the weapon's grip fixes where the shoulder has to be. Everything below
-   * follows from the same two points.
+   * Read off the art, not derived from the weapon. front-arm.png was cropped
+   * out of a 96x96 canvas drawn in register with the body frames, and the crop
+   * came from (36, 41) of it — so the pivot sits at (38.41, 46.65) of that
+   * canvas, which is this. The artist put the shoulder on the shoulder; the rig
+   * only has to leave it there.
+   *
+   * That also settles the far end for free. From here the drawn hand lands at
+   * (5.50, -2.50), within 0.7px of the grip the weapon hangs from — the arm was
+   * drawn to span exactly that gap.
+   *
+   * Earlier revisions solved for this instead of measuring it, taking the grip
+   * and stepping back one arm length, then burying the result 4.5px to tuck the
+   * shoulder cap inside the silhouette. Both moved it forward of where it was
+   * drawn, and the arm sat on the ribs instead of the shoulder. The cap does
+   * overhang the torso a little here, and that is the drawing, not a defect.
    */
-  shoulderFromCentreX: -9.59,
-  shoulderFromCentreY: -1.35,
+  shoulderFromCentreX: -9.09,
+  shoulderFromCentreY: -0.85,
 
   /** Shoulder to hand, and the direction the art already points at rest. */
   length: 14.6809,
@@ -170,16 +189,65 @@ export const FRONT_ARM = {
  * The near shoulder for the poses that move it, the same way
  * BACK_ARM_ELBOW_BY_FRAME covers the far one.
  *
- * Derived rather than measured off the silhouette: the arm is rigid and holds
- * one attitude against the gun, so once WEAPON_GRIP_BY_FRAME says where the
- * airborne pose carries the hand, the shoulder is that point less the same
- * grip-to-shoulder offset the standing anchor uses. It lands just inside the
- * curled torso's near edge, and the hand needs no slide to reach the grip from
- * it — which is the check that it is right.
+ * Only the lean. The 10px this used to carry belonged to the atlas, not the
+ * pose — see WEAPON_GRIP_BY_FRAME — and the frame is registered now.
+ *
+ * Verified against the pose rather than assumed: the shoulder cap stays covered
+ * on the curled torso through the whole aim range from here, and the arm holds
+ * the same attitude it holds standing.
  */
 export const FRONT_ARM_SHOULDER_BY_FRAME: Record<
   string,
   { x: number; y: number }
 > = {
-  [PLAYER_JUMP_FRAMES.airborne]: { x: -7.59, y: 11.65 },
+  [PLAYER_JUMP_FRAMES.airborne]: { x: -8.09, y: -0.85 },
 };
+
+/**
+ * How much of the aim the shoulder takes, with the wrist taking the rest.
+ *
+ * The weapon used to pivot on a grip nailed to one spot. That reads fine on the
+ * gun and is wrong on the arm holding it: with the shoulder on the torso and the
+ * hand on a fixed point, the limb between them cannot turn, and it did not — 0.0
+ * degrees of swing measured across the whole aim range. So the grip travels an
+ * arc, and the trigger arm turns with it.
+ *
+ * Why not the whole way. At rate 1 the arm follows the crosshair exactly and the
+ * gun swings a full circle of the arm's own length, which the far arm cannot
+ * follow: its elbow is pinned in the torso and its reach falls 13.8px short of
+ * the handguard — most of its own length. The far arm is what caps this.
+ *
+ * 0.22 is where its shortfall reaches exactly zero across every weapon, every
+ * angle and full recoil. Past that it starts paying: 0.64px at 0.25, 1.68 at
+ * 0.30. It buys 49 degrees of trigger-arm swing, against the 12.9 a pinned grip
+ * managed.
+ */
+export const WEAPON_SWING_RATE = 0.22;
+
+/**
+ * Moves the whole held assembly — near shoulder, grip and far elbow — as one.
+ *
+ * There are six anchors between the three tables and they are not independent:
+ * the arm is rigid, so shoulder-to-grip has to stay one arm length, and the far
+ * elbow has to keep its reach to the handguard. Nudging them one at a time
+ * breaks those relationships and the tests start failing for reasons that have
+ * nothing to do with the change.
+ *
+ * Applied before mirroring, so x is "forward, facing right" and turning around
+ * takes it the other way by itself.
+ *
+ * This is the knob to reach for when the gun simply sits in the wrong place on
+ * the body. Reach for the anchors themselves only to change the arm's angle or
+ * how far it spans.
+ */
+export const RIG_NUDGE = { x: 5, y: -2 } as const;
+
+/** The anchor for a frame, nudged. Every rig lookup goes through this. */
+export function rigAnchor(
+  base: { x: number; y: number },
+  byFrame: Record<string, { x: number; y: number }>,
+  frameName: string,
+) {
+  const anchor = byFrame[frameName] ?? base;
+  return { x: anchor.x + RIG_NUDGE.x, y: anchor.y + RIG_NUDGE.y };
+}

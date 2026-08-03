@@ -2,8 +2,12 @@ import Phaser from 'phaser';
 import {
   BACK_ARM,
   BACK_ARM_ELBOW_BY_FRAME,
+  rigAnchor,
 } from '@/game/config/playerRigConfig';
-import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
+import {
+  PLAYER_STACK_DEPTH,
+  mirrorScaleY,
+} from '@/game/config/renderDepth';
 import { solveBackArmPose } from '@/game/systems/backArmPose';
 
 const DEFAULT_ELBOW = {
@@ -38,8 +42,11 @@ export class BackArm {
   update(weapon: Phaser.GameObjects.Image, mirrored: boolean, barrel: number) {
     // The shoulder belongs to whichever pose is on screen this frame, so the
     // anchor is read at draw time rather than fixed when the arm is built.
-    const elbow =
-      BACK_ARM_ELBOW_BY_FRAME[this.player.frame.name] ?? DEFAULT_ELBOW;
+    const elbow = rigAnchor(
+      DEFAULT_ELBOW,
+      BACK_ARM_ELBOW_BY_FRAME,
+      this.player.frame.name,
+    );
 
     const pose = solveBackArmPose({
       playerX: this.player.x,
@@ -57,6 +64,9 @@ export class BackArm {
       .setVisible(true)
       .setPosition(pose.elbowX, pose.elbowY)
       .setRotation(pose.rotation)
-      .setFlipY(pose.flipY);
+      // By scale, not setFlipY: see mirrorScaleY. This sprite's origin sits
+      // three quarters of the way down it, so flipping would throw the elbow
+      // 7px off the shoulder every time the player turned left.
+      .setScale(1, mirrorScaleY(pose.flipY));
   }
 }

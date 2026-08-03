@@ -4,10 +4,12 @@ import {
   FRONT_ARM,
   FRONT_ARM_SHOULDER_BY_FRAME,
   WEAPON_GRIP_BY_FRAME,
+  WEAPON_SWING_RATE,
 } from '@/game/config/playerRigConfig';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 import { solveFrontArmPose } from '@/game/systems/frontArmPose';
+import { weaponGripOffset } from '@/game/systems/weaponGrip';
 
 type Anchor = { x: number; y: number };
 
@@ -46,12 +48,24 @@ function poseAt(
     ? Math.PI - (degrees * Math.PI) / 180
     : (degrees * Math.PI) / 180;
 
+  // The grip is not a fixed point — it rides the arc the arm can reach, which
+  // is what gives this solve anything to turn about. Same call the renderer
+  // makes, so the two cannot drift apart.
+  const swung = weaponGripOffset({
+    shoulderX: shoulder.x,
+    shoulderY: shoulder.y,
+    restGripX: grip.x,
+    restGripY: grip.y,
+    aim: rotation,
+    mirrored,
+    rate: WEAPON_SWING_RATE,
+  });
+
   return solveFrontArmPose({
     playerX: PLAYER.x,
     playerY: PLAYER.y,
-    gripX:
-      PLAYER.x + (mirrored ? -grip.x : grip.x) - Math.cos(rotation) * recoil,
-    gripY: PLAYER.y + grip.y - Math.sin(rotation) * recoil,
+    gripX: PLAYER.x + swung.x - Math.cos(rotation) * recoil,
+    gripY: PLAYER.y + swung.y - Math.sin(rotation) * recoil,
     rotation,
     mirrored,
     barrel,
@@ -110,11 +124,12 @@ describe('front arm pose', () => {
   });
 
   it('holds the grip itself while nothing is recoiling', () => {
-    // The art was drawn on the body's own 96x96 frame, so at rest the hand is
-    // on the grip and the sprite lines up with the body pixel for pixel. The
-    // 3.3px of give is the aim range, not slop: pointed straight up or down the
-    // weapon's axis crosses the arm's circle just past the grip. Anything more
-    // means an anchor has drifted from the sprite it was measured off.
+    // The arm was drawn spanning shoulder to grip on the body's own canvas, so
+    // at rest the hand is on the grip and the sprite lines up with the body
+    // pixel for pixel. What is left is under two pixels: half of it the
+    // rounding in that drawing, the rest the aim range, where the weapon's axis
+    // crosses the arm's circle obliquely. More than that means an anchor has
+    // drifted from the art it was measured off.
     for (const pose of POSES) {
       for (const weapon of WEAPON_CONFIGS) {
         for (let degrees = -90; degrees <= 90; degrees += 1) {
@@ -123,11 +138,10 @@ describe('front arm pose', () => {
               ...pose,
               barrel: weapon.muzzleOffset,
             });
+            const where = `${pose.name} ${weapon.id} at ${degrees}deg mirrored=${mirrored}`;
 
-            expect(
-              slide,
-              `${pose.name} ${weapon.id} at ${degrees}deg mirrored=${mirrored}`,
-            ).toBeLessThan(3.5);
+            expect(slide, where).toBeGreaterThanOrEqual(FRONT_ARM.minSlide);
+            expect(slide, where).toBeLessThanOrEqual(1.8);
           }
         }
       }
@@ -154,8 +168,10 @@ describe('front arm pose', () => {
             expect(slide, where).toBeLessThanOrEqual(
               weapon.muzzleOffset - FRONT_ARM.muzzleClearance,
             );
-            // The kick plus the same 3.3px the aim range accounts for above.
-            expect(slide, where).toBeLessThanOrEqual(recoil + 3.5);
+            // The kick, plus the resting slide the test above bounds. Recoil
+            // adds to where the hand already sits; it does not move it further
+            // than it pushed the weapon.
+            expect(slide, where).toBeLessThanOrEqual(recoil + 1.8);
           }
         }
       }
@@ -176,21 +192,25 @@ describe('front arm pose', () => {
     }
   });
 
-  it('follows the pose that moves the shoulder', () => {
-    // The airborne pose drops the hand 13px and the joint with it. Left on the
-    // standing anchor the arm spans a distance the pose never intended, which
-    // is the failure the back arm's per-frame table exists to avoid.
+  it('carries the whole arm when the pose moves the shoulder', () => {
+    // The airborne curl leans the torso forward, and the shoulder, grip and
+    // hand go with it as one piece. A shoulder moved on its own would leave the
+    // hand where the standing pose put it and stretch the arm across the
+    // difference, which is the failure the per-frame tables exist to avoid.
     const airborne = POSES[1];
-    const onOwnAnchor = poseAt(0, false, airborne);
-    const onStandingAnchor = poseAt(0, false, {
-      grip: airborne.grip,
-      shoulder: DEFAULT_SHOULDER,
-    });
+    const own = poseAt(0, false, airborne);
+    const standing = poseAt(0, false, POSES[0]);
 
-    expect(onOwnAnchor.reach).toBeCloseTo(FRONT_ARM.length, 2);
-    // 5.4px short, on an arm 14.7px long. There is no slide that closes it:
-    // the hand simply cannot reach the gun from the standing shoulder.
-    expect(onStandingAnchor.reach - FRONT_ARM.length).toBeGreaterThan(5);
+    expect(own.reach).toBeCloseTo(FRONT_ARM.length, 2);
+    expect(own.shoulderY - PLAYER.y).toBeCloseTo(airborne.shoulder.y, 6);
+
+    const shoulderShift = {
+      x: airborne.shoulder.x - POSES[0].shoulder.x,
+      y: airborne.shoulder.y - POSES[0].shoulder.y,
+    };
+    expect(own.shoulderX - standing.shoulderX).toBeCloseTo(shoulderShift.x, 6);
+    expect(own.handX - standing.handX).toBeCloseTo(shoulderShift.x, 6);
+    expect(own.handY - standing.handY).toBeCloseTo(shoulderShift.y, 6);
   });
 
   it('draws over the weapon it is holding', () => {
@@ -199,6 +219,13 @@ describe('front arm pose', () => {
     );
     expect(PLAYER_STACK_DEPTH.weapon).toBeGreaterThan(
       PLAYER_STACK_DEPTH.backArm,
+    );
+    // And the far arm goes behind the torso, not across it. The two arms are
+    // on opposite sides of the body, so they belong on opposite sides of it in
+    // the stack — anything else draws a limb the camera cannot see.
+    expect(PLAYER_STACK_DEPTH.backArm).toBeLessThan(PLAYER_STACK_DEPTH.body);
+    expect(PLAYER_STACK_DEPTH.frontArm).toBeGreaterThan(
+      PLAYER_STACK_DEPTH.body,
     );
   });
 });
