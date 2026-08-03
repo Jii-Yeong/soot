@@ -462,6 +462,36 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   ).toHaveAttribute('aria-valuemax', '115');
 });
 
+test('admin menu scrolls instead of overflowing a short viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 360 });
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  const adminMenu = page.getByRole('dialog', { name: 'Admin menu' });
+  const initialMetrics = await adminMenu.evaluate((menu) => ({
+    clientHeight: menu.clientHeight,
+    overflowY: getComputedStyle(menu).overflowY,
+    scrollHeight: menu.scrollHeight,
+  }));
+
+  expect(initialMetrics.overflowY).toBe('auto');
+  expect(initialMetrics.scrollHeight).toBeGreaterThan(
+    initialMetrics.clientHeight,
+  );
+
+  await adminMenu.evaluate((menu) => {
+    menu.scrollTop = menu.scrollHeight;
+  });
+  await expect
+    .poll(() => adminMenu.evaluate((menu) => menu.scrollTop))
+    .toBeGreaterThan(0);
+});
+
 test('shows boss health without enabling the standard enemy health HUD', async ({
   page,
 }) => {
