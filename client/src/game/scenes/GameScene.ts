@@ -553,9 +553,11 @@ export class GameScene extends Phaser.Scene {
 
     this.stageLabelText = this.add
       .text(GAME_WIDTH / 2, 96, '', {
-        color: '#879197',
+        color: '#d8dfdc',
+        backgroundColor: '#070a0bbd',
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
+        padding: { x: 10, y: 5 },
       })
       .setOrigin(0.5)
       .setDepth(20)
@@ -564,10 +566,12 @@ export class GameScene extends Phaser.Scene {
 
     this.weaponLabelText = this.add
       .text(32, GAME_HEIGHT - 96, '', {
-        color: '#b6ffe4',
+        color: '#d8ffec',
+        backgroundColor: '#070a0bd9',
         fontFamily: 'Arial, sans-serif',
         fontSize: '15px',
         fontStyle: 'bold',
+        padding: { x: 10, y: 6 },
       })
       .setOrigin(0, 0.5)
       .setDepth(20)
@@ -594,9 +598,11 @@ export class GameScene extends Phaser.Scene {
         GAME_HEIGHT - 96,
         '',
         {
-          color: '#879197',
+          color: '#d8dfdc',
+          backgroundColor: '#070a0bd9',
           fontFamily: 'Arial, sans-serif',
           fontSize: '15px',
+          padding: { x: 10, y: 6 },
         },
       )
       .setOrigin(1, 0.5)

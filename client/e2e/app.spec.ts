@@ -190,6 +190,99 @@ test('enters the title from the start screen with a key press', async ({
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
 });
 
+test('opens sound settings from both the title and pause screens', async ({
+  page,
+}) => {
+  await enterTitle(page);
+
+  await page.getByRole('button', { name: '설정' }).click();
+  const settings = page.getByRole('dialog', { name: '설정' });
+  await expect(settings).toBeVisible();
+  const graphicsTab = settings.getByRole('tab', { name: '그래픽' });
+  const soundTab = settings.getByRole('tab', { name: '사운드' });
+  await expect(graphicsTab).toHaveAttribute('aria-selected', 'true');
+  await expect(soundTab).toHaveAttribute('aria-selected', 'false');
+  await expect(graphicsTab).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(soundTab).toHaveAttribute('aria-selected', 'true');
+  await expect(soundTab).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(graphicsTab).toHaveAttribute('aria-selected', 'true');
+  const displayResolution = page.getByRole('combobox', {
+    name: '표시 해상도',
+  });
+  await expect(displayResolution).toHaveValue('auto');
+  await displayResolution.selectOption('960x540');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-display-resolution',
+    '960x540',
+  );
+  await expect
+    .poll(async () => (await getCanvasBounds(page)).width)
+    .toBe(960);
+  await page.getByRole('button', { name: '그래픽 기본값' }).click();
+  await expect(displayResolution).toHaveValue('auto');
+  await soundTab.click();
+  await expect(soundTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('combobox', { name: '표시 해상도' })).toHaveCount(0);
+  const masterVolume = page.getByRole('slider', { name: '마스터 볼륨' });
+  await expect(masterVolume).toHaveValue('90');
+  await masterVolume.focus();
+  await page.keyboard.press('End');
+  await expect(masterVolume).toHaveValue('100');
+  await expect(page.getByRole('button', { name: '사운드 기본값' })).toBeEnabled();
+  await page.getByRole('button', { name: '사운드 기본값' }).click();
+  await expect(masterVolume).toHaveValue('90');
+
+  await page.keyboard.press('Escape');
+  await expect(settings).toHaveCount(0);
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await page.keyboard.press('Escape');
+  const resume = page.getByRole('button', { name: '재개' });
+  const pauseSettings = page.getByRole('button', { name: '설정' });
+  await expect(resume).toBeVisible();
+  await expect(pauseSettings).toBeVisible();
+  expect(
+    await Promise.all(
+      [resume, pauseSettings].map((button) =>
+        button.evaluate((element) => element.getBoundingClientRect().width),
+      ),
+    ),
+  ).toEqual([140, 140]);
+
+  await pauseSettings.click();
+  await expect(settings).toBeVisible();
+  await page.getByRole('button', { name: '닫기' }).click();
+  await expect(settings).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '재개' })).toBeVisible();
+});
+
+test('keeps the HUD inside the rendered canvas at narrow and wide ratios', async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 2560, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await enterGame(page);
+
+    const canvas = await getCanvasBounds(page);
+    const hud = await page.locator('.hud-layer').boundingBox();
+
+    if (!hud) {
+      throw new Error('HUD bounds are unavailable');
+    }
+
+    expect(hud.x).toBeGreaterThanOrEqual(canvas.x);
+    expect(hud.y).toBeGreaterThanOrEqual(canvas.y);
+    expect(hud.x + hud.width).toBeLessThanOrEqual(canvas.x + canvas.width);
+    expect(hud.y + hud.height).toBeLessThanOrEqual(canvas.y + canvas.height);
+  }
+});
+
 test('shows the title before the stage one background finishes loading', async ({
   page,
 }) => {

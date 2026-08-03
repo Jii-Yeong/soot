@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HealthMeter } from '@/app/components/HealthMeter';
+import { SettingsDialog } from '@/app/components/SettingsDialog';
 import { useGameUiEvents } from '@/app/hooks/useGameUiEvents';
 import { PhaserGame } from '@/game/PhaserGame';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
@@ -22,9 +23,27 @@ export function App() {
     nearbyWeaponId,
     paused,
   } = useGameUiStore();
-  const { invincible, toggleInvincible } = useGameSettingsStore();
+  const {
+    invincible,
+    audioMix,
+    graphics,
+    settingsOpen,
+    toggleInvincible,
+    openSettings,
+    closeSettings,
+  } = useGameSettingsStore();
 
   useGameUiEvents();
+
+  useEffect(() => {
+    gameEvents.emit('audio-mix-changed', audioMix);
+  }, [audioMix]);
+
+  useEffect(() => {
+    if (settingsOpen && scene !== 'title' && !paused) {
+      closeSettings();
+    }
+  }, [closeSettings, paused, scene, settingsOpen]);
 
   const goToStage = (stageIndex: number) => {
     setAdminOpen(false);
@@ -46,8 +65,19 @@ export function App() {
       data-weapon={weaponId}
       data-nearby-weapon={nearbyWeaponId ?? ''}
       data-invincible={invincible}
+      data-display-resolution={graphics.displayResolution}
     >
-      <PhaserGame />
+      <div className="game-viewport">
+        <PhaserGame />
+      {scene === 'title' && !settingsOpen && (
+        <button
+          type="button"
+          className="title-settings-trigger"
+          onClick={openSettings}
+        >
+          설정
+        </button>
+      )}
       {scene === 'game' && (
         <>
           <div className="hud-layer">
@@ -76,7 +106,7 @@ export function App() {
             )}
           </div>
 
-          {paused && (
+          {paused && !settingsOpen && (
             <div className="pause-overlay" role="dialog" aria-modal="true">
               <div className="pause-overlay__panel">
                 <p className="pause-overlay__eyebrow">SYSTEM HALT</p>
@@ -88,6 +118,13 @@ export function App() {
                   autoFocus
                 >
                   재개
+                </button>
+                <button
+                  type="button"
+                  className="pause-overlay__settings"
+                  onClick={openSettings}
+                >
+                  설정
                 </button>
                 <p className="pause-overlay__hint">ESC 로도 재개됩니다</p>
               </div>
@@ -165,6 +202,8 @@ export function App() {
           </div>
         </>
       )}
+        {settingsOpen && <SettingsDialog />}
+      </div>
     </main>
   );
 }
