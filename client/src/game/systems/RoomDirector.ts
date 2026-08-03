@@ -2,12 +2,6 @@ import Phaser from 'phaser';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import type { RoomState } from '@/game/state/roomState';
 
-type RoomDoor = {
-  view: Phaser.GameObjects.Rectangle;
-  body: Phaser.Physics.Arcade.StaticBody;
-  playerCollider: Phaser.Physics.Arcade.Collider;
-};
-
 type RoomPortal = {
   view: Phaser.GameObjects.Graphics;
   zone: Phaser.GameObjects.Zone;
@@ -39,7 +33,6 @@ export class RoomDirector {
   private readonly onStateChanged: (state: RoomState) => void;
   private readonly onEntranceDetected: () => void;
   private readonly onExitRequested: () => void;
-  private readonly exit: RoomDoor;
   private readonly portal: RoomPortal;
   private readonly entranceDetector: Phaser.GameObjects.Zone;
   private readonly entranceOverlap: Phaser.Physics.Arcade.Collider;
@@ -56,7 +49,6 @@ export class RoomDirector {
     this.onExitRequested = options.onExitRequested;
 
     const detectorX = this.config.entranceX + ENTRANCE_DETECTOR_OFFSET_X;
-    this.exit = this.createDoor(this.config.exitX);
     this.entranceDetector = this.createEntranceDetector(detectorX);
     this.entranceOverlap = this.scene.physics.add.overlap(
       this.player,
@@ -83,9 +75,6 @@ export class RoomDirector {
   destroy() {
     this.entranceOverlap.destroy();
     this.entranceDetector.destroy();
-    this.exit.playerCollider.destroy();
-    this.scene.tweens.killTweensOf(this.exit.view);
-    this.exit.view.destroy();
     this.portal.zone.destroy();
     this.scene.tweens.killTweensOf(this.portal.view);
     this.portal.view.destroy();
@@ -123,25 +112,6 @@ export class RoomDirector {
     }
 
     this.updateStatusText();
-  }
-
-  private createDoor(x: number): RoomDoor {
-    const view = this.scene.add
-      .rectangle(
-        x,
-        this.config.door.y,
-        this.config.door.width,
-        this.config.door.height,
-        0xe45d68,
-        0.72,
-      )
-      .setStrokeStyle(2, 0xffa4ad)
-      .setDepth(7);
-    this.scene.physics.add.existing(view, true);
-    const body = view.body as Phaser.Physics.Arcade.StaticBody;
-    const playerCollider = this.scene.physics.add.collider(this.player, view);
-
-    return { view, body, playerCollider };
   }
 
   private createEntranceDetector(x: number) {
@@ -202,15 +172,6 @@ export class RoomDirector {
   }
 
   private clearRoom() {
-    this.exit.playerCollider.active = false;
-    this.exit.body.enable = false;
-    this.exit.view.setFillStyle(0xb6ffe4, 0.28).setStrokeStyle(2, 0xb6ffe4);
-    this.scene.tweens.add({
-      targets: this.exit.view,
-      alpha: 0,
-      duration: 300,
-      onComplete: () => this.exit.view.setVisible(false),
-    });
     // Rise into place from below rather than fading in on the spot.
     const restY = this.config.door.y;
     this.portal.body.enable = true;

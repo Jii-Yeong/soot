@@ -4,15 +4,7 @@ import { defineRoom } from '@/game/config/roomConfig';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 
 function createScene() {
-  const doorBody = { enable: true };
   const portalBody = { enable: true };
-  const doorView = {
-    body: doorBody,
-    setDepth: vi.fn().mockReturnThis(),
-    setFillStyle: vi.fn().mockReturnThis(),
-    setStrokeStyle: vi.fn().mockReturnThis(),
-    setVisible: vi.fn().mockReturnThis(),
-  };
   const entranceDetector = { destroy: vi.fn() };
   const portalZone = { body: portalBody, destroy: vi.fn() };
   const portalView = {
@@ -35,14 +27,12 @@ function createScene() {
     setScrollFactor: vi.fn().mockReturnThis(),
     setText: vi.fn().mockReturnThis(),
   };
-  const playerCollider = { active: true, destroy: vi.fn() };
   const entranceOverlap = { destroy: vi.fn() };
   // Controls the synchronous "is the player in the portal?" test.
   const portalContact = { value: true };
   const scene = {
     add: {
       graphics: vi.fn(() => portalView),
-      rectangle: vi.fn(() => doorView),
       text: vi.fn(() => statusText),
       zone: vi
         .fn()
@@ -51,7 +41,6 @@ function createScene() {
     },
     physics: {
       add: {
-        collider: vi.fn(() => playerCollider),
         existing: vi.fn(),
         overlap: vi.fn(() => entranceOverlap),
       },
@@ -64,12 +53,12 @@ function createScene() {
     },
   } as unknown as Phaser.Scene;
 
-  return { doorBody, playerCollider, portalBody, portalContact, scene };
+  return { portalBody, portalContact, scene };
 }
 
 describe('RoomDirector', () => {
-  it('replaces the locked exit with an open portal when cleared', () => {
-    const { doorBody, playerCollider, portalBody, scene } = createScene();
+  it('opens a portal when the room is cleared', () => {
+    const { portalBody, scene } = createScene();
     const director = new RoomDirector({
       scene,
       player: {} as Phaser.Physics.Arcade.Sprite,
@@ -85,8 +74,6 @@ describe('RoomDirector', () => {
 
     director.beginEncounter([]);
 
-    expect(playerCollider.active).toBe(false);
-    expect(doorBody.enable).toBe(false);
     expect(portalBody.enable).toBe(true);
   });
 
