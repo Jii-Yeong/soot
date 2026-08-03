@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
 import {
   AUDIO_MIX_CONFIG,
+  clampAudioMixValue,
   MUSIC_CONFIG,
   SFX_CONFIG,
   WEAPON_FIRE_SFX,
   type AudioAssetKey,
+  type AudioMix,
   type MusicKey,
   type SfxKey,
 } from '@/game/config/audioConfig';
@@ -15,12 +17,6 @@ import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
 
-export type AudioMix = {
-  master: number;
-  music: number;
-  sfx: number;
-};
-
 /**
  * `decodeAudio` lives on the Web Audio manager only. The HTML5 and no-audio
  * managers do not expose it, so deferred music is skipped there rather than
@@ -28,6 +24,11 @@ export type AudioMix = {
  */
 type DecodingSoundManager = Phaser.Sound.BaseSoundManager & {
   decodeAudio(key: string, data: ArrayBuffer): void;
+};
+
+/** `BaseSoundManager` loses the concrete sound type returned at runtime. */
+type VolumeControlledSound = Phaser.Sound.BaseSound & {
+  setVolume(value: number): Phaser.Sound.BaseSound;
 };
 
 function canDecode(
@@ -47,7 +48,7 @@ function canDecode(
 export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
   private readonly playedAt = new Map<SfxKey, number>();
-  private music?: Phaser.Sound.BaseSound;
+  private music?: VolumeControlledSound;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
   /** Tracks already fetched, so a revisited stage does not download twice. */
@@ -60,6 +61,7 @@ export class AudioDirector {
     gameEvents.on('stage-changed', this.handleStageChanged);
     gameEvents.on('phase-changed', this.handlePhaseChanged);
     gameEvents.on('room-state-changed', this.handleRoomStateChanged);
+    gameEvents.on('audio-mix-changed', this.handleAudioMixChanged);
     gameEvents.on('weapon-fired', this.handleWeaponFired);
     gameEvents.on('player-damaged', this.handlePlayerDamaged);
     gameEvents.on('player-dashed', this.handlePlayerDashed);
@@ -72,6 +74,7 @@ export class AudioDirector {
     gameEvents.off('stage-changed', this.handleStageChanged);
     gameEvents.off('phase-changed', this.handlePhaseChanged);
     gameEvents.off('room-state-changed', this.handleRoomStateChanged);
+    gameEvents.off('audio-mix-changed', this.handleAudioMixChanged);
     gameEvents.off('weapon-fired', this.handleWeaponFired);
     gameEvents.off('player-damaged', this.handlePlayerDamaged);
     gameEvents.off('player-dashed', this.handlePlayerDashed);
@@ -191,6 +194,20 @@ export class AudioDirector {
     }
   };
 
+  private readonly handleAudioMixChanged = (mix: AudioMix) => {
+    this.setMix(mix);
+  };
+
+  setMix(mix: AudioMix) {
+    this.mix.master = clampAudioMixValue(mix.master);
+    this.mix.music = clampAudioMixValue(mix.music);
+    this.mix.sfx = clampAudioMixValue(mix.sfx);
+
+    if (this.music && this.wantedMusic) {
+      this.music.setVolume(this.musicVolume(this.wantedMusic));
+    }
+  }
+
   private readonly handleWeaponFired = (weaponId: string) => {
     const key = WEAPON_FIRE_SFX[weaponId];
 
@@ -264,8 +281,8 @@ export class AudioDirector {
 
     this.music = this.game.sound.add(key, {
       loop: true,
-      volume: MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master,
-    });
+      volume: this.musicVolume(key),
+    }) as VolumeControlledSound;
 
     if (this.game.sound.locked) {
       this.game.sound.once(Phaser.Sound.Events.UNLOCKED, this.handleUnlocked);
@@ -290,6 +307,10 @@ export class AudioDirector {
 
   private isLoaded(key: AudioAssetKey) {
     return this.game.cache.audio.exists(key);
+  }
+
+  private musicVolume(key: MusicKey) {
+    return MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master;
   }
 
   private jitteredRate(rateJitter = 0) {

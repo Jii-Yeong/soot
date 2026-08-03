@@ -39,12 +39,22 @@ export type MusicConfig = {
   volume: number;
 };
 
+export type AudioMix = {
+  master: number;
+  music: number;
+  sfx: number;
+};
+
 /** Three buses so the title screen can expose master/music/sfx separately. */
-export const AUDIO_MIX_CONFIG = {
+export const AUDIO_MIX_CONFIG: AudioMix = {
   master: 0.9,
   music: 0.45,
   sfx: 0.8,
-} as const;
+};
+
+export function clampAudioMixValue(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
 
 export const MUSIC_CONFIG: Record<MusicKey, MusicConfig> = {
   'bgm-title': { volume: 0.7 },

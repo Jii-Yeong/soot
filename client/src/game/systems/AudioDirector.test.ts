@@ -28,6 +28,7 @@ type AddedMusic = {
   config: Phaser.Types.Sound.SoundConfig;
   playCount: number;
   stopped: boolean;
+  volumeUpdates: number[];
 };
 
 function createFakeGame(
@@ -54,10 +55,16 @@ function createFakeGame(
         return true;
       },
       add: (key: string, config: Phaser.Types.Sound.SoundConfig) => {
-        const music: AddedMusic = { key, config, playCount: 0, stopped: false };
+        const music: AddedMusic = {
+          key,
+          config,
+          playCount: 0,
+          stopped: false,
+          volumeUpdates: [],
+        };
         added.push(music);
 
-        return {
+        const sound = {
           play: () => {
             music.playCount += 1;
             return true;
@@ -66,8 +73,14 @@ function createFakeGame(
             music.stopped = true;
             return true;
           },
+          setVolume: (volume: number) => {
+            music.volumeUpdates.push(volume);
+            return true;
+          },
           destroy: () => {},
         };
+
+        return sound;
       },
       once: (_event: string, listener: () => void) => {
         unlockListener = listener;
@@ -151,6 +164,24 @@ describe('AudioDirector', () => {
     expect(played).toHaveLength(1);
     expect(played[0].key).toBe('sfx-smg-fire');
     expect(played[0].config.volume).toBeGreaterThan(0);
+  });
+
+  it('updates active music and future effects when the mix changes', () => {
+    const { game, added, played } = createFakeGame({
+      loaded: ['bgm-title', 'sfx-smg-fire'],
+    });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('scene-changed', 'title');
+    gameEvents.emit('audio-mix-changed', {
+      master: 0.5,
+      music: 0.25,
+      sfx: 0.4,
+    });
+    gameEvents.emit('weapon-fired', 'smg', 0, 0);
+
+    expect(added[0].volumeUpdates).toEqual([0.7 * 0.5 * 0.25]);
+    expect(played[0].config.volume).toBe(0.35 * 0.5 * 0.4);
   });
 
   it('plays one burst-rifle cue for every volley event', () => {
