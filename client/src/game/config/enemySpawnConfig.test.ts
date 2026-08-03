@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { STAGES } from '@/game/config/stageConfig';
 
 const EXPECTED_COMBAT_ROOM_COUNTS = [
-  [7, 8],
+  [6, 6],
   [8, 9],
-  [9, 10],
-  [10, 11],
   [8, 9],
+  [8, 11],
+  [6, 7],
 ];
 
 describe('enemy spawn progression', () => {
