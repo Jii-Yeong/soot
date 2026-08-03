@@ -98,6 +98,13 @@ export class ProjectilePool {
   }
 
   clear() {
+    // Scene restart destroys a physics group's children before the reused
+    // GameScene has replaced every cached system reference. Clearing such an
+    // already-destroyed pool is a no-op, not a reason to break stage travel.
+    if (!this.group.children) {
+      return;
+    }
+
     for (const child of this.group.getChildren()) {
       (child as Phaser.Physics.Arcade.Image).disableBody(true, true);
     }
@@ -113,6 +120,10 @@ export class ProjectilePool {
    * down with it.
    */
   clearFrom(owner: object) {
+    if (!this.group.children) {
+      return;
+    }
+
     for (const child of this.group.getChildren()) {
       const projectile = child as Phaser.Physics.Arcade.Image;
       if (!projectile.active || projectile.getData('owner') !== owner) {

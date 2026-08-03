@@ -453,6 +453,9 @@ test('invincibility mode prevents player health loss', async ({ page }) => {
 test('admin menu closes and jumps directly to a selected stage', async ({
   page,
 }) => {
+  const runtimeErrors: Error[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error));
+
   await enterTitle(page);
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
@@ -481,6 +484,7 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   await expect(
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuemax', '115');
+  expect(runtimeErrors).toEqual([]);
 });
 
 test('player fire damages the enemy without stopping combat', async ({
