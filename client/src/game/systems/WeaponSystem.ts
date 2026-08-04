@@ -202,13 +202,35 @@ export class WeaponSystem {
       const { config } = weapon;
       const time = this.scene.time.now;
 
-      const defeated = enemy.takeDamage(config.damage);
-      this.feedback.playEnemyHit(enemy, config);
-      if (config.knockback) {
+      const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
+      // Overlap fires as soon as the round's rectangle touches the outer body,
+      // so its centre can still be just outside. Project it onto the body edge
+      // to obtain the actual impact point used by precision hit regions.
+      const impactX = Phaser.Math.Clamp(
+        bullet.x,
+        enemyBody.left,
+        enemyBody.right,
+      );
+      const impactY = Phaser.Math.Clamp(
+        bullet.y,
+        enemyBody.top,
+        enemyBody.bottom,
+      );
+      const result = enemy.takeProjectileDamage(
+        config.damage,
+        impactX,
+        impactY,
+      );
+      if (result.applied) {
+        this.feedback.playEnemyHit(enemy, config);
+      }
+      if (result.applied && config.knockback) {
         // A projectile flies straight, so its rotation is its heading.
         enemy.applyKnockback(bullet.rotation, config.knockback, time);
       }
-      this.onEnemyHit(enemy, defeated);
+      if (result.applied) {
+        this.onEnemyHit(enemy, result.defeated);
+      }
       weapon.pool.registerHit(bullet);
     };
   }

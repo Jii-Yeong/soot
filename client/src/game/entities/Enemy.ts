@@ -18,6 +18,11 @@ export type EnemyProjectileProfile = {
   muzzleOffset: number;
 };
 
+export type ProjectileDamageResult = {
+  applied: boolean;
+  defeated: boolean;
+};
+
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
   abstract readonly aggroIndicatorColor: number;
@@ -136,6 +141,15 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.health = Math.max(0, this.health - amount);
     return this.health === 0;
+  }
+
+  /** 투사체 충돌 좌표를 쓰지 않는 적의 기본 피격 처리. */
+  takeProjectileDamage(
+    amount: number,
+    _hitX: number,
+    _hitY: number,
+  ): ProjectileDamageResult {
+    return { applied: true, defeated: this.takeDamage(amount) };
   }
 
   get currentHealth() {

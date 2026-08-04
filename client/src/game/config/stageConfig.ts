@@ -1,4 +1,5 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import { CEILING_MAINTAINER_ANIMATION_ATLASES } from '@/game/config/ceilingMaintainerAnimationConfig';
 import {
   MELEE_SWING_CONFIG,
   type MeleeSwingConfig,
@@ -27,6 +28,7 @@ import {
   type SliceSkinConfig,
 } from '@/game/config/terrainSkinConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
 import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
 import { UNDERGROUND_ROOMS } from '@/game/config/rooms/stageThreeRooms';
@@ -83,6 +85,8 @@ export type StageConfig = {
   meleeSwing?: MeleeSwingConfig;
   /** 실제 아틀라스 근접 적 아트(휘두르기는 attack 애니메이션 + 슬래시 VFX로 표현). */
   meleeSprite?: MeleeSpriteConfig;
+  /** 스테이지 고유 잡몹이 사용하는 추가 애니메이션 아틀라스. */
+  enemyAtlases?: readonly EnemyAnimationAtlasConfig<string>[];
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -158,6 +162,8 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     key: 'stage-03-bg',
     path: '/assets/backgrounds/stage-03.webp',
   },
+  enemyAtlases:
+    CEILING_MAINTAINER_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
   rooms: UNDERGROUND_ROOMS,
   endEvent: 'siege',
 };

@@ -31,9 +31,11 @@ describe('stage asset manifests', () => {
     ]);
   });
 
-  it('returns no optional gameplay art for a placeholder-only stage', () => {
+  it('includes a stage-specific ceiling crawler atlas', () => {
     expect(getStageAssetManifest(STAGE_THREE_CONFIG)).toEqual({
-      enemyAtlases: [],
+      enemyAtlases: [
+        expect.objectContaining({ texture: 'stage-3-flying' }),
+      ],
       terrainImages: [],
     });
   });

@@ -24,6 +24,21 @@ export type EnemySpawnConfig =
       movement?: AerialMovementConfig;
     }
   | {
+      type: 'ceiling-maintainer';
+      pipeId: string;
+      x: number;
+    }
+  | {
+      type: 'captor';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'blocker';
+      x: number;
+      y: number;
+    }
+  | {
       type: 'boss';
       variant: BossVariant;
       x: number;
@@ -52,6 +67,14 @@ export type PitSpan = {
   width: number;
 };
 
+/** 3스테이지 천장 정비형이 기어 다니는 상단 배관 레일. */
+export type CeilingPipe = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+};
+
 export type RoomConfig = {
   id: string;
   label: string;
@@ -67,6 +90,7 @@ export type RoomConfig = {
   };
   enemySpawns: EnemySpawnConfig[];
   terrain?: TerrainPiece[];
+  ceilingPipes?: CeilingPipe[];
   pits?: PitSpan[];
   /** Multiplies enemy move speed and divides fire interval. 1 = baseline pace. */
   intensity?: number;

@@ -1,6 +1,9 @@
 import type Phaser from 'phaser';
 import { describe, expect, it, vi } from 'vitest';
-import { STAGE_TWO_CONFIG } from '@/game/config/stageConfig';
+import {
+  STAGE_THREE_CONFIG,
+  STAGE_TWO_CONFIG,
+} from '@/game/config/stageConfig';
 import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
 
 type LoaderListener = (...args: never[]) => void;
@@ -48,6 +51,21 @@ describe('StageAssetPreloader', () => {
       '/assets/enemies/stage-2-neared.json',
     );
     expect(load.image).toHaveBeenCalledTimes(6);
+    expect(load.start).toHaveBeenCalledOnce();
+  });
+
+  it('queues the stage three ceiling crawler atlas with its stage', () => {
+    const { load, scene } = createScene();
+
+    expect(new StageAssetPreloader(scene).preload(STAGE_THREE_CONFIG)).toBe(
+      true,
+    );
+    expect(load.atlas).toHaveBeenCalledOnce();
+    expect(load.atlas).toHaveBeenCalledWith(
+      'stage-3-flying',
+      '/assets/enemies/stage-3-flying.png',
+      '/assets/enemies/stage-3-flying.json',
+    );
     expect(load.start).toHaveBeenCalledOnce();
   });
 

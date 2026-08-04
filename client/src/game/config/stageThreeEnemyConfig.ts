@@ -1,0 +1,47 @@
+import { STAGE_THREE_CEILING_MAINTAINER_SPRITE } from '@/game/config/ceilingMaintainerAnimationConfig';
+
+export const CEILING_MAINTAINER_CONFIG = {
+  ...STAGE_THREE_CEILING_MAINTAINER_SPRITE,
+  maxHealth: 70,
+  aggroRadius: 620,
+  crawlSpeed: 155,
+  warningDuration: 650,
+  attackCooldown: 1450,
+  dropDamage: 12,
+  lowHealthRatio: 0.3,
+  groundDashSpeed: 330,
+  groundDashDamage: 14,
+} as const;
+
+export const CAPTOR_CONFIG = {
+  texture: 'captor-placeholder',
+  maxHealth: 90,
+  aggroRadius: 610,
+  warningDuration: 620,
+  attackCooldown: 1900,
+  tetherDuration: 1000,
+  tetherBreakDamage: 25,
+  slowFactor: 0,
+  minimumPullSpeed: 240,
+  shockRange: 92,
+  shockDamage: 12,
+} as const;
+
+export const BLOCKER_CONFIG = {
+  texture: 'blocker-placeholder',
+  maxHealth: 150,
+  aggroRadius: 520,
+  moveSpeed: 68,
+  slamRange: 190,
+  slamWarningDuration: 560,
+  slamRecoveryDuration: 760,
+  slamCooldown: 1500,
+  shockwaveRange: 210,
+  shockwaveDamage: 14,
+  bodyWidth: 80,
+  bodyHeight: 120,
+  /** 바이저 폭 100% × 높이 15% = 전신 피격 면적의 정확히 15%. */
+  faceWidthRatio: 1,
+  faceHeightRatio: 0.15,
+  projectileHitTolerance: 8,
+} as const;

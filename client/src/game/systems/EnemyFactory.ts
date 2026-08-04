@@ -16,8 +16,14 @@ import {
 import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
 import type { MeleeSpriteConfig } from '@/game/config/meleeEnemyAnimationConfig';
 import type { RangedSpriteConfig } from '@/game/config/rangedEnemyAnimationConfig';
-import type { EnemySpawnConfig } from '@/game/config/roomConfig';
+import type {
+  CeilingPipe,
+  EnemySpawnConfig,
+} from '@/game/config/roomConfig';
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
+import { BlockerEnemy } from '@/game/entities/BlockerEnemy';
+import { CaptorEnemy } from '@/game/entities/CaptorEnemy';
+import { CeilingMaintainerEnemy } from '@/game/entities/CeilingMaintainerEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
@@ -46,7 +52,14 @@ export class EnemyFactory {
     private readonly pitBarriers: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
+    private readonly tetherPlayer: (
+      sourceX: number,
+      slowFactor: number,
+      pullSpeed: number,
+    ) => void,
+    private readonly isPlayerDashing: () => boolean,
     private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
+    private readonly ceilingPipes: readonly CeilingPipe[],
     private readonly bossArena: BossArenaBounds,
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
     private readonly flyingSprite?: FlyingSpriteConfig,
@@ -65,9 +78,55 @@ export class EnemyFactory {
         return this.createRangedEnemy(spawn);
       case 'flying':
         return this.createFlyingEnemy(spawn);
+      case 'ceiling-maintainer':
+        return this.createCeilingMaintainer(spawn);
+      case 'captor':
+        return this.createCaptor(spawn);
+      case 'blocker':
+        return this.createBlocker(spawn);
       case 'boss':
         return this.createBossEnemy(spawn);
     }
+  }
+
+  private createCeilingMaintainer(spawn: SpawnOf<'ceiling-maintainer'>) {
+    const pipe = this.ceilingPipes.find(({ id }) => id === spawn.pipeId);
+    if (!pipe) {
+      throw new Error(`Missing ceiling pipe: ${spawn.pipeId}`);
+    }
+
+    return this.finishSpawn(
+      new CeilingMaintainerEnemy(
+        this.scene,
+        spawn.x,
+        pipe,
+        this.damagePlayer,
+      ),
+    );
+  }
+
+  private createCaptor(spawn: SpawnOf<'captor'>) {
+    return this.finishSpawn(
+      new CaptorEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.damagePlayer,
+        this.tetherPlayer,
+        this.isPlayerDashing,
+      ),
+    );
+  }
+
+  private createBlocker(spawn: SpawnOf<'blocker'>) {
+    return this.finishSpawn(
+      new BlockerEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.damagePlayer,
+      ),
+    );
   }
 
   private createMeleeEnemy(spawn: SpawnOf<'melee'>) {

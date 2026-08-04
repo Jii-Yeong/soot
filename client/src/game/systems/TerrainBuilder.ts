@@ -1,9 +1,13 @@
 import Phaser from 'phaser';
-import type { TerrainPiece } from '@/game/config/roomConfig';
+import type {
+  CeilingPipe,
+  TerrainPiece,
+} from '@/game/config/roomConfig';
 import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
 import { drawSliceSkin } from '@/game/systems/SliceSkin';
 
 const TERRAIN_DEPTH = 5;
+const PIPE_DEPTH = 4;
 
 const TERRAIN_STYLE = {
   platform: { fill: 0x9aa4ab, edge: 0xe8eef1 },
@@ -20,14 +24,20 @@ const TERRAIN_STYLE = {
 export class TerrainBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
   private skinObjects: Phaser.GameObjects.GameObject[] = [];
+  private pipeObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.physics.add.staticGroup();
   }
 
-  build(pieces: readonly TerrainPiece[] = [], stoolSkin?: SliceSkinConfig) {
+  build(
+    pieces: readonly TerrainPiece[] = [],
+    stoolSkin?: SliceSkinConfig,
+    ceilingPipes: readonly CeilingPipe[] = [],
+  ) {
     this.group.clear(true, true);
     this.clearSkin();
+    this.clearPipes();
 
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
@@ -66,6 +76,31 @@ export class TerrainBuilder {
         );
       }
     }
+
+    for (const pipe of ceilingPipes) {
+      this.drawCeilingPipe(pipe);
+    }
+  }
+
+  /** 산업용 배관과 자석 발이 붙는 하부 레일을 한 오브젝트로 그림. */
+  private drawCeilingPipe(pipe: CeilingPipe) {
+    const graphics = this.scene.add
+      .graphics({ x: pipe.x, y: pipe.y })
+      .setDepth(PIPE_DEPTH);
+    graphics.fillStyle(0x182326, 1);
+    graphics.fillRoundedRect(0, 0, pipe.width, 26, 8);
+    graphics.lineStyle(3, 0x536468, 1);
+    graphics.strokeRoundedRect(0, 0, pipe.width, 26, 8);
+    graphics.lineStyle(2, 0x26383a, 1);
+    graphics.lineBetween(0, 17, pipe.width, 17);
+    graphics.fillStyle(0x6a7c7e, 1);
+    for (let x = 80; x < pipe.width; x += 180) {
+      graphics.fillRect(x, -5, 14, 36);
+      graphics.fillStyle(0x9bcc78, 0.75);
+      graphics.fillCircle(x + 7, 13, 3);
+      graphics.fillStyle(0x6a7c7e, 1);
+    }
+    this.pipeObjects.push(graphics);
   }
 
   private clearSkin() {
@@ -73,5 +108,12 @@ export class TerrainBuilder {
       obj.destroy();
     }
     this.skinObjects = [];
+  }
+
+  private clearPipes() {
+    for (const obj of this.pipeObjects) {
+      obj.destroy();
+    }
+    this.pipeObjects = [];
   }
 }

@@ -4,7 +4,8 @@ import { STAGES } from '@/game/config/stageConfig';
 const EXPECTED_COMBAT_ROOM_COUNTS = [
   [7, 8],
   [8, 9],
-  [9, 10],
+  // Stage 3 uses fewer, higher-impact control enemies instead of trash mobs.
+  [6, 7],
   [10, 11],
   [8, 9],
 ];

@@ -8,6 +8,7 @@ import {
   PLAYER_FLIGHT_BOUNDS,
   writeNormalizedVelocity,
 } from '@/game/config/playerMovementConfig';
+import { getTetheredVelocityX } from '@/game/combat/stageThreeEnemyCombat';
 import { getVacuumVelocityX } from '@/game/combat/vacuumPull';
 import { gameEvents } from '@/game/events/gameEvents';
 
@@ -319,6 +320,10 @@ export class PlayerController {
     return this.invulnerable;
   }
 
+  get isDashing() {
+    return this.dashing;
+  }
+
   get isFlightMode() {
     return this.movementMode === MovementMode.FLIGHT;
   }
@@ -337,6 +342,24 @@ export class PlayerController {
         currentVelocityX: body.velocity.x,
         pullSpeed,
       }),
+    );
+  }
+
+  /** 포획 케이블이 입력 속도를 낮추고 포획기 쪽으로 조금씩 끌어당김. */
+  applyTether(sourceX: number, slowFactor: number, pullSpeed: number) {
+    if (this.dashing) {
+      return;
+    }
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    this.player.setVelocityX(
+      getTetheredVelocityX(
+        this.player.x,
+        sourceX,
+        body.velocity.x,
+        slowFactor,
+        pullSpeed,
+      ),
     );
   }
 

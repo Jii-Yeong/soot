@@ -287,7 +287,11 @@ export class GameScene extends Phaser.Scene {
     this.replaceEnemies([]);
     this.emitEnemyHealth();
 
-    this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
+    this.terrainBuilder.build(
+      roomConfig.terrain,
+      this.stage.terrainSkin,
+      roomConfig.ceilingPipes,
+    );
   }
 
   private spawnRoomEnemies() {
@@ -297,8 +301,12 @@ export class GameScene extends Phaser.Scene {
       this.floorBuilder.enemyPitBarriers,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
+      (sourceX, slowFactor, pullSpeed) =>
+        this.playerController.applyTether(sourceX, slowFactor, pullSpeed),
+      () => this.playerController.isDashing,
       (bossX, pullSpeed) =>
         this.playerController.applyVacuum(bossX, pullSpeed),
+      this.activeRoomConfig.ceilingPipes ?? [],
       {
         left: this.activeRoomConfig.entranceX,
         right: this.activeRoomConfig.exitX,
@@ -472,6 +480,7 @@ export class GameScene extends Phaser.Scene {
     this.terrainBuilder.build(
       this.activeRoomConfig.terrain,
       this.stage.terrainSkin,
+      this.activeRoomConfig.ceilingPipes,
     );
   }
 
