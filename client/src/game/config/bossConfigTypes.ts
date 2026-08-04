@@ -221,6 +221,8 @@ export type BossSpriteGeometry = {
   /** 지정 시 setSize를 중앙 정렬 대신 이 오프셋으로 배치(발을 바닥에 맞춤). */
   bodyOffsetX?: number;
   bodyOffsetY?: number;
+  /** 아트가 기본적으로 왼쪽을 향할 때 true(flipX 방향을 반전). 기본값은 오른쪽. */
+  facesLeft?: boolean;
 };
 
 /** 레이저포 보스(city-warden)의 스프라이트 설정. */

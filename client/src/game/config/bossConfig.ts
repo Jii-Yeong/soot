@@ -307,5 +307,7 @@ export const HOUND_BOSS_SPRITES: Partial<
     bodyHeight: 150,
     bodyOffsetX: 40,
     bodyOffsetY: 89,
+    // 아트는 머리(귀·눈)가 왼쪽 — 기본 좌향이므로 flip 방향을 반전.
+    facesLeft: true,
   },
 };

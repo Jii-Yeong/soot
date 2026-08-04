@@ -94,6 +94,12 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     this.play(animation, true);
   }
 
+  /** 스프라이트가 대상을 바라보도록 flipX 설정(기본 좌향 아트 보정 포함). */
+  private faceToward(faceRight: boolean) {
+    // 기본 우향 아트는 오른쪽을 볼 때 flip 없음. facesLeft면 반전.
+    this.setFlipX(this.sprite?.facesLeft ? faceRight : !faceRight);
+  }
+
   /** 이동 중이면 walk, 멈춰 있으면 idle. 사격 직후 짧은 attack 포즈는 존중함. */
   private updateLocomotionAnimation(time: number) {
     if (!this.sprite || time < this.attackPoseUntil) {
@@ -296,7 +302,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
 
     const horizontalDistance = Math.abs(target.x - this.x);
     const directionToTarget = Math.sign(target.x - this.x) || 1;
-    this.setFlipX(directionToTarget < 0);
+    this.faceToward(directionToTarget > 0);
 
     const speed = this.isEnraged
       ? this.pattern.enragedMoveSpeed
@@ -328,7 +334,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     // Lean the fan downward whichever way it faces, so it always rakes the floor.
     const facingRight = Math.cos(base) >= 0;
     this.centerAngle = base + (facingRight ? tilt : -tilt);
-    this.setFlipX(!facingRight);
+    this.faceToward(facingRight);
   }
 
   private playerInCone(target: Phaser.Physics.Arcade.Sprite) {
