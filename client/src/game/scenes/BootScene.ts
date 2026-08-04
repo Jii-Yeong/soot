@@ -183,23 +183,6 @@ export class BootScene extends Phaser.Scene {
     graphics.fillRect(4, 18, 40, 4);
     graphics.generateTexture('flying-enemy-placeholder', 48, 40);
 
-    // Stage 3 captor: narrow industrial frame, visor, cable launcher and reel.
-    graphics.clear();
-    graphics.fillStyle(0x28373a);
-    graphics.fillRoundedRect(17, 12, 30, 76, 8);
-    graphics.fillStyle(0x182124);
-    graphics.fillCircle(47, 58, 14);
-    graphics.lineStyle(3, 0x839497);
-    graphics.strokeCircle(47, 58, 11);
-    graphics.fillStyle(0x72ff9b, 0.85);
-    graphics.fillRoundedRect(20, 17, 24, 12, 5);
-    graphics.fillStyle(0x687b7e);
-    graphics.fillRect(6, 37, 18, 12);
-    graphics.fillRect(40, 36, 20, 10);
-    graphics.fillRect(18, 84, 10, 22);
-    graphics.fillRect(36, 84, 10, 22);
-    graphics.generateTexture('captor-placeholder', 64, 108);
-
     // Stage 3 blocker: construction-barrier shield below an exposed green
     // visor. The outlined visor matches the only projectile damage region.
     graphics.clear();

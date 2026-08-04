@@ -7,6 +7,9 @@ import {
   type EnemyProjectileAttack,
 } from '@/game/entities/Enemy';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
+
+const POSE = CAPTOR_CONFIG.animations;
 
 type CaptorState = 'ready' | 'warning' | 'tethered' | 'recover';
 
@@ -19,7 +22,9 @@ export class CaptorEnemy extends Enemy {
   private nextAttackAt = 0;
   private lockedTarget = new Phaser.Math.Vector2();
   private tetherDamage = 0;
+  private dying = false;
   private readonly cable: Phaser.GameObjects.Graphics;
+  private readonly rig: GroundedEnemySprite;
 
   constructor(
     scene: Phaser.Scene,
@@ -34,9 +39,14 @@ export class CaptorEnemy extends Enemy {
     private readonly isPlayerDashing: () => boolean,
   ) {
     super(scene, x, y, CAPTOR_CONFIG.texture, CAPTOR_CONFIG.maxHealth);
-    (this.body as Phaser.Physics.Arcade.Body).setSize(48, 92, true);
     this.setDepth(ENEMY_DEPTH);
+    this.rig = new GroundedEnemySprite(this, CAPTOR_CONFIG);
+    this.rig.apply();
     this.cable = scene.add.graphics().setDepth(8);
+  }
+
+  override get playsOwnDeathAnimation() {
+    return true;
   }
 
   updateCombat(
@@ -44,6 +54,11 @@ export class CaptorEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
+    if (!this.active || this.dying) {
+      this.cable.clear();
+      return false;
+    }
+
     const distance = Phaser.Math.Distance.Between(
       this.x,
       this.y,
@@ -59,6 +74,7 @@ export class CaptorEnemy extends Enemy {
         return targetInRange;
       }
 
+      this.rig.play(POSE.pull);
       this.drawCable(target.x, target.y, 0.9);
       const captureSpeed = getCapturePullSpeed(
         target.x - this.x,
@@ -79,6 +95,7 @@ export class CaptorEnemy extends Enemy {
 
     if (this.captorState === 'warning') {
       this.setVelocityX(0);
+      this.rig.play(POSE.pull);
       this.drawCable(this.lockedTarget.x, this.lockedTarget.y, 0.45);
       if (time >= this.stateEndsAt) {
         const evaded = Phaser.Math.Distance.Between(
@@ -100,6 +117,7 @@ export class CaptorEnemy extends Enemy {
 
     if (this.captorState === 'recover' && time < this.stateEndsAt) {
       this.setVelocityX(0);
+      this.rig.play(POSE.idle);
       return targetInRange;
     }
     if (this.captorState === 'recover') {
@@ -108,11 +126,14 @@ export class CaptorEnemy extends Enemy {
 
     if (!targetInRange) {
       this.setVelocityX(0);
+      this.rig.play(POSE.idle);
       return false;
     }
 
     const direction = Math.sign(target.x - this.x) || 1;
-    this.setVelocityX(distance > 430 ? direction * 75 : 0);
+    const chasing = distance > 430;
+    this.setVelocityX(chasing ? direction * 75 : 0);
+    this.rig.play(chasing ? POSE.walk : POSE.idle);
     if (time >= this.nextAttackAt) {
       this.captorState = 'warning';
       this.stateEndsAt = time + CAPTOR_CONFIG.warningDuration;
@@ -138,6 +159,16 @@ export class CaptorEnemy extends Enemy {
     if (this.cable.active) {
       this.cable.destroy();
     }
+  }
+
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.rig.playDeath(() => this.disableBody(true, true));
   }
 
   override destroy(fromScene?: boolean) {

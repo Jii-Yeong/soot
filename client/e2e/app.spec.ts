@@ -689,7 +689,7 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
   expect(new Set(result.textures)).toEqual(
     new Set([
       'stage-3-flying',
-      'captor-placeholder',
+      'stage-3-ranged',
       'blocker-placeholder',
     ]),
   );

@@ -54,17 +54,22 @@ describe('StageAssetPreloader', () => {
     expect(load.start).toHaveBeenCalledOnce();
   });
 
-  it('queues the stage three ceiling crawler atlas with its stage', () => {
+  it('queues the stage three ceiling crawler and captor atlases', () => {
     const { load, scene } = createScene();
 
     expect(new StageAssetPreloader(scene).preload(STAGE_THREE_CONFIG)).toBe(
       true,
     );
-    expect(load.atlas).toHaveBeenCalledOnce();
+    expect(load.atlas).toHaveBeenCalledTimes(2);
     expect(load.atlas).toHaveBeenCalledWith(
       'stage-3-flying',
       '/assets/enemies/stage-3-flying.png',
       '/assets/enemies/stage-3-flying.json',
+    );
+    expect(load.atlas).toHaveBeenCalledWith(
+      'stage-3-ranged',
+      '/assets/enemies/stage-3-ranged.png',
+      '/assets/enemies/stage-3-ranged.json',
     );
     expect(load.start).toHaveBeenCalledOnce();
   });

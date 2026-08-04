@@ -1,4 +1,5 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import { CAPTOR_ANIMATION_ATLASES } from '@/game/config/captorAnimationConfig';
 import { CEILING_MAINTAINER_ANIMATION_ATLASES } from '@/game/config/ceilingMaintainerAnimationConfig';
 import {
   MELEE_SWING_CONFIG,
@@ -162,8 +163,10 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     key: 'stage-03-bg',
     path: '/assets/backgrounds/stage-03.webp',
   },
-  enemyAtlases:
-    CEILING_MAINTAINER_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
+  enemyAtlases: [
+    ...CEILING_MAINTAINER_ANIMATION_ATLASES,
+    ...CAPTOR_ANIMATION_ATLASES,
+  ] as readonly EnemyAnimationAtlasConfig<string>[],
   rooms: UNDERGROUND_ROOMS,
   endEvent: 'siege',
 };

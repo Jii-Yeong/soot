@@ -1,3 +1,4 @@
+import { STAGE_THREE_CAPTOR_SPRITE } from '@/game/config/captorAnimationConfig';
 import { STAGE_THREE_CEILING_MAINTAINER_SPRITE } from '@/game/config/ceilingMaintainerAnimationConfig';
 
 export const CEILING_MAINTAINER_CONFIG = {
@@ -14,7 +15,7 @@ export const CEILING_MAINTAINER_CONFIG = {
 } as const;
 
 export const CAPTOR_CONFIG = {
-  texture: 'captor-placeholder',
+  ...STAGE_THREE_CAPTOR_SPRITE,
   maxHealth: 90,
   aggroRadius: 610,
   warningDuration: 620,

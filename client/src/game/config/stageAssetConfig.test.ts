@@ -31,10 +31,11 @@ describe('stage asset manifests', () => {
     ]);
   });
 
-  it('includes a stage-specific ceiling crawler atlas', () => {
+  it('includes the stage-specific ceiling crawler and captor atlases', () => {
     expect(getStageAssetManifest(STAGE_THREE_CONFIG)).toEqual({
       enemyAtlases: [
         expect.objectContaining({ texture: 'stage-3-flying' }),
+        expect.objectContaining({ texture: 'stage-3-ranged' }),
       ],
       terrainImages: [],
     });
