@@ -18,6 +18,11 @@ const DEATH_FALL_SPEED = 720;
 const DEATH_WRECK_HOLD_MS = 400;
 /** 머무름이 끝난 뒤 페이드아웃 시간. */
 const DEATH_FADE_MS = 350;
+/**
+ * 플레이어가 거의 바로 아래(이 수평 거리 이내)에 있으면 추적을 멈춤. 없으면
+ * sign()이 매 프레임 부호를 뒤집어 좌우로 진동함.
+ */
+const HORIZONTAL_TRACK_DEADZONE = 26;
 
 export type FlyingEnemyConfig = {
   health: number;
@@ -187,7 +192,9 @@ export class FlyingEnemy extends Enemy {
     } else {
       // Preserve the original stages 1-4 behavior exactly when no strategy is
       // supplied: follow horizontally and return to the configured hover line.
-      const horizontalDirection = Math.sign(target.x - this.x);
+      const dx = target.x - this.x;
+      const horizontalDirection =
+        Math.abs(dx) > HORIZONTAL_TRACK_DEADZONE ? Math.sign(dx) : 0;
       this.setVelocityX(
         targetInRange ? horizontalDirection * this.trackSpeed : 0,
       );

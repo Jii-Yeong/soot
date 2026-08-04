@@ -10,6 +10,8 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
 const POSE = CAPTOR_CONFIG.animations;
+/** 플레이어가 이 수평 거리 이내면 바라보는 방향을 유지(좌우 진동 방지). */
+const FACING_DEADZONE = 26;
 
 type CaptorState = 'ready' | 'warning' | 'tethered' | 'shocking' | 'recover';
 
@@ -68,7 +70,11 @@ export class CaptorEnemy extends Enemy {
     );
     const targetInRange = distance <= this.aggroRadius;
     // 스프라이트 기본 방향이 반대라 flip을 뒤집어 플레이어를 바라보게 함.
-    this.setFlipX(target.x > this.x);
+    // 플레이어가 거의 바로 위/옆(데드존 이내)이면 flip을 유지해, sign 부호가
+    // 매 프레임 뒤집혀 좌우로 진동하는 것을 방지함.
+    if (Math.abs(target.x - this.x) > FACING_DEADZONE) {
+      this.setFlipX(target.x > this.x);
+    }
 
     if (this.captorState === 'shocking') {
       if (this.isPlayerDashing() || time >= this.stateEndsAt) {
@@ -76,6 +82,8 @@ export class CaptorEnemy extends Enemy {
         return targetInRange;
       }
 
+      // 포박 중 포획기는 제자리에 고정.
+      this.setVelocityX(0);
       this.rig.play(POSE.attack);
       this.drawShock(target.x, target.y);
       // 포박: 포획기 근처에 붙잡아둠.
@@ -93,6 +101,8 @@ export class CaptorEnemy extends Enemy {
         return targetInRange;
       }
 
+      // 케이블을 감는 동안 포획기는 제자리에 고정.
+      this.setVelocityX(0);
       this.rig.play(POSE.pull);
       this.drawCable(target.x, target.y, 0.9);
       const captureSpeed = getCapturePullSpeed(
