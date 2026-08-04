@@ -34,6 +34,9 @@ const DEATH_FADE_MS = 600;
  * warden's laser cannon.
  */
 export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
+  override readonly usesHitFlash: boolean = true;
+  override readonly hitFlashAlpha: number = 0.72;
+
   private readonly cone: SearchlightCone;
   private attackState: HoundState = 'recover';
   private stateStartedAt = 0;
