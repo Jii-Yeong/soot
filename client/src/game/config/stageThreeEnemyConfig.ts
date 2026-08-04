@@ -25,7 +25,13 @@ export const CAPTOR_CONFIG = {
   slowFactor: 0,
   minimumPullSpeed: 240,
   shockRange: 92,
-  shockDamage: 12,
+  /** 근접까지 끌려오면 이 시간 동안 포박한 채 전기 충격을 가함. */
+  captureDuration: 2000,
+  /** 포박 중 도트 데미지 간격과 1회 데미지. */
+  shockTickInterval: 350,
+  shockDamage: 6,
+  /** 포박 중 플레이어를 포획기 근처에 붙잡아두는 약한 끌림. */
+  shockHoldPullSpeed: 90,
 } as const;
 
 export const BLOCKER_CONFIG = {

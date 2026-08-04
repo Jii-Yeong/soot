@@ -11,7 +11,7 @@ import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
 const POSE = CAPTOR_CONFIG.animations;
 
-type CaptorState = 'ready' | 'warning' | 'tethered' | 'recover';
+type CaptorState = 'ready' | 'warning' | 'tethered' | 'shocking' | 'recover';
 
 export class CaptorEnemy extends Enemy {
   readonly aggroRadius = CAPTOR_CONFIG.aggroRadius;
@@ -20,6 +20,7 @@ export class CaptorEnemy extends Enemy {
   private captorState: CaptorState = 'ready';
   private stateEndsAt = 0;
   private nextAttackAt = 0;
+  private shockNextTickAt = 0;
   private lockedTarget = new Phaser.Math.Vector2();
   private tetherDamage = 0;
   private dying = false;
@@ -66,7 +67,25 @@ export class CaptorEnemy extends Enemy {
       target.y,
     );
     const targetInRange = distance <= this.aggroRadius;
-    this.setFlipX(target.x < this.x);
+    // 스프라이트 기본 방향이 반대라 flip을 뒤집어 플레이어를 바라보게 함.
+    this.setFlipX(target.x > this.x);
+
+    if (this.captorState === 'shocking') {
+      if (this.isPlayerDashing() || time >= this.stateEndsAt) {
+        this.releaseCable(time);
+        return targetInRange;
+      }
+
+      this.rig.play(POSE.attack);
+      this.drawShock(target.x, target.y);
+      // 포박: 포획기 근처에 붙잡아둠.
+      this.applyTether(this.x, 0, CAPTOR_CONFIG.shockHoldPullSpeed);
+      if (time >= this.shockNextTickAt) {
+        this.damagePlayer(CAPTOR_CONFIG.shockDamage);
+        this.shockNextTickAt = time + CAPTOR_CONFIG.shockTickInterval;
+      }
+      return true;
+    }
 
     if (this.captorState === 'tethered') {
       if (this.isPlayerDashing() || time >= this.stateEndsAt) {
@@ -87,8 +106,10 @@ export class CaptorEnemy extends Enemy {
         captureSpeed,
       );
       if (Math.abs(target.x - this.x) <= CAPTOR_CONFIG.shockRange) {
-        this.damagePlayer(CAPTOR_CONFIG.shockDamage);
-        this.releaseCable(time);
+        // 근접까지 끌려오면 2초 포박하며 전기 충격.
+        this.captorState = 'shocking';
+        this.stateEndsAt = time + CAPTOR_CONFIG.captureDuration;
+        this.shockNextTickAt = time;
       }
       return true;
     }
@@ -145,7 +166,7 @@ export class CaptorEnemy extends Enemy {
 
   override takeDamage(amount: number) {
     const defeated = super.takeDamage(amount);
-    if (this.captorState === 'tethered') {
+    if (this.captorState === 'tethered' || this.captorState === 'shocking') {
       this.tetherDamage += amount;
       if (this.tetherDamage >= CAPTOR_CONFIG.tetherBreakDamage) {
         this.releaseCable(this.scene.time.now);
@@ -189,6 +210,30 @@ export class CaptorEnemy extends Enemy {
       targetX,
       FLOOR_SURFACE_Y - 4,
     );
+  }
+
+  /** 포박 중 케이블을 따라 흐르는 지그재그 전기 아크. */
+  private drawShock(targetX: number, targetY: number) {
+    const sourceX = this.x;
+    const sourceY = this.y - 12;
+    this.cable.clear();
+    this.cable.lineStyle(3, 0x79ff9a, 0.9);
+    this.cable.lineBetween(sourceX, sourceY, targetX, targetY);
+
+    const segments = 6;
+    this.cable.lineStyle(2, 0xaee9ff, 0.95);
+    this.cable.beginPath();
+    this.cable.moveTo(sourceX, sourceY);
+    for (let index = 1; index < segments; index += 1) {
+      const t = index / segments;
+      const jitter = (Math.random() - 0.5) * 18;
+      this.cable.lineTo(
+        Phaser.Math.Linear(sourceX, targetX, t),
+        Phaser.Math.Linear(sourceY, targetY, t) + jitter,
+      );
+    }
+    this.cable.lineTo(targetX, targetY);
+    this.cable.strokePath();
   }
 
   private releaseCable(time: number) {
