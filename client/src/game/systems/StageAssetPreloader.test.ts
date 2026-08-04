@@ -85,6 +85,58 @@ describe('StageAssetPreloader', () => {
     expect(cached.anims.create).not.toHaveBeenCalled();
   });
 
+  it('runs onReady once every awaited texture has arrived', () => {
+    const { listeners, scene } = createScene();
+    const onReady = vi.fn();
+
+    new StageAssetPreloader(scene).preload(STAGE_TWO_CONFIG, onReady);
+
+    const awaited = [
+      'stage-2-flying',
+      'stage-2-ranged',
+      'stage-2-neared',
+      'stage-2-floor-left',
+      'stage-2-floor-middle',
+      'stage-2-floor-right',
+      'stage-2-stool-left',
+      'stage-2-stool-middle',
+      'stage-2-stool-right',
+    ];
+    const complete = listeners.get('filecomplete') ?? [];
+    for (const key of awaited.slice(0, -1)) {
+      for (const listener of complete) {
+        listener(key as never);
+      }
+    }
+    expect(onReady).not.toHaveBeenCalled();
+
+    for (const listener of complete) {
+      listener(awaited.at(-1) as never);
+    }
+    expect(onReady).toHaveBeenCalledOnce();
+  });
+
+  it('skips onReady entirely when the stage is already warm', () => {
+    const warm = createScene([
+      'stage-2-flying',
+      'stage-2-ranged',
+      'stage-2-neared',
+      'stage-2-floor-left',
+      'stage-2-floor-middle',
+      'stage-2-floor-right',
+      'stage-2-stool-left',
+      'stage-2-stool-middle',
+      'stage-2-stool-right',
+    ]);
+    warm.anims.exists.mockReturnValue(true);
+    const onReady = vi.fn();
+
+    new StageAssetPreloader(warm.scene).preload(STAGE_TWO_CONFIG, onReady);
+
+    expect(onReady).not.toHaveBeenCalled();
+    expect(warm.listeners.get('filecomplete') ?? []).toHaveLength(0);
+  });
+
   it('deduplicates pending files and permits retry after a failure', () => {
     const { listeners, load, scene } = createScene();
     const preloader = new StageAssetPreloader(scene);

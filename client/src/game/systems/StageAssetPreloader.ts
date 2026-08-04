@@ -7,6 +7,7 @@ import {
 import type { StageConfig } from '@/game/config/stageConfig';
 
 const FILE_LOAD_ERROR_EVENT = 'loaderror';
+const FILE_COMPLETE_EVENT = 'filecomplete';
 const atlasCompleteEvent = (key: string) => `filecomplete-atlasjson-${key}`;
 const imageCompleteEvent = (key: string) => `filecomplete-image-${key}`;
 
@@ -16,13 +17,22 @@ export class StageAssetPreloader {
 
   constructor(private readonly scene: Phaser.Scene) {}
 
-  preload(stage: StageConfig | undefined) {
+  /**
+   * @param onReady Fires once every texture this stage still needs has arrived.
+   *   Skipped entirely when the stage is already warm, so the caller only has to
+   *   re-skin the room when the initial build raced ahead of a cold load.
+   */
+  preload(stage: StageConfig | undefined, onReady?: () => void) {
     if (!stage) {
       return false;
     }
 
     const { enemyAtlases, terrainImages } = getStageAssetManifest(stage);
     let queued = false;
+    // Every key not yet in the texture cache — whether newly queued here or
+    // still in flight from an earlier speculative preload — so onReady waits
+    // for the whole set, not just what this call happened to enqueue.
+    const awaited: string[] = [];
 
     for (const atlas of enemyAtlases) {
       if (this.scene.textures.exists(atlas.texture)) {
@@ -30,6 +40,7 @@ export class StageAssetPreloader {
         continue;
       }
 
+      awaited.push(atlas.texture);
       queued =
         this.queueTexture(
           atlas.texture,
@@ -44,6 +55,7 @@ export class StageAssetPreloader {
         continue;
       }
 
+      awaited.push(image.key);
       queued =
         this.queueTexture(
           image.key,
@@ -52,11 +64,34 @@ export class StageAssetPreloader {
         ) || queued;
     }
 
+    if (onReady && awaited.length > 0) {
+      this.whenAllLoaded(awaited, onReady);
+    }
+
     if (queued && !this.scene.load.isLoading()) {
       this.scene.load.start();
     }
 
     return queued;
+  }
+
+  /** Invokes onReady once each awaited key has either loaded or failed. */
+  private whenAllLoaded(keys: readonly string[], onReady: () => void) {
+    const remaining = new Set(keys);
+    const settle = (key: string) => {
+      if (!remaining.delete(key) || remaining.size > 0) {
+        return;
+      }
+
+      this.scene.load.off(FILE_COMPLETE_EVENT, onComplete);
+      this.scene.load.off(FILE_LOAD_ERROR_EVENT, onError);
+      onReady();
+    };
+    const onComplete = (key: string) => settle(key);
+    const onError = (file: Phaser.Loader.File) => settle(file.key);
+
+    this.scene.load.on(FILE_COMPLETE_EVENT, onComplete);
+    this.scene.load.on(FILE_LOAD_ERROR_EVENT, onError);
   }
 
   private queueTexture(

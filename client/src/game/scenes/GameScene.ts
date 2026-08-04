@@ -458,8 +458,23 @@ export class GameScene extends Phaser.Scene {
   private preloadStageAssets() {
     // The current stage is normally warm already; retry it if speculative
     // loading failed, then fetch exactly one stage ahead during active play.
-    this.stageAssetPreloader.preload(this.stage);
+    // On a cold start the floor/terrain build below races ahead of the load, so
+    // re-skin the room once its art arrives (no-op when the stage was warm).
+    this.stageAssetPreloader.preload(this.stage, () => this.reskinCurrentRoom());
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
+  }
+
+  /** Redraws the floor and terrain once a cold stage's pixel skins finish loading. */
+  private reskinCurrentRoom() {
+    if (!this.floorBuilder || !this.terrainBuilder) {
+      return;
+    }
+
+    this.rebuildFloorForRoom();
+    this.terrainBuilder.build(
+      this.activeRoomConfig.terrain,
+      this.stage.terrainSkin,
+    );
   }
 
   private createCombatSystems() {
