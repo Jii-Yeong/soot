@@ -10,6 +10,11 @@ import {
 } from '@/game/config/playerMovementConfig';
 import { getVacuumVelocityX } from '@/game/combat/vacuumPull';
 import { gameEvents } from '@/game/events/gameEvents';
+import {
+  FLIGHT_ENTRY_JUMP_FALL_DURATION,
+  FLIGHT_ENTRY_JUMP_RISE_DURATION,
+  getFlightEntryJumpY,
+} from '@/game/movement/flightEntryJump';
 
 export type PlayerMovementConfig = {
   moveSpeed: number;
@@ -43,6 +48,10 @@ const GRAB_PULL_SPEED = 700;
  * moment the player overlaps the boss. A dash within it breaks free.
  */
 const GRAB_DURATION = 800;
+/** 중앙 착지 후 비행 조작을 열기 전의 착지 자세 시간. */
+const FLIGHT_ENTRY_LANDING_DURATION = 180;
+/** 비행 밴드 중앙보다 높게 잡는 포탈 진입 점프의 정점. */
+const FLIGHT_ENTRY_JUMP_APEX_HEIGHT = 90;
 
 export class PlayerController {
   private readonly movementKeys: MovementKeys;
@@ -65,6 +74,11 @@ export class PlayerController {
   private grabTargetX = 0;
   private grabStopDistance = 0;
   private movementMode = MovementMode.GROUND;
+  private flightEntryLift?: {
+    startY: number;
+    targetY: number;
+    startsAt: number;
+  };
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -111,6 +125,10 @@ export class PlayerController {
       }
     }
 
+    if (this.updateFlightEntryLift(time)) {
+      return;
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.movementKeys.dash)) {
       this.tryDash(time);
     }
@@ -153,6 +171,7 @@ export class PlayerController {
     this.wasGrounded = mode === MovementMode.GROUND;
     this.landingPoseUntil = 0;
     this.currentPose = null;
+    this.flightEntryLift = undefined;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(mode === MovementMode.GROUND);
@@ -338,6 +357,24 @@ export class PlayerController {
 
   stop() {
     this.finishDash();
+    this.flightEntryLift = undefined;
+    this.player.setVelocity(0);
+  }
+
+  /**
+   * 이전 방의 포탈 높이에서 중앙 착지점 위 정점까지 뛰어오른 뒤 내려온다.
+   * 상승·하강·착지 중에는 방향 입력을 받지 않아 전환 연출이 흐트러지지 않는다.
+   */
+  beginFlightEntryLift(targetY: number) {
+    if (this.movementMode !== MovementMode.FLIGHT) {
+      return;
+    }
+
+    this.flightEntryLift = {
+      startY: this.player.y,
+      targetY,
+      startsAt: this.scene.time.now,
+    };
     this.player.setVelocity(0);
   }
 
@@ -411,6 +448,66 @@ export class PlayerController {
     this.player.clearTint();
   }
 
+  private updateFlightEntryLift(time: number) {
+    const lift = this.flightEntryLift;
+    if (!lift) {
+      return false;
+    }
+
+    const elapsed = time - lift.startsAt;
+    const apexY = Phaser.Math.Clamp(
+      lift.targetY - FLIGHT_ENTRY_JUMP_APEX_HEIGHT,
+      PLAYER_FLIGHT_BOUNDS.minY,
+      PLAYER_FLIGHT_BOUNDS.maxY,
+    );
+    const fallStartsAt = FLIGHT_ENTRY_JUMP_RISE_DURATION;
+    const landingStartsAt = fallStartsAt + FLIGHT_ENTRY_JUMP_FALL_DURATION;
+    const completesAt = landingStartsAt + FLIGHT_ENTRY_LANDING_DURATION;
+
+    if (elapsed < fallStartsAt) {
+      this.moveFlightEntryBodyTo(
+        getFlightEntryJumpY(
+          { startY: lift.startY, apexY, targetY: lift.targetY },
+          elapsed,
+        ),
+      );
+      this.setPose(PLAYER_JUMP_FRAMES.airborne);
+    } else if (elapsed < landingStartsAt) {
+      const progress = Phaser.Math.Clamp(
+        (elapsed - fallStartsAt) / FLIGHT_ENTRY_JUMP_FALL_DURATION,
+        0,
+        1,
+      );
+      this.moveFlightEntryBodyTo(
+        getFlightEntryJumpY(
+          { startY: lift.startY, apexY, targetY: lift.targetY },
+          elapsed,
+        ),
+      );
+      this.setPose(
+        progress < 0.25 ? PLAYER_JUMP_FRAMES.apex : PLAYER_JUMP_FRAMES.airborne,
+      );
+    } else {
+      this.moveFlightEntryBodyTo(lift.targetY);
+      this.setPose(PLAYER_JUMP_FRAMES.landing);
+    }
+    this.player.setVelocity(0);
+
+    if (elapsed >= completesAt) {
+      this.flightEntryLift = undefined;
+      this.currentPose = null;
+      this.updateFlightAnimation(false);
+    }
+
+    return true;
+  }
+
+  /** Arcade Physics가 POST_UPDATE에 되돌리지 않도록 바디와 스프라이트를 함께 이동한다. */
+  private moveFlightEntryBodyTo(y: number) {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.reset(this.player.x, y);
+  }
+
   private resolveDashVelocity() {
     if (this.movementMode === MovementMode.FLIGHT) {
       const horizontal =
@@ -428,11 +525,14 @@ export class PlayerController {
 
   private clampFlightPosition() {
     const camera = this.scene.cameras.main;
+    // setScroll()은 scrollX를 즉시 바꾸지만 worldView는 다음 카메라 갱신까지
+    // 이전 방 값을 유지하므로, 스테이지 전환 프레임에는 scrollX를 기준으로 함.
+    const viewportLeft = camera.scrollX;
     this.player.setPosition(
       Phaser.Math.Clamp(
         this.player.x,
-        camera.worldView.left + PLAYER_FLIGHT_BOUNDS.minScreenX,
-        camera.worldView.left + PLAYER_FLIGHT_BOUNDS.maxScreenX,
+        viewportLeft + PLAYER_FLIGHT_BOUNDS.minScreenX,
+        viewportLeft + PLAYER_FLIGHT_BOUNDS.maxScreenX,
       ),
       Phaser.Math.Clamp(
         this.player.y,

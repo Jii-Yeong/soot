@@ -13,29 +13,23 @@ type RoomDirectorOptions = {
   player: Phaser.Physics.Arcade.Sprite;
   config: RoomConfig;
   onStateChanged: (state: RoomState) => void;
-  onEntranceDetected: () => void;
   onExitRequested: () => void;
 };
 
-const ENTRANCE_DETECTOR_OFFSET_X = 200;
-const ENTRANCE_DETECTOR_WIDTH = 72;
 const PORTAL_WIDTH = 64;
 const PORTAL_HEIGHT = 128;
 const PORTAL_OVERLAP_PADDING = 28;
 /** 포탈이 나타나기 전, 정지 위치보다 얼마나 아래에서 올라오기 시작하는지. */
 const PORTAL_RISE = 96;
-
 export class RoomDirector {
   private readonly enemies = new Set<Phaser.GameObjects.GameObject>();
   private readonly scene: Phaser.Scene;
   private readonly player: Phaser.Physics.Arcade.Sprite;
   private readonly config: RoomConfig;
   private readonly onStateChanged: (state: RoomState) => void;
-  private readonly onEntranceDetected: () => void;
   private readonly onExitRequested: () => void;
   private readonly portal: RoomPortal;
-  private readonly entranceDetector: Phaser.GameObjects.Zone;
-  private readonly entranceOverlap: Phaser.Physics.Arcade.Collider;
+  private readonly portalPrompt: Phaser.GameObjects.Text;
   private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
   private exitRequested = false;
@@ -45,21 +39,25 @@ export class RoomDirector {
     this.player = options.player;
     this.config = options.config;
     this.onStateChanged = options.onStateChanged;
-    this.onEntranceDetected = options.onEntranceDetected;
     this.onExitRequested = options.onExitRequested;
-
-    const detectorX = this.config.entranceX + ENTRANCE_DETECTOR_OFFSET_X;
-    this.entranceDetector = this.createEntranceDetector(detectorX);
-    this.entranceOverlap = this.scene.physics.add.overlap(
-      this.player,
-      this.entranceDetector,
-      () => {
-        if (this.state === 'idle') {
-          this.onEntranceDetected();
-        }
-      },
-    );
     this.portal = this.createPortal(this.config.exitX);
+    this.portalPrompt = this.scene.add
+      .text(
+        this.config.exitX,
+        this.config.portal.y - PORTAL_HEIGHT / 2 - 24,
+        '[W] ENTER',
+        {
+          color: '#ffffff',
+          backgroundColor: '#070a0bd9',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '12px',
+          fontStyle: 'bold',
+          padding: { x: 6, y: 3 },
+        },
+      )
+      .setOrigin(0.5)
+      .setDepth(12)
+      .setVisible(false);
     this.statusText = this.scene.add
       .text(this.scene.scale.width / 2, 154, '', {
         color: '#ff7180',
@@ -73,12 +71,15 @@ export class RoomDirector {
   }
 
   destroy() {
-    this.entranceOverlap.destroy();
-    this.entranceDetector.destroy();
     this.portal.zone.destroy();
     this.scene.tweens.killTweensOf(this.portal.view);
     this.portal.view.destroy();
+    this.portalPrompt.destroy();
     this.statusText.destroy();
+  }
+
+  update() {
+    this.portalPrompt.setVisible(this.isPlayerAtOpenPortal());
   }
 
   beginEncounter(enemies: Phaser.GameObjects.GameObject[]) {
@@ -114,17 +115,6 @@ export class RoomDirector {
     this.updateStatusText();
   }
 
-  private createEntranceDetector(x: number) {
-    const detector = this.scene.add.zone(
-      x,
-      this.scene.scale.height / 2,
-      ENTRANCE_DETECTOR_WIDTH,
-      this.scene.scale.height,
-    );
-    this.scene.physics.add.existing(detector, true);
-    return detector;
-  }
-
   private createPortal(x: number): RoomPortal {
     const height = Math.min(PORTAL_HEIGHT, this.config.portal.height - 16);
     const view = this.scene.add
@@ -134,9 +124,7 @@ export class RoomDirector {
       .setVisible(false)
       .setAlpha(0);
     view.fillStyle(0x163d35, 0.7).fillEllipse(0, 0, PORTAL_WIDTH, height);
-    view
-      .lineStyle(4, 0xb6ffe4, 0.92)
-      .strokeEllipse(0, 0, PORTAL_WIDTH, height);
+    view.lineStyle(4, 0xb6ffe4, 0.92).strokeEllipse(0, 0, PORTAL_WIDTH, height);
     view
       .lineStyle(1, 0xffffff, 0.75)
       .strokeEllipse(0, 0, PORTAL_WIDTH - 18, height - 22);
@@ -159,16 +147,19 @@ export class RoomDirector {
    * 나감. 그래서 포탈을 그냥 지나쳐도 더 이상 전환되지 않음.
    */
   tryExit() {
-    if (
-      this.state !== 'cleared' ||
-      this.exitRequested ||
-      !this.scene.physics.overlap(this.player, this.portal.zone)
-    ) {
+    if (this.exitRequested || !this.isPlayerAtOpenPortal()) {
       return;
     }
 
     this.exitRequested = true;
     this.onExitRequested();
+  }
+
+  private isPlayerAtOpenPortal() {
+    return (
+      this.state === 'cleared' &&
+      this.scene.physics.overlap(this.player, this.portal.zone)
+    );
   }
 
   private clearRoom() {
@@ -230,7 +221,9 @@ export class RoomDirector {
     if (this.state === 'cleared') {
       const result = this.config.kind === 'boss' ? 'BOSS DEFEATED' : 'CLEAR';
       this.statusText
-        .setText(`${this.config.label}  //  ${result}  //  ↑ / W TO ENTER PORTAL`)
+        .setText(
+          `${this.config.label}  //  ${result}  //  ↑ / W TO ENTER PORTAL`,
+        )
         .setColor('#b6ffe4');
     }
   }

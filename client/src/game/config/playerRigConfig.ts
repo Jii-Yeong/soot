@@ -233,7 +233,7 @@ export const WEAPON_SWING_RATE = 0.22;
  * breaks those relationships and the tests start failing for reasons that have
  * nothing to do with the change.
  *
- * Applied before mirroring, so x is "forward, facing right" and turning around
+ * Applied before mirroring, so x is 'forward, facing right' and turning around
  * takes it the other way by itself.
  *
  * This is the knob to reach for when the gun simply sits in the wrong place on

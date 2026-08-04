@@ -18,6 +18,7 @@ import type { EnemySpawnConfig } from '@/game/config/roomConfig';
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import type { PatrolBounds } from '@/game/systems/patrolSpan';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
 import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
@@ -25,6 +26,10 @@ import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 import type { BossPhase } from '@/game/state/bossPhase';
+import {
+  connectEnemyToRoomGeometry,
+  type EnemyCollisionOptions,
+} from '@/game/systems/enemyCollision';
 
 type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   EnemySpawnConfig,
@@ -41,19 +46,33 @@ export class EnemyFactory {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
-    private readonly pitBarriers: Phaser.Physics.Arcade.StaticGroup,
+    private readonly terrain: Phaser.Physics.Arcade.StaticGroup,
+    private readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
     private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
     private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
     private readonly bossArena: BossArenaBounds,
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
+    /**
+     * 이 위치의 적이 순찰할 수 있도록 방의 구덩이와 가장자리에 맞춰 잘라낸
+     * 바닥 구간. 팩토리는 방의 형태를 모르고 배치 시점에 범위가 고정되므로,
+     * 장면에서 계산해 전달한다.
+     */
+    private readonly patrolBoundsFor: (spawnX: number) => PatrolBounds | null,
     private readonly flyingSprite?: FlyingSpriteConfig,
     private readonly meleeSwing?: MeleeSwingConfig,
     private readonly rangedSprite?: RangedSpriteConfig,
     private readonly meleeSprite?: MeleeSpriteConfig,
   ) {
     this.intensity = intensity ?? 1;
+  }
+
+  private patrolFor(spawnX: number) {
+    const bounds = this.patrolBoundsFor(spawnX);
+    return bounds
+      ? { ...bounds, speed: MELEE_ENEMY_COMBAT_CONFIG.patrolSpeed }
+      : undefined;
   }
 
   create(spawn: EnemySpawnConfig): Enemy {
@@ -81,6 +100,7 @@ export class EnemyFactory {
         moveSpeed: MELEE_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
         contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
+        patrol: this.patrolFor(spawn.x),
         swing: this.meleeSwing,
         sprite: this.meleeSprite,
       },
@@ -104,6 +124,7 @@ export class EnemyFactory {
         moveSpeed: RANGED_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
         preferredDistance: RANGED_ENEMY_COMBAT_CONFIG.preferredDistance,
         distanceTolerance: RANGED_ENEMY_COMBAT_CONFIG.distanceTolerance,
+        patrol: this.patrolFor(spawn.x),
         sprite: this.rangedSprite,
       },
     );
@@ -211,14 +232,17 @@ export class EnemyFactory {
 
   private finishSpawn<EnemyType extends Enemy>(
     enemy: EnemyType,
-    options: { collidesWithFloor: boolean } = { collidesWithFloor: true },
+    options: EnemyCollisionOptions = {},
   ) {
     enemy.setAlpha(0);
-
-    if (options.collidesWithFloor) {
-      this.scene.physics.add.collider(enemy, this.floor);
-      this.scene.physics.add.collider(enemy, this.pitBarriers);
-    }
+    connectEnemyToRoomGeometry(
+      this.scene,
+      enemy,
+      this.floor,
+      this.terrain,
+      options,
+      this.enemyPitBarriers,
+    );
 
     this.scene.tweens.add({
       targets: enemy,

@@ -3,6 +3,7 @@ import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
+import type { AudioMix } from '@/game/config/audioConfig';
 
 /**
  * State events describe what the world *is* and drive the React HUD. Cue events
@@ -33,6 +34,7 @@ type GameEventMap = {
    */
   'pause-toggle-requested': [];
   'pause-changed': [paused: boolean];
+  'audio-mix-changed': [mix: AudioMix];
   'weapon-fired': [weaponId: string, x: number, y: number];
   'player-damaged': [x: number, y: number];
   'player-dashed': [x: number, y: number];

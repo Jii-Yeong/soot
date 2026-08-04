@@ -102,7 +102,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Shared "face the target, fire on cooldown when in range" behavior for
+   * Shared 'face the target, fire on cooldown when in range' behavior for
    * ranged-style enemies. Returns whether the target is within aggro range.
    */
   protected updateRangedAttack(

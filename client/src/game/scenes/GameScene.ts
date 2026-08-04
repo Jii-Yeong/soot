@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
+  MELEE_ENEMY_COMBAT_CONFIG,
   PLAYER_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
@@ -10,7 +11,10 @@ import {
   PLAYER_ATLAS_KEY,
   PLAYER_INITIAL_FRAME,
 } from '@/game/config/playerAnimationConfig';
-import { MovementMode } from '@/game/config/playerMovementConfig';
+import {
+  MovementMode,
+  PLAYER_FLIGHT_BOUNDS,
+} from '@/game/config/playerMovementConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import {
   STARTING_STAGE_INDEX,
@@ -31,6 +35,7 @@ import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import {
   canPlayerFireInPhase,
+  canPlayerFireInRoom,
   type GamePhase,
 } from '@/game/state/gamePhase';
 import { PlayerHealthState } from '@/game/state/playerHealthState';
@@ -42,11 +47,15 @@ import {
   FLOOR_TILE,
   FloorBuilder,
 } from '@/game/systems/FloorBuilder';
+import { patrolSpan } from '@/game/systems/patrolSpan';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
-import { TerrainBuilder } from '@/game/systems/TerrainBuilder';
+import {
+  isProjectileBlocker,
+  TerrainBuilder,
+} from '@/game/systems/TerrainBuilder';
 import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
 import { useGameSettingsStore } from '@/stores/gameSettingsStore';
@@ -74,6 +83,7 @@ export class GameScene extends Phaser.Scene {
   private requestedStartingRoomIndex?: number;
   private requestedImmediateEncounter = false;
   private startCurrentRoomImmediately = false;
+  private startFlightEntryLift = false;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -102,6 +112,9 @@ export class GameScene extends Phaser.Scene {
       gameEvents.emit('health-changed', currentHealth, maxHealth),
   );
   private phase: GamePhase = 'boot';
+  private roomState: RoomState = 'idle';
+  /** 바닥선을 지나 레벨 밖으로 추락 중인 적. */
+  private readonly fallingEnemies = new Set<Enemy>();
   private paused = false;
   private roomExitRequested = false;
 
@@ -136,6 +149,10 @@ export class GameScene extends Phaser.Scene {
     this.configureCamera();
     this.createRoom();
     this.createCombatSystems();
+    if (this.startFlightEntryLift) {
+      this.startFlightEntryLift = false;
+      this.beginFlightEntryLift(this.previousStagePortalY());
+    }
     this.stageEndEventDirector = new StageEndEventDirector(this);
     this.createCombatUi();
     this.bindInputHandlers();
@@ -156,6 +173,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.handlePitFall();
+    this.handleEnemyPitFalls();
+    this.roomDirector.update();
 
     if (this.phase === 'room-cleared' && this.roomExitRequested) {
       this.roomExitRequested = false;
@@ -164,14 +183,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.playerController.update(time);
-    this.weaponDropDirector.update(
-      this.player,
-      this.weaponSystem.activeConfig,
-    );
-
-    if (this.phase === 'playing') {
-      this.updateEnemyCombat(time);
-    }
+    this.weaponDropDirector.update(this.player, this.weaponSystem.activeConfig);
   }
 
   /**
@@ -185,7 +197,7 @@ export class GameScene extends Phaser.Scene {
    * frame's. The gap is one frame of travel: a few pixels while running, and
    * 9.3px vertically off a 560px/s jump, reversing sign at the apex. The arms
    * sagged to the waist on the way up and rode over the face on the way down,
-   * which is the "the arm moves at a different speed than the body" this fixes.
+   * which is the 'the arm moves at a different speed than the body' this fixes.
    *
    * No anchor could have corrected it. The rig was placing the arm correctly
    * against a position the body had already left.
@@ -209,6 +221,9 @@ export class GameScene extends Phaser.Scene {
     if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
     }
+    if (this.phase === 'playing' && this.roomState === 'locked') {
+      this.updateEnemyCombat(time);
+    }
   }
 
   private rebuildFloorForRoom() {
@@ -223,7 +238,7 @@ export class GameScene extends Phaser.Scene {
   private createPlayer() {
     this.player = this.physics.add.sprite(
       this.getStartingPlayerX(),
-      PLAYER_START_Y,
+      this.getStartingPlayerY(),
       PLAYER_ATLAS_KEY,
       PLAYER_INITIAL_FRAME,
     );
@@ -266,6 +281,7 @@ export class GameScene extends Phaser.Scene {
 
   private buildRoom(roomConfig: RoomConfig) {
     this.weaponDropDirector?.clear();
+    this.weaponSystem?.clearProjectiles();
     this.roomDirector?.destroy();
     gameEvents.emit('boss-phase-changed', null);
     this.roomExitRequested = false;
@@ -275,7 +291,6 @@ export class GameScene extends Phaser.Scene {
       player: this.player,
       config: roomConfig,
       onStateChanged: (state) => this.handleRoomStateChanged(state),
-      onEntranceDetected: () => this.startRoomEncounter(),
       onExitRequested: () => {
         this.roomExitRequested = true;
       },
@@ -285,27 +300,46 @@ export class GameScene extends Phaser.Scene {
       enemy.destroy();
     }
     this.replaceEnemies([]);
+    this.roomState = 'idle';
+    gameEvents.emit('room-state-changed', this.roomState);
     this.emitEnemyHealth();
 
     this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
+
+    // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
+    // 스테이지 진입 후 보이지 않는 전투 트리거가 따로 생기지 않는다.
+    if (roomConfig.kind === 'combat') {
+      this.spawnRoomEnemies();
+    }
+    this.startRoomEncounter();
   }
 
   private spawnRoomEnemies() {
     const enemyFactory = new EnemyFactory(
       this,
       this.floorBuilder.group,
+      this.terrainBuilder.group,
       this.floorBuilder.enemyPitBarriers,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
       (bossX, bossHalfWidth) =>
         this.playerController.applyGrab(bossX, bossHalfWidth),
-      (bossX, pullSpeed) =>
-        this.playerController.applyVacuum(bossX, pullSpeed),
+      (bossX, pullSpeed) => this.playerController.applyVacuum(bossX, pullSpeed),
       {
         left: this.activeRoomConfig.entranceX,
         right: this.activeRoomConfig.exitX,
       },
       (phase) => gameEvents.emit('boss-phase-changed', phase),
+      (spawnX) =>
+        patrolSpan({
+          spawnX,
+          range: MELEE_ENEMY_COMBAT_CONFIG.patrolRange,
+          left: this.activeRoomConfig.entranceX,
+          right: this.activeRoomConfig.exitX,
+          pits: this.activeRoomConfig.pits,
+          edgeMargin: MELEE_ENEMY_COMBAT_CONFIG.patrolEdgeMargin,
+          minimumSpan: MELEE_ENEMY_COMBAT_CONFIG.patrolMinimumSpan,
+        }),
       this.stage.flyingSprite,
       this.stage.meleeSwing,
       this.stage.rangedSprite,
@@ -315,7 +349,6 @@ export class GameScene extends Phaser.Scene {
       enemyFactory.create(spawn),
     );
     this.replaceEnemies(spawned);
-    this.emitEnemyHealth();
   }
 
   /**
@@ -325,15 +358,16 @@ export class GameScene extends Phaser.Scene {
    * player bullets and contact damage from hitting the next room's enemies.
    */
   private replaceEnemies(spawned: Enemy[]) {
+    this.fallingEnemies.clear();
     this.enemies.splice(0, this.enemies.length, ...spawned);
   }
 
   private startRoomEncounter() {
-    if (this.enemies.some((enemy) => enemy.active)) {
-      return;
+    // 일반 전투방은 buildRoom에서 적을 배치하지만, 보스방은 이 시점에 비어 있다.
+    if (this.enemies.length === 0) {
+      this.spawnRoomEnemies();
     }
 
-    this.spawnRoomEnemies();
     this.roomDirector.beginEncounter(this.enemies);
   }
 
@@ -374,14 +408,15 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const exitPortalY = this.activeRoomConfig.portal.y;
     this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
     this.restorePlayerHealthForStage();
-    this.enterCurrentRoom(true);
+    this.enterCurrentRoom(true, exitPortalY);
   }
 
-  private enterCurrentRoom(stageChanged = false) {
+  private enterCurrentRoom(stageChanged = false, exitPortalY?: number) {
     if (stageChanged) {
       this.preloadStageAssets();
     }
@@ -389,16 +424,27 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     this.rebuildFloorForRoom();
     this.showStageBackdrop();
-    // 바닥보다 조금 위에서 진입시켜, 플레이어가 포탈에서 방으로 떨어지게 함
-    // (비행 스테이지는 중력이 없어 수평으로 도착함).
+    const entersFlightFromPortal =
+      stageChanged &&
+      exitPortalY !== undefined &&
+      this.stage.movementMode === MovementMode.FLIGHT;
+    // 지상에서는 포탈에서 떨어지고, 비행 전환은 이전 포탈 높이에서 시작해
+    // 중앙보다 높은 정점을 지난 뒤 비행 밴드 중앙에 착지한다.
     const drop =
       this.stage.movementMode === MovementMode.GROUND ? PORTAL_DROP_HEIGHT : 0;
-    this.player.setPosition(this.getStartingPlayerX(), PLAYER_START_Y - drop);
+    const entryY = entersFlightFromPortal
+      ? exitPortalY
+      : this.getStartingPlayerY() - drop;
+    this.player.setPosition(this.getStartingPlayerX(), entryY);
     this.player.setVelocity(0);
     this.resetCameraToRoomEntrance();
 
     if (stageChanged) {
       this.applyStageMovementMode();
+    }
+
+    if (entersFlightFromPortal) {
+      this.beginFlightEntryLift(entryY);
     }
 
     this.buildRoom(this.currentRoomConfig);
@@ -410,7 +456,7 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('ending');
     this.weaponSystem.hide();
     this.enemyRangeGraphics.clear();
-    // Beating the final stage ("The Return") is the true victory — wash the
+    // Beating the final stage ('The Return') is the true victory — wash the
     // screen to warm light (waking up) before the ending card resolves.
     this.cameras.main.flash(700, 255, 240, 210);
     this.victoryOverlay.setVisible(true);
@@ -460,7 +506,9 @@ export class GameScene extends Phaser.Scene {
     // 뒤, 플레이 중 정확히 한 스테이지 앞을 미리 가져옴.
     // 콜드 스타트에서는 아래의 바닥/지형 빌드가 로드보다 앞서 나가므로,
     // 아트가 도착하면 방을 다시 스킨함(워밍된 스테이지에서는 no-op).
-    this.stageAssetPreloader.preload(this.stage, () => this.reskinCurrentRoom());
+    this.stageAssetPreloader.preload(this.stage, () =>
+      this.reskinCurrentRoom(),
+    );
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
   }
 
@@ -492,8 +540,12 @@ export class GameScene extends Phaser.Scene {
       STARTING_WEAPON_ID,
       () => canPlayerFireInPhase(this.phase),
       (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
+      () => canPlayerFireInRoom(this.phase, this.roomState),
     );
-    this.weaponSystem.blockProjectilesWith(this.terrainBuilder.group);
+    this.weaponSystem.blockProjectilesWith(
+      this.terrainBuilder.projectileGroup,
+      isProjectileBlocker,
+    );
     this.weaponDropDirector = new WeaponDropDirector(
       this,
       this.floorBuilder.group,
@@ -512,8 +564,14 @@ export class GameScene extends Phaser.Scene {
       ranged: this.enemyProjectiles,
       flying: this.flyingEnemyProjectiles,
     };
-    this.enemyProjectiles.collideWith(this.terrainBuilder.group);
-    this.flyingEnemyProjectiles.collideWith(this.terrainBuilder.group);
+    this.enemyProjectiles.collideWith(
+      this.terrainBuilder.projectileGroup,
+      isProjectileBlocker,
+    );
+    this.flyingEnemyProjectiles.collideWith(
+      this.terrainBuilder.projectileGroup,
+      isProjectileBlocker,
+    );
     this.physics.add.overlap(
       this.enemyProjectiles.group,
       this.player,
@@ -550,7 +608,7 @@ export class GameScene extends Phaser.Scene {
       0xffe1a8,
       '#ffe9c4',
       'RETURN COMPLETE',
-      "YOU'RE AWAKE  //  PRESS R OR ENTER TO REPLAY",
+      'YOU\'RE AWAKE  //  PRESS R OR ENTER TO REPLAY',
     );
     this.stageEndOverlay = this.createOverlay(
       0xe45d68,
@@ -561,9 +619,11 @@ export class GameScene extends Phaser.Scene {
 
     this.stageLabelText = this.add
       .text(GAME_WIDTH / 2, 96, '', {
-        color: '#879197',
+        color: '#d8dfdc',
+        backgroundColor: '#070a0bbd',
         fontFamily: 'Arial, sans-serif',
         fontSize: '14px',
+        padding: { x: 10, y: 5 },
       })
       .setOrigin(0.5)
       .setDepth(20)
@@ -572,10 +632,12 @@ export class GameScene extends Phaser.Scene {
 
     this.weaponLabelText = this.add
       .text(32, GAME_HEIGHT - 96, '', {
-        color: '#b6ffe4',
+        color: '#d8ffec',
+        backgroundColor: '#070a0bd9',
         fontFamily: 'Arial, sans-serif',
         fontSize: '15px',
         fontStyle: 'bold',
+        padding: { x: 10, y: 6 },
       })
       .setOrigin(0, 0.5)
       .setDepth(20)
@@ -597,16 +659,13 @@ export class GameScene extends Phaser.Scene {
       .setVisible(false);
 
     this.controlHintText = this.add
-      .text(
-        GAME_WIDTH - 32,
-        GAME_HEIGHT - 96,
-        '',
-        {
-          color: '#879197',
-          fontFamily: 'Arial, sans-serif',
-          fontSize: '15px',
-        },
-      )
+      .text(GAME_WIDTH - 32, GAME_HEIGHT - 96, '', {
+        color: '#d8dfdc',
+        backgroundColor: '#070a0bd9',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '15px',
+        padding: { x: 10, y: 6 },
+      })
       .setOrigin(1, 0.5)
       .setDepth(20)
       .setScrollFactor(0);
@@ -704,10 +763,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
+    // 관리자 스테이지 이동에 사용하는 장면 재시작은 이 인스턴스를 재사용하므로,
+    // 각 필드가 이미 파괴된 이전 실행의 게임 객체를 계속 가리킨다. 특히
+    // applyStageMovementMode는 createCombatSystems 안에서 실행되어 createCombatUi가
+    // 다시 만들기 전의 안내 텍스트에 접근하므로, 파괴된 Text의 setText가 없는
+    // 캔버스를 참조하지 않도록 초기화한다.
+    this.controlHintText = undefined;
+    // Phaser는 재시작 시 Scene 인스턴스를 재사용하지만 이전 물리 그룹은 파괴한다.
+    // createCombatSystems가 필드를 교체하기 전에 buildRoom이 실행되므로, 선택적
+    // 정리 과정이 오래된 풀이나 디렉터를 참조하지 않게 비워 둔다.
+    this.weaponDropDirector = undefined!;
+    this.weaponSystem = undefined!;
+    this.roomDirector = undefined!;
     this.startCurrentRoomImmediately = this.requestedImmediateEncounter;
     this.requestedImmediateEncounter = false;
-    this.currentStageIndex =
-      this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
+    const requestedStageIndex = this.requestedStartingStageIndex;
+    this.currentStageIndex = requestedStageIndex ?? STARTING_STAGE_INDEX;
     this.requestedStartingStageIndex = undefined;
     this.currentRoomIndex = Phaser.Math.Clamp(
       this.requestedStartingRoomIndex ?? 0,
@@ -715,12 +786,36 @@ export class GameScene extends Phaser.Scene {
       this.stage.rooms.length - 1,
     );
     this.requestedStartingRoomIndex = undefined;
+    this.startFlightEntryLift =
+      requestedStageIndex !== undefined &&
+      this.stage.movementMode === MovementMode.FLIGHT;
     this.restorePlayerHealthForStage();
-    gameEvents.emit('room-state-changed', 'idle');
+    this.roomState = 'idle';
+    gameEvents.emit('room-state-changed', this.roomState);
   }
 
   private getStartingPlayerX() {
     return this.currentRoomConfig.entranceX + ROOM_ENTRY_OFFSET_X;
+  }
+
+  /** 비행 스테이지의 진입 착지 높이. */
+  private getStartingPlayerY() {
+    return this.stage.movementMode === MovementMode.FLIGHT
+      ? (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2
+      : PLAYER_START_Y;
+  }
+
+  /** 포탈 높이에서 시작해 비행 밴드 중앙에 착지하는 점프 전환을 재생한다. */
+  private beginFlightEntryLift(entryY: number) {
+    this.player.setY(entryY);
+    this.playerController.beginFlightEntryLift(this.getStartingPlayerY());
+  }
+
+  /** 관리자 직행은 바로 앞 스테이지의 마지막 포탈을 가상 출발점으로 쓴다. */
+  private previousStagePortalY() {
+    const previousStage = STAGES[this.currentStageIndex - 1];
+    const previousRoom = previousStage?.rooms[previousStage.rooms.length - 1];
+    return previousRoom?.portal.y ?? PLAYER_FLIGHT_BOUNDS.maxY;
   }
 
   private restorePlayerHealthForStage() {
@@ -746,7 +841,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleRoomStateChanged(state: RoomState) {
+    this.roomState = state;
     gameEvents.emit('room-state-changed', state);
+
+    if (state === 'locked') {
+      // 이번 교전이 시작되기 전에 이전 방의 탄환을 정리한다.
+      this.weaponSystem?.clearProjectiles();
+      this.emitEnemyHealth();
+      return;
+    }
 
     if (state === 'cleared') {
       this.setPhase('room-cleared');
@@ -881,7 +984,8 @@ export class GameScene extends Phaser.Scene {
     this.enemyRangeGraphics.clear();
 
     for (const enemy of this.enemies) {
-      if (!enemy.active) {
+      // 레벨 밖으로 추락 중인 적은 더 이상 사격하지 않는다.
+      if (!enemy.active || this.fallingEnemies.has(enemy)) {
         continue;
       }
 
@@ -921,7 +1025,7 @@ export class GameScene extends Phaser.Scene {
       angle,
       enemy.projectile.muzzleOffset,
     );
-    pool.fire(x, y, angle);
+    pool.fire(x, y, angle, { owner: enemy });
   };
 
   private muzzlePosition(
@@ -937,6 +1041,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleEnemyHit(enemy: Enemy, defeated: boolean) {
+    // 현재 방의 교전이 활성화된 동안에만 피해를 적용한다.
+    if (this.phase !== 'playing' || this.roomState !== 'locked') {
+      return;
+    }
+
     this.emitEnemyHealth();
     gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
 
@@ -944,6 +1053,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.defeatEnemy(enemy);
+  }
+
+  private defeatEnemy(enemy: Enemy) {
     gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
     if (enemy instanceof BossEnemy) {
       this.weaponDropDirector.dropBossReward(
@@ -951,11 +1064,65 @@ export class GameScene extends Phaser.Scene {
         enemy.y,
         this.weaponSystem.activeConfig.id,
       );
-    } else if (!enemy.playsOwnDeathAnimation) {
-      this.spawnDeathPop(enemy);
+    } else {
+      if (!enemy.playsOwnDeathAnimation) {
+        this.spawnDeathPop(enemy);
+      }
+      // 이미 발사된 탄환은 사수보다 오래 남으므로, 적이 사라진 뒤 맞으면 게임이
+      // 공짜로 공격하는 것처럼 느껴진다. 보스 탄환은 패턴 자체가 전투이므로 유지해,
+      // 마지막 타격 순간 화면을 비워 전투의 마무리 흐름을 지우지 않는다.
+      if (enemy.projectile) {
+        this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
+      }
     }
     enemy.defeat();
     this.roomDirector.notifyEnemyDefeated(enemy);
+  }
+
+  /**
+   * 적은 플레이어가 뛰어넘는 가장자리에서 걸어 나가며, 기존에는 월드 경계가
+   * 화면 바닥에서 적을 붙잡았다. 전투와 공격 범위에서는 벗어났지만 수에는 남아
+   * 방을 영원히 열 수 없었다. 플레이어 추락은 handlePitFall로 복귀하는 위험이지만
+   * 적에게는 돌아올 방법이 없다.
+   *
+   * 적은 착지 지점에서 죽지 않고 화면 밖으로 떨어진다. 월드 바닥에서 처치하면
+   * 화면 아래쪽에 사망 폭발이 생겨 추락이 아니라 지상 폭발처럼 보였다. 따라서
+   * 바닥선을 넘으면 교전 대상과 탄환을 정리하고 충돌을 해제한 뒤, 완전히 화면을
+   * 벗어났을 때 표시 객체를 제거한다.
+   */
+  private handleEnemyPitFalls() {
+    for (const enemy of this.enemies) {
+      if (!enemy.active || enemy instanceof BossEnemy) {
+        continue;
+      }
+
+      const body = enemy.body as Phaser.Physics.Arcade.Body | null;
+      if (!body) {
+        continue;
+      }
+
+      if (this.fallingEnemies.has(enemy)) {
+        if (body.top > GAME_HEIGHT) {
+          this.fallingEnemies.delete(enemy);
+          enemy.defeat();
+        }
+        continue;
+      }
+
+      // 몸체의 위쪽 가장자리를 기준으로 전체가 바닥 아래에 있어야 판정하므로,
+      // 구덩이 가장자리에 선 적을 추락 중인 적으로 오인하지 않는다.
+      if (body.top <= FLOOR_SURFACE_Y) {
+        continue;
+      }
+
+      this.fallingEnemies.add(enemy);
+      body.setCollideWorldBounds(false);
+      body.checkCollision.none = true;
+      if (enemy.projectile) {
+        this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
+      }
+      this.roomDirector.notifyEnemyDefeated(enemy);
+    }
   }
 
   /** A fading, expanding ghost of the enemy so a kill has a beat of weight. */
@@ -985,6 +1152,7 @@ export class GameScene extends Phaser.Scene {
       if (
         !enemy ||
         this.phase !== 'playing' ||
+        this.roomState !== 'locked' ||
         this.playerController.isInvulnerable
       ) {
         return;

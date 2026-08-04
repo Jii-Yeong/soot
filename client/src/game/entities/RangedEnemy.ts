@@ -15,6 +15,8 @@ export type RangedEnemyConfig = {
   moveSpeed: number;
   preferredDistance: number;
   distanceTolerance: number;
+  /** 플레이어를 감지하기 전 순찰할 수 있는 바닥 구간. */
+  patrol?: { left: number; right: number; speed: number };
   sprite?: RangedSpriteConfig;
 };
 
@@ -30,6 +32,8 @@ export class RangedEnemy extends Enemy {
   private readonly moveSpeed: number;
   private readonly preferredDistance: number;
   private readonly distanceTolerance: number;
+  private readonly patrol?: RangedEnemyConfig['patrol'];
+  private patrolHeading: -1 | 1;
   private readonly sprite?: RangedSpriteConfig;
   private readonly rig?: GroundedEnemySprite;
   private attackPoseUntil = 0;
@@ -49,6 +53,9 @@ export class RangedEnemy extends Enemy {
     this.moveSpeed = config.moveSpeed;
     this.preferredDistance = config.preferredDistance;
     this.distanceTolerance = config.distanceTolerance;
+    this.patrol = config.patrol;
+    this.patrolHeading =
+      this.patrol && x - this.patrol.left > this.patrol.right - x ? -1 : 1;
     this.projectile = { kind: 'ranged', muzzleOffset: config.muzzleOffset };
     this.sprite = config.sprite;
     // 지형 발판 앞, 플레이어 아래에 렌더링.
@@ -97,9 +104,13 @@ export class RangedEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     targetInRange: boolean,
   ) {
-    if (this.isStaggered(time) || !targetInRange) {
+    if (this.isStaggered(time)) {
       this.setVelocityX(0);
       return false;
+    }
+
+    if (!targetInRange) {
+      return this.patrolStep();
     }
 
     const distance = Math.abs(target.x - this.x);
@@ -117,6 +128,23 @@ export class RangedEnemy extends Enemy {
 
     this.setVelocityX(0);
     return false;
+  }
+
+  private patrolStep() {
+    if (!this.patrol) {
+      this.setVelocityX(0);
+      return false;
+    }
+
+    if (this.x <= this.patrol.left) {
+      this.patrolHeading = 1;
+    } else if (this.x >= this.patrol.right) {
+      this.patrolHeading = -1;
+    }
+
+    this.setFlipX(this.patrolHeading < 0);
+    this.setVelocityX(this.patrolHeading * this.patrol.speed);
+    return true;
   }
 
   protected override onRangedFire(time: number) {

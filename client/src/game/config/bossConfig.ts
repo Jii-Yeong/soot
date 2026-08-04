@@ -157,7 +157,7 @@ export const BOSS_COMBAT_CONFIGS = {
     pattern: {
       type: 'infernal',
       enrageHealthRatio: 0.5,
-      firstAttackDelay: 900,
+      firstAttackDelay: 1800,
       recoveryDuration: 750,
       enragedRecoveryDuration: 550,
       phaseTransitionDuration: 700,

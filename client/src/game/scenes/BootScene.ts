@@ -51,10 +51,10 @@ export class BootScene extends Phaser.Scene {
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
     for (const asset of assets) {
-      // Only sound effects block the title screen. Music is megabytes and
-      // nothing on the title needs it the instant boot ends, so AudioDirector
-      // fetches it in the background instead. See AudioDirector.loadMusic.
-      if (asset.key in MUSIC_CONFIG) {
+      // 타이틀 곡은 후반 스테이지용 선택 자원이 아니라 타이틀 화면의 일부이므로,
+      // 타이틀 진입 즉시 재생을 시도할 수 있도록 미리 불러온다. 나머지 음악은
+      // AudioDirector에서 지연 로드해 초기 다운로드를 첫 화면과 작은 효과음으로 제한한다.
+      if (asset.key in MUSIC_CONFIG && asset.key !== 'bgm-title') {
         continue;
       }
 
@@ -67,7 +67,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     this.createRuntimeTextures();
     this.createAnimations();
-    this.scene.start('title');
+    this.scene.start('start');
   }
 
   /**
