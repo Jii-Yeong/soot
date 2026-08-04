@@ -645,7 +645,6 @@ test("stage two spawns each standard enemy with its supplied atlas", async ({
     page.getByRole("meter", { name: "Player health" }),
   ).toHaveAttribute("aria-valuemax", "115");
 
-  await triggerCurrentRoom(page);
   const textures = await page.evaluate(() => {
     type RuntimeEnemy = { texture: { key: string } };
     type RuntimeScene = { enemies: RuntimeEnemy[] };
@@ -677,8 +676,6 @@ test("stage two ground enemies stop at pit edges instead of falling", async ({
   await expect(
     page.getByRole("meter", { name: "Player health" }),
   ).toHaveAttribute("aria-valuemax", "115");
-  await triggerCurrentRoom(page);
-
   await page.evaluate(() => {
     type RuntimeBody = { reset: (x: number, y: number) => void };
     type RuntimeActor = {

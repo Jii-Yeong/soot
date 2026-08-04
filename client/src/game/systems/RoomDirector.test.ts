@@ -26,12 +26,22 @@ function createScene() {
     setScrollFactor: vi.fn().mockReturnThis(),
     setText: vi.fn().mockReturnThis(),
   };
+  const portalPrompt = {
+    destroy: vi.fn(),
+    setDepth: vi.fn().mockReturnThis(),
+    setOrigin: vi.fn().mockReturnThis(),
+    setText: vi.fn().mockReturnThis(),
+    setVisible: vi.fn().mockReturnThis(),
+  };
   // 동기적인 "플레이어가 포탈 안에 있는가?" 판정을 제어함.
   const portalContact = { value: true };
   const scene = {
     add: {
       graphics: vi.fn(() => portalView),
-      text: vi.fn(() => statusText),
+      text: vi
+        .fn()
+        .mockReturnValueOnce(portalPrompt)
+        .mockReturnValueOnce(statusText),
       zone: vi.fn(() => portalZone),
     },
     physics: {
@@ -47,7 +57,7 @@ function createScene() {
     },
   } as unknown as Phaser.Scene;
 
-  return { portalBody, portalContact, scene };
+  return { portalBody, portalContact, portalPrompt, scene };
 }
 
 describe("RoomDirector", () => {
@@ -101,5 +111,32 @@ describe("RoomDirector", () => {
     director.tryExit();
     director.tryExit();
     expect(onExitRequested).toHaveBeenCalledOnce();
+  });
+
+  it("shows the W prompt only while the player overlaps a cleared portal", () => {
+    const { portalContact, portalPrompt, scene } = createScene();
+    const director = new RoomDirector({
+      scene,
+      player: {} as Phaser.Physics.Arcade.Sprite,
+      config: defineRoom({
+        id: "test-room",
+        label: "TEST ROOM",
+        enemySpawns: [],
+      }),
+      onStateChanged: vi.fn(),
+      onExitRequested: vi.fn(),
+    });
+
+    portalContact.value = true;
+    director.update();
+    expect(portalPrompt.setVisible).toHaveBeenLastCalledWith(false);
+
+    director.beginEncounter([]);
+    director.update();
+    expect(portalPrompt.setVisible).toHaveBeenLastCalledWith(true);
+
+    portalContact.value = false;
+    director.update();
+    expect(portalPrompt.setVisible).toHaveBeenLastCalledWith(false);
   });
 });

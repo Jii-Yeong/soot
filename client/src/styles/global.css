@@ -315,11 +315,15 @@ input {
 }
 
 .settings-panel__select select {
+  appearance: none;
   width: 100%;
-  padding: 9px 10px;
+  padding: 9px 44px 9px 10px;
   border: 1px solid #4f5b5f;
   color: #d8dfdc;
   background: #111719;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23d8dfdc' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
   cursor: pointer;
 }
 

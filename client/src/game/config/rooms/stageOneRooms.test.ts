@@ -13,10 +13,8 @@ import { CITY_ROOM_ONE, CITY_ROOM_TWO } from './stageOneRooms';
 const CITY_COMBAT_ROOMS = [CITY_ROOM_ONE, CITY_ROOM_TWO];
 const MAX_JUMP_HEIGHT =
   (PLAYER_COMBAT_CONFIG.jumpSpeed * PLAYER_COMBAT_CONFIG.jumpSpeed) / (2 * 1200);
-const MAX_LOWER_TIER_HOP =
-  PLAYER_COMBAT_CONFIG.moveSpeed *
-  ((2 * PLAYER_COMBAT_CONFIG.jumpSpeed) / 1200) *
-  0.95;
+const MAX_PLATFORM_WIDTH = 400;
+const GROUND_SPAWN_CLEARANCE = 48;
 
 function activationX(spawn: EnemySpawnConfig) {
   switch (spawn.type) {
@@ -65,18 +63,34 @@ describe('stage 1 room layout', () => {
     }
   });
 
-  it('keeps lower-tier transfers within a normal jump', () => {
+  it('uses short platform beats instead of continuous projectile roofs', () => {
     for (const room of CITY_COMBAT_ROOMS) {
-      const lowerTier = (room.terrain ?? [])
-        .filter(({ type, y }) => type === 'platform' && y === GAME_HEIGHT - 180)
-        .sort((first, second) => first.x - second.x);
+      for (const platform of room.terrain ?? []) {
+        expect(
+          platform.width,
+          `${room.id} platform ${platform.x}~${platform.x + platform.width} dominates the encounter`,
+        ).toBeLessThanOrEqual(MAX_PLATFORM_WIDTH);
+      }
+    }
+  });
 
-      for (let index = 1; index < lowerTier.length; index += 1) {
-        const previous = lowerTier[index - 1]!;
-        const current = lowerTier[index]!;
-        expect(current.x - (previous.x + previous.width)).toBeLessThanOrEqual(
-          MAX_LOWER_TIER_HOP,
-        );
+  it('keeps every ground encounter out from under projectile cover', () => {
+    for (const room of CITY_COMBAT_ROOMS) {
+      const platforms = room.terrain ?? [];
+      const groundSpawns = room.enemySpawns.filter(
+        ({ type }) => type === 'melee' || type === 'ranged',
+      );
+
+      for (const spawn of groundSpawns) {
+        expect(
+          platforms.some(
+            (platform) =>
+              spawn.x >= platform.x - GROUND_SPAWN_CLEARANCE &&
+              spawn.x <=
+                platform.x + platform.width + GROUND_SPAWN_CLEARANCE,
+          ),
+          `${room.id} ${spawn.type} at x=${spawn.x} is hidden below a platform`,
+        ).toBe(false);
       }
     }
   });

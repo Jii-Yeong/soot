@@ -33,7 +33,7 @@ export type EnemySpawnConfig =
 /**
  * A solid, static piece of level geometry. `x`/`y` are the top-left corner.
  * A `platform` is a one-way ledge for changing height. A `wall` is a tall
- * barrier to jump or dash over. Walls, not platforms, stop regular shots.
+ * barrier to jump or dash over. Both types stop regular shots from every side.
  */
 export type TerrainPiece = {
   type: 'platform' | 'wall';

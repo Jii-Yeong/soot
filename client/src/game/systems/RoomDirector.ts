@@ -29,6 +29,7 @@ export class RoomDirector {
   private readonly onStateChanged: (state: RoomState) => void;
   private readonly onExitRequested: () => void;
   private readonly portal: RoomPortal;
+  private readonly portalPrompt: Phaser.GameObjects.Text;
   private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = "idle";
   private exitRequested = false;
@@ -40,6 +41,23 @@ export class RoomDirector {
     this.onStateChanged = options.onStateChanged;
     this.onExitRequested = options.onExitRequested;
     this.portal = this.createPortal(this.config.exitX);
+    this.portalPrompt = this.scene.add
+      .text(
+        this.config.exitX,
+        this.config.portal.y - PORTAL_HEIGHT / 2 - 24,
+        "[W] ENTER",
+        {
+          color: "#ffffff",
+          backgroundColor: "#070a0bd9",
+          fontFamily: "Arial, sans-serif",
+          fontSize: "12px",
+          fontStyle: "bold",
+          padding: { x: 6, y: 3 },
+        },
+      )
+      .setOrigin(0.5)
+      .setDepth(12)
+      .setVisible(false);
     this.statusText = this.scene.add
       .text(this.scene.scale.width / 2, 154, "", {
         color: "#ff7180",
@@ -56,7 +74,12 @@ export class RoomDirector {
     this.portal.zone.destroy();
     this.scene.tweens.killTweensOf(this.portal.view);
     this.portal.view.destroy();
+    this.portalPrompt.destroy();
     this.statusText.destroy();
+  }
+
+  update() {
+    this.portalPrompt.setVisible(this.isPlayerAtOpenPortal());
   }
 
   beginEncounter(enemies: Phaser.GameObjects.GameObject[]) {
@@ -124,16 +147,19 @@ export class RoomDirector {
    * 나감. 그래서 포탈을 그냥 지나쳐도 더 이상 전환되지 않음.
    */
   tryExit() {
-    if (
-      this.state !== "cleared" ||
-      this.exitRequested ||
-      !this.scene.physics.overlap(this.player, this.portal.zone)
-    ) {
+    if (this.exitRequested || !this.isPlayerAtOpenPortal()) {
       return;
     }
 
     this.exitRequested = true;
     this.onExitRequested();
+  }
+
+  private isPlayerAtOpenPortal() {
+    return (
+      this.state === "cleared" &&
+      this.scene.physics.overlap(this.player, this.portal.zone)
+    );
   }
 
   private clearRoom() {

@@ -34,6 +34,12 @@ function activationX(spawn: EnemySpawnConfig) {
 }
 
 describe('stage 2 room entry layout', () => {
+  it('uses only skinned platforms for authored terrain', () => {
+    for (const room of [ALLEY_ROOM_ONE, ALLEY_ROOM_TWO]) {
+      expect(room.terrain?.some(({ type }) => type === 'wall')).toBe(false);
+    }
+  });
+
   it('introduces the first pit before any enemy can pressure the jump', () => {
     const firstPit = ALLEY_ROOM_ONE.pits![0]!;
     const firstEnemyActivation = Math.min(

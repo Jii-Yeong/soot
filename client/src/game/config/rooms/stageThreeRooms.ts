@@ -38,12 +38,13 @@ export const UNDERGROUND_ROOM_ONE = defineRoom({
     { type: 'melee', x: 3150, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
-    // Each catwalk covers its corresponding pit but begins early enough to be
-    // reached from solid floor. The player can also ignore it and jump below.
-    { type: 'platform', x: 760, y: CATWALK_Y, width: 640, height: 22 },
-    { type: 'platform', x: 1430, y: CATWALK_Y, width: 420, height: 22 },
-    { type: 'platform', x: 2030, y: CATWALK_Y, width: 430, height: 22 },
-    { type: 'platform', x: 2640, y: CATWALK_Y, width: 410, height: 22 },
+    // 각 캣워크는 피트 하나만 덮고 지상 교전 전에 끝남. 발판이 탄환을
+    // 막으므로 상단 경로에서도 아래의 적과 싸우기 전에 바닥으로 복귀할 수
+    // 있도록 넓은 하강 통로를 의도적으로 둠.
+    { type: 'platform', x: 1000, y: CATWALK_Y, width: 350, height: 22 },
+    { type: 'platform', x: 1550, y: CATWALK_Y, width: 400, height: 22 },
+    { type: 'platform', x: 2150, y: CATWALK_Y, width: 400, height: 22 },
+    { type: 'platform', x: 2800, y: CATWALK_Y, width: 250, height: 22 },
   ],
   pits: [
     { x: 1100, width: 150 },
@@ -75,15 +76,18 @@ export const UNDERGROUND_ROOM_TWO = defineRoom({
     { type: 'flying', x: 3150, y: GAME_HEIGHT - 300 },
   ],
   terrain: [
-    { type: 'platform', x: 620, y: CATWALK_Y, width: 630, height: 22 },
-    { type: 'platform', x: 1390, y: CATWALK_Y, width: 500, height: 22 },
-    { type: 'platform', x: 1970, y: CATWALK_Y, width: 560, height: 22 },
-    { type: 'platform', x: 2550, y: CATWALK_Y, width: 600, height: 22 },
+    // 02방도 네 피트 횡단은 유지하되 다리는 피트를 덮는 길이로만 제한함.
+    // 다리 사이의 열린 바닥이 지상 교전으로 돌아오는 경로이며, 다리가
+    // 탄환을 막는 긴 천장이 되어서는 안 됨.
+    { type: 'platform', x: 1050, y: CATWALK_Y, width: 200, height: 22 },
+    { type: 'platform', x: 1690, y: CATWALK_Y, width: 200, height: 22 },
+    { type: 'platform', x: 2320, y: CATWALK_Y, width: 230, height: 22 },
+    { type: 'platform', x: 3000, y: CATWALK_Y, width: 150, height: 22 },
     // Two short upper ledges add a voluntary second height during the denser
     // encounters. Both sit above a catwalk, so the climb is 100px and asks
     // for positioning rather than a long precision jump.
-    { type: 'platform', x: 1440, y: HIGH_LEDGE_Y, width: 220, height: 22 },
-    { type: 'platform', x: 2580, y: HIGH_LEDGE_Y, width: 220, height: 22 },
+    { type: 'platform', x: 1700, y: HIGH_LEDGE_Y, width: 180, height: 22 },
+    { type: 'platform', x: 2330, y: HIGH_LEDGE_Y, width: 200, height: 22 },
   ],
   pits: [
     { x: 1100, width: 150 },

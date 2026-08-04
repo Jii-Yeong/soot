@@ -27,6 +27,7 @@ const DASH_DISTANCE = dash.speed * (dash.duration / 1000);
 /** Comfortable and skill-check gaps. A required gap should stay under SAFE. */
 const SAFE_GAP = MAX_JUMP_DISTANCE * 0.7;
 const HARD_GAP = MAX_JUMP_DISTANCE * 0.95;
+const MINIMUM_USABLE_DROP_LANE = 96;
 
 /**
  * Seconds spent rising to `climb`, from `climb = v*t - g*t^2/2`. Undefined once
@@ -114,6 +115,30 @@ function reachableFromFloor(surfaces: Surface[]) {
   return reached;
 }
 
+function platformSpansByTier(room: RoomConfig) {
+  const byTier = new Map<number, Array<{ left: number; right: number }>>();
+
+  for (const piece of room.terrain ?? []) {
+    if (piece.type !== 'platform') continue;
+    byTier.set(piece.y, [
+      ...(byTier.get(piece.y) ?? []),
+      { left: piece.x, right: piece.x + piece.width },
+    ]);
+  }
+
+  return [...byTier.entries()].map(([top, spans]) => {
+    const merged: Array<{ left: number; right: number }> = [];
+    for (const span of [...spans].sort((a, b) => a.left - b.left)) {
+      const previous = merged.at(-1);
+      if (previous && span.left <= previous.right) {
+        previous.right = Math.max(previous.right, span.right);
+      } else {
+        merged.push({ ...span });
+      }
+    }
+    return { top, spans: merged };
+  });
+}
 
 function combatRooms() {
   return STAGES.flatMap((stage) =>
@@ -228,6 +253,55 @@ describe('level geometry against player metrics', () => {
     }
 
     expect(problems).toEqual([]);
+  });
+
+  it('leaves usable drop lanes between platforms on the same tier', () => {
+    const narrowLanes: string[] = [];
+
+    for (const { stage, room } of combatRooms()) {
+      for (const { top, spans } of platformSpansByTier(room)) {
+        for (let index = 1; index < spans.length; index += 1) {
+          const previous = spans[index - 1]!;
+          const current = spans[index]!;
+          const gap = current.left - previous.right;
+          if (gap < MINIMUM_USABLE_DROP_LANE) {
+            narrowLanes.push(
+              `${stage}/${room.id} y=${top} x=${previous.right}~${current.left} — ${gap}px`,
+            );
+          }
+        }
+      }
+    }
+
+    expect(narrowLanes).toEqual([]);
+  });
+
+  it('keeps every platform-covered ground enemy near a usable exit', () => {
+    const trapped: string[] = [];
+
+    for (const { stage, room } of combatRooms()) {
+      const tiers = platformSpansByTier(room);
+      for (const spawn of room.enemySpawns) {
+        if (spawn.type !== 'melee' && spawn.type !== 'ranged') continue;
+
+        for (const { top, spans } of tiers) {
+          for (const span of spans) {
+            if (spawn.x < span.left || spawn.x > span.right) continue;
+            const edgeDistance = Math.min(
+              spawn.x - span.left,
+              span.right - spawn.x,
+            );
+            if (edgeDistance > MINIMUM_USABLE_DROP_LANE) {
+              trapped.push(
+                `${stage}/${room.id} ${spawn.type} x=${spawn.x} below y=${top} — nearest edge ${edgeDistance}px`,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    expect(trapped).toEqual([]);
   });
 
   // Removed: 'leaves sky above everything that has to be jumped'.

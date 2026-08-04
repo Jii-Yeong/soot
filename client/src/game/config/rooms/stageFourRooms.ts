@@ -5,8 +5,8 @@ import {
   type StageRooms,
 } from '@/game/config/roomConfig';
 
-// Hell is the test, not a new lesson. Same three pieces the player has been
-// taught — walkway, pit, barrier — with the margins taken out of them. The
+// Hell is the test, not a new lesson. The same walkways and pits the player has
+// learned return with the margins taken out of them. The
 // spans narrow from 420px to 280, the gaps widen from 190 to 230 against a
 // 196px safe gap, and the pits go from 150 to 200. Nothing here is past the
 // 266px limit or needs a dash; it is the same jump the player has made a
@@ -43,11 +43,6 @@ export const INFERNO_ROOM_ONE = defineRoom({
     { type: 'platform', x: 2110, y: LEDGE_Y, width: 280, height: 22 },
     { type: 'platform', x: 2620, y: LEDGE_Y, width: 280, height: 22 },
     { type: 'platform', x: 3130, y: LEDGE_Y, width: 300, height: 22 },
-    // Barriers sit *after* each cleared aerial beat, not through an active
-    // ground encounter. They mark the next combat pocket without stranding a
-    // pursuer or a shooter on the other side of the player.
-    { type: 'wall', x: 1800, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-    { type: 'wall', x: 2800, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
   pits: [
     { x: 1050, width: 200 },
@@ -91,12 +86,6 @@ export const INFERNO_ROOM_TWO = defineRoom({
     // create a voluntary firing angle during the room's dense middle.
     { type: 'platform', x: 1120, y: HIGH_LEDGE_Y, width: 200, height: 22 },
     { type: 'platform', x: 2600, y: HIGH_LEDGE_Y, width: 200, height: 22 },
-    // These come after the opening and middle aerial beats. A player never
-    // clears one while a ground enemy from the previous pocket still needs to
-    // cross it, so the wall changes the next fight's approach rather than
-    // creating mandatory backtracking.
-    { type: 'wall', x: 1720, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-    { type: 'wall', x: 2700, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
   pits: [
     { x: 1000, width: 150 },

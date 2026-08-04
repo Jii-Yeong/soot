@@ -47,6 +47,7 @@ export class EnemyFactory {
     private readonly scene: Phaser.Scene,
     private readonly floor: Phaser.Physics.Arcade.StaticGroup,
     private readonly terrain: Phaser.Physics.Arcade.StaticGroup,
+    private readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup,
     intensity: number | undefined,
     private readonly damagePlayer: (damage: number) => void,
     private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
@@ -123,6 +124,7 @@ export class EnemyFactory {
         moveSpeed: RANGED_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
         preferredDistance: RANGED_ENEMY_COMBAT_CONFIG.preferredDistance,
         distanceTolerance: RANGED_ENEMY_COMBAT_CONFIG.distanceTolerance,
+        patrol: this.patrolFor(spawn.x),
         sprite: this.rangedSprite,
       },
     );
@@ -239,6 +241,7 @@ export class EnemyFactory {
       this.floor,
       this.terrain,
       options,
+      this.enemyPitBarriers,
     );
 
     this.scene.tweens.add({

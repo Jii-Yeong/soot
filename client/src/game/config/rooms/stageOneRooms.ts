@@ -28,13 +28,14 @@ export const CITY_ROOM_ONE = defineRoom({
     { type: 'flying', x: 3150, y: GAME_HEIGHT - 360 },
   ],
   terrain: [
-    // The first platform begins after the opening melee beat.
-    { type: 'platform', x: 1000, y: SECOND_FLOOR_Y, width: 700, height: 22 },
-    { type: 'platform', x: 1850, y: SECOND_FLOOR_Y, width: 700, height: 22 },
-    { type: 'platform', x: 2800, y: SECOND_FLOOR_Y, width: 550, height: 22 },
+    // 짧은 높이 구간은 대응하는 지상 교전 뒤에 시작함. 상단 경로를 골라도
+    // 다음 기본 적이 탄환을 막는 발판 아래에 가려지지 않음.
+    { type: 'platform', x: 1350, y: SECOND_FLOOR_Y, width: 350, height: 22 },
+    { type: 'platform', x: 1950, y: SECOND_FLOOR_Y, width: 200, height: 22 },
+    { type: 'platform', x: 2800, y: SECOND_FLOOR_Y, width: 400, height: 22 },
     // Each upper run overlaps a lower one, keeping the route legible.
-    { type: 'platform', x: 1300, y: THIRD_FLOOR_Y, width: 400, height: 22 },
-    { type: 'platform', x: 2950, y: THIRD_FLOOR_Y, width: 400, height: 22 },
+    { type: 'platform', x: 1450, y: THIRD_FLOOR_Y, width: 250, height: 22 },
+    { type: 'platform', x: 2950, y: THIRD_FLOOR_Y, width: 250, height: 22 },
   ],
 });
 
@@ -54,12 +55,13 @@ export const CITY_ROOM_TWO = defineRoom({
     // The last 413px to the door are empty: a breather before the boss.
   ],
   terrain: [
-    // This room delays its first ledge, differentiating the opening from 01.
-    { type: 'platform', x: 1000, y: SECOND_FLOOR_Y, width: 700, height: 22 },
+    // 앞의 두 높이 구간은 지상 적 사이에 배치함. 마지막 구간은 비행 적에게
+    // 속하며 최종 원거리·근거리 조합이 등장하기 전에 끝남.
+    { type: 'platform', x: 1500, y: SECOND_FLOOR_Y, width: 200, height: 22 },
     { type: 'platform', x: 1950, y: SECOND_FLOOR_Y, width: 400, height: 22 },
-    { type: 'platform', x: 2550, y: SECOND_FLOOR_Y, width: 750, height: 22 },
-    { type: 'platform', x: 1350, y: THIRD_FLOOR_Y, width: 400, height: 22 },
-    { type: 'platform', x: 2600, y: THIRD_FLOOR_Y, width: 400, height: 22 },
+    { type: 'platform', x: 2550, y: SECOND_FLOOR_Y, width: 250, height: 22 },
+    { type: 'platform', x: 1550, y: THIRD_FLOOR_Y, width: 200, height: 22 },
+    { type: 'platform', x: 2600, y: THIRD_FLOOR_Y, width: 200, height: 22 },
   ],
 });
 

@@ -4,10 +4,46 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { UNDERGROUND_ROOM_ONE, UNDERGROUND_ROOM_TWO } from './stageThreeRooms';
 
 const UNDERGROUND_COMBAT_ROOMS = [UNDERGROUND_ROOM_ONE, UNDERGROUND_ROOM_TWO];
+const MINIMUM_DROP_LANE = 96;
+const GROUND_SPAWN_CLEARANCE = 48;
 const MAX_JUMP_HEIGHT =
   (PLAYER_COMBAT_CONFIG.jumpSpeed * PLAYER_COMBAT_CONFIG.jumpSpeed) / (2 * 1200);
 
 describe('stage 3 room layout', () => {
+  it('leaves ground enemies and drop lanes clear of catwalk cover', () => {
+    for (const room of UNDERGROUND_COMBAT_ROOMS) {
+      const catwalks = [...(room.terrain ?? [])]
+        .filter(
+          ({ type, y }) =>
+            type === 'platform' && y === FLOOR_SURFACE_Y - 126,
+        )
+        .sort((first, second) => first.x - second.x);
+      const groundSpawns = room.enemySpawns.filter(
+        ({ type }) => type === 'melee' || type === 'ranged',
+      );
+
+      for (const spawn of groundSpawns) {
+        expect(
+          catwalks.some(
+            (catwalk) =>
+              spawn.x >= catwalk.x - GROUND_SPAWN_CLEARANCE &&
+              spawn.x <= catwalk.x + catwalk.width + GROUND_SPAWN_CLEARANCE,
+          ),
+          `${room.id} ${spawn.type} at x=${spawn.x} is trapped beneath projectile cover`,
+        ).toBe(false);
+      }
+
+      for (let index = 1; index < catwalks.length; index += 1) {
+        const previous = catwalks[index - 1]!;
+        const current = catwalks[index]!;
+        expect(
+          current.x - (previous.x + previous.width),
+          `${room.id} catwalks leave no usable drop lane`,
+        ).toBeGreaterThanOrEqual(MINIMUM_DROP_LANE);
+      }
+    }
+  });
+
   it('puts every pit beneath a jump-reachable catwalk route', () => {
     for (const room of UNDERGROUND_COMBAT_ROOMS) {
       const catwalks = (room.terrain ?? []).filter(

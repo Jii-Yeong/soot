@@ -83,6 +83,7 @@ export class GameScene extends Phaser.Scene {
   private requestedStartingRoomIndex?: number;
   private requestedImmediateEncounter = false;
   private startCurrentRoomImmediately = false;
+  private startFlightEntryLift = false;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
@@ -148,6 +149,10 @@ export class GameScene extends Phaser.Scene {
     this.configureCamera();
     this.createRoom();
     this.createCombatSystems();
+    if (this.startFlightEntryLift) {
+      this.startFlightEntryLift = false;
+      this.beginFlightEntryLift(this.previousStagePortalY());
+    }
     this.stageEndEventDirector = new StageEndEventDirector(this);
     this.createCombatUi();
     this.bindInputHandlers();
@@ -169,6 +174,7 @@ export class GameScene extends Phaser.Scene {
 
     this.handlePitFall();
     this.handleEnemyPitFalls();
+    this.roomDirector.update();
 
     if (this.phase === "room-cleared" && this.roomExitRequested) {
       this.roomExitRequested = false;
@@ -232,7 +238,7 @@ export class GameScene extends Phaser.Scene {
   private createPlayer() {
     this.player = this.physics.add.sprite(
       this.getStartingPlayerX(),
-      PLAYER_START_Y,
+      this.getStartingPlayerY(),
       PLAYER_ATLAS_KEY,
       PLAYER_INITIAL_FRAME,
     );
@@ -313,6 +319,7 @@ export class GameScene extends Phaser.Scene {
       this,
       this.floorBuilder.group,
       this.terrainBuilder.group,
+      this.floorBuilder.enemyPitBarriers,
       this.activeRoomConfig.intensity,
       (damage) => this.applyPlayerDamage(damage),
       (bossX, bossHalfWidth) =>
@@ -401,14 +408,15 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const exitPortalY = this.activeRoomConfig.portal.y;
     this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit("stage-changed", this.stage.id);
     this.restorePlayerHealthForStage();
-    this.enterCurrentRoom(true);
+    this.enterCurrentRoom(true, exitPortalY);
   }
 
-  private enterCurrentRoom(stageChanged = false) {
+  private enterCurrentRoom(stageChanged = false, exitPortalY?: number) {
     if (stageChanged) {
       this.preloadStageAssets();
     }
@@ -416,17 +424,27 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     this.rebuildFloorForRoom();
     this.showStageBackdrop();
-    // 바닥보다 조금 위에서 진입시켜, 플레이어가 포탈에서 방으로 떨어지게 함
-    // (비행 스테이지는 중력이 없어 수평으로 도착함).
+    const entersFlightFromPortal =
+      stageChanged &&
+      exitPortalY !== undefined &&
+      this.stage.movementMode === MovementMode.FLIGHT;
+    // 지상에서는 포탈에서 떨어지고, 비행 전환은 이전 포탈 높이에서 시작해
+    // 중앙보다 높은 정점을 지난 뒤 비행 밴드 중앙에 착지한다.
     const drop =
       this.stage.movementMode === MovementMode.GROUND ? PORTAL_DROP_HEIGHT : 0;
-    const entryY = stageChanged ? this.stageEntranceY() : PLAYER_START_Y - drop;
+    const entryY = entersFlightFromPortal
+      ? exitPortalY
+      : this.getStartingPlayerY() - drop;
     this.player.setPosition(this.getStartingPlayerX(), entryY);
     this.player.setVelocity(0);
     this.resetCameraToRoomEntrance();
 
     if (stageChanged) {
       this.applyStageMovementMode();
+    }
+
+    if (entersFlightFromPortal) {
+      this.beginFlightEntryLift(entryY);
     }
 
     this.buildRoom(this.currentRoomConfig);
@@ -760,8 +778,8 @@ export class GameScene extends Phaser.Scene {
     this.roomDirector = undefined!;
     this.startCurrentRoomImmediately = this.requestedImmediateEncounter;
     this.requestedImmediateEncounter = false;
-    this.currentStageIndex =
-      this.requestedStartingStageIndex ?? STARTING_STAGE_INDEX;
+    const requestedStageIndex = this.requestedStartingStageIndex;
+    this.currentStageIndex = requestedStageIndex ?? STARTING_STAGE_INDEX;
     this.requestedStartingStageIndex = undefined;
     this.currentRoomIndex = Phaser.Math.Clamp(
       this.requestedStartingRoomIndex ?? 0,
@@ -769,6 +787,9 @@ export class GameScene extends Phaser.Scene {
       this.stage.rooms.length - 1,
     );
     this.requestedStartingRoomIndex = undefined;
+    this.startFlightEntryLift =
+      requestedStageIndex !== undefined &&
+      this.stage.movementMode === MovementMode.FLIGHT;
     this.restorePlayerHealthForStage();
     this.roomState = "idle";
     gameEvents.emit("room-state-changed", this.roomState);
@@ -778,23 +799,28 @@ export class GameScene extends Phaser.Scene {
     return this.currentRoomConfig.entranceX + ROOM_ENTRY_OFFSET_X;
   }
 
-  private restorePlayerHealthForStage() {
-    this.playerHealth.restore(this.stage.playerMaxHealth);
-  }
-
-  /**
-   * The height a stage starts the player at.
-   *
-   * Entering a stage used to keep whatever height the last one ended on, which
-   * costs nothing on the ground — gravity puts them on the floor either way.
-   * Stage 5 is flown, and the player arrives from stage 4's boss room standing
-   * on the floor at y≈618, past the bottom of the flight band. The clamp then
-   * pins them to its floor edge instead of the stage entrance.
-   */
-  private stageEntranceY() {
+  /** 비행 스테이지의 진입 착지 높이. */
+  private getStartingPlayerY() {
     return this.stage.movementMode === MovementMode.FLIGHT
       ? (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2
-      : GAME_HEIGHT - 120;
+      : PLAYER_START_Y;
+  }
+
+  /** 포탈 높이에서 시작해 비행 밴드 중앙에 착지하는 점프 전환을 재생한다. */
+  private beginFlightEntryLift(entryY: number) {
+    this.player.setY(entryY);
+    this.playerController.beginFlightEntryLift(this.getStartingPlayerY());
+  }
+
+  /** 관리자 직행은 바로 앞 스테이지의 마지막 포탈을 가상 출발점으로 쓴다. */
+  private previousStagePortalY() {
+    const previousStage = STAGES[this.currentStageIndex - 1];
+    const previousRoom = previousStage?.rooms[previousStage.rooms.length - 1];
+    return previousRoom?.portal.y ?? PLAYER_FLIGHT_BOUNDS.maxY;
+  }
+
+  private restorePlayerHealthForStage() {
+    this.playerHealth.restore(this.stage.playerMaxHealth);
   }
 
   private applyStageMovementMode() {
@@ -1039,8 +1065,10 @@ export class GameScene extends Phaser.Scene {
         enemy.y,
         this.weaponSystem.activeConfig.id,
       );
-    } else if (!enemy.playsOwnDeathAnimation) {
-      this.spawnDeathPop(enemy);
+    } else {
+      if (!enemy.playsOwnDeathAnimation) {
+        this.spawnDeathPop(enemy);
+      }
       // Rounds already in the air outlive the shooter otherwise, and a hit that
       // lands after the enemy is gone reads as the game taking a free swing.
       // Bosses keep theirs: their patterns are the fight, and clearing the
