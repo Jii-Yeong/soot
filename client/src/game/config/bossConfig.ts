@@ -85,7 +85,9 @@ export const BOSS_COMBAT_CONFIGS = {
         range: 720,
         halfAngleDegrees: 40,
         tiltDegrees: 14,
-        apexOffsetY: -34,
+        // 머리(눈)에서 부채꼴이 나오도록 전방·위쪽으로 이동.
+        apexOffsetY: -50,
+        apexOffsetX: 70,
       },
       orb: {
         lockDuration: 420,

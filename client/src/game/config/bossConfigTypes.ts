@@ -47,6 +47,8 @@ export type HoundBossPatternConfig = {
     halfAngleDegrees: number;
     tiltDegrees: number;
     apexOffsetY: number;
+    /** 부채꼴 꼭짓점을 정면(머리) 쪽으로 미는 수평 오프셋. 바라보는 방향으로 적용. */
+    apexOffsetX?: number;
   };
   orb: {
     lockDuration: number;

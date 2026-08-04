@@ -353,7 +353,16 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
   }
 
   private coneApex(): Point {
-    return { x: this.x, y: this.y + this.pattern.cone.apexOffsetY };
+    const forward = (this.pattern.cone.apexOffsetX ?? 0) * this.facingSign();
+    return {
+      x: this.x + forward,
+      y: this.y + this.pattern.cone.apexOffsetY,
+    };
+  }
+
+  /** +1이면 오른쪽, -1이면 왼쪽을 바라봄(스프라이트 기본 방향 보정 포함). */
+  private facingSign(): number {
+    return this.flipX === Boolean(this.sprite?.facesLeft) ? 1 : -1;
   }
 
   private coneHalfAngle() {
