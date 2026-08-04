@@ -128,7 +128,9 @@ export const BOSS_COMBAT_CONFIGS = {
         warnDuration: 900,
         strikeDuration: 300,
         launchSpeedY: 720,
-        maxTravelSpeedX: 900,
+        // 마지막 경고 지점까지 낮고 빠르게 "휙" 날아가도록 수평 속도 상한을
+        // 크게 잡음. 이 상한으로 못 채우는 아주 먼 거리만 궤적이 늘어남.
+        maxTravelSpeedX: 1800,
         landingRadius: 110,
         shockwaveSpeed: 420,
         shockwaveDamage: 18,
