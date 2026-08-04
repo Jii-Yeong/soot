@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const ROOM_TRANSITION_TIMEOUT = 10_000;
-const SINGLE_ROOM_TEST_TIMEOUT = 75_000;
 const CITY_ROOM_ONE_MAX_HEALTH = 470;
 const CITY_ROOM_TWO_MAX_HEALTH = 530;
 
@@ -27,7 +26,15 @@ async function enterGame(page: Page) {
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await enableEnemyHealth(page);
   await triggerCurrentRoom(page);
+}
+
+async function enableEnemyHealth(page: Page) {
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  await adminButton.click();
+  await page.getByRole('button', { name: 'Enemy health display' }).click();
+  await adminButton.click();
 }
 
 async function triggerCurrentRoom(page: Page) {
@@ -132,6 +139,49 @@ async function clearRoom(
   }
 }
 
+async function finishActiveFlyers(
+  page: Page,
+  bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
+) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const target = await page.evaluate(() => {
+      type RuntimeScene = {
+        cameras: { main: { scrollX: number; scrollY: number } };
+        enemies: Array<{
+          active: boolean;
+          currentHealth: number;
+          x: number;
+          y: number;
+          constructor: { name: string };
+        }>;
+      };
+      type DebugGame = { scene: { getScene: (key: string) => unknown } };
+      const game = (window as unknown as { __game?: DebugGame }).__game!;
+      const scene = game.scene.getScene('game') as RuntimeScene;
+      const flyer = scene.enemies.find(
+        (enemy) =>
+          enemy.active &&
+          enemy.currentHealth > 0 &&
+          enemy.constructor.name === 'FlyingEnemy',
+      );
+      if (!flyer) {
+        return null;
+      }
+
+      return {
+        x: Math.min(1240, Math.max(40, flyer.x - scene.cameras.main.scrollX)),
+        y: Math.min(680, Math.max(40, flyer.y - scene.cameras.main.scrollY)),
+      };
+    });
+
+    if (!target) {
+      return;
+    }
+
+    await fireAt(page, bounds, target.x, target.y, 1200);
+  }
+}
+
 async function clearCityRoomOne(
   page: Page,
   bounds: Awaited<ReturnType<typeof getCanvasBounds>>,
@@ -157,13 +207,14 @@ async function clearCityRoomOne(
   await fireAt(page, bounds, 450, 360, 1200);
   await fireAt(page, bounds, 600, 360, 1200);
   await fireAt(page, bounds, 640, 360, 1200);
+  await finishActiveFlyers(page, bounds);
 }
 
-async function advanceThroughDoor(page: Page) {
+async function enterExitPortal(page: Page) {
   await whileHoldingKey(page, 'KeyD', async () => {
-    // Rooms are long and end with an exit wall, so run-up jump repeatedly while
-    // crossing. A held jump (not a fast press) is needed — Phaser's JustDown
-    // misses a too-quick tap.
+    // 포탈은 클리어된 방의 먼 끝에 열리며, 그 안에 서서 위/W를 눌러야만
+    // 플레이어를 통과시킴. ArrowUp은 진입로 지형을 넘는 것과 포탈 진입을
+    // 겸하므로, 다음 아레나가 잠길 때까지 눌러줌.
     for (let hop = 0; hop < 34; hop += 1) {
       const roomState = await page
         .locator('main')
@@ -171,9 +222,9 @@ async function advanceThroughDoor(page: Page) {
       if (roomState === 'locked') {
         return;
       }
-      await page.keyboard.down('Space');
+      await page.keyboard.down('ArrowUp');
       await page.waitForTimeout(70);
-      await page.keyboard.up('Space');
+      await page.keyboard.up('ArrowUp');
       await page.waitForTimeout(300);
     }
     await expect(page.locator('main')).toHaveAttribute(
@@ -181,6 +232,31 @@ async function advanceThroughDoor(page: Page) {
       'locked',
       { timeout: ROOM_TRANSITION_TIMEOUT },
     );
+  });
+}
+
+async function clearCurrentRoomThroughRuntime(page: Page) {
+  await page.evaluate(() => {
+    type RuntimeEnemy = { active: boolean };
+    type RuntimeScene = {
+      enemies: RuntimeEnemy[];
+      roomDirector: {
+        notifyEnemyDefeated: (enemy: RuntimeEnemy) => void;
+      };
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    for (const enemy of scene.enemies.filter(({ active }) => active)) {
+      scene.roomDirector.notifyEnemyDefeated(enemy);
+    }
   });
 }
 
@@ -252,6 +328,39 @@ test('loads stage backgrounds one step ahead', async ({ page }) => {
   expect(requestedBackgrounds.has('stage-05.webp')).toBe(false);
 });
 
+test('loads enemy and terrain art one stage ahead', async ({ page }) => {
+  const requestedAssets = new Set<string>();
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (/\/assets\/(enemies|terrain)\/stage-[12]-/.test(pathname)) {
+      requestedAssets.add(pathname.split('/').at(-1) ?? '');
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await expect
+    .poll(
+      () =>
+        requestedAssets.has('stage-1-neared.png') &&
+        requestedAssets.has('stage-1-floor-left.png'),
+    )
+    .toBe(true);
+  expect([...requestedAssets].some((asset) => asset.startsWith('stage-2-'))).toBe(
+    false,
+  );
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+  await expect
+    .poll(
+      () =>
+        requestedAssets.has('stage-2-neared.png') &&
+        requestedAssets.has('stage-2-floor-left.png'),
+    )
+    .toBe(true);
+});
+
 test('waits for the entrance detector before starting combat', async ({
   page,
 }) => {
@@ -261,9 +370,9 @@ test('waits for the entrance detector before starting combat', async ({
 
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
   await expect(page.locator('main')).toHaveAttribute('data-room-state', 'idle');
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveCount(
+    0,
+  );
 
   await triggerCurrentRoom(page);
 
@@ -271,9 +380,12 @@ test('waits for the entrance detector before starting combat', async ({
     'data-room-state',
     'locked',
   );
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute(
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveCount(
+    0,
+  );
+
+  await enableEnemyHealth(page);
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveAttribute(
     'aria-valuenow',
     CITY_ROOM_ONE_MAX_HEALTH.toString(),
   );
@@ -435,7 +547,7 @@ test('admin menu closes and jumps directly to a selected stage', async ({
 
   for (let stageNumber = 1; stageNumber <= 5; stageNumber += 1) {
     await expect(
-      page.getByRole('button', { name: `${stageNumber}스테이지 가기` }),
+      page.getByRole('button', { name: `${stageNumber}스테이지`, exact: true }),
     ).toBeVisible();
   }
 
@@ -444,11 +556,172 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   await expect(adminButton).toHaveAttribute('aria-expanded', 'false');
 
   await adminButton.click();
-  await page.getByRole('button', { name: '2스테이지 가기' }).click();
+  await page.getByRole('button', { name: '2스테이지', exact: true }).click();
   await expect(adminMenu).toHaveCount(0);
   await expect(
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuemax', '115');
+});
+
+test('stage two spawns each standard enemy with its supplied atlas', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '2스테이지', exact: true })
+    .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '115');
+
+  await triggerCurrentRoom(page);
+  const textures = await page.evaluate(() => {
+    type RuntimeEnemy = { texture: { key: string } };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    return (game.scene.getScene('game') as RuntimeScene).enemies.map(
+      ({ texture }) => texture.key,
+    );
+  });
+
+  expect(new Set(textures)).toEqual(
+    new Set(['stage-2-neared', 'stage-2-ranged', 'stage-2-flying']),
+  );
+});
+
+test('stage two ground enemies stop at pit edges instead of falling', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '2스테이지', exact: true })
+    .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '115');
+  await triggerCurrentRoom(page);
+
+  await page.evaluate(() => {
+    type RuntimeBody = { reset: (x: number, y: number) => void };
+    type RuntimeActor = {
+      body: RuntimeBody;
+      texture: { key: string };
+      x: number;
+      y: number;
+      setPosition: (x: number, y: number) => void;
+    };
+    type RuntimeScene = {
+      enemies: RuntimeActor[];
+      player: RuntimeActor;
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const melee = scene.enemies.find(
+      ({ texture }) => texture.key === 'stage-2-neared',
+    );
+    if (!melee) {
+      throw new Error('Missing stage 2 melee enemy');
+    }
+
+    // 플레이어를 1번 방 첫 구덩이 건너편에, 근접 적을 그 가까운 가장자리에
+    // 둠. 적의 추격 AI가 적 전용 레일 쪽으로 계속 밀고 들어옴.
+    scene.player.setPosition(1900, 600);
+    scene.player.body.reset(1900, 600);
+    melee.setPosition(1550, melee.y);
+    melee.body.reset(1550, melee.y);
+  });
+
+  await page.waitForTimeout(1500);
+  const meleePosition = await page.evaluate(() => {
+    type RuntimeScene = {
+      enemies: Array<{
+        texture: { key: string };
+        x: number;
+        y: number;
+      }>;
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const melee = scene.enemies.find(
+      ({ texture }) => texture.key === 'stage-2-neared',
+    )!;
+    return { x: melee.x, y: melee.y };
+  });
+
+  expect(meleePosition.x).toBeLessThan(1650);
+  expect(meleePosition.y).toBeLessThan(656);
+});
+
+test('admin menu scrolls instead of overflowing a short viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 360 });
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  const adminMenu = page.getByRole('dialog', { name: 'Admin menu' });
+  const initialMetrics = await adminMenu.evaluate((menu) => ({
+    clientHeight: menu.clientHeight,
+    overflowY: getComputedStyle(menu).overflowY,
+    scrollHeight: menu.scrollHeight,
+  }));
+
+  expect(initialMetrics.overflowY).toBe('auto');
+  expect(initialMetrics.scrollHeight).toBeGreaterThan(
+    initialMetrics.clientHeight,
+  );
+
+  await adminMenu.evaluate((menu) => {
+    menu.scrollTop = menu.scrollHeight;
+  });
+  await expect
+    .poll(() => adminMenu.evaluate((menu) => menu.scrollTop))
+    .toBeGreaterThan(0);
+});
+
+test('shows boss health without enabling the standard enemy health HUD', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'title');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page.getByRole('button', { name: '보스' }).first().click();
+  await triggerCurrentRoom(page);
+
+  await expect(page.getByRole('meter', { name: 'Enemy health' })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole('meter', { name: 'Boss health' })).toHaveAttribute(
+    'aria-valuemax',
+    '500',
+  );
 });
 
 test('player fire damages the enemy without stopping combat', async ({
@@ -473,15 +746,37 @@ test('platforms block player projectiles', async ({ page }) => {
   await enterGame(page);
   await page.waitForTimeout(1000);
 
+  // 비행체는 사격선 위에 놓인 2층 발판 뒤에서 떠다님. 비행체가 특별히
+  // 맞지 않고 유지되는지 확인함: 낮은 전경 경로의 지상 적들은 별개의 문제 —
+  // 이건 발판이 총알을 흡수하는지에 관한 것이고, 지상 적의 키 큰 스프라이트가
+  // 아니었다면 그것을 가렸을 것임.
+  const shieldedFlyerHp = () =>
+    page.evaluate((targetY) => {
+      type RuntimeScene = {
+        enemies: Array<{
+          active: boolean;
+          y: number;
+          currentHealth: number;
+          constructor: { name: string };
+        }>;
+      };
+      type DebugGame = { scene: { getScene: (key: string) => unknown } };
+      const game = (window as unknown as { __game?: DebugGame }).__game!;
+      const scene = game.scene.getScene('game') as RuntimeScene;
+      const flyers = scene.enemies.filter(
+        (e) => e.active && e.constructor.name === 'FlyingEnemy',
+      );
+      // 사격 목표 높이에 가장 가까운 것이 발판 뒤에 있음.
+      return flyers.reduce((nearest, e) =>
+        Math.abs(e.y - targetY) < Math.abs(nearest.y - targetY) ? e : nearest,
+      ).currentHealth;
+    }, CITY_ROOM_ONE_FLYING_TARGET[1]);
+
+  const before = await shieldedFlyerHp();
   const bounds = await getCanvasBounds(page);
   await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
 
-  await expect(
-    page.getByRole('meter', { name: 'Enemy health' }),
-  ).toHaveAttribute(
-    'aria-valuenow',
-    CITY_ROOM_ONE_MAX_HEALTH.toString(),
-  );
+  expect(await shieldedFlyerHp()).toBe(before);
 });
 
 test('locks the room until every spawned enemy is defeated', async ({
@@ -577,18 +872,14 @@ test('does not offer a weapon drop from a standard enemy', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
-test('advances to the next room after clearing the first and locks it again', async ({
+test('enters the clear portal and starts combat in the next room', async ({
   page,
 }) => {
-  test.setTimeout(SINGLE_ROOM_TEST_TIMEOUT);
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
 
   await enterGame(page);
-  await page.waitForTimeout(1000);
-
-  const bounds = await getCanvasBounds(page);
-  await clearCityRoomOne(page, bounds);
+  await clearCurrentRoomThroughRuntime(page);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-phase',
@@ -596,7 +887,7 @@ test('advances to the next room after clearing the first and locks it again', as
     { timeout: 5000 },
   );
 
-  await advanceThroughDoor(page);
+  await enterExitPortal(page);
 
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',

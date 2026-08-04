@@ -8,6 +8,7 @@ import { FrontArm } from '@/game/systems/FrontArm';
 import { muzzlePoint } from '@/game/systems/muzzlePoint';
 import { weaponGripPosition } from '@/game/systems/weaponGripPosition';
 import type { WeaponConfig } from '@/game/config/weaponConfig';
+import type { Enemy } from '@/game/entities/Enemy';
 
 /**
  * The grip inside the 72x24 weapon sprite, as a fraction. Every weapon shares
@@ -176,7 +177,7 @@ export class WeaponFeedback {
     this.playShotTraces(weapon, muzzle.x, muzzle.y, pelletAngles);
   }
 
-  playEnemyHit(enemy: Phaser.Physics.Arcade.Sprite, weapon: WeaponConfig) {
+  playEnemyHit(enemy: Enemy, weapon: WeaponConfig) {
     const { feedback } = weapon;
     const sparks = this.scene.add
       .graphics({ x: enemy.x, y: enemy.y })
@@ -215,7 +216,9 @@ export class WeaponFeedback {
       onComplete: () => sparks.destroy(),
     });
 
-    this.flashEnemyHit(enemy, 0xffffff);
+    if (enemy.usesHitFlash) {
+      this.flashEnemyHit(enemy, 0xffffff);
+    }
     this.applyHitStop(feedback.hitStopMs);
   }
 
@@ -256,13 +259,16 @@ export class WeaponFeedback {
   }
 
   private flashEnemyHit(
-    enemy: Phaser.Physics.Arcade.Sprite,
+    enemy: Enemy,
     color: number,
   ) {
-    enemy.setTint(color).setTintMode(Phaser.TintModes.FILL);
+    enemy
+      .setTint(color)
+      .setTintMode(Phaser.TintModes.FILL)
+      .setAlpha(enemy.hitFlashAlpha);
     this.scene.time.delayedCall(70, () => {
       if (enemy.active) {
-        enemy.clearTint();
+        enemy.clearTint().setAlpha(1);
       }
     });
   }

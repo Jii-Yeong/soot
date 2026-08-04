@@ -9,11 +9,13 @@ import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
   const [adminOpen, setAdminOpen] = useState(false);
+  const [showEnemyHealth, setShowEnemyHealth] = useState(false);
   const {
     health,
     maxHealth,
     enemyHealth,
     enemyMaxHealth,
+    enemyIsBoss,
     bossPhase,
     scene,
     phase,
@@ -31,6 +33,11 @@ export function App() {
     gameEvents.emit('admin-stage-requested', stageIndex);
   };
 
+  const goToStageBoss = (stageIndex: number) => {
+    setAdminOpen(false);
+    gameEvents.emit('admin-stage-boss-requested', stageIndex);
+  };
+
   // The menu stays open: swapping weapons is something you do several times in
   // a row while checking one, unlike jumping stages.
   const giveWeapon = (id: string) => {
@@ -46,6 +53,7 @@ export function App() {
       data-weapon={weaponId}
       data-nearby-weapon={nearbyWeaponId ?? ''}
       data-invincible={invincible}
+      data-enemy-health-visible={enemyIsBoss || showEnemyHealth}
     >
       <PhaserGame />
       {scene === 'game' && (
@@ -57,13 +65,15 @@ export function App() {
               maxValue={maxHealth}
               variant="player"
             />
-            <HealthMeter
-              label="ENEMY"
-              value={enemyHealth}
-              maxValue={enemyMaxHealth}
-              variant="enemy"
-              bossPhase={bossPhase}
-            />
+            {(enemyIsBoss || showEnemyHealth) && (
+              <HealthMeter
+                label={enemyIsBoss ? 'BOSS' : 'ENEMY'}
+                value={enemyHealth}
+                maxValue={enemyMaxHealth}
+                variant="enemy"
+                bossPhase={enemyIsBoss ? bossPhase : null}
+              />
+            )}
             {bossPhase === 2 && (
               <div
                 className="boss-phase-alert"
@@ -124,6 +134,18 @@ export function App() {
                   무적 // {invincible ? 'ON' : 'OFF'}
                 </button>
 
+                <button
+                  type="button"
+                  className={`admin-controls__button${
+                    showEnemyHealth ? ' admin-controls__button--active' : ''
+                  }`}
+                  aria-label="Enemy health display"
+                  aria-pressed={showEnemyHealth}
+                  onClick={() => setShowEnemyHealth((visible) => !visible)}
+                >
+                  일반 몬스터 체력 // {showEnemyHealth ? 'ON' : 'OFF'}
+                </button>
+
                 <p className="admin-controls__group">무기</p>
                 {WEAPON_CONFIGS.map((weapon) => (
                   <button
@@ -143,14 +165,25 @@ export function App() {
 
                 <p className="admin-controls__group">스테이지</p>
                 {[1, 2, 3, 4, 5].map((stageNumber) => (
-                  <button
+                  <div
                     key={stageNumber}
-                    type="button"
-                    className="admin-controls__button"
-                    onClick={() => goToStage(stageNumber - 1)}
+                    className="admin-controls__stage-row"
                   >
-                    {stageNumber}스테이지 가기
-                  </button>
+                    <button
+                      type="button"
+                      className="admin-controls__button"
+                      onClick={() => goToStage(stageNumber - 1)}
+                    >
+                      {stageNumber}스테이지
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-controls__button admin-controls__button--boss"
+                      onClick={() => goToStageBoss(stageNumber - 1)}
+                    >
+                      보스
+                    </button>
+                  </div>
                 ))}
 
                 <button

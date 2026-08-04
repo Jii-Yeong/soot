@@ -214,8 +214,14 @@ export type BossPatternConfig =
   | ArchitectBossPatternConfig;
 
 export type BossSpriteConfig = {
-  idleAnimation: string;
-  battleFrame: string;
+  animations: {
+    idle: string;
+    walk: string;
+    charge: string;
+    fire: string;
+    recoil: string;
+    death: string;
+  };
   scale: number;
   bodyWidth: number;
   bodyHeight: number;

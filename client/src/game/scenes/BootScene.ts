@@ -6,7 +6,9 @@ import {
   STAGE_ONE_BOSS_ATLAS_JSON,
   STAGE_ONE_BOSS_ATLAS_KEY,
   STAGE_ONE_BOSS_ATLAS_PNG,
-  STAGE_ONE_BOSS_IDLE_FRAMES,
+  STAGE_ONE_BOSS_LOOPING_TAGS,
+  STAGE_ONE_BOSS_LASER_ASSETS,
+  STAGE_ONE_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
@@ -34,7 +36,9 @@ export class BootScene extends Phaser.Scene {
       STAGE_ONE_BOSS_ATLAS_PNG,
       STAGE_ONE_BOSS_ATLAS_JSON,
     );
-
+    for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
+      this.load.image(asset.key, asset.url);
+    }
     // Four small PNGs, a kilobyte each. They load with the boot batch rather
     // than in the background because the player is holding one the instant the
     // stage starts.
@@ -235,14 +239,19 @@ export class BootScene extends Phaser.Scene {
       duration: 480,
       repeat: -1,
     });
-    this.anims.create({
-      key: STAGE_ONE_BOSS_ANIMATIONS.idle,
-      frames: STAGE_ONE_BOSS_IDLE_FRAMES.map((frame) => ({
-        key: STAGE_ONE_BOSS_ATLAS_KEY,
-        frame,
-      })),
-      duration: 1500,
-      repeat: -1,
-    });
+    for (const [tag, frames] of Object.entries(STAGE_ONE_BOSS_TAG_FRAMES) as [
+      keyof typeof STAGE_ONE_BOSS_TAG_FRAMES,
+      (typeof STAGE_ONE_BOSS_TAG_FRAMES)[keyof typeof STAGE_ONE_BOSS_TAG_FRAMES],
+    ][]) {
+      this.anims.create({
+        key: STAGE_ONE_BOSS_ANIMATIONS[tag],
+        frames: frames.map(({ frame, duration }) => ({
+          key: STAGE_ONE_BOSS_ATLAS_KEY,
+          frame,
+          duration,
+        })),
+        repeat: STAGE_ONE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
+      });
+    }
   }
 }
