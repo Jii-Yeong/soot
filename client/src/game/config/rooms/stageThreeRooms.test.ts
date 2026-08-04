@@ -16,7 +16,8 @@ const GROUND_SPAWN_CLEARANCE = 48;
 const GROUND_PLAYER_Y = GAME_HEIGHT - 120;
 const CATWALK_Y = FLOOR_SURFACE_Y - 116;
 const MAX_JUMP_HEIGHT =
-  (PLAYER_COMBAT_CONFIG.jumpSpeed * PLAYER_COMBAT_CONFIG.jumpSpeed) / (2 * 1200);
+  (PLAYER_COMBAT_CONFIG.jumpSpeed * PLAYER_COMBAT_CONFIG.jumpSpeed) /
+  (2 * 1200);
 
 function activationX(spawn: EnemySpawnConfig) {
   switch (spawn.type) {
@@ -28,6 +29,7 @@ function activationX(spawn: EnemySpawnConfig) {
       const verticalDistance = Math.abs(spawn.y - GROUND_PLAYER_Y);
       return (
         spawn.x -
+        (spawn.movement?.rangeX ?? 0) -
         Math.sqrt(
           FLYING_ENEMY_COMBAT_CONFIG.aggroRadius ** 2 - verticalDistance ** 2,
         )
@@ -85,7 +87,8 @@ describe('stage 3 room layout', () => {
         expect(
           catwalks.some(
             (catwalk) =>
-              catwalk.x <= pit.x && catwalk.x + catwalk.width >= pit.x + pit.width,
+              catwalk.x <= pit.x &&
+              catwalk.x + catwalk.width >= pit.x + pit.width,
           ),
           `${room.id} pit ${pit.x}~${pit.x + pit.width} has no route above it`,
         ).toBe(true);
@@ -100,9 +103,7 @@ describe('stage 3 room layout', () => {
     const roomTwoPlatforms = UNDERGROUND_ROOM_TWO.terrain?.filter(
       ({ type }) => type === 'platform',
     );
-    const upperLedges = roomTwoPlatforms?.filter(
-      ({ y }) => y < CATWALK_Y,
-    );
+    const upperLedges = roomTwoPlatforms?.filter(({ y }) => y < CATWALK_Y);
 
     expect(roomOnePlatforms).toHaveLength(5);
     expect(roomTwoPlatforms).toHaveLength(7);
@@ -137,16 +138,16 @@ describe('stage 3 room layout', () => {
         );
       });
 
-      expect(covers.length, `${room.id} has no solid-ground cover beat`).toBeGreaterThan(
-        0,
-      );
+      expect(
+        covers.length,
+        `${room.id} has no solid-ground cover beat`,
+      ).toBeGreaterThan(0);
       expect(
         room.enemySpawns.some(
           (spawn) =>
             spawn.type === 'flying' &&
             covers.some(
-              (cover) =>
-                cover.x <= spawn.x && spawn.x <= cover.x + cover.width,
+              (cover) => cover.x <= spawn.x && spawn.x <= cover.x + cover.width,
             ),
         ),
         `${room.id} never demonstrates cover against a flying shot`,
@@ -154,24 +155,43 @@ describe('stage 3 room layout', () => {
     }
   });
 
-  it('separates the room 02 late peak into readable threats', () => {
-    const sorted = [...UNDERGROUND_ROOM_TWO.enemySpawns].sort(
-      (first, second) => first.x - second.x,
-    );
-    const opening = sorted.slice(0, 4);
-    const latePeak = sorted.slice(4);
+  it('paces both rooms as three readable combat cycles', () => {
+    const cases = [
+      [UNDERGROUND_ROOM_ONE, [4, 3, 2]],
+      [UNDERGROUND_ROOM_TWO, [4, 4, 3]],
+    ] as const;
 
-    expect(latePeak).toHaveLength(5);
-    const recovery =
-      Math.min(...latePeak.map(activationX)) -
-      Math.max(...opening.map(activationX));
-    expect(recovery).toBeGreaterThanOrEqual(300);
-    expect(recovery).toBeLessThanOrEqual(400);
-
-    for (let index = 1; index < latePeak.length; index += 1) {
-      expect(latePeak[index]!.x - latePeak[index - 1]!.x).toBeGreaterThanOrEqual(
-        140,
+    for (const [room, cycleSizes] of cases) {
+      const sorted = [...room.enemySpawns].sort(
+        (first, second) => first.x - second.x,
       );
+      let offset = 0;
+      const cycles = cycleSizes.map((size) => {
+        const cycle = sorted.slice(offset, offset + size);
+        offset += size;
+        return cycle;
+      });
+
+      expect(cycles.map(({ length }) => length), room.id).toEqual(cycleSizes);
+      for (let index = 1; index < cycles.length; index += 1) {
+        const gap =
+          Math.min(...cycles[index]!.map(activationX)) -
+          Math.max(...cycles[index - 1]!.map(activationX));
+        expect(gap, `${room.id} cycle ${index + 1} gap`).toBeGreaterThanOrEqual(
+          300,
+        );
+        expect(gap, `${room.id} cycle ${index + 1} gap`).toBeLessThanOrEqual(
+          700,
+        );
+      }
+
+      for (const cycle of cycles) {
+        for (let index = 1; index < cycle.length; index += 1) {
+          expect(cycle[index]!.x - cycle[index - 1]!.x).toBeGreaterThanOrEqual(
+            140,
+          );
+        }
+      }
     }
   });
 

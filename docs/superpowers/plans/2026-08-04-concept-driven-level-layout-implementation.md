@@ -17,7 +17,7 @@
 - Modify: `client/src/game/config/rooms/stageOneRooms.test.ts`
 - Modify: `client/src/game/config/rooms/stageOneRooms.ts`
 
-- [x] Assert combat widths of 3657, 4000, 4300, 4600, and 4200 px by stage.
+- [x] Assert combat widths of 3657, 4000, 5200, 6000, and 4200 px by stage.
 - [x] Assert Stage 1 room 2 contains an accessible 180-240 px platform beneath its flier.
 - [x] Verify the tests fail against the previous uniform room widths and 250 px platform.
 - [x] Shorten the Stage 1 cover platform to 240 px.
@@ -76,3 +76,23 @@
 - [x] Run client lint and production build.
 - [x] Inspect the final diff and complete code review.
 - [x] Commit with `feat(level-design): 스테이지별 엄폐 전투 공간 재구성`.
+
+### Task 7: Increase late-stage duration and aerial motion
+
+**Files:**
+- Modify: `client/src/game/config/aerialMovementConfig.ts`
+- Modify: `client/src/game/config/enemySpawnConfig.test.ts`
+- Modify: `client/src/game/config/stageConfig.test.ts`
+- Modify: `client/src/game/config/rooms/stageOneRooms.ts`
+- Modify: `client/src/game/config/rooms/stageTwoRooms.ts`
+- Modify: `client/src/game/config/rooms/stageThreeRooms.ts`
+- Modify: `client/src/game/config/rooms/stageThreeRooms.test.ts`
+- Modify: `client/src/game/config/rooms/stageFourRooms.ts`
+- Modify: `client/src/game/config/rooms/stageFourRooms.test.ts`
+
+- [x] Verify the 5200 px and 6000 px width contracts fail against the previous layouts.
+- [x] Expand Stage 3 to 9 and 11 enemies across three combat cycles.
+- [x] Expand Stage 4 to 11 and 13 enemies across four pressure groups.
+- [x] Give every Stage 1-4 flier a restrained patrol route.
+- [x] Run full verification and code review.
+- [x] Commit the late-stage duration and aerial patrol pass.

@@ -1,4 +1,5 @@
 import { GAME_HEIGHT } from "@/game/config/gameDimensions";
+import { GROUND_STAGE_FLYING_PATROL } from "@/game/config/aerialMovementConfig";
 import {
   defineBossRoom,
   defineRoom,
@@ -18,11 +19,21 @@ export const ALLEY_ROOM_ONE = defineRoom({
     // The entry stays quiet for over a screen quarter before the first aggro.
     { type: "melee", x: 950, y: GAME_HEIGHT - 120 },
     { type: "ranged", x: 1400, y: GAME_HEIGHT - 120 },
-    { type: "flying", x: 1650, y: GAME_HEIGHT - 300 },
+    {
+      type: "flying",
+      x: 1650,
+      y: GAME_HEIGHT - 300,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
     // Cluster B — mid, past the first gap.
     { type: "melee", x: 1950, y: GAME_HEIGHT - 120 },
     { type: "ranged", x: 2250, y: GAME_HEIGHT - 120 },
-    { type: "flying", x: 2500, y: GAME_HEIGHT - 320 },
+    {
+      type: "flying",
+      x: 2500,
+      y: GAME_HEIGHT - 320,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
     // Cluster C — the far stretch before the exit.
     { type: "melee", x: 3200, y: GAME_HEIGHT - 120 },
     { type: "ranged", x: 3500, y: GAME_HEIGHT - 120 },
@@ -65,17 +76,32 @@ export const ALLEY_ROOM_TWO = defineRoom({
     // pressure the shooter before crossing under a flier.
     { type: "melee", x: 950, y: GAME_HEIGHT - 120 },
     { type: "ranged", x: 1400, y: GAME_HEIGHT - 120 },
-    { type: "flying", x: 1650, y: GAME_HEIGHT - 320 },
+    {
+      type: "flying",
+      x: 1650,
+      y: GAME_HEIGHT - 320,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
     // Cluster B — mid, past the first gap.
     { type: "melee", x: 1900, y: GAME_HEIGHT - 120 },
     { type: "ranged", x: 2050, y: GAME_HEIGHT - 120 },
-    { type: "flying", x: 2200, y: GAME_HEIGHT - 300 },
+    {
+      type: "flying",
+      x: 2200,
+      y: GAME_HEIGHT - 300,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
     // Cluster C — the far stretch.
     { type: "ranged", x: 2600, y: GAME_HEIGHT - 120 },
     { type: "melee", x: 3300, y: GAME_HEIGHT - 120 },
     // 마지막 비행 적은 확장된 방 끝까지 전투를 이어 가되 보스방 진입
     // 여백을 침범하지 않음.
-    { type: "flying", x: 3500, y: GAME_HEIGHT - 300 },
+    {
+      type: "flying",
+      x: 3500,
+      y: GAME_HEIGHT - 300,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
   ],
   terrain: [
     // Two-tier perches early, then ledges across the run.

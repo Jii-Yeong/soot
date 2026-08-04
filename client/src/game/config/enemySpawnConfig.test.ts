@@ -4,12 +4,12 @@ import { STAGES } from '@/game/config/stageConfig';
 const EXPECTED_COMBAT_ROOM_COUNTS = [
   [6, 6],
   [8, 9],
-  [8, 9],
-  [8, 10],
+  [9, 11],
+  [11, 13],
   [6, 7],
 ];
 
-const EXPECTED_COMBAT_ROOM_WIDTHS = [3657, 4000, 4300, 4600, 4200];
+const EXPECTED_COMBAT_ROOM_WIDTHS = [3657, 4000, 5200, 6000, 4200];
 
 describe('enemy spawn progression', () => {
   it('keeps encounter sizes tuned for each stage combat model', () => {
@@ -34,9 +34,7 @@ describe('enemy spawn progression', () => {
 
   it('distributes every combat encounter across the full room', () => {
     for (const stage of STAGES) {
-      for (const room of stage.rooms.filter(
-        ({ kind }) => kind === 'combat',
-      )) {
+      for (const room of stage.rooms.filter(({ kind }) => kind === 'combat')) {
         const bandWidth = room.worldWidth / 3;
 
         for (let band = 0; band < 3; band += 1) {

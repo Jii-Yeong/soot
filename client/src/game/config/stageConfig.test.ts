@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AerialMovementMode } from '@/game/config/aerialMovementConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
@@ -159,6 +160,20 @@ describe('stage configuration', () => {
           (spawn) => spawn.type === 'flying' && Boolean(spawn.movement),
         ),
       ).toBe(true);
+    }
+  });
+
+  it('gives every ground-stage flier a restrained patrol route', () => {
+    for (const stage of STAGES.slice(0, 4)) {
+      for (const room of stage.rooms.filter(({ kind }) => kind === 'combat')) {
+        for (const spawn of room.enemySpawns) {
+          if (spawn.type !== 'flying') continue;
+
+          expect(spawn.movement?.mode).toBe(AerialMovementMode.PATROL);
+          expect(spawn.movement?.rangeX).toBeLessThanOrEqual(120);
+          expect(spawn.movement?.rangeY).toBeLessThanOrEqual(40);
+        }
+      }
     }
   });
 

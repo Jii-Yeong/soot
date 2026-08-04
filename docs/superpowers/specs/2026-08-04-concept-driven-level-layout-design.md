@@ -9,7 +9,8 @@ Make the five stages feel spatially distinct while extending the short later roo
 
 ## Locked Systems
 
-- Enemy and boss behavior and attack patterns.
+- Enemy and boss attack patterns. Ground-stage fliers gain a restrained patrol
+  route, while their attacks and Stage 5 formation behaviors remain unchanged.
 - Player movement and flight behavior.
 - Projectile and pit behavior.
 - Background assets and rendering.
@@ -21,8 +22,8 @@ Make the five stages feel spatially distinct while extending the short later roo
 | --- | ---: | --- |
 | 1 | 3657 px | Compact introduction |
 | 2 | 4000 px | Longer separated alley clusters |
-| 3 | 4300 px | Extended catwalk pressure |
-| 4 | 4600 px | Broad collapse and vertical fracture |
+| 3 | 5200 px | Three-cycle catwalk pressure |
+| 4 | 6000 px | Long-form collapse and vertical fracture |
 | 5 | 4200 px | Wider aerial formation spacing |
 
 Background images remain independent from room width. The backdrop system maps image travel to camera travel, while procedural layers derive their rendered width from the active room.
@@ -53,15 +54,15 @@ Extend both combat rooms to 4000 px. Preserve the fire-escape silhouette and iso
 
 ### Stage 3: Catwalk Pressure
 
-Extend both rooms to 4300 px. Keep four short pit bridges per room and add exactly one short cover platform on solid ground. Room 2 retains two optional upper ledges and separates its opening four threats from its late five-threat sequence by 300-400 px measured from actual enemy activation positions.
+Extend both rooms to 5200 px. Keep four short pit bridges per room and one short cover platform on solid ground. Room 2 retains two optional upper ledges and divides eleven threats into three readable combat cycles, with 300-700 px between cycles measured from actual enemy activation positions.
 
 ### Stage 4 Room 1: Cover Islands
 
-Extend the room to 4600 px. Use three isolated low cover platforms across broad ground sections, one optional mid ledge, and three asymmetric pits. The silhouette must read as open collapse rather than a horizontal fence.
+Extend the room to 6000 px. Use four isolated low cover platforms across broad ground sections, two optional mid ledges, and four asymmetric pits. Eleven threats form four pressure groups so the added distance remains active rather than becoming empty traversal.
 
 ### Stage 4 Room 2: Vertical Fracture
 
-Extend the room to 4600 px. Concentrate three low and three mid platforms into separated stacks, with one third-tier platform in the centre. The player changes vertical side to block shots; no high route continues across the room.
+Extend the room to 6000 px. Concentrate four low and four mid platforms into separated stacks, with one third-tier platform in the centre. Thirteen threats make this the densest standard room while the player changes vertical side to block shots; no high route continues across the room.
 
 ### Stage 5: Formation Space
 
@@ -76,6 +77,7 @@ Extend both rooms to 4200 px and distribute the existing aerial formations acros
 - No grounded enemy spawns over a pit or inside terrain.
 - A grounded enemy and its full patrol do not enter deep projectile cover more than 96 px from an exposed platform edge.
 - A cover beat contains no grounded enemy beneath its cover platform.
+- Ground-stage fliers patrol no more than 120 px horizontally and 40 px vertically around their authored anchor.
 - Adjacent Stage 4 threats spawn at least 100 px apart.
 - Every combat room leaves at least 400 px between its last spawn and exit.
 

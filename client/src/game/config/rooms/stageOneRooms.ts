@@ -1,4 +1,5 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import { GROUND_STAGE_FLYING_PATROL } from '@/game/config/aerialMovementConfig';
 import {
   defineBossRoom,
   defineRoom,
@@ -25,7 +26,12 @@ export const CITY_ROOM_ONE = defineRoom({
     { type: 'melee', x: 2250, y: GAME_HEIGHT - 120 },
     { type: 'ranged', x: 2480, y: GAME_HEIGHT - 120 },
     // One high flier closes the room, with both height tiers available.
-    { type: 'flying', x: 3150, y: GAME_HEIGHT - 360 },
+    {
+      type: 'flying',
+      x: 3150,
+      y: GAME_HEIGHT - 360,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
   ],
   terrain: [
     // 짧은 높이 구간은 대응하는 지상 교전 뒤에 시작함. 상단 경로를 골라도
@@ -49,7 +55,12 @@ export const CITY_ROOM_TWO = defineRoom({
     { type: 'ranged', x: 1370, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 1840, y: GAME_HEIGHT - 120 },
     // The final trio ramps in from the air, then the ground.
-    { type: 'flying', x: 2700, y: GAME_HEIGHT - 360 },
+    {
+      type: 'flying',
+      x: 2700,
+      y: GAME_HEIGHT - 360,
+      movement: GROUND_STAGE_FLYING_PATROL,
+    },
     { type: 'ranged', x: 2930, y: GAME_HEIGHT - 120 },
     { type: 'melee', x: 3180, y: GAME_HEIGHT - 120 },
     // The last 413px to the door are empty: a breather before the boss.
