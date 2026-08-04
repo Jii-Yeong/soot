@@ -525,11 +525,14 @@ export class PlayerController {
 
   private clampFlightPosition() {
     const camera = this.scene.cameras.main;
+    // setScroll()은 scrollX를 즉시 바꾸지만 worldView는 다음 카메라 갱신까지
+    // 이전 방 값을 유지하므로, 스테이지 전환 프레임에는 scrollX를 기준으로 함.
+    const viewportLeft = camera.scrollX;
     this.player.setPosition(
       Phaser.Math.Clamp(
         this.player.x,
-        camera.worldView.left + PLAYER_FLIGHT_BOUNDS.minScreenX,
-        camera.worldView.left + PLAYER_FLIGHT_BOUNDS.maxScreenX,
+        viewportLeft + PLAYER_FLIGHT_BOUNDS.minScreenX,
+        viewportLeft + PLAYER_FLIGHT_BOUNDS.maxScreenX,
       ),
       Phaser.Math.Clamp(
         this.player.y,
