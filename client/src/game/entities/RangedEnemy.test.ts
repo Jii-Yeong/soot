@@ -1,20 +1,20 @@
 // @vitest-environment jsdom
 
-import type Phaser from "phaser";
-import { describe, expect, it, vi } from "vitest";
-import { RangedEnemy } from "@/game/entities/RangedEnemy";
+import type Phaser from 'phaser';
+import { describe, expect, it, vi } from 'vitest';
+import { RangedEnemy } from '@/game/entities/RangedEnemy';
 
 vi.hoisted(() => {
   HTMLCanvasElement.prototype.getContext = (() => ({
-    fillStyle: "",
+    fillStyle: '',
     fillRect: () => {},
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
     putImageData: () => {},
-  })) as unknown as HTMLCanvasElement["getContext"];
+  })) as unknown as HTMLCanvasElement['getContext'];
 });
 
-describe("RangedEnemy patrol", () => {
-  it("patrols while the player is outside its aggro radius", () => {
+describe('RangedEnemy patrol', () => {
+  it('patrols while the player is outside its aggro radius', () => {
     const setVelocityX = vi.fn();
     const enemy = Object.assign(Object.create(RangedEnemy.prototype), {
       x: 100,

@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { HealthMeter } from "@/app/components/HealthMeter";
-import { SettingsDialog } from "@/app/components/SettingsDialog";
-import { useGameUiEvents } from "@/app/hooks/useGameUiEvents";
-import { PhaserGame } from "@/game/PhaserGame";
-import { WEAPON_CONFIGS } from "@/game/config/weaponConfig";
-import { gameEvents } from "@/game/events/gameEvents";
-import { useGameSettingsStore } from "@/stores/gameSettingsStore";
-import { useGameUiStore } from "@/stores/gameUiStore";
+import { useEffect, useState } from 'react';
+import { HealthMeter } from '@/app/components/HealthMeter';
+import { SettingsDialog } from '@/app/components/SettingsDialog';
+import { useGameUiEvents } from '@/app/hooks/useGameUiEvents';
+import { PhaserGame } from '@/game/PhaserGame';
+import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
+import { gameEvents } from '@/game/events/gameEvents';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
+import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
   const [adminOpen, setAdminOpen] = useState(false);
@@ -38,77 +38,77 @@ export function App() {
   useGameUiEvents();
 
   useEffect(() => {
-    gameEvents.emit("audio-mix-changed", audioMix);
+    gameEvents.emit('audio-mix-changed', audioMix);
   }, [audioMix]);
 
   useEffect(() => {
-    if (settingsOpen && scene !== "title" && !paused) {
+    if (settingsOpen && scene !== 'title' && !paused) {
       closeSettings();
     }
   }, [closeSettings, paused, scene, settingsOpen]);
 
   const goToStage = (stageIndex: number) => {
     setAdminOpen(false);
-    gameEvents.emit("admin-stage-requested", stageIndex);
+    gameEvents.emit('admin-stage-requested', stageIndex);
   };
 
   const goToStageBoss = (stageIndex: number) => {
     setAdminOpen(false);
-    gameEvents.emit("admin-stage-boss-requested", stageIndex);
+    gameEvents.emit('admin-stage-boss-requested', stageIndex);
   };
 
   // The menu stays open: swapping weapons is something you do several times in
   // a row while checking one, unlike jumping stages.
   const giveWeapon = (id: string) => {
-    gameEvents.emit("admin-weapon-requested", id);
+    gameEvents.emit('admin-weapon-requested', id);
   };
 
   return (
     <main
-      className="game-shell"
+      className='game-shell'
       data-phase={phase}
       data-room-state={roomState}
       data-scene={scene}
       data-weapon={weaponId}
-      data-nearby-weapon={nearbyWeaponId ?? ""}
+      data-nearby-weapon={nearbyWeaponId ?? ''}
       data-invincible={invincible}
       data-display-resolution={graphics.displayResolution}
       data-enemy-health-visible={enemyIsBoss || showEnemyHealth}
     >
-      <div className="game-viewport">
+      <div className='game-viewport'>
         <PhaserGame />
-        {scene === "title" && !settingsOpen && (
+        {scene === 'title' && !settingsOpen && (
           <button
-            type="button"
-            className="title-settings-trigger"
+            type='button'
+            className='title-settings-trigger'
             onClick={openSettings}
           >
             설정
           </button>
         )}
-        {scene === "game" && (
+        {scene === 'game' && (
           <>
-            <div className="hud-layer">
+            <div className='hud-layer'>
               <HealthMeter
-                label="PLAYER"
+                label='PLAYER'
                 value={health}
                 maxValue={maxHealth}
-                variant="player"
+                variant='player'
               />
               {(enemyIsBoss || showEnemyHealth) && (
                 <HealthMeter
-                  label={enemyIsBoss ? "BOSS" : "ENEMY"}
+                  label={enemyIsBoss ? 'BOSS' : 'ENEMY'}
                   value={enemyHealth}
                   maxValue={enemyMaxHealth}
-                  variant="enemy"
+                  variant='enemy'
                   bossPhase={enemyIsBoss ? bossPhase : null}
                 />
               )}
               {bossPhase === 2 && (
                 <div
-                  className="boss-phase-alert"
-                  role="status"
-                  aria-live="assertive"
+                  className='boss-phase-alert'
+                  role='status'
+                  aria-live='assertive'
                 >
                   <span>PHASE 2</span>
                   <strong>CORE OVERLOAD</strong>
@@ -117,36 +117,36 @@ export function App() {
             </div>
 
             {paused && !settingsOpen && (
-              <div className="pause-overlay" role="dialog" aria-modal="true">
-                <div className="pause-overlay__panel">
-                  <p className="pause-overlay__eyebrow">SYSTEM HALT</p>
-                  <h2 className="pause-overlay__title">일시정지</h2>
+              <div className='pause-overlay' role='dialog' aria-modal='true'>
+                <div className='pause-overlay__panel'>
+                  <p className='pause-overlay__eyebrow'>SYSTEM HALT</p>
+                  <h2 className='pause-overlay__title'>일시정지</h2>
                   <button
-                    type="button"
-                    className="pause-overlay__resume"
-                    onClick={() => gameEvents.emit("pause-toggle-requested")}
+                    type='button'
+                    className='pause-overlay__resume'
+                    onClick={() => gameEvents.emit('pause-toggle-requested')}
                     autoFocus
                   >
                     재개
                   </button>
                   <button
-                    type="button"
-                    className="pause-overlay__settings"
+                    type='button'
+                    className='pause-overlay__settings'
                     onClick={openSettings}
                   >
                     설정
                   </button>
-                  <p className="pause-overlay__hint">ESC 로도 재개됩니다</p>
+                  <p className='pause-overlay__hint'>ESC 로도 재개됩니다</p>
                 </div>
               </div>
             )}
 
-            <div className="admin-controls">
+            <div className='admin-controls'>
               <button
-                type="button"
-                className="admin-controls__trigger"
+                type='button'
+                className='admin-controls__trigger'
                 aria-expanded={adminOpen}
-                aria-controls="admin-menu"
+                aria-controls='admin-menu'
                 onClick={() => setAdminOpen((open) => !open)}
               >
                 ADMIN
@@ -154,44 +154,44 @@ export function App() {
 
               {adminOpen && (
                 <div
-                  id="admin-menu"
-                  className="admin-controls__menu"
-                  role="dialog"
-                  aria-label="Admin menu"
+                  id='admin-menu'
+                  className='admin-controls__menu'
+                  role='dialog'
+                  aria-label='Admin menu'
                 >
                   <button
-                    type="button"
+                    type='button'
                     className={`admin-controls__button${
-                      invincible ? " admin-controls__button--active" : ""
+                      invincible ? ' admin-controls__button--active' : ''
                     }`}
-                    aria-label="Invincibility mode"
+                    aria-label='Invincibility mode'
                     aria-pressed={invincible}
                     onClick={toggleInvincible}
                   >
-                    무적 // {invincible ? "ON" : "OFF"}
+                    무적 // {invincible ? 'ON' : 'OFF'}
                   </button>
 
                   <button
-                    type="button"
+                    type='button'
                     className={`admin-controls__button${
-                      showEnemyHealth ? " admin-controls__button--active" : ""
+                      showEnemyHealth ? ' admin-controls__button--active' : ''
                     }`}
-                    aria-label="Enemy health display"
+                    aria-label='Enemy health display'
                     aria-pressed={showEnemyHealth}
                     onClick={() => setShowEnemyHealth((visible) => !visible)}
                   >
-                    일반 몬스터 체력 // {showEnemyHealth ? "ON" : "OFF"}
+                    일반 몬스터 체력 // {showEnemyHealth ? 'ON' : 'OFF'}
                   </button>
 
-                  <p className="admin-controls__group">무기</p>
+                  <p className='admin-controls__group'>무기</p>
                   {WEAPON_CONFIGS.map((weapon) => (
                     <button
                       key={weapon.id}
-                      type="button"
+                      type='button'
                       className={`admin-controls__button${
                         weaponId === weapon.id
-                          ? " admin-controls__button--active"
-                          : ""
+                          ? ' admin-controls__button--active'
+                          : ''
                       }`}
                       aria-pressed={weaponId === weapon.id}
                       onClick={() => giveWeapon(weapon.id)}
@@ -200,22 +200,22 @@ export function App() {
                     </button>
                   ))}
 
-                  <p className="admin-controls__group">스테이지</p>
+                  <p className='admin-controls__group'>스테이지</p>
                   {[1, 2, 3, 4, 5].map((stageNumber) => (
                     <div
                       key={stageNumber}
-                      className="admin-controls__stage-row"
+                      className='admin-controls__stage-row'
                     >
                       <button
-                        type="button"
-                        className="admin-controls__button"
+                        type='button'
+                        className='admin-controls__button'
                         onClick={() => goToStage(stageNumber - 1)}
                       >
                         {stageNumber}스테이지
                       </button>
                       <button
-                        type="button"
-                        className="admin-controls__button admin-controls__button--boss"
+                        type='button'
+                        className='admin-controls__button admin-controls__button--boss'
                         onClick={() => goToStageBoss(stageNumber - 1)}
                       >
                         보스
@@ -224,8 +224,8 @@ export function App() {
                   ))}
 
                   <button
-                    type="button"
-                    className="admin-controls__button admin-controls__button--close"
+                    type='button'
+                    className='admin-controls__button admin-controls__button--close'
                     onClick={() => setAdminOpen(false)}
                   >
                     닫기

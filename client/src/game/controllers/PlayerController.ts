@@ -1,20 +1,20 @@
-import Phaser from "phaser";
+import Phaser from 'phaser';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_JUMP_FRAMES,
-} from "@/game/config/playerAnimationConfig";
+} from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
   PLAYER_FLIGHT_BOUNDS,
   writeNormalizedVelocity,
-} from "@/game/config/playerMovementConfig";
-import { getVacuumVelocityX } from "@/game/combat/vacuumPull";
-import { gameEvents } from "@/game/events/gameEvents";
+} from '@/game/config/playerMovementConfig';
+import { getVacuumVelocityX } from '@/game/combat/vacuumPull';
+import { gameEvents } from '@/game/events/gameEvents';
 import {
   FLIGHT_ENTRY_JUMP_FALL_DURATION,
   FLIGHT_ENTRY_JUMP_RISE_DURATION,
   getFlightEntryJumpY,
-} from "@/game/movement/flightEntryJump";
+} from '@/game/movement/flightEntryJump';
 
 export type PlayerMovementConfig = {
   moveSpeed: number;
@@ -29,7 +29,7 @@ export type PlayerMovementConfig = {
 };
 
 type MovementKeys = Record<
-  "left" | "right" | "jump" | "down" | "dash",
+  'left' | 'right' | 'jump' | 'down' | 'dash',
   Phaser.Input.Keyboard.Key
 >;
 
@@ -88,7 +88,7 @@ export class PlayerController {
     const keyboard = scene.input.keyboard;
 
     if (!keyboard) {
-      throw new Error("Keyboard input is required for player controls");
+      throw new Error('Keyboard input is required for player controls');
     }
 
     this.movementKeys = keyboard.addKeys({
@@ -350,7 +350,7 @@ export class PlayerController {
       .setTint(0xb6ffe4);
     // Emitted here rather than at the call sites so the keyboard and the
     // right-click dash raise the same cue exactly once.
-    gameEvents.emit("player-dashed", this.player.x, this.player.y);
+    gameEvents.emit('player-dashed', this.player.x, this.player.y);
 
     return true;
   }

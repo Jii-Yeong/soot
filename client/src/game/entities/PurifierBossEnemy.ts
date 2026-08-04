@@ -36,7 +36,7 @@ const LANDING_GRACE_DURATION = 400;
  *
  * - Impurity collection: warns on the player's ground spot, then the claw
  *   strikes it. A grounded player caught there takes a hit and is dragged into
- *   the boss — where its own contact damage "collects" them (moderate, on a
+ *   the boss — where its own contact damage 'collects' them (moderate, on a
  *   cooldown, and escapable with a dash, so never a one-shot stunlock).
  * - Waste compaction: marks the player's position, leaps toward it, then sends
  *   two green pressure waves along the floor on landing; move off the marker

@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { getFlightEntryJumpY } from "@/game/movement/flightEntryJump";
+import { describe, expect, it } from 'vitest';
+import { getFlightEntryJumpY } from '@/game/movement/flightEntryJump';
 
-describe("getFlightEntryJumpY", () => {
-  it("rises from the portal, peaks above the flight-band center, then lands at center", () => {
+describe('getFlightEntryJumpY', () => {
+  it('rises from the portal, peaks above the flight-band center, then lands at center', () => {
     const jump = {
       startY: 566,
       targetY: 364,

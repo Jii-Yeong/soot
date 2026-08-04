@@ -1,64 +1,64 @@
-import Phaser from "phaser";
+import Phaser from 'phaser';
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   PLAYER_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
-} from "@/game/config/combatConfig";
-import { GAME_HEIGHT, GAME_WIDTH } from "@/game/config/gameDimensions";
+} from '@/game/config/combatConfig';
+import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
   PLAYER_INITIAL_FRAME,
-} from "@/game/config/playerAnimationConfig";
+} from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
   PLAYER_FLIGHT_BOUNDS,
-} from "@/game/config/playerMovementConfig";
-import type { RoomConfig } from "@/game/config/roomConfig";
+} from '@/game/config/playerMovementConfig';
+import type { RoomConfig } from '@/game/config/roomConfig';
 import {
   STARTING_STAGE_INDEX,
   STAGES,
   type StageEndEvent,
-} from "@/game/config/stageConfig";
-import { getStageExitPlan } from "@/game/config/stageProgression";
-import { PLAYER_STACK_DEPTH } from "@/game/config/renderDepth";
-import { ROOM_CAMERA_FOLLOW_LERP_X } from "@/game/config/worldConfig";
+} from '@/game/config/stageConfig';
+import { getStageExitPlan } from '@/game/config/stageProgression';
+import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
+import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
   type WeaponConfig,
-} from "@/game/config/weaponConfig";
-import { PlayerController } from "@/game/controllers/PlayerController";
-import { BossEnemy } from "@/game/entities/BossEnemy";
-import { Enemy, type EnemyProjectileKind } from "@/game/entities/Enemy";
-import { gameEvents } from "@/game/events/gameEvents";
+} from '@/game/config/weaponConfig';
+import { PlayerController } from '@/game/controllers/PlayerController';
+import { BossEnemy } from '@/game/entities/BossEnemy';
+import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
+import { gameEvents } from '@/game/events/gameEvents';
 import {
   canPlayerFireInPhase,
   canPlayerFireInRoom,
   type GamePhase,
-} from "@/game/state/gamePhase";
-import { PlayerHealthState } from "@/game/state/playerHealthState";
-import type { RoomState } from "@/game/state/roomState";
-import { BackdropDirector } from "@/game/systems/BackdropDirector";
-import { EnemyFactory } from "@/game/systems/EnemyFactory";
+} from '@/game/state/gamePhase';
+import { PlayerHealthState } from '@/game/state/playerHealthState';
+import type { RoomState } from '@/game/state/roomState';
+import { BackdropDirector } from '@/game/systems/BackdropDirector';
+import { EnemyFactory } from '@/game/systems/EnemyFactory';
 import {
   FLOOR_SURFACE_Y,
   FLOOR_TILE,
   FloorBuilder,
-} from "@/game/systems/FloorBuilder";
-import { patrolSpan } from "@/game/systems/patrolSpan";
-import { ProjectilePool } from "@/game/systems/ProjectilePool";
-import { RoomDirector } from "@/game/systems/RoomDirector";
-import { StageAssetPreloader } from "@/game/systems/StageAssetPreloader";
-import { StageEndEventDirector } from "@/game/systems/StageEndEventDirector";
+} from '@/game/systems/FloorBuilder';
+import { patrolSpan } from '@/game/systems/patrolSpan';
+import { ProjectilePool } from '@/game/systems/ProjectilePool';
+import { RoomDirector } from '@/game/systems/RoomDirector';
+import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
+import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
 import {
   isProjectileBlocker,
   TerrainBuilder,
-} from "@/game/systems/TerrainBuilder";
-import { WeaponDropDirector } from "@/game/systems/WeaponDropDirector";
-import { WeaponSystem } from "@/game/systems/WeaponSystem";
-import { useGameSettingsStore } from "@/stores/gameSettingsStore";
+} from '@/game/systems/TerrainBuilder';
+import { WeaponDropDirector } from '@/game/systems/WeaponDropDirector';
+import { WeaponSystem } from '@/game/systems/WeaponSystem';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 
@@ -109,17 +109,17 @@ export class GameScene extends Phaser.Scene {
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
     (currentHealth, maxHealth) =>
-      gameEvents.emit("health-changed", currentHealth, maxHealth),
+      gameEvents.emit('health-changed', currentHealth, maxHealth),
   );
-  private phase: GamePhase = "boot";
-  private roomState: RoomState = "idle";
+  private phase: GamePhase = 'boot';
+  private roomState: RoomState = 'idle';
   /** 바닥선을 지나 레벨 밖으로 추락 중인 적. */
   private readonly fallingEnemies = new Set<Enemy>();
   private paused = false;
   private roomExitRequested = false;
 
   constructor() {
-    super("game");
+    super('game');
   }
 
   private get stage() {
@@ -132,9 +132,9 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     this.resetRunState();
-    gameEvents.emit("scene-changed", "game");
-    gameEvents.emit("stage-changed", this.stage.id);
-    this.setPhase("playing");
+    gameEvents.emit('scene-changed', 'game');
+    gameEvents.emit('stage-changed', this.stage.id);
+    this.setPhase('playing');
 
     this.configureRoomWorld();
     this.stageAssetPreloader = new StageAssetPreloader(this);
@@ -165,9 +165,9 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number) {
     if (
-      this.phase === "dead" ||
-      this.phase === "ending" ||
-      this.phase === "transitioning"
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
     ) {
       return;
     }
@@ -176,7 +176,7 @@ export class GameScene extends Phaser.Scene {
     this.handleEnemyPitFalls();
     this.roomDirector.update();
 
-    if (this.phase === "room-cleared" && this.roomExitRequested) {
+    if (this.phase === 'room-cleared' && this.roomExitRequested) {
       this.roomExitRequested = false;
       this.advanceToNextRoom();
       return;
@@ -197,16 +197,16 @@ export class GameScene extends Phaser.Scene {
    * frame's. The gap is one frame of travel: a few pixels while running, and
    * 9.3px vertically off a 560px/s jump, reversing sign at the apex. The arms
    * sagged to the waist on the way up and rode over the face on the way down,
-   * which is the "the arm moves at a different speed than the body" this fixes.
+   * which is the 'the arm moves at a different speed than the body' this fixes.
    *
    * No anchor could have corrected it. The rig was placing the arm correctly
    * against a position the body had already left.
    */
   private updateAiming(time: number, delta: number) {
     if (
-      this.phase === "dead" ||
-      this.phase === "ending" ||
-      this.phase === "transitioning"
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
     ) {
       return;
     }
@@ -221,7 +221,7 @@ export class GameScene extends Phaser.Scene {
     if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
     }
-    if (this.phase === "playing" && this.roomState === "locked") {
+    if (this.phase === 'playing' && this.roomState === 'locked') {
       this.updateEnemyCombat(time);
     }
   }
@@ -283,7 +283,7 @@ export class GameScene extends Phaser.Scene {
     this.weaponDropDirector?.clear();
     this.weaponSystem?.clearProjectiles();
     this.roomDirector?.destroy();
-    gameEvents.emit("boss-phase-changed", null);
+    gameEvents.emit('boss-phase-changed', null);
     this.roomExitRequested = false;
     this.activeRoomConfig = roomConfig;
     this.roomDirector = new RoomDirector({
@@ -300,15 +300,15 @@ export class GameScene extends Phaser.Scene {
       enemy.destroy();
     }
     this.replaceEnemies([]);
-    this.roomState = "idle";
-    gameEvents.emit("room-state-changed", this.roomState);
+    this.roomState = 'idle';
+    gameEvents.emit('room-state-changed', this.roomState);
     this.emitEnemyHealth();
 
     this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
 
     // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
     // 스테이지 진입 후 보이지 않는 전투 트리거가 따로 생기지 않는다.
-    if (roomConfig.kind === "combat") {
+    if (roomConfig.kind === 'combat') {
       this.spawnRoomEnemies();
     }
     this.startRoomEncounter();
@@ -329,7 +329,7 @@ export class GameScene extends Phaser.Scene {
         left: this.activeRoomConfig.entranceX,
         right: this.activeRoomConfig.exitX,
       },
-      (phase) => gameEvents.emit("boss-phase-changed", phase),
+      (phase) => gameEvents.emit('boss-phase-changed', phase),
       (spawnX) =>
         patrolSpan({
           spawnX,
@@ -372,7 +372,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceToNextRoom() {
-    this.setPhase("transitioning");
+    this.setPhase('transitioning');
     this.playerController.stop();
     this.playerController.cancelJump();
     this.player.setVelocity(0);
@@ -411,7 +411,7 @@ export class GameScene extends Phaser.Scene {
     const exitPortalY = this.activeRoomConfig.portal.y;
     this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
-    gameEvents.emit("stage-changed", this.stage.id);
+    gameEvents.emit('stage-changed', this.stage.id);
     this.restorePlayerHealthForStage();
     this.enterCurrentRoom(true, exitPortalY);
   }
@@ -449,14 +449,14 @@ export class GameScene extends Phaser.Scene {
 
     this.buildRoom(this.currentRoomConfig);
     this.updateStageLabel();
-    this.setPhase("playing");
+    this.setPhase('playing');
   }
 
   private handleRunCleared() {
-    this.setPhase("ending");
+    this.setPhase('ending');
     this.weaponSystem.hide();
     this.enemyRangeGraphics.clear();
-    // Beating the final stage ("The Return") is the true victory — wash the
+    // Beating the final stage ('The Return') is the true victory — wash the
     // screen to warm light (waking up) before the ending card resolves.
     this.cameras.main.flash(700, 255, 240, 210);
     this.victoryOverlay.setVisible(true);
@@ -466,7 +466,7 @@ export class GameScene extends Phaser.Scene {
     event: StageEndEvent,
     nextStageIndex: number | null,
   ) {
-    this.setPhase("transitioning");
+    this.setPhase('transitioning');
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
     this.player.setVelocity(0);
@@ -476,7 +476,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyRangeGraphics.clear();
     this.stageEndEventDirector.play(event, () => {
       if (nextStageIndex === null) {
-        this.setPhase("ending");
+        this.setPhase('ending');
         this.stageEndOverlay.setVisible(true);
         return;
       }
@@ -550,7 +550,7 @@ export class GameScene extends Phaser.Scene {
       this,
       this.floorBuilder.group,
       WEAPON_CONFIGS,
-      (weapon) => gameEvents.emit("nearby-weapon-changed", weapon?.id ?? null),
+      (weapon) => gameEvents.emit('nearby-weapon-changed', weapon?.id ?? null),
     );
     this.enemyProjectiles = new ProjectilePool(
       this,
@@ -600,29 +600,29 @@ export class GameScene extends Phaser.Scene {
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.deathOverlay = this.createOverlay(
       0xe45d68,
-      "#ff7180",
-      "SYSTEM FAILURE",
-      "PRESS R OR ENTER TO RESTART",
+      '#ff7180',
+      'SYSTEM FAILURE',
+      'PRESS R OR ENTER TO RESTART',
     );
     this.victoryOverlay = this.createOverlay(
       0xffe1a8,
-      "#ffe9c4",
-      "RETURN COMPLETE",
-      "YOU'RE AWAKE  //  PRESS R OR ENTER TO REPLAY",
+      '#ffe9c4',
+      'RETURN COMPLETE',
+      'YOU\'RE AWAKE  //  PRESS R OR ENTER TO REPLAY',
     );
     this.stageEndOverlay = this.createOverlay(
       0xe45d68,
-      "#ff7180",
-      "SURROUNDED",
-      "SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY",
+      '#ff7180',
+      'SURROUNDED',
+      'SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY',
     );
 
     this.stageLabelText = this.add
-      .text(GAME_WIDTH / 2, 96, "", {
-        color: "#d8dfdc",
-        backgroundColor: "#070a0bbd",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "14px",
+      .text(GAME_WIDTH / 2, 96, '', {
+        color: '#d8dfdc',
+        backgroundColor: '#070a0bbd',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '14px',
         padding: { x: 10, y: 5 },
       })
       .setOrigin(0.5)
@@ -631,12 +631,12 @@ export class GameScene extends Phaser.Scene {
     this.updateStageLabel();
 
     this.weaponLabelText = this.add
-      .text(32, GAME_HEIGHT - 96, "", {
-        color: "#d8ffec",
-        backgroundColor: "#070a0bd9",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "15px",
-        fontStyle: "bold",
+      .text(32, GAME_HEIGHT - 96, '', {
+        color: '#d8ffec',
+        backgroundColor: '#070a0bd9',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '15px',
+        fontStyle: 'bold',
         padding: { x: 10, y: 6 },
       })
       .setOrigin(0, 0.5)
@@ -645,12 +645,12 @@ export class GameScene extends Phaser.Scene {
     this.updateWeaponLabel();
 
     this.weaponEquippedText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, "", {
-        color: "#ffffff",
-        backgroundColor: "#070a0be8",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "16px",
-        fontStyle: "bold",
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, '', {
+        color: '#ffffff',
+        backgroundColor: '#070a0be8',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
+        fontStyle: 'bold',
         padding: { x: 12, y: 7 },
       })
       .setOrigin(0.5)
@@ -659,11 +659,11 @@ export class GameScene extends Phaser.Scene {
       .setVisible(false);
 
     this.controlHintText = this.add
-      .text(GAME_WIDTH - 32, GAME_HEIGHT - 96, "", {
-        color: "#d8dfdc",
-        backgroundColor: "#070a0bd9",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "15px",
+      .text(GAME_WIDTH - 32, GAME_HEIGHT - 96, '', {
+        color: '#d8dfdc',
+        backgroundColor: '#070a0bd9',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '15px',
         padding: { x: 10, y: 6 },
       })
       .setOrigin(1, 0.5)
@@ -675,23 +675,23 @@ export class GameScene extends Phaser.Scene {
   private bindInputHandlers() {
     const keyboard = this.input.keyboard;
     if (!keyboard) {
-      throw new Error("Keyboard input is required for weapon pickup");
+      throw new Error('Keyboard input is required for weapon pickup');
     }
 
     this.equipKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-    this.equipKey.on("down", this.tryEquipNearbyWeapon, this);
-    this.input.on("pointerdown", this.handlePointerDown, this);
-    keyboard.on("keydown-R", this.handleRestartInput, this);
-    keyboard.on("keydown-ENTER", this.handleRestartInput, this);
-    keyboard.on("keydown-UP", this.handlePortalEnter, this);
-    keyboard.on("keydown-W", this.handlePortalEnter, this);
-    gameEvents.on("admin-stage-requested", this.handleAdminStageRequested);
+    this.equipKey.on('down', this.tryEquipNearbyWeapon, this);
+    this.input.on('pointerdown', this.handlePointerDown, this);
+    keyboard.on('keydown-R', this.handleRestartInput, this);
+    keyboard.on('keydown-ENTER', this.handleRestartInput, this);
+    keyboard.on('keydown-UP', this.handlePortalEnter, this);
+    keyboard.on('keydown-W', this.handlePortalEnter, this);
+    gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
     gameEvents.on(
-      "admin-stage-boss-requested",
+      'admin-stage-boss-requested',
       this.handleAdminStageBossRequested,
     );
-    gameEvents.on("admin-weapon-requested", this.handleAdminWeaponRequested);
-    gameEvents.on("pause-toggle-requested", this.handlePauseToggleRequested);
+    gameEvents.on('admin-weapon-requested', this.handleAdminWeaponRequested);
+    gameEvents.on('pause-toggle-requested', this.handlePauseToggleRequested);
 
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.updateAiming, this);
 
@@ -703,19 +703,19 @@ export class GameScene extends Phaser.Scene {
         this.updateAiming,
         this,
       );
-      this.input.off("pointerdown", this.handlePointerDown, this);
-      keyboard.off("keydown-R", this.handleRestartInput, this);
-      keyboard.off("keydown-ENTER", this.handleRestartInput, this);
-      keyboard.off("keydown-UP", this.handlePortalEnter, this);
-      keyboard.off("keydown-W", this.handlePortalEnter, this);
-      this.equipKey.off("down", this.tryEquipNearbyWeapon, this);
-      gameEvents.off("admin-stage-requested", this.handleAdminStageRequested);
+      this.input.off('pointerdown', this.handlePointerDown, this);
+      keyboard.off('keydown-R', this.handleRestartInput, this);
+      keyboard.off('keydown-ENTER', this.handleRestartInput, this);
+      keyboard.off('keydown-UP', this.handlePortalEnter, this);
+      keyboard.off('keydown-W', this.handlePortalEnter, this);
+      this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
+      gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
       gameEvents.off(
-        "admin-stage-boss-requested",
+        'admin-stage-boss-requested',
         this.handleAdminStageBossRequested,
       );
-      gameEvents.off("admin-weapon-requested", this.handleAdminWeaponRequested);
-      gameEvents.off("pause-toggle-requested", this.handlePauseToggleRequested);
+      gameEvents.off('admin-weapon-requested', this.handleAdminWeaponRequested);
+      gameEvents.off('pause-toggle-requested', this.handlePauseToggleRequested);
       // A scene that shuts down while paused would leave the overlay up over
       // whatever replaces it.
       this.setPaused(false);
@@ -723,7 +723,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tryEquipNearbyWeapon() {
-    if (this.phase !== "playing" && this.phase !== "room-cleared") {
+    if (this.phase !== 'playing' && this.phase !== 'room-cleared') {
       return;
     }
 
@@ -742,14 +742,14 @@ export class GameScene extends Phaser.Scene {
   private updateWeaponLabel() {
     const weapon = this.weaponSystem.activeConfig;
     this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
-    gameEvents.emit("weapon-changed", weapon.id, weapon.label);
+    gameEvents.emit('weapon-changed', weapon.id, weapon.label);
   }
 
   private showWeaponEquipped(weapon: WeaponConfig) {
     this.tweens.killTweensOf(this.weaponEquippedText);
     this.weaponEquippedText
       .setText(`EQUIPPED // ${weapon.label}`)
-      .setColor(`#${weapon.pickupColor.toString(16).padStart(6, "0")}`)
+      .setColor(`#${weapon.pickupColor.toString(16).padStart(6, '0')}`)
       .setAlpha(1)
       .setVisible(true);
     this.tweens.add({
@@ -790,8 +790,8 @@ export class GameScene extends Phaser.Scene {
       requestedStageIndex !== undefined &&
       this.stage.movementMode === MovementMode.FLIGHT;
     this.restorePlayerHealthForStage();
-    this.roomState = "idle";
-    gameEvents.emit("room-state-changed", this.roomState);
+    this.roomState = 'idle';
+    gameEvents.emit('room-state-changed', this.roomState);
   }
 
   private getStartingPlayerX() {
@@ -830,29 +830,29 @@ export class GameScene extends Phaser.Scene {
   private updateControlHint() {
     this.controlHintText?.setText(
       this.playerController.isFlightMode
-        ? "W/SPACE  UP    S  DOWN    A/D  MOVE    SHIFT/RMB  DASH    LMB  FIRE"
-        : "A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP",
+        ? 'W/SPACE  UP    S  DOWN    A/D  MOVE    SHIFT/RMB  DASH    LMB  FIRE'
+        : 'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
     );
   }
 
   private setPhase(phase: GamePhase) {
     this.phase = phase;
-    gameEvents.emit("phase-changed", phase);
+    gameEvents.emit('phase-changed', phase);
   }
 
   private handleRoomStateChanged(state: RoomState) {
     this.roomState = state;
-    gameEvents.emit("room-state-changed", state);
+    gameEvents.emit('room-state-changed', state);
 
-    if (state === "locked") {
+    if (state === 'locked') {
       // 이번 교전이 시작되기 전에 이전 방의 탄환을 정리한다.
       this.weaponSystem?.clearProjectiles();
       this.emitEnemyHealth();
       return;
     }
 
-    if (state === "cleared") {
-      this.setPhase("room-cleared");
+    if (state === 'cleared') {
+      this.setPhase('room-cleared');
       this.enemyProjectiles.clear();
       this.flyingEnemyProjectiles.clear();
       this.enemyRangeGraphics.clear();
@@ -860,14 +860,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleRestartInput() {
-    if (this.phase === "dead" || this.phase === "ending") {
+    if (this.phase === 'dead' || this.phase === 'ending') {
       this.scene.restart();
     }
   }
 
   /** 위/W로 클리어된 방을 나감. 단, 열린 포탈 안에 서 있을 때만. */
   private handlePortalEnter() {
-    if (this.phase === "room-cleared") {
+    if (this.phase === 'room-cleared') {
       this.roomDirector.tryExit();
     }
   }
@@ -902,7 +902,7 @@ export class GameScene extends Phaser.Scene {
    */
   private canPause() {
     return (
-      this.phase !== "boot" && this.phase !== "dead" && this.phase !== "ending"
+      this.phase !== 'boot' && this.phase !== 'dead' && this.phase !== 'ending'
     );
   }
 
@@ -931,7 +931,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.scene.resume();
     }
-    gameEvents.emit("pause-changed", paused);
+    gameEvents.emit('pause-changed', paused);
   }
 
   /**
@@ -958,9 +958,9 @@ export class GameScene extends Phaser.Scene {
 
   private handlePointerDown(pointer: Phaser.Input.Pointer) {
     if (
-      this.phase === "dead" ||
-      this.phase === "ending" ||
-      this.phase === "transitioning"
+      this.phase === 'dead' ||
+      this.phase === 'ending' ||
+      this.phase === 'transitioning'
     ) {
       return;
     }
@@ -1042,12 +1042,12 @@ export class GameScene extends Phaser.Scene {
 
   private handleEnemyHit(enemy: Enemy, defeated: boolean) {
     // 현재 방의 교전이 활성화된 동안에만 피해를 적용한다.
-    if (this.phase !== "playing" || this.roomState !== "locked") {
+    if (this.phase !== 'playing' || this.roomState !== 'locked') {
       return;
     }
 
     this.emitEnemyHealth();
-    gameEvents.emit("enemy-damaged", enemy.x, enemy.y);
+    gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
 
     if (!defeated) {
       return;
@@ -1057,7 +1057,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private defeatEnemy(enemy: Enemy) {
-    gameEvents.emit("enemy-defeated", enemy.x, enemy.y);
+    gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
     if (enemy instanceof BossEnemy) {
       this.weaponDropDirector.dropBossReward(
         enemy.x,
@@ -1140,7 +1140,7 @@ export class GameScene extends Phaser.Scene {
       scaleY: enemy.scaleY * 1.6,
       alpha: 0,
       duration: 180,
-      ease: "Quad.easeOut",
+      ease: 'Quad.easeOut',
       onComplete: () => pop.destroy(),
     });
   }
@@ -1151,8 +1151,8 @@ export class GameScene extends Phaser.Scene {
 
       if (
         !enemy ||
-        this.phase !== "playing" ||
-        this.roomState !== "locked" ||
+        this.phase !== 'playing' ||
+        this.roomState !== 'locked' ||
         this.playerController.isInvulnerable
       ) {
         return;
@@ -1183,7 +1183,7 @@ export class GameScene extends Phaser.Scene {
       0,
     );
     const isBoss = this.enemies.some((enemy) => enemy instanceof BossEnemy);
-    gameEvents.emit("enemy-health-changed", current, max, isBoss);
+    gameEvents.emit('enemy-health-changed', current, max, isBoss);
   }
 
   private createPlayerHitHandler(
@@ -1229,7 +1229,7 @@ export class GameScene extends Phaser.Scene {
 
   private applyPlayerDamage(damage: number) {
     if (
-      this.phase !== "playing" ||
+      this.phase !== 'playing' ||
       this.playerController.isInvulnerable ||
       useGameSettingsStore.getState().invincible
     ) {
@@ -1237,7 +1237,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const playerDefeated = this.playerHealth.takeDamage(damage);
-    gameEvents.emit("player-damaged", this.player.x, this.player.y);
+    gameEvents.emit('player-damaged', this.player.x, this.player.y);
 
     this.flashPlayerDamage();
     this.cameras.main.shake(90, 0.004);
@@ -1254,7 +1254,7 @@ export class GameScene extends Phaser.Scene {
       PLAYER_DAMAGE_FLASH_DURATION,
       () => {
         this.playerDamageFlashTimer = undefined;
-        if (this.phase !== "dead") {
+        if (this.phase !== 'dead') {
           this.player.clearTint();
         }
       },
@@ -1275,7 +1275,7 @@ export class GameScene extends Phaser.Scene {
     for (const enemy of this.enemies) {
       enemy.setVelocity(0);
     }
-    this.setPhase("dead");
+    this.setPhase('dead');
     this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
     this.weaponSystem.hide();
     this.weaponDropDirector.clear();
@@ -1301,16 +1301,16 @@ export class GameScene extends Phaser.Scene {
     const title = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, titleText, {
         color: titleColor,
-        fontFamily: "Arial, sans-serif",
-        fontSize: "32px",
-        fontStyle: "bold",
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '32px',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5);
     const prompt = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 34, promptText, {
-        color: "#e8ece9",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "16px",
+        color: '#e8ece9',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '16px',
       })
       .setOrigin(0.5);
 

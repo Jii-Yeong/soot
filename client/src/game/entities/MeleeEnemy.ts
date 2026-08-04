@@ -1,12 +1,12 @@
-import Phaser from "phaser";
-import type { MeleeSwingConfig } from "@/game/config/combatConfig";
-import type { MeleeSpriteConfig } from "@/game/config/meleeEnemyAnimationConfig";
+import Phaser from 'phaser';
+import type { MeleeSwingConfig } from '@/game/config/combatConfig';
+import type { MeleeSpriteConfig } from '@/game/config/meleeEnemyAnimationConfig';
 import {
   Enemy,
   ENEMY_DEPTH,
   type EnemyProjectileAttack,
-} from "@/game/entities/Enemy";
-import { GroundedEnemySprite } from "@/game/systems/GroundedEnemySprite";
+} from '@/game/entities/Enemy';
+import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
 export type MeleeEnemyConfig = {
   health: number;
@@ -22,7 +22,7 @@ export type MeleeEnemyConfig = {
   sprite?: MeleeSpriteConfig;
 };
 
-type MeleeState = "chase" | "windup" | "swing" | "recover";
+type MeleeState = 'chase' | 'windup' | 'swing' | 'recover';
 
 type PlayerDamageHandler = (damage: number) => void;
 
@@ -51,7 +51,7 @@ export class MeleeEnemy extends Enemy {
   private readonly moveSpeed: number;
   private readonly contactDamage: number;
   private readonly contactDamageCooldown: number;
-  private readonly patrol?: MeleeEnemyConfig["patrol"];
+  private readonly patrol?: MeleeEnemyConfig['patrol'];
   private patrolHeading: -1 | 1;
   private contactDamageReadyAt = 0;
 
@@ -61,7 +61,7 @@ export class MeleeEnemy extends Enemy {
   private readonly rod?: Phaser.GameObjects.Rectangle;
   private readonly slash?: Phaser.GameObjects.Graphics;
   private readonly rig?: GroundedEnemySprite;
-  private attackState: MeleeState = "chase";
+  private attackState: MeleeState = 'chase';
   private stateStartedAt = 0;
   private stateEndsAt = 0;
   private swingConnected = false;
@@ -178,24 +178,24 @@ export class MeleeEnemy extends Enemy {
     // 경직이 들어올리기 동작을 끊어, 타이밍 좋은 강한 넉백 사격이
     // 휘두르기를 취소함. 비주얼은 rest 자세로 스냅됨.
     if (this.isStaggered(time)) {
-      if (this.attackState !== "chase") {
-        this.attackState = "chase";
+      if (this.attackState !== 'chase') {
+        this.attackState = 'chase';
       }
       this.restVisual();
       return targetInRange;
     }
 
     switch (this.attackState) {
-      case "chase":
+      case 'chase':
         this.updateChase(time, target, targetInRange);
         break;
-      case "windup":
+      case 'windup':
         this.updateWindup(time);
         break;
-      case "swing":
+      case 'swing':
         this.updateSwing(time, target);
         break;
-      case "recover":
+      case 'recover':
         this.updateRecover(time);
         break;
     }
@@ -222,7 +222,7 @@ export class MeleeEnemy extends Enemy {
     const withinHeight = Math.abs(target.y - this.y) <= swing.verticalTolerance;
 
     if (horizontalDistance <= swing.attackRange && withinHeight) {
-      this.beginState("windup", time, swing.windupDuration);
+      this.beginState('windup', time, swing.windupDuration);
       this.setVelocityX(0);
       this.beginAttackVisual();
       return;
@@ -251,7 +251,7 @@ export class MeleeEnemy extends Enemy {
     }
 
     if (time >= this.stateEndsAt) {
-      this.beginState("swing", time, this.swing!.swingDuration);
+      this.beginState('swing', time, this.swing!.swingDuration);
       this.swingConnected = false;
     }
   }
@@ -277,7 +277,7 @@ export class MeleeEnemy extends Enemy {
 
     if (time >= this.stateEndsAt) {
       this.slash?.clear();
-      this.beginState("recover", time, this.swing!.recoverDuration);
+      this.beginState('recover', time, this.swing!.recoverDuration);
     }
   }
 
@@ -296,7 +296,7 @@ export class MeleeEnemy extends Enemy {
     }
 
     if (time >= this.stateEndsAt) {
-      this.attackState = "chase";
+      this.attackState = 'chase';
     }
   }
 

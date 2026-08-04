@@ -1,7 +1,7 @@
-import type Phaser from "phaser";
-import { describe, expect, it, vi } from "vitest";
-import { defineRoom } from "@/game/config/roomConfig";
-import { RoomDirector } from "@/game/systems/RoomDirector";
+import type Phaser from 'phaser';
+import { describe, expect, it, vi } from 'vitest';
+import { defineRoom } from '@/game/config/roomConfig';
+import { RoomDirector } from '@/game/systems/RoomDirector';
 
 function createScene() {
   const portalBody = { enable: true };
@@ -33,7 +33,7 @@ function createScene() {
     setText: vi.fn().mockReturnThis(),
     setVisible: vi.fn().mockReturnThis(),
   };
-  // 동기적인 "플레이어가 포탈 안에 있는가?" 판정을 제어함.
+  // 동기적인 '플레이어가 포탈 안에 있는가?' 판정을 제어함.
   const portalContact = { value: true };
   const scene = {
     add: {
@@ -60,15 +60,15 @@ function createScene() {
   return { portalBody, portalContact, portalPrompt, scene };
 }
 
-describe("RoomDirector", () => {
-  it("opens a portal when the room is cleared", () => {
+describe('RoomDirector', () => {
+  it('opens a portal when the room is cleared', () => {
     const { portalBody, scene } = createScene();
     const director = new RoomDirector({
       scene,
       player: {} as Phaser.Physics.Arcade.Sprite,
       config: defineRoom({
-        id: "test-room",
-        label: "TEST ROOM",
+        id: 'test-room',
+        label: 'TEST ROOM',
         enemySpawns: [],
       }),
       onStateChanged: vi.fn(),
@@ -80,15 +80,15 @@ describe("RoomDirector", () => {
     expect(portalBody.enable).toBe(true);
   });
 
-  it("leaves only while standing in a cleared portal, and only once", () => {
+  it('leaves only while standing in a cleared portal, and only once', () => {
     const { portalContact, scene } = createScene();
     const onExitRequested = vi.fn();
     const director = new RoomDirector({
       scene,
       player: {} as Phaser.Physics.Arcade.Sprite,
       config: defineRoom({
-        id: "test-room",
-        label: "TEST ROOM",
+        id: 'test-room',
+        label: 'TEST ROOM',
         enemySpawns: [],
       }),
       onStateChanged: vi.fn(),
@@ -113,14 +113,14 @@ describe("RoomDirector", () => {
     expect(onExitRequested).toHaveBeenCalledOnce();
   });
 
-  it("shows the W prompt only while the player overlaps a cleared portal", () => {
+  it('shows the W prompt only while the player overlaps a cleared portal', () => {
     const { portalContact, portalPrompt, scene } = createScene();
     const director = new RoomDirector({
       scene,
       player: {} as Phaser.Physics.Arcade.Sprite,
       config: defineRoom({
-        id: "test-room",
-        label: "TEST ROOM",
+        id: 'test-room',
+        label: 'TEST ROOM',
         enemySpawns: [],
       }),
       onStateChanged: vi.fn(),

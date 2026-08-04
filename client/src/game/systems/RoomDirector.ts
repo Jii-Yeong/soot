@@ -1,6 +1,6 @@
-import Phaser from "phaser";
-import type { RoomConfig } from "@/game/config/roomConfig";
-import type { RoomState } from "@/game/state/roomState";
+import Phaser from 'phaser';
+import type { RoomConfig } from '@/game/config/roomConfig';
+import type { RoomState } from '@/game/state/roomState';
 
 type RoomPortal = {
   view: Phaser.GameObjects.Graphics;
@@ -31,7 +31,7 @@ export class RoomDirector {
   private readonly portal: RoomPortal;
   private readonly portalPrompt: Phaser.GameObjects.Text;
   private readonly statusText: Phaser.GameObjects.Text;
-  private state: RoomState = "idle";
+  private state: RoomState = 'idle';
   private exitRequested = false;
 
   constructor(options: RoomDirectorOptions) {
@@ -45,13 +45,13 @@ export class RoomDirector {
       .text(
         this.config.exitX,
         this.config.portal.y - PORTAL_HEIGHT / 2 - 24,
-        "[W] ENTER",
+        '[W] ENTER',
         {
-          color: "#ffffff",
-          backgroundColor: "#070a0bd9",
-          fontFamily: "Arial, sans-serif",
-          fontSize: "12px",
-          fontStyle: "bold",
+          color: '#ffffff',
+          backgroundColor: '#070a0bd9',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '12px',
+          fontStyle: 'bold',
           padding: { x: 6, y: 3 },
         },
       )
@@ -59,11 +59,11 @@ export class RoomDirector {
       .setDepth(12)
       .setVisible(false);
     this.statusText = this.scene.add
-      .text(this.scene.scale.width / 2, 154, "", {
-        color: "#ff7180",
-        fontFamily: "Arial, sans-serif",
-        fontSize: "17px",
-        fontStyle: "bold",
+      .text(this.scene.scale.width / 2, 154, '', {
+        color: '#ff7180',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '17px',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
       .setDepth(20)
@@ -83,7 +83,7 @@ export class RoomDirector {
   }
 
   beginEncounter(enemies: Phaser.GameObjects.GameObject[]) {
-    if (this.state !== "idle") {
+    if (this.state !== 'idle') {
       return;
     }
 
@@ -95,7 +95,7 @@ export class RoomDirector {
       }
     }
 
-    this.setState("locked");
+    this.setState('locked');
 
     if (this.enemies.size === 0) {
       this.clearRoom();
@@ -103,7 +103,7 @@ export class RoomDirector {
   }
 
   notifyEnemyDefeated(enemy: Phaser.GameObjects.GameObject) {
-    if (!this.enemies.delete(enemy) || this.state !== "locked") {
+    if (!this.enemies.delete(enemy) || this.state !== 'locked') {
       return;
     }
 
@@ -157,7 +157,7 @@ export class RoomDirector {
 
   private isPlayerAtOpenPortal() {
     return (
-      this.state === "cleared" &&
+      this.state === 'cleared' &&
       this.scene.physics.overlap(this.player, this.portal.zone)
     );
   }
@@ -178,7 +178,7 @@ export class RoomDirector {
       scaleX: 1,
       scaleY: 1,
       duration: 360,
-      ease: "Back.easeOut",
+      ease: 'Back.easeOut',
       onComplete: () => {
         // 도착한 뒤에는 부드러운 상하 흔들림(bob)으로 정착함.
         this.scene.tweens.add({
@@ -187,11 +187,11 @@ export class RoomDirector {
           duration: 900,
           yoyo: true,
           repeat: -1,
-          ease: "Sine.easeInOut",
+          ease: 'Sine.easeInOut',
         });
       },
     });
-    this.setState("cleared");
+    this.setState('cleared');
   }
 
   private setState(state: RoomState) {
@@ -205,26 +205,26 @@ export class RoomDirector {
   }
 
   private updateStatusText() {
-    if (this.state === "locked") {
-      if (this.config.kind === "boss") {
+    if (this.state === 'locked') {
+      if (this.config.kind === 'boss') {
         this.statusText.setText(`${this.config.label}  //  BOSS ENGAGED`);
         return;
       }
 
-      const suffix = this.enemies.size === 1 ? "HOSTILE" : "HOSTILES";
+      const suffix = this.enemies.size === 1 ? 'HOSTILE' : 'HOSTILES';
       this.statusText.setText(
         `${this.config.label}  //  LOCKDOWN  //  ${this.enemies.size} ${suffix}`,
       );
       return;
     }
 
-    if (this.state === "cleared") {
-      const result = this.config.kind === "boss" ? "BOSS DEFEATED" : "CLEAR";
+    if (this.state === 'cleared') {
+      const result = this.config.kind === 'boss' ? 'BOSS DEFEATED' : 'CLEAR';
       this.statusText
         .setText(
           `${this.config.label}  //  ${result}  //  ↑ / W TO ENTER PORTAL`,
         )
-        .setColor("#b6ffe4");
+        .setColor('#b6ffe4');
     }
   }
 }

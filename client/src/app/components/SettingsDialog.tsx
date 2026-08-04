@@ -52,28 +52,28 @@ export function SettingsDialog() {
 
   return (
     <div
-      className="settings-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="settings-title"
+      className='settings-overlay'
+      role='dialog'
+      aria-modal='true'
+      aria-labelledby='settings-title'
     >
-      <section className="settings-panel">
-        <p className="settings-panel__eyebrow">SYSTEM CONFIG</p>
-        <h2 id="settings-title" className="settings-panel__title">
+      <section className='settings-panel'>
+        <p className='settings-panel__eyebrow'>SYSTEM CONFIG</p>
+        <h2 id='settings-title' className='settings-panel__title'>
           설정
         </h2>
 
-        <div className="settings-panel__tabs" role="tablist" aria-label="설정 분류">
+        <div className='settings-panel__tabs' role='tablist' aria-label='설정 분류'>
           <button
-            id="graphics-tab"
+            id='graphics-tab'
             ref={graphicsTabRef}
-            type="button"
-            role="tab"
+            type='button'
+            role='tab'
             className={`settings-panel__tab${
               activeTab === 'graphics' ? ' settings-panel__tab--active' : ''
             }`}
             aria-selected={activeTab === 'graphics'}
-            aria-controls="graphics-panel"
+            aria-controls='graphics-panel'
             onClick={() => selectTab('graphics')}
             onKeyDown={handleTabKeyDown}
             autoFocus
@@ -81,15 +81,15 @@ export function SettingsDialog() {
             그래픽
           </button>
           <button
-            id="audio-tab"
+            id='audio-tab'
             ref={audioTabRef}
-            type="button"
-            role="tab"
+            type='button'
+            role='tab'
             className={`settings-panel__tab${
               activeTab === 'audio' ? ' settings-panel__tab--active' : ''
             }`}
             aria-selected={activeTab === 'audio'}
-            aria-controls="audio-panel"
+            aria-controls='audio-panel'
             onClick={() => selectTab('audio')}
             onKeyDown={handleTabKeyDown}
           >
@@ -99,17 +99,17 @@ export function SettingsDialog() {
 
         {activeTab === 'graphics' ? (
           <section
-            id="graphics-panel"
-            className="settings-panel__section"
-            role="tabpanel"
-            aria-labelledby="graphics-tab"
+            id='graphics-panel'
+            className='settings-panel__section'
+            role='tabpanel'
+            aria-labelledby='graphics-tab'
           >
-            <div className="settings-panel__section-heading">
+            <div className='settings-panel__section-heading'>
               <h3>그래픽</h3>
               <button
-                type="button"
-                className="settings-panel__section-reset"
-                aria-label="그래픽 기본값"
+                type='button'
+                className='settings-panel__section-reset'
+                aria-label='그래픽 기본값'
                 onClick={resetGraphics}
                 disabled={
                   graphics.displayResolution ===
@@ -119,10 +119,10 @@ export function SettingsDialog() {
                 기본값
               </button>
             </div>
-            <label className="settings-panel__select">
+            <label className='settings-panel__select'>
               <span>표시 해상도</span>
               <select
-                aria-label="표시 해상도"
+                aria-label='표시 해상도'
                 value={graphics.displayResolution}
                 onChange={(event) =>
                   setDisplayResolution(
@@ -138,23 +138,23 @@ export function SettingsDialog() {
                 ))}
               </select>
             </label>
-            <p className="settings-panel__description">
+            <p className='settings-panel__description'>
               창보다 큰 해상도는 화면에 맞춰 표시됩니다.
             </p>
           </section>
         ) : (
           <section
-            id="audio-panel"
-            className="settings-panel__section"
-            role="tabpanel"
-            aria-labelledby="audio-tab"
+            id='audio-panel'
+            className='settings-panel__section'
+            role='tabpanel'
+            aria-labelledby='audio-tab'
           >
-            <div className="settings-panel__section-heading">
+            <div className='settings-panel__section-heading'>
               <h3>사운드</h3>
               <button
-                type="button"
-                className="settings-panel__section-reset"
-                aria-label="사운드 기본값"
+                type='button'
+                className='settings-panel__section-reset'
+                aria-label='사운드 기본값'
                 onClick={resetAudioMix}
                 disabled={
                   audioMix.master === AUDIO_MIX_CONFIG.master &&
@@ -165,19 +165,19 @@ export function SettingsDialog() {
                 기본값
               </button>
             </div>
-            <div className="settings-panel__channels">
+            <div className='settings-panel__channels'>
               {AUDIO_CHANNELS.map(({ key, label }) => {
                 const value = Math.round(audioMix[key] * 100);
 
                 return (
-                  <label key={key} className="settings-panel__channel">
+                  <label key={key} className='settings-panel__channel'>
                     <span>{label}</span>
                     <output htmlFor={`volume-${key}`}>{value}%</output>
                     <input
                       id={`volume-${key}`}
-                      type="range"
-                      min="0"
-                      max="100"
+                      type='range'
+                      min='0'
+                      max='100'
                       value={value}
                       aria-label={`${label} 볼륨`}
                       onChange={(event) =>
@@ -191,10 +191,10 @@ export function SettingsDialog() {
           </section>
         )}
 
-        <div className="settings-panel__actions">
+        <div className='settings-panel__actions'>
           <button
-            type="button"
-            className="settings-panel__close"
+            type='button'
+            className='settings-panel__close'
             onClick={closeSettings}
           >
             닫기

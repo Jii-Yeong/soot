@@ -1,10 +1,10 @@
-import Phaser from "phaser";
-import type { TerrainPiece } from "@/game/config/roomConfig";
-import type { SliceSkinConfig } from "@/game/config/terrainSkinConfig";
-import { drawSliceSkin } from "@/game/systems/SliceSkin";
+import Phaser from 'phaser';
+import type { TerrainPiece } from '@/game/config/roomConfig';
+import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
+import { drawSliceSkin } from '@/game/systems/SliceSkin';
 
 const TERRAIN_DEPTH = 5;
-const TERRAIN_TYPE_DATA_KEY = "terrain-type";
+const TERRAIN_TYPE_DATA_KEY = 'terrain-type';
 
 const TERRAIN_STYLE = {
   platform: { fill: 0x9aa4ab, edge: 0xe8eef1 },
@@ -22,8 +22,8 @@ const TERRAIN_STYLE = {
  *
  * 벽은 모든 면이 단단하며, 플레이어가 넘어야 하는 장애물이다.
  */
-export const terrainCollisionFaces = (type: TerrainPiece["type"]) =>
-  type === "wall"
+export const terrainCollisionFaces = (type: TerrainPiece['type']) =>
+  type === 'wall'
     ? { up: true, down: true, left: true, right: true }
     : { up: true, down: false, left: false, right: false };
 
@@ -36,11 +36,11 @@ export const projectileCollisionFaces = {
 };
 
 /** 모든 지형 조각은 플레이어와 적 탄환을 막는다. */
-export const terrainBlocksProjectiles = (_type: TerrainPiece["type"]) => true;
+export const terrainBlocksProjectiles = (_type: TerrainPiece['type']) => true;
 
 export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
   terrainBlocksProjectiles(
-    terrain.getData(TERRAIN_TYPE_DATA_KEY) as TerrainPiece["type"],
+    terrain.getData(TERRAIN_TYPE_DATA_KEY) as TerrainPiece['type'],
   );
 
 /**
@@ -65,7 +65,7 @@ export class TerrainBuilder {
 
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
-      const skinned = Boolean(stoolSkin) && piece.type === "platform";
+      const skinned = Boolean(stoolSkin) && piece.type === 'platform';
       // 스킨된 발판은 아트의 두께를 따라, 충돌이 픽셀 판과 일치하게 함.
       // 상단 표면(piece.y)은 어느 쪽이든 변하지 않음.
       const height = skinned ? stoolSkin!.height : piece.height;
