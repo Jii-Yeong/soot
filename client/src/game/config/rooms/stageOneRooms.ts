@@ -59,7 +59,7 @@ export const CITY_ROOM_TWO = defineRoom({
     // 속하며 최종 원거리·근거리 조합이 등장하기 전에 끝남.
     { type: 'platform', x: 1500, y: SECOND_FLOOR_Y, width: 200, height: 22 },
     { type: 'platform', x: 1950, y: SECOND_FLOOR_Y, width: 400, height: 22 },
-    { type: 'platform', x: 2550, y: SECOND_FLOOR_Y, width: 250, height: 22 },
+    { type: 'platform', x: 2550, y: SECOND_FLOOR_Y, width: 240, height: 22 },
     { type: 'platform', x: 1550, y: THIRD_FLOOR_Y, width: 200, height: 22 },
     { type: 'platform', x: 2600, y: THIRD_FLOOR_Y, width: 200, height: 22 },
   ],

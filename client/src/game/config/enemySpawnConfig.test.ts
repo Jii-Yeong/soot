@@ -5,9 +5,11 @@ const EXPECTED_COMBAT_ROOM_COUNTS = [
   [6, 6],
   [8, 9],
   [8, 9],
-  [8, 11],
+  [8, 10],
   [6, 7],
 ];
+
+const EXPECTED_COMBAT_ROOM_WIDTHS = [3657, 4000, 4300, 4600, 4200];
 
 describe('enemy spawn progression', () => {
   it('keeps encounter sizes tuned for each stage combat model', () => {
@@ -18,6 +20,16 @@ describe('enemy spawn progression', () => {
           .map(({ enemySpawns }) => enemySpawns.length),
       ),
     ).toEqual(EXPECTED_COMBAT_ROOM_COUNTS);
+  });
+
+  it('expands later combat stages without stretching the opening lesson', () => {
+    expect(
+      STAGES.map((stage) =>
+        stage.rooms
+          .filter(({ kind }) => kind === 'combat')
+          .map(({ worldWidth }) => worldWidth),
+      ),
+    ).toEqual(EXPECTED_COMBAT_ROOM_WIDTHS.map((width) => [width, width]));
   });
 
   it('distributes every combat encounter across the full room', () => {

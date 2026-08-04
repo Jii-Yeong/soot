@@ -119,6 +119,23 @@ describe('stage 1 room layout', () => {
     expect(quietSpawns).toEqual([]);
   });
 
+  it('introduces projectile cover beneath a late flier', () => {
+    const flier = CITY_ROOM_TWO.enemySpawns.find(
+      ({ type }) => type === 'flying',
+    )!;
+    const cover = (CITY_ROOM_TWO.terrain ?? []).find(
+      ({ type, x, y, width }) =>
+        type === 'platform' &&
+        y === FLOOR_SURFACE_Y - 116 &&
+        width >= 180 &&
+        width <= 240 &&
+        x <= flier.x &&
+        flier.x <= x + width,
+    );
+
+    expect(cover).toBeDefined();
+  });
+
   it('builds room 02 toward the boss door rather than away from it', () => {
     const midpoint = CITY_ROOM_TWO.worldWidth / 2;
     const spawns = CITY_ROOM_TWO.enemySpawns;

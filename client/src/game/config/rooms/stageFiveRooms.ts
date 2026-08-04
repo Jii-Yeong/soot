@@ -24,12 +24,13 @@ const AERIAL_ROOM_PORTAL = {
 // The stage rhythm is deliberately roomy: room 01 gives the player time to
 // settle into flight (single -> single -> pair -> pair); room 02 turns those
 // motions into short mixed formations and peaks at one three-enemy formation.
-// Its last ~1,000px are empty once the formation is cleared, so the boss is
-// entered after a reset rather than straight out of a chase.
+// 확장된 방의 마지막 편대까지 공중 이동을 쓰고, 보스방 앞 400px 이상은
+// 위치를 다시 잡는 구간으로 남김.
 
 export const RETURN_ROOM_ONE = defineRoom({
   id: 'return-01',
   label: 'ROOM 01',
+  worldWidth: 4200,
   intensity: 1.6,
   portal: AERIAL_ROOM_PORTAL,
   enemySpawns: [
@@ -75,13 +76,13 @@ export const RETURN_ROOM_ONE = defineRoom({
     // not a wall of bodies across the same altitude.
     {
       type: 'flying',
-      x: 3000,
+      x: 3400,
       y: 520,
       movement: { mode: AerialMovementMode.HOVER },
     },
     {
       type: 'flying',
-      x: 3260,
+      x: 3700,
       y: 250,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -95,6 +96,7 @@ export const RETURN_ROOM_ONE = defineRoom({
 export const RETURN_ROOM_TWO = defineRoom({
   id: 'return-02',
   label: 'ROOM 02',
+  worldWidth: 4200,
   intensity: 1.7,
   portal: AERIAL_ROOM_PORTAL,
   enemySpawns: [
@@ -118,7 +120,7 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 1950,
+      x: 2100,
       y: 170,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -128,7 +130,7 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 2250,
+      x: 2400,
       y: 480,
       movement: { mode: AerialMovementMode.HOVER },
     },
@@ -137,7 +139,7 @@ export const RETURN_ROOM_TWO = defineRoom({
     // them rather than being forced to brute-force a single horizontal lane.
     {
       type: 'flying',
-      x: 2600,
+      x: 3100,
       y: 250,
       movement: {
         mode: AerialMovementMode.ORBIT,
@@ -147,13 +149,13 @@ export const RETURN_ROOM_TWO = defineRoom({
     },
     {
       type: 'flying',
-      x: 2850,
+      x: 3400,
       y: 380,
       movement: { mode: AerialMovementMode.TRACK },
     },
     {
       type: 'flying',
-      x: 3100,
+      x: 3700,
       y: 500,
       movement: {
         mode: AerialMovementMode.PATROL,
@@ -161,9 +163,7 @@ export const RETURN_ROOM_TWO = defineRoom({
         rangeY: 70,
       },
     },
-    // No spawns after x=3100. The cleared formation leaves nearly 500px to
-    // the full-height boss door: enough room to reset position and read the
-    // arena transition before the Architect starts its bullet patterns.
+    // 마지막 편대 뒤에는 전고 포탈과 보스 패턴을 읽을 여백을 남김.
   ],
 });
 

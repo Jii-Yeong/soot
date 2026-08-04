@@ -1,120 +1,87 @@
-# Concept-Driven Combat Room Layout Redesign
+# Stage-Specific Projectile-Cover Layout Redesign
 
 **Status:** Approved for implementation  
 **Date:** 2026-08-04
 
 ## Objective
 
-Refine the combat-room layouts that currently conflict with the game's stage concepts or produce awkward combat geometry. The pass must improve spatial identity and encounter rhythm without changing the established movement, enemy, boss, projectile, or pit systems.
+Make the five stages feel spatially distinct while extending the short later rooms. Added space must carry intentional combat rhythm rather than empty walking. Short one-way platforms become projectile-blocking cover beats: the player may pass below or stand above them, but both player and enemy bullets are blocked until the player exposes an angle at an edge.
 
-The intended campaign curve is:
+## Locked Systems
 
-> Comfort -> Caution -> Pressure -> Collapse -> Liberated Madness
+- Enemy and boss behavior and attack patterns.
+- Player movement and flight behavior.
+- Projectile and pit behavior.
+- Background assets and rendering.
+- Boss-room dimensions.
 
-## Sources of Truth
+## Combat Room Widths
 
-The following sources apply in descending order of precedence:
+| Stage | Width | Spatial Purpose |
+| --- | ---: | --- |
+| 1 | 3657 px | Compact introduction |
+| 2 | 4000 px | Longer separated alley clusters |
+| 3 | 4300 px | Extended catwalk pressure |
+| 4 | 4600 px | Broad collapse and vertical fracture |
+| 5 | 4200 px | Wider aerial formation spacing |
 
-1. Existing enemy and boss concepts, attack patterns, movement, collision, projectile, and pit behavior remain locked.
-2. The game concept document defines each stage's emotional and spatial identity.
-3. `docs/level-design-rules.md` and the current player movement metrics define fairness constraints.
-4. Whole-room overview captures are used to compare silhouette, cadence, and encounter spacing.
+Background images remain independent from room width. The backdrop system maps image travel to camera travel, while procedural layers derive their rendered width from the active room.
 
-## Scope
+## Projectile-Cover Beat
 
-This pass may change only:
+A cover beat is a lower-intensity encounter, not an empty safe room or healing area.
 
-- Platform position, height, width, and count.
-- Pit position and width while preserving current pit behavior.
-- Enemy position and count while preserving every enemy type's existing behavior and attack pattern.
+- Use an accessible low platform approximately 180-240 px wide.
+- Keep the platform 100-116 px above the floor so it is comfortably reachable below the 130.7 px jump maximum.
+- Place a single flying or ranged threat across the platform's vertical firing line.
+- Force the player to leave the covered line at an edge before returning fire.
+- Do not place a grounded enemy beneath the platform.
+- Do not join cover platforms into a continuous projectile roof.
+- Keep the platform and demonstrating enemy inside the same camera window.
 
-The pass targets only rooms with a clear design problem:
+Stage 1 room 2 introduces the rule with a late flier above a short platform. Stages 3 and 4 develop and test it through different spatial forms.
 
-- `underground-02`: refine encounter spacing around the corrected catwalk layout.
-- `inferno-01`: replace the repeated picket-fence rhythm with an asymmetric but readable test.
-- `inferno-02`: create a distinct, more unstable final standard room without overloading the player.
+## Stage Identities
 
-Stage 1, Stage 2, `underground-01`, Stage 5, and all boss rooms remain unchanged in this pass.
+### Stage 1: Open City Lesson
 
-## Non-Goals
+Keep the existing compact length, open floor, and sparse two-tier terraces. Shorten the room-2 flier platform to the cover-beat range so projectile blocking is demonstrated without adding a new mechanic or tutorial overlay.
 
-- No enemy or boss AI changes.
-- No attack, projectile, damage, health, or aggression changes.
-- No player movement or flight changes.
-- No pit behavior changes.
-- No background, tile art, visual-effect, or audio changes.
-- No authored vertical walls.
-- No requirement to make every stage or room deliberately uncomfortable.
+### Stage 2: Separated Fire Escapes
 
-## Stage Experience Curve
+Extend both combat rooms to 4000 px. Preserve the fire-escape silhouette and isolated pit lesson, but move the final cluster and its paired ledges into the added distance. The room remains a sequence of alley pockets rather than a repeated catwalk.
 
-| Stage | Emotional Role | Spatial Treatment |
-| --- | --- | --- |
-| 1 | Comfort and absence | Clear ground, generous recovery, basic readable encounters |
-| 2 | Familiarity becoming unsafe | Familiar routes with restrained caution and isolated pit lessons |
-| 3 | Confinement and pressure | Short catwalk choices, compressed mixed encounters, open drop lanes |
-| 4 | Collapse and distortion | Asymmetric platform groups, broken cadence, stronger spatial instability with fair recovery |
-| 5 | Liberated madness | Unrestricted flight space with pressure carried by aerial formations rather than terrain |
+### Stage 3: Catwalk Pressure
 
-## Room Designs
+Extend both rooms to 4300 px. Keep four short pit bridges per room and add exactly one short cover platform on solid ground. Room 2 retains two optional upper ledges and separates its opening four threats from its late five-threat sequence by 300-400 px measured from actual enemy activation positions.
 
-### `underground-02`: Compressed Pressure
+### Stage 4 Room 1: Cover Islands
 
-The current four short pit bridges, two optional upper ledges, and open drop lanes remain the geometric foundation. They already prevent the continuous projectile roof that previously made ground enemies unreachable.
+Extend the room to 4600 px. Use three isolated low cover platforms across broad ground sections, one optional mid ledge, and three asymmetric pits. The silhouette must read as open collapse rather than a horizontal fence.
 
-Enemy placement is reorganized into two readable pressure phases:
+### Stage 4 Room 2: Vertical Fracture
 
-1. An early four-threat sequence introduces the room's mixed roles without activating the entire room at once.
-2. A recovery lane of approximately 300-400 px separates the opening sequence from a five-threat late-room peak.
+Extend the room to 4600 px. Concentrate three low and three mid platforms into separated stacks, with one third-tier platform in the centre. The player changes vertical side to block shots; no high route continues across the room.
 
-The late cluster may retain the current total of nine enemies, but coordinates must avoid stacking multiple grounded enemies beneath the same projectile-blocking platform. The room must finish with at least 400 px of clear approach before the exit or boss transition. Geometry changes are allowed only when required to preserve open firing angles or readable cluster separation.
+### Stage 5: Formation Space
 
-### `inferno-01`: Broken but Readable
-
-Replace the six evenly spaced low platforms and five repeated pits with asymmetric platform groups. The room should alternate between:
-
-- A stable floor reset where the player can read the next threat.
-- A short traversal test using one pit or one height change.
-- A mixed encounter that reuses learned enemy roles.
-
-Platform widths and gaps should vary enough that the silhouette no longer reads as a regular fence, while all mandatory jumps remain within the safe movement range. Pits may vary in position and width but must not exceed 200 px.
-
-Retain eight enemies unless testing reveals unavoidable overlap. Re-space them into three encounter clusters with distinct entry, middle, and late beats. The final cluster must end before the 400 px exit approach, and no enemy may be placed over a pit or trapped beneath a firing-blocking platform.
-
-### `inferno-02`: Distorted Overlap
-
-This room must not repeat `inferno-01` with only more enemies. Use irregularly staggered low and high platforms to produce two optional height levels and a broken horizontal cadence. The upper route is a tactical option, not a mandatory precision route or a continuous safe lane.
-
-All high platforms must be reachable through a lower platform or a safe jump. Pits must remain individually readable, crossable, and no wider than 200 px. Open floor sections must interrupt platform coverage so grounded combat cannot become an exchange through an opaque ceiling.
-
-The current count of eleven enemies may be reduced to ten when spatial pressure and enemy density overlap. If one enemy is removed, remove one duplicate opening melee threat; do not alter any enemy type's behavior. Organize the room into an opening read, a sustained middle peak, and a final controlled release with at least 400 px of clear exit approach.
+Extend both rooms to 4200 px and distribute the existing aerial formations across the extra width. Stage 5 remains entirely free of platforms, walls, and pits.
 
 ## Fairness Invariants
 
-Every changed room must satisfy all of the following:
-
-- Mandatory traversal stays within the current movement metrics: 196 px safe jump gaps by default and no required gap over 266 px.
-- Stage 4 pits are no wider than 200 px.
-- Every authored platform is reachable, and high platforms have an obvious lower approach.
-- Positive gaps between platforms on the same tier are at least 96 px, preserving readable drop lanes.
-- A grounded enemy covered by a platform is no farther than 96 px from an exposed platform edge.
+- Mandatory traversal remains within current movement metrics.
+- Every platform is reachable without using a wall.
+- Positive same-tier gaps are at least 96 px.
+- Pits remain no wider than 200 px.
 - No grounded enemy spawns over a pit or inside terrain.
-- No continuous projectile-blocking roof covers a grounded encounter cluster.
-- No authored `wall` terrain is introduced.
-- Stage 5 remains free of platforms, walls, and pits.
-- Every standard room retains at least 400 px of safe approach before its exit or boss transition.
+- A grounded enemy and its full patrol do not enter deep projectile cover more than 96 px from an exposed platform edge.
+- A cover beat contains no grounded enemy beneath its cover platform.
+- Adjacent Stage 4 threats spawn at least 100 px apart.
+- Every combat room leaves at least 400 px between its last spawn and exit.
 
-## Verification Strategy
+## Verification
 
-Implementation starts with stage-specific tests that encode the approved room distinctions and fairness constraints. Verification then proceeds through:
-
-1. Targeted Stage 3 and Stage 4 room tests.
-2. Shared reachability and terrain-placement tests.
-3. Full client test suite.
-4. Client lint and production build.
-5. Regenerated whole-room overview captures for before-and-after comparison.
-6. User-owned browser playtest focused on Stage 3 encounter separation, Stage 4 room differentiation, traversal fairness, firing angles, and recovery space.
-
-## Iteration Boundary
-
-Each room remains an independent data configuration. Playtest feedback should be addressed by adjusting platform, pit, and enemy coordinates or enemy count inside the affected room. Changes outside the locked scope require a new explicit decision.
+- Stage-specific Vitest assertions for widths, silhouettes, cover demonstrations, activation spacing, and patrol exposure.
+- Shared reachability and terrain-placement tests.
+- Full client test suite, lint, and production build.
+- User-owned browser playtest for cover readability, firing angles, pacing, and perceived stage length.

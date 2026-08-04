@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { PLAYER_COMBAT_CONFIG } from '@/game/config/combatConfig';
+import {
+  MELEE_ENEMY_COMBAT_CONFIG,
+  PLAYER_COMBAT_CONFIG,
+} from '@/game/config/combatConfig';
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 import {
   MovementMode,
@@ -8,6 +11,7 @@ import {
 import type { RoomConfig, TerrainPiece } from '@/game/config/roomConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+import { patrolSpan } from '@/game/systems/patrolSpan';
 
 /**
  * Level geometry has to be checked against what the player can actually do, not
@@ -302,6 +306,47 @@ describe('level geometry against player metrics', () => {
     }
 
     expect(trapped).toEqual([]);
+  });
+
+  it('keeps full ground patrols out of deep platform cover', () => {
+    const buriedPatrols: string[] = [];
+
+    for (const { stage, room } of combatRooms()) {
+      const platforms = (room.terrain ?? []).filter(
+        ({ type }) => type === 'platform',
+      );
+      const groundSpawns = room.enemySpawns.filter(
+        ({ type }) => type === 'melee' || type === 'ranged',
+      );
+
+      for (const spawn of groundSpawns) {
+        const patrol =
+          patrolSpan({
+            spawnX: spawn.x,
+            range: MELEE_ENEMY_COMBAT_CONFIG.patrolRange,
+            left: room.entranceX,
+            right: room.exitX,
+            pits: room.pits,
+            edgeMargin: MELEE_ENEMY_COMBAT_CONFIG.patrolEdgeMargin,
+            minimumSpan: MELEE_ENEMY_COMBAT_CONFIG.patrolMinimumSpan,
+          }) ?? { left: spawn.x, right: spawn.x };
+
+        for (const platform of platforms) {
+          const unsafeLeft = platform.x + MINIMUM_USABLE_DROP_LANE;
+          const unsafeRight =
+            platform.x + platform.width - MINIMUM_USABLE_DROP_LANE;
+          if (unsafeLeft >= unsafeRight) continue;
+
+          if (patrol.right > unsafeLeft && patrol.left < unsafeRight) {
+            buriedPatrols.push(
+              `${stage}/${room.id} ${spawn.type} patrol ${patrol.left}~${patrol.right} enters cover ${unsafeLeft}~${unsafeRight}`,
+            );
+          }
+        }
+      }
+    }
+
+    expect(buriedPatrols).toEqual([]);
   });
 
   // Removed: 'leaves sky above everything that has to be jumped'.
