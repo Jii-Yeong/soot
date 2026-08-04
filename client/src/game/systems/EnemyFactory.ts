@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import {
   BOSS_COMBAT_CONFIGS,
-  BOSS_SPRITES,
+  HOUND_BOSS_SPRITES,
+  LASER_BOSS_SPRITES,
   hasBossPattern,
 } from '@/game/config/bossConfig';
 import type { BossArenaBounds } from '@/game/config/bossArena';
@@ -142,7 +143,7 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
-          BOSS_SPRITES[spawn.variant],
+          LASER_BOSS_SPRITES[spawn.variant],
         ),
       );
     }
@@ -156,6 +157,7 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
+          HOUND_BOSS_SPRITES[spawn.variant],
         ),
       );
     }

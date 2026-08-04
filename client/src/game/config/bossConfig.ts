@@ -1,11 +1,14 @@
 import {
   STAGE_ONE_BOSS_ANIMATIONS,
   STAGE_ONE_BOSS_ATLAS_KEY,
+  STAGE_TWO_BOSS_ANIMATIONS,
+  STAGE_TWO_BOSS_ATLAS_KEY,
 } from '@/game/config/bossAnimationConfig';
 import type {
   BossCombatConfig,
   BossPatternConfig,
   BossSpriteConfig,
+  HoundBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 
 export const hasBossPattern = <Type extends BossPatternConfig['type']>(
@@ -57,7 +60,7 @@ export const BOSS_COMBAT_CONFIGS = {
     },
   },
   'alley-hunter': {
-    texture: 'alley-hunter-placeholder',
+    texture: STAGE_TWO_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x7a3821,
       accentColor: 0xffb06f,
@@ -277,15 +280,32 @@ export const BOSS_COMBAT_CONFIGS = {
 export type BossVariant = keyof typeof BOSS_COMBAT_CONFIGS;
 
 /**
- * Real-atlas rendering for bosses that have one, kept apart from combat tuning
- * so the combat-config union stays uniform (and its pattern-type exhaustiveness
- * intact). Bosses absent here fall back to the generated placeholder.
+ * 실제 아틀라스가 있는 보스의 렌더링 설정. 전투 튜닝과 분리해 combat-config
+ * 유니온이 균일하게(패턴-타입 exhaustiveness 유지) 남도록 함. 각 보스 클래스가
+ * 필요로 하는 애니메이션 태그 집합이 다르므로 보스 계열별로 나눠 둠. 여기에
+ * 없는 보스는 생성된 placeholder로 폴백함.
  */
-export const BOSS_SPRITES: Partial<Record<BossVariant, BossSpriteConfig>> = {
-  'city-warden': {
-    animations: STAGE_ONE_BOSS_ANIMATIONS,
+export const LASER_BOSS_SPRITES: Partial<Record<BossVariant, BossSpriteConfig>> =
+  {
+    'city-warden': {
+      animations: STAGE_ONE_BOSS_ANIMATIONS,
+      scale: 1,
+      bodyWidth: 72,
+      bodyHeight: 132,
+    },
+  };
+
+export const HOUND_BOSS_SPRITES: Partial<
+  Record<BossVariant, HoundBossSpriteConfig>
+> = {
+  'alley-hunter': {
+    animations: STAGE_TWO_BOSS_ANIMATIONS,
     scale: 1,
-    bodyWidth: 72,
-    bodyHeight: 132,
+    // 사족보행 메카는 프레임을 가로로 꽉 채움(300x250). 다리/몸통에 바디를
+    // 맞추고, 발이 바닥에 닿도록 하단 정렬(프레임 발 위치 y≈239).
+    bodyWidth: 220,
+    bodyHeight: 150,
+    bodyOffsetX: 40,
+    bodyOffsetY: 89,
   },
 };

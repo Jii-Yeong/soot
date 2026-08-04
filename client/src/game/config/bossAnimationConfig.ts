@@ -77,3 +77,55 @@ export const STAGE_ONE_BOSS_LOOPING_TAGS = new Set<StageOneBossTag>([
   'walk',
   'fire',
 ]);
+
+/**
+ * 스테이지 2 보스(alley-hunter, 기계 사냥개)의 실제 스프라이트 아틀라스.
+ *
+ * 이 이름들은 제공된 Aseprite JSON의 `frameTags`를 그대로 따름. 프레임 키는
+ * 숫자 인덱스('0'~'10')이며, 아틀라스가 포즈 이름과 프레임 범위의 원본임.
+ */
+export const STAGE_TWO_BOSS_ATLAS_KEY = 'stage-2-boss';
+export const STAGE_TWO_BOSS_ATLAS_PNG = '/assets/bosses/stage-2-boss.png';
+export const STAGE_TWO_BOSS_ATLAS_JSON = '/assets/bosses/stage-2-boss.json';
+
+export const STAGE_TWO_BOSS_TAGS = {
+  idle: 'idle',
+  walk: 'walk',
+  quest: 'quest',
+  attack: 'attack',
+  death: 'death',
+} as const;
+
+export const STAGE_TWO_BOSS_ANIMATIONS = {
+  idle: 'stage-2-boss-idle',
+  walk: 'stage-2-boss-walk',
+  quest: 'stage-2-boss-quest',
+  attack: 'stage-2-boss-attack',
+  death: 'stage-2-boss-death',
+} as const;
+
+type StageTwoBossTag = keyof typeof STAGE_TWO_BOSS_TAGS;
+
+/** 제공된 아틀라스 JSON에서 그대로 옮긴 프레임 범위와 프레임 시간. */
+export const STAGE_TWO_BOSS_TAG_FRAMES: Record<
+  StageTwoBossTag,
+  readonly { frame: string; duration: number }[]
+> = {
+  idle: [0, 1, 2, 3].map((index) => ({ frame: String(index), duration: 220 })),
+  walk: [4, 5].map((index) => ({ frame: String(index), duration: 170 })),
+  // 잠금(사격 준비) 시 유지되는 웅크린 단일 포즈.
+  quest: [{ frame: '6', duration: 200 }],
+  attack: [
+    { frame: '7', duration: 90 },
+    { frame: '8', duration: 130 },
+  ],
+  death: [
+    { frame: '9', duration: 150 },
+    { frame: '10', duration: 220 },
+  ],
+};
+
+export const STAGE_TWO_BOSS_LOOPING_TAGS = new Set<StageTwoBossTag>([
+  'idle',
+  'walk',
+]);

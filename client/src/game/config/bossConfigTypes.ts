@@ -213,7 +213,18 @@ export type BossPatternConfig =
   | InfernalBossPatternConfig
   | ArchitectBossPatternConfig;
 
-export type BossSpriteConfig = {
+/** 실제 아틀라스 보스가 공유하는 배치/크기 필드. */
+export type BossSpriteGeometry = {
+  scale: number;
+  bodyWidth: number;
+  bodyHeight: number;
+  /** 지정 시 setSize를 중앙 정렬 대신 이 오프셋으로 배치(발을 바닥에 맞춤). */
+  bodyOffsetX?: number;
+  bodyOffsetY?: number;
+};
+
+/** 레이저포 보스(city-warden)의 스프라이트 설정. */
+export type BossSpriteConfig = BossSpriteGeometry & {
   animations: {
     idle: string;
     walk: string;
@@ -222,9 +233,17 @@ export type BossSpriteConfig = {
     recoil: string;
     death: string;
   };
-  scale: number;
-  bodyWidth: number;
-  bodyHeight: number;
+};
+
+/** 사냥개 보스(alley-hunter)의 스프라이트 설정. */
+export type HoundBossSpriteConfig = BossSpriteGeometry & {
+  animations: {
+    idle: string;
+    walk: string;
+    quest: string;
+    attack: string;
+    death: string;
+  };
 };
 
 export type BossCombatConfig<
