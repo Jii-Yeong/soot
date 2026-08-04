@@ -1528,6 +1528,58 @@ full level, loopable background bed, 88 BPM, D major
 **이번에는 밝게 들리는지만 본다.** 대역은 이미 23번에서 충분한 값이 나왔으므로, A7이
 그보다 조금 어두워도 귀에 밝으면 그쪽이 맞다. **측정으로 이 큐를 고르지 않는다.**
 
+**A8 — 밝음에는 세 종류가 있다 (지금 쓸 것)**
+
+A7에 "이런 명랑한 밝음이 아니다"라는 피드백이 나왔다. **밝음을 한 축으로 놓고 왔다 갔다
+한 것이 문제였다. 최소한 세 종류가 있고 우리는 그중 하나만 필요하다.**
+
+| 종류 | 만드는 말 | 어디에 쓰나 |
+| --- | --- | --- |
+| **서늘한 밝음** | `sul ponticello`, `metallic`, 증4도 | A5까지 여기 있었다. 불길하다 |
+| **명랑한 밝음** | `joyful`, `warm and consonant`, `resolved major triads` | A7이 여기로 건너뛰었다. 놀이공원이다 |
+| **과노출된 밝음** | 아래 | **기획서가 요구하는 것** |
+
+기획서의 5스테이지 비주얼 팔레트는 **"백색 / 옅은 보라 / 금빛 / 과노출"**이고, 배경 그림도
+흰빛으로 날아가 디테일이 사라진 하늘이다. **과노출은 즐거운 상태가 아니라 정보가 타서
+없어진 상태다.** 눈을 뜰 수 없을 만큼 밝고, 그래서 아무것도 보이지 않는다.
+
+정서 항목도 "아름답지만 불편한 광기"이지 "즐겁다"가 아니다. 즐거운 것은 주인공이지 음악이
+아니다. **음악은 그 광경을 압도적으로 하얗게 비추기만 한다.**
+
+| | A7 | A8 |
+| --- | --- | --- |
+| 밝기 | `joyful`, `warm and consonant` | `blinding`, `overexposed`, `washed out to white` |
+| 태도 | 따뜻하고 다정하다 | **무심하다.** `serene and impersonal`, `vast and indifferent` |
+| 화성 | `resolved major triads` — 착지한다 | **`open suspended chords`, `lydian`** — 밝은 채로 착지하지 않는다 |
+
+**착지하지 않는 장조와 상한 화음은 다르다.** A5까지의 증4도는 화음을 불협으로 만들었지만,
+서스펜디드와 리디안은 **밝은 채로 공중에 떠 있다.** city를 D lydian으로 설계했던 이유가
+그것이고, return이 D major로 돌아온다는 설계와도 맞는다. A7에서 착지시킨 것이 명랑함의
+직접적인 원인이다.
+
+저역·어택·1분 반복·대리석 홀·`light reverb`는 그대로 둔다.
+
+```
+blinding overexposed orchestral, washed out to white, light too strong to look
+at, serene and impersonal, vast and indifferent, driving and explosive,
+everything played in the top two octaves over a heavy low end, recorded in a
+vast hall of white marble and glass with hard bright reflections, high register
+violins singing with a full open tone, natural harmonics ringing above them,
+fast crystalline clean electric guitar arpeggio with light reverb running
+continuously, timpani strikes and low double bass pushing underneath,
+choir-free, open suspended major chords that float and never resolve, lydian,
+the sound of someone smiling while something terrible happens, a single one
+minute passage that returns to its exact starting point and begins again
+unchanged, every minute sounds like every other minute, sparse, purely
+instrumental, the same handful of instruments from beginning to end, the final
+section sits at exactly the same level as the opening, starts immediately at
+full level, loopable background bed, 88 BPM, D major
+```
+
+**불안 지시는 아예 뺐다.** 리디안과 서스펜디드가 이미 해결되지 않는 상태를 만들고,
+`the melody never quite landing on the tonic`을 같이 넣으면 그것이 A5의 실수로 돌아가는
+길이다. 대비가 부족하면 그때 한 줄만 다시 넣는다.
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1537,7 +1589,7 @@ full level, loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A7** | A ~ A6 | 불협 지시가 일곱 개 쌓여 스펙트럼이 밝아도 어둡게 들렸다. A7에서 하나로 줄이고 장조 화성을 명시 |
+| `return` | **A8** | A ~ A7 | 밝음을 한 축으로 보다 서늘한 쪽과 명랑한 쪽을 오갔다. 필요한 것은 과노출된 밝음이다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
