@@ -13,9 +13,6 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type PurifierState =
   | 'recover'
-  | 'grab-warn'
-  | 'grab-strike'
-  | 'grab-hold'
   | 'slam-warn'
   | 'slam-leap'
   | 'slam-strike'
@@ -23,8 +20,6 @@ type PurifierState =
   | 'vacuum-active';
 
 type PlayerDamageHandler = (damage: number) => void;
-/** Drags the player until it overlaps the boss; see PlayerController.applyGrab. */
-type PlayerGrabHandler = (bossX: number, bossHalfWidth: number) => void;
 type PlayerPullHandler = (bossX: number, pullSpeed: number) => void;
 
 const TELEGRAPH_DEPTH = 7;
@@ -36,12 +31,8 @@ const DEATH_POSE_HOLD_MS = 1600;
 const DEATH_FADE_MS = 600;
 
 /**
- * Stage-3 boss (the purification enforcer). v1 of the capture/crush kit:
+ * Stage-3 boss (the purification enforcer). Two-pattern kit:
  *
- * - Impurity collection: warns on the player's ground spot, then the claw
- *   strikes it. A grounded player caught there takes a hit and is dragged into
- *   the boss — where its own contact damage "collects" them (moderate, on a
- *   cooldown, and escapable with a dash, so never a one-shot stunlock).
  * - Waste compaction: marks the player's position, leaps toward it, then sends
  *   two green pressure waves along the floor on landing; move off the marker
  *   and jump the waves.
@@ -54,12 +45,9 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   private attackState: PurifierState = 'recover';
   private stateStartedAt = 0;
   private stateEndsAt: number;
-  private grabTargetX = 0;
-  private grabResolved = false;
-  private grabHit = false;
   private slamTargetX = 0;
   private slamHasLeftGround = false;
-  // Open with the clearly marked leap before introducing grab and vacuum.
+  // Alternate the two patterns, opening with the clearly marked leap.
   private attackIndex = 1;
   private playerTarget?: Phaser.Physics.Arcade.Sprite;
   private activeSpriteAnimation?: string;
@@ -72,7 +60,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     texture: string,
     config: PurifierBossCombatConfig,
     private readonly damagePlayer: PlayerDamageHandler,
-    private readonly grabPlayer: PlayerGrabHandler,
     private readonly pullPlayer: PlayerPullHandler,
     private readonly sprite?: PurifierBossSpriteConfig,
   ) {
@@ -156,15 +143,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
       case 'recover':
         this.updateRecover(time, target);
         break;
-      case 'grab-warn':
-        this.updateGrabWarn(time);
-        break;
-      case 'grab-strike':
-        this.updateGrabStrike(time, target);
-        break;
-      case 'grab-hold':
-        this.updateGrabHold(time);
-        break;
       case 'slam-warn':
         this.updateSlamWarn(time, target);
         break;
@@ -241,89 +219,14 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.updateLocomotionAnimation();
 
     if (time >= this.stateEndsAt) {
-      // Rotate all three patterns so the same one never runs back to back.
-      switch (this.attackIndex % 3) {
-        case 0:
-          this.beginGrabWarn(time, target);
-          break;
-        case 1:
-          this.beginSlamWarn(time, target);
-          break;
-        case 2:
-          this.beginVacuumWarn(time);
-          break;
+      // Alternate the two patterns so the same one never runs back to back.
+      if (this.attackIndex % 2 === 1) {
+        this.beginSlamWarn(time, target);
+      } else {
+        this.beginVacuumWarn(time);
       }
       this.attackIndex += 1;
     }
-  }
-
-  private beginGrabWarn(time: number, target: Phaser.Physics.Arcade.Sprite) {
-    this.attackState = 'grab-warn';
-    this.stateStartedAt = time;
-    this.stateEndsAt = time + this.pattern.grab.warnDuration;
-    // Mark where the player stands now — moving off the spot dodges it.
-    this.grabTargetX = target.x;
-    this.setFlipX(target.x < this.x);
-    this.playSpriteAnimation(this.sprite?.animations.takeDown ?? '');
-  }
-
-  private updateGrabWarn(time: number) {
-    this.setVelocityX(0);
-    this.drawGroundMarker(
-      this.grabTargetX,
-      this.pattern.grab.reach,
-      this.stateProgress(time),
-    );
-
-    if (time >= this.stateEndsAt) {
-      this.attackState = 'grab-strike';
-      this.stateStartedAt = time;
-      this.stateEndsAt = time + this.pattern.grab.strikeDuration;
-      this.grabResolved = false;
-    }
-  }
-
-  private updateGrabStrike(time: number, target: Phaser.Physics.Arcade.Sprite) {
-    this.setVelocityX(0);
-    this.drawGroundMarker(this.grabTargetX, this.pattern.grab.reach, 1);
-
-    if (!this.grabResolved) {
-      this.grabResolved = true;
-      this.grabHit = this.tryGrab(target);
-    }
-
-    if (time >= this.stateEndsAt) {
-      if (this.grabHit) {
-        this.attackState = 'grab-hold';
-        this.stateStartedAt = time;
-        this.stateEndsAt = time + this.pattern.grab.holdDuration;
-        this.telegraph.clear();
-      } else {
-        this.beginRecover(time);
-      }
-    }
-  }
-
-  /** Holds still while the caught player is dragged in, so they actually reach us. */
-  private updateGrabHold(time: number) {
-    this.setVelocityX(0);
-    if (time >= this.stateEndsAt) {
-      this.beginRecover(time);
-    }
-  }
-
-  private tryGrab(target: Phaser.Physics.Arcade.Sprite) {
-    const body = target.body as Phaser.Physics.Arcade.Body | null;
-    const grounded = body?.blocked.down ?? false;
-    const halfReach = this.pattern.grab.reach / 2 + (body ? body.width / 2 : 20);
-
-    // Airborne players slip the claw; only a grounded target in the zone is caught.
-    if (grounded && Math.abs(target.x - this.grabTargetX) <= halfReach) {
-      this.damagePlayer(this.pattern.grab.damage);
-      this.grabPlayer(this.x, this.displayWidth / 2);
-      return true;
-    }
-    return false;
   }
 
   private beginSlamWarn(

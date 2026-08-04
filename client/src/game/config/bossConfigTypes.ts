@@ -60,7 +60,7 @@ export type HoundBossPatternConfig = {
   };
 };
 
-/** Stage-3 capture, targeted slam, and full-arena vacuum patterns. */
+/** Stage-3 targeted slam and full-arena vacuum patterns. */
 export type PurifierBossPatternConfig = {
   type: 'purifier';
   moveSpeed: number;
@@ -72,13 +72,6 @@ export type PurifierBossPatternConfig = {
   recoveryDuration: number;
   enragedRecoveryDuration: number;
   telegraphColor: number;
-  grab: {
-    warnDuration: number;
-    strikeDuration: number;
-    reach: number;
-    damage: number;
-    holdDuration: number;
-  };
   slam: {
     warnDuration: number;
     strikeDuration: number;

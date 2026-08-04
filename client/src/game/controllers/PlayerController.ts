@@ -36,13 +36,6 @@ const COYOTE_TIME = 90;
 const JUMP_BUFFER_TIME = 110;
 /** 포탈 진입 후 점프 입력을 무시하는 시간(위/W 키를 공유하므로). */
 const JUMP_SUPPRESS_AFTER_PORTAL = 200;
-/** How fast a boss grab drags the player toward it. */
-const GRAB_PULL_SPEED = 700;
-/**
- * Safety cap on the grab drag + i-frames; normally the pull ends earlier, the
- * moment the player overlaps the boss. A dash within it breaks free.
- */
-const GRAB_DURATION = 800;
 
 export class PlayerController {
   private readonly movementKeys: MovementKeys;
@@ -59,11 +52,6 @@ export class PlayerController {
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
-  private grabbed = false;
-  private grabEndsAt = 0;
-  private grabVelocityX = 0;
-  private grabTargetX = 0;
-  private grabStopDistance = 0;
   private movementMode = MovementMode.GROUND;
 
   constructor(
@@ -89,28 +77,6 @@ export class PlayerController {
   }
 
   update(time: number) {
-    if (this.grabbed) {
-      // A dash within the window breaks free; otherwise the drag stops once the
-      // player overlaps the boss (or the window runs out). All cases fall
-      // through to normal control below.
-      const reachedBoss =
-        Math.abs(this.player.x - this.grabTargetX) <= this.grabStopDistance;
-      if (
-        Phaser.Input.Keyboard.JustDown(this.movementKeys.dash) &&
-        this.tryDash(time)
-      ) {
-        this.grabbed = false;
-      } else if (reachedBoss || time >= this.grabEndsAt) {
-        this.grabbed = false;
-        this.invulnerable = false;
-        this.player.setVelocityX(0);
-      } else {
-        this.player.setVelocityX(this.grabVelocityX);
-        this.updateAnimation(time);
-        return;
-      }
-    }
-
     if (Phaser.Input.Keyboard.JustDown(this.movementKeys.dash)) {
       this.tryDash(time);
     }
@@ -146,7 +112,6 @@ export class PlayerController {
 
     this.finishDash();
     this.movementMode = mode;
-    this.grabbed = false;
     this.invulnerable = false;
     this.lastGroundedAt = 0;
     this.jumpBufferedUntil = 0;
@@ -356,25 +321,6 @@ export class PlayerController {
 
   get isFlightMode() {
     return this.movementMode === MovementMode.FLIGHT;
-  }
-
-  /**
-   * A boss claw yanks the player toward the boss at (`bossX`), stopping once
-   * the two overlap (`bossHalfWidth` + the player's own half). The pull locks
-   * input and grants brief invulnerability, but a dash within the window breaks
-   * free — so it displaces without becoming an unescapable stunlock.
-   */
-  applyGrab(bossX: number, bossHalfWidth: number) {
-    if (this.dashing) {
-      return;
-    }
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    this.grabbed = true;
-    this.invulnerable = true;
-    this.grabEndsAt = this.scene.time.now + GRAB_DURATION;
-    this.grabVelocityX = (bossX >= this.player.x ? 1 : -1) * GRAB_PULL_SPEED;
-    this.grabTargetX = bossX;
-    this.grabStopDistance = bossHalfWidth + body.width / 2;
   }
 
   /**

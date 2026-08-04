@@ -124,13 +124,6 @@ export const BOSS_COMBAT_CONFIGS = {
       recoveryDuration: 900,
       enragedRecoveryDuration: 700,
       telegraphColor: 0x66ff8c,
-      grab: {
-        warnDuration: 650,
-        strikeDuration: 250,
-        reach: 150,
-        damage: 16,
-        holdDuration: 800,
-      },
       slam: {
         warnDuration: 900,
         strikeDuration: 300,
