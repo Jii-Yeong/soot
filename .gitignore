@@ -13,3 +13,6 @@ test-results/
 .codex-doc-review/
 .codex-tmp/
 .codex-dev-server.*
+
+# macOS
+.DS_Store
