@@ -11,19 +11,18 @@ const AERIAL_ROOM_PORTAL = {
   height: GAME_HEIGHT,
 };
 
-// The return is the only flight stage. Its basic layout is therefore made of
-// enemy formations and open space, not platforms: flight has no jump-out
-// fallback, so even a harmless-looking wall can turn a tracking enemy into a
-// corner trap. There is intentionally no terrain, pit, or projectile cover in
-// either combat room. The full-height doors are the only hard boundaries.
+// 귀환은 유일한 비행 스테이지이므로 기본 배치는 발판이 아니라 적 편대와 열린
+// 공간으로 구성한다. 비행 중에는 점프로 빠져나올 수 없어 작은 벽도 추적 적과
+// 결합하면 구석 함정이 된다. 두 전투방 모두 지형, 구덩이, 탄환 엄폐를 의도적으로
+// 두지 않으며, 화면 전체 높이의 문만 단단한 경계로 사용한다.
 //
-// The usable flight band is y=128~600. Every anchor and patrol swing remains
-// inside it, while each room uses more than two thirds of its height. Staying
-// at the top or bottom is a temporary dodge, not a permanent safe lane.
+// 사용 가능한 비행 범위는 y=128~600이다. 모든 기준점과 순찰 진폭은 이 안에
+// 머물고, 각 방은 높이의 3분의 2 이상을 사용한다. 위나 아래에 머무는 행동은
+// 일시적 회피일 뿐 영구적인 안전 지대가 아니다.
 //
-// The stage rhythm is deliberately roomy: room 01 gives the player time to
-// settle into flight (single -> single -> pair -> pair); room 02 turns those
-// motions into short mixed formations and peaks at one three-enemy formation.
+// 스테이지 흐름은 의도적으로 여유 있게 구성한다. 01방은 단독→단독→둘→둘의
+// 순서로 비행에 적응할 시간을 주고, 02방은 이를 짧은 혼합 편대로 발전시켜
+// 적 셋으로 구성된 편대 하나에서 정점을 만든다.
 // 확장된 방의 마지막 편대까지 공중 이동을 쓰고, 보스방 앞 400px 이상은
 // 위치를 다시 잡는 구간으로 남김.
 
@@ -34,16 +33,15 @@ export const RETURN_ROOM_ONE = defineRoom({
   intensity: 1.6,
   portal: AERIAL_ROOM_PORTAL,
   enemySpawns: [
-    // First contact comes after enough open air to establish the flight
-    // controls. No enemy can fire from the room entrance.
+    // 비행 조작을 익힐 열린 공간을 충분히 지난 뒤 첫 교전이 시작되며,
+    // 방 입구에서 사격할 수 있는 적은 없다.
     {
       type: 'flying',
       x: 1050,
       y: 360,
       movement: { mode: AerialMovementMode.HOVER },
     },
-    // A high patrol makes the player use the vertical band without mixing it
-    // with the opening hover.
+    // 높은 순찰 적으로 시작 지점의 제자리 비행과 섞지 않고 수직 범위를 사용하게 한다.
     {
       type: 'flying',
       x: 1650,
@@ -54,8 +52,8 @@ export const RETURN_ROOM_ONE = defineRoom({
         rangeY: 55,
       },
     },
-    // First formation: a tracker below an orbiting target. Their offset leaves
-    // a clear diagonal route through the middle; neither is a piece of cover.
+    // 첫 편대는 궤도 적 아래에 추적 적을 둔다. 두 적의 간격은 중앙에 명확한
+    // 대각선 경로를 남기며, 어느 쪽도 엄폐물 역할을 하지 않는다.
     {
       type: 'flying',
       x: 2250,
@@ -72,8 +70,8 @@ export const RETURN_ROOM_ONE = defineRoom({
         rangeY: 70,
       },
     },
-    // Final room-01 pair after a long open reset. It is a low/high crossfire,
-    // not a wall of bodies across the same altitude.
+    // 긴 열린 재정비 구간 뒤 01방의 마지막 둘을 배치한다. 같은 높이에 적을 늘어놓은
+    // 벽이 아니라 낮고 높은 두 방향의 교차 사격을 만든다.
     {
       type: 'flying',
       x: 3400,
@@ -100,8 +98,7 @@ export const RETURN_ROOM_TWO = defineRoom({
   intensity: 1.7,
   portal: AERIAL_ROOM_PORTAL,
   enemySpawns: [
-    // Room 02 also gives a short entry lane, then starts from the familiar
-    // two-height formation before tightening into the final group.
+    // 02방도 짧은 진입로를 제공한 뒤 익숙한 두 높이 편대로 시작해 마지막 편대에서 조인다.
     {
       type: 'flying',
       x: 1050,
@@ -134,9 +131,8 @@ export const RETURN_ROOM_TWO = defineRoom({
       y: 480,
       movement: { mode: AerialMovementMode.HOVER },
     },
-    // The stage's peak: high orbit, centre tracker, and low patrol. The three
-    // anchors are vertically staggered so the player can read a route between
-    // them rather than being forced to brute-force a single horizontal lane.
+    // 스테이지의 정점은 높은 궤도, 중앙 추적, 낮은 순찰 적이다. 세 기준점을
+    // 수직으로 엇갈리게 두어 한 수평선으로 억지 돌파하지 않고 사이 경로를 읽게 한다.
     {
       type: 'flying',
       x: 3100,

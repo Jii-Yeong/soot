@@ -185,23 +185,20 @@ export class WeaponSystem {
   }
 
   /**
-   * Where a round is born, given what is standing in front of the gun.
+   * 총 앞에 서 있는 대상을 고려해 탄환 생성 위치를 정한다.
    *
-   * Normally the muzzle. But the muzzle is 24 to 47px out along the barrel and
-   * nothing between the grip and it is ever tested, so an enemy standing on top
-   * of the player was a hole the round appeared on the far side of: their
-   * bodies are 44 to 48px wide, and every weapon but the SMG puts its muzzle
-   * past that. Point blank, the shot missed a target it was inside of.
+   * 기본 위치는 총구지만 총구는 손잡이에서 총열 방향으로 24~47px 떨어져 있고,
+   * 그 사이에는 충돌 검사가 없었다. 적 몸체 너비는 44~48px이며 SMG를 제외한
+   * 무기는 총구가 그 너머에 놓여, 플레이어와 겹친 적의 반대편에 탄환이 생성되고
+   * 근접 사격이 빗나갔다.
    *
-   * When something is in that stretch the round starts at the grip instead, and
-   * the normal projectile-enemy overlap does the rest — damage, knockback,
-   * pierce and feedback all keep running through one path. The muzzle flash
-   * stays where the barrel is, so nothing moves on screen except at the range
-   * where the muzzle was inside an enemy anyway.
+   * 이 구간에 대상이 있으면 손잡이에서 탄환을 생성한다. 이후 피해, 넉백, 관통,
+   * 피드백은 기존 탄환-적 겹침 경로에서 동일하게 처리한다. 총구 화염은 총열 위치를
+   * 유지하므로, 원래 총구가 적 안에 있던 거리 외에는 화면상 변화가 없다.
    */
   private spawnOrigin(muzzle: { x: number; y: number }) {
-    // The rendered rig is present in game. The player fallback keeps the
-    // collision correction valid for lightweight scene/test harnesses too.
+    // 실제 게임에서는 렌더링 리그를 사용하고, 간단한 장면·테스트 환경에서는
+    // 플레이어를 대체값으로 사용해 충돌 보정을 동일하게 유지한다.
     const grip = this.feedback.display ?? this.player;
     const barrel = new Phaser.Geom.Line(grip.x, grip.y, muzzle.x, muzzle.y);
 

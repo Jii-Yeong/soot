@@ -113,7 +113,7 @@ export class GameScene extends Phaser.Scene {
   );
   private phase: GamePhase = "boot";
   private roomState: RoomState = "idle";
-  /** Enemies past the floor line, dropping out of the level. */
+  /** 바닥선을 지나 레벨 밖으로 추락 중인 적. */
   private readonly fallingEnemies = new Set<Enemy>();
   private paused = false;
   private roomExitRequested = false;
@@ -306,8 +306,8 @@ export class GameScene extends Phaser.Scene {
 
     this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
 
-    // Every room starts as a live encounter. Enemies are present as the room
-    // opens, so entering a stage never has an invisible combat trigger.
+    // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
+    // 스테이지 진입 후 보이지 않는 전투 트리거가 따로 생기지 않는다.
     if (roomConfig.kind === "combat") {
       this.spawnRoomEnemies();
     }
@@ -363,7 +363,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startRoomEncounter() {
-    // Combat rooms are populated by buildRoom; a boss room is still empty here.
+    // 일반 전투방은 buildRoom에서 적을 배치하지만, 보스방은 이 시점에 비어 있다.
     if (this.enemies.length === 0) {
       this.spawnRoomEnemies();
     }
@@ -763,16 +763,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    // A scene restart — which is how the admin stage jump works — reuses this
-    // instance, so every field still points at the previous run's game objects
-    // and those are already destroyed. The control hint is the one create()
-    // writes to before createCombatUi() has rebuilt it: applyStageMovementMode
-    // runs inside createCombatSystems, and setText on a destroyed Text reaches
-    // for a canvas that is gone.
+    // 관리자 스테이지 이동에 사용하는 장면 재시작은 이 인스턴스를 재사용하므로,
+    // 각 필드가 이미 파괴된 이전 실행의 게임 객체를 계속 가리킨다. 특히
+    // applyStageMovementMode는 createCombatSystems 안에서 실행되어 createCombatUi가
+    // 다시 만들기 전의 안내 텍스트에 접근하므로, 파괴된 Text의 setText가 없는
+    // 캔버스를 참조하지 않도록 초기화한다.
     this.controlHintText = undefined;
-    // Phaser reuses the Scene instance on restart, but destroys the previous
-    // physics groups. buildRoom runs before createCombatSystems replaces these
-    // fields, so leave no stale pools or directors for its optional cleanup.
+    // Phaser는 재시작 시 Scene 인스턴스를 재사용하지만 이전 물리 그룹은 파괴한다.
+    // createCombatSystems가 필드를 교체하기 전에 buildRoom이 실행되므로, 선택적
+    // 정리 과정이 오래된 풀이나 디렉터를 참조하지 않게 비워 둔다.
     this.weaponDropDirector = undefined!;
     this.weaponSystem = undefined!;
     this.roomDirector = undefined!;
@@ -846,7 +845,7 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit("room-state-changed", state);
 
     if (state === "locked") {
-      // Clear shots from the previous room before this encounter begins.
+      // 이번 교전이 시작되기 전에 이전 방의 탄환을 정리한다.
       this.weaponSystem?.clearProjectiles();
       this.emitEnemyHealth();
       return;
@@ -985,7 +984,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyRangeGraphics.clear();
 
     for (const enemy of this.enemies) {
-      // On its way out of the level: it should not still be shooting.
+      // 레벨 밖으로 추락 중인 적은 더 이상 사격하지 않는다.
       if (!enemy.active || this.fallingEnemies.has(enemy)) {
         continue;
       }
@@ -1042,7 +1041,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleEnemyHit(enemy: Enemy, defeated: boolean) {
-    // Damage applies only while this room's encounter is active.
+    // 현재 방의 교전이 활성화된 동안에만 피해를 적용한다.
     if (this.phase !== "playing" || this.roomState !== "locked") {
       return;
     }
@@ -1069,10 +1068,9 @@ export class GameScene extends Phaser.Scene {
       if (!enemy.playsOwnDeathAnimation) {
         this.spawnDeathPop(enemy);
       }
-      // Rounds already in the air outlive the shooter otherwise, and a hit that
-      // lands after the enemy is gone reads as the game taking a free swing.
-      // Bosses keep theirs: their patterns are the fight, and clearing the
-      // screen on the last hit would erase the beat the fight ends on.
+      // 이미 발사된 탄환은 사수보다 오래 남으므로, 적이 사라진 뒤 맞으면 게임이
+      // 공짜로 공격하는 것처럼 느껴진다. 보스 탄환은 패턴 자체가 전투이므로 유지해,
+      // 마지막 타격 순간 화면을 비워 전투의 마무리 흐름을 지우지 않는다.
       if (enemy.projectile) {
         this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
       }
@@ -1082,17 +1080,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Enemies walk off the ledges the player jumps, and the world bounds caught
-   * them at the bottom of the screen: out of the fight, out of reach, and still
-   * counted, so the room could never lock open again. The player's own fall is
-   * a hazard they climb out of (handlePitFall); an enemy has no way back up.
+   * 적은 플레이어가 뛰어넘는 가장자리에서 걸어 나가며, 기존에는 월드 경계가
+   * 화면 바닥에서 적을 붙잡았다. 전투와 공격 범위에서는 벗어났지만 수에는 남아
+   * 방을 영원히 열 수 없었다. 플레이어 추락은 handlePitFall로 복귀하는 위험이지만
+   * 적에게는 돌아올 방법이 없다.
    *
-   * It falls out of frame rather than dying where it lands. Killing it on the
-   * world floor put a death burst along the bottom edge of the screen, which
-   * reads as an explosion at ground level and not as something dropping out of
-   * the level. So at the floor line it stops being part of the fight — the room
-   * lets go of it, its rounds go with it, and nothing solid is left to catch
-   * it — and it is only taken off the display once it is fully out of view.
+   * 적은 착지 지점에서 죽지 않고 화면 밖으로 떨어진다. 월드 바닥에서 처치하면
+   * 화면 아래쪽에 사망 폭발이 생겨 추락이 아니라 지상 폭발처럼 보였다. 따라서
+   * 바닥선을 넘으면 교전 대상과 탄환을 정리하고 충돌을 해제한 뒤, 완전히 화면을
+   * 벗어났을 때 표시 객체를 제거한다.
    */
   private handleEnemyPitFalls() {
     for (const enemy of this.enemies) {
@@ -1113,8 +1109,8 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
 
-      // Measured at the top edge, so the whole body has to be under the floor:
-      // an enemy standing at a pit's edge is never mistaken for one in it.
+      // 몸체의 위쪽 가장자리를 기준으로 전체가 바닥 아래에 있어야 판정하므로,
+      // 구덩이 가장자리에 선 적을 추락 중인 적으로 오인하지 않는다.
       if (body.top <= FLOOR_SURFACE_Y) {
         continue;
       }

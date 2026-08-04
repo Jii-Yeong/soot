@@ -55,9 +55,9 @@ export class EnemyFactory {
     private readonly bossArena: BossArenaBounds,
     private readonly onBossPhaseChanged: (phase: BossPhase) => void,
     /**
-     * The stretch of floor an enemy placed here may pace, already cut to the
-     * room's pits and edges. The factory does not know the room's shape, and
-     * the answer is fixed at placement, so the scene works it out.
+     * 이 위치의 적이 순찰할 수 있도록 방의 구덩이와 가장자리에 맞춰 잘라낸
+     * 바닥 구간. 팩토리는 방의 형태를 모르고 배치 시점에 범위가 고정되므로,
+     * 장면에서 계산해 전달한다.
      */
     private readonly patrolBoundsFor: (spawnX: number) => PatrolBounds | null,
     private readonly flyingSprite?: FlyingSpriteConfig,

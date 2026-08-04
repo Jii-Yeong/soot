@@ -26,7 +26,7 @@ type DecodingSoundManager = Phaser.Sound.BaseSoundManager & {
   decodeAudio(key: string, data: ArrayBuffer): void;
 };
 
-/** `BaseSoundManager` loses the concrete sound type returned at runtime. */
+/** `BaseSoundManager`에서 런타임에 반환되는 구체적인 사운드 타입을 보완한다. */
 type VolumeControlledSound = Phaser.Sound.BaseSound & {
   setVolume(value: number): Phaser.Sound.BaseSound;
 };
@@ -101,10 +101,9 @@ export class AudioDirector {
   }
 
   /**
-   * Stage music is fetched after boot rather than during it. The title track
-   * is the exception: BootScene preloads it so title playback can be attempted
-   * as soon as the player passes the browser's start prompt. Sound effects
-   * total 113KB while one track is over a megabyte.
+   * 스테이지 음악은 부팅 중이 아니라 이후에 가져온다. 타이틀 곡은 예외로,
+   * BootScene에서 미리 불러와 플레이어가 브라우저 시작 안내를 통과하는 즉시
+   * 재생을 시도할 수 있게 한다. 효과음 전체는 113KB지만 음악 한 곡은 1MB가 넘는다.
    *
    * Only the track that is about to be needed is fetched, plus the one for the
    * stage after it. Fetching every track up front would mean a player who
@@ -120,8 +119,8 @@ export class AudioDirector {
   private requestMusic(key: MusicKey | undefined) {
     const manager = this.game.sound;
 
-    // BootScene preloads the title track so it can start as soon as the title
-    // appears. Do not fetch and decode that same file a second time.
+    // BootScene이 타이틀 곡을 미리 불러오므로 타이틀 표시 즉시 재생할 수 있다.
+    // 같은 파일을 다시 가져와 디코딩하지 않는다.
     if (
       !key ||
       this.isLoaded(key) ||
@@ -292,7 +291,7 @@ export class AudioDirector {
     this.music.play();
   }
 
-  /** Web Audio stays locked until the player clicks the start prompt. */
+  /** 플레이어가 시작 안내를 누를 때까지 Web Audio는 잠긴 상태로 유지된다. */
   private readonly handleUnlocked = () => {
     this.music?.play();
   };

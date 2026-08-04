@@ -37,19 +37,18 @@ export const MELEE_ENEMY_COMBAT_CONFIG = {
   contactDamage: 15,
   contactDamageCooldown: 700,
   /**
-   * Pacing while nobody is in range. Rooms are built with their enemies now, so
-   * the player walks into one already occupied — but an enemy standing at
-   * perfect attention reads as one waiting to be switched on. A slow beat
-   * around where it was placed reads as something that was already there.
+   * 감지 범위에 플레이어가 없을 때의 순찰 설정. 이제 방과 적이 함께 생성되므로
+   * 플레이어는 적이 이미 있는 공간으로 들어간다. 적이 차렷 자세로 서 있으면
+   * 활성화를 기다리는 것처럼 보이지만, 배치 지점 주변을 천천히 오가면 원래부터
+   * 그곳에 있던 대상으로 읽힌다.
    *
-   * Well under the 190 it chases at: the gear change is what tells the player
-   * they have been noticed.
+   * 추적 속도 190보다 충분히 느리게 설정해, 속도 변화로 감지 여부를 알린다.
    */
   patrolRange: 90,
   patrolSpeed: 70,
-  /** Clear of a pit edge by more than half a 48px-wide body. */
+  /** 너비 48px 몸체의 절반보다 더 큰 구덩이 가장자리 여유. */
   patrolEdgeMargin: 28,
-  /** Any shorter and the turns come often enough to read as twitching. */
+  /** 이보다 짧으면 방향 전환이 잦아 떨리는 움직임처럼 보인다. */
   patrolMinimumSpan: 60,
 } as const;
 

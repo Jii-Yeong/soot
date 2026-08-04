@@ -14,7 +14,7 @@ export type MeleeEnemyConfig = {
   moveSpeed: number;
   contactDamage: number;
   contactDamageCooldown: number;
-  /** Where it may pace while unaware. Absent means there is no room to. */
+  /** 플레이어를 감지하기 전에 순찰할 구간. 없으면 순찰할 공간이 없다는 뜻이다. */
   patrol?: { left: number; right: number; speed: number };
   /** 설정 시 적이 접촉 데미지 대신 휘두르기로 공격함. */
   swing?: MeleeSwingConfig;
@@ -82,8 +82,8 @@ export class MeleeEnemy extends Enemy {
     this.contactDamage = config.contactDamage;
     this.contactDamageCooldown = config.contactDamageCooldown;
     this.patrol = config.patrol;
-    // Set off toward the longer half of its beat, so a patrol that was cut
-    // short on one side by a pit does not open by turning around.
+    // 구덩이 때문에 한쪽이 짧아진 순찰 구간에서 시작부터 방향을 바꾸지 않도록
+    // 더 긴 쪽을 향해 출발한다.
     this.patrolHeading =
       this.patrol && x - this.patrol.left > this.patrol.right - x ? -1 : 1;
     this.swing = config.swing;
@@ -132,8 +132,7 @@ export class MeleeEnemy extends Enemy {
       return this.updateSwingCombat(time, target, targetInRange);
     }
 
-    // While staggered, let the knockback impulse carry it instead of
-    // immediately resuming the chase.
+    // 경직 중에는 즉시 추적을 재개하지 않고 밀려나는 힘을 그대로 적용한다.
     if (this.isStaggered(time)) {
       return targetInRange;
     }
@@ -151,9 +150,9 @@ export class MeleeEnemy extends Enemy {
   }
 
   /**
-   * The beat it walks while nothing is in range. The turn is taken on reaching
-   * an end rather than on a timer, so an enemy knocked or chased outside its
-   * span walks back into it instead of pacing wherever it was left.
+   * 감지 범위에 대상이 없을 때 순찰 구간을 걷는다. 시간 대신 끝점 도달 시
+   * 방향을 바꾸므로, 밀려나거나 추적 중 구간 밖으로 나간 적도 현재 위치에서
+   * 새로 순찰하지 않고 원래 구간으로 돌아온다.
    */
   private patrolStep() {
     if (!this.patrol) {

@@ -31,9 +31,9 @@ export type EnemySpawnConfig =
     };
 
 /**
- * A solid, static piece of level geometry. `x`/`y` are the top-left corner.
- * A `platform` is a one-way ledge for changing height. A `wall` is a tall
- * barrier to jump or dash over. Both types stop regular shots from every side.
+ * 움직이지 않는 단단한 지형 조각. `x`/`y`는 왼쪽 위 모서리 좌표다.
+ * `platform`은 높이를 바꾸는 일방통행 발판이고, `wall`은 점프나 대시로
+ * 넘어야 하는 높은 장애물이다. 두 유형 모두 모든 방향에서 일반 탄환을 막는다.
  */
 export type TerrainPiece = {
   type: 'platform' | 'wall';

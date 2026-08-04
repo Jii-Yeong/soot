@@ -18,8 +18,8 @@ describe('patrolSpan', () => {
   });
 
   it('stops short of a pit ahead, with the body clear of the edge', () => {
-    // Pit at 1050~1250. The turn has to happen a margin before its lip, or the
-    // enemy walks off the level the moment it reaches the end of its beat.
+    // 구덩이는 1050~1250에 있다. 가장자리보다 여유 있게 앞에서 방향을 바꾸지 않으면
+    // 적이 순찰 구간 끝에 도달하는 순간 레벨 밖으로 걸어 나간다.
     expect(
       patrolSpan({
         ...base,
@@ -40,8 +40,8 @@ describe('patrolSpan', () => {
   });
 
   it('holds position when pits close in from both sides', () => {
-    // Floor runs 940~1040 between them. Margins take 28 off each side, leaving
-    // 968~1012 — a 44px beat, under the 60 worth pacing.
+    // 두 구덩이 사이 바닥은 940~1040이다. 양쪽에서 여유 28을 빼면 968~1012의
+    // 44px만 남아, 순찰 최소 거리 60보다 짧다.
     expect(
       patrolSpan({
         ...base,
@@ -55,9 +55,8 @@ describe('patrolSpan', () => {
   });
 
   it('still paces when the gap between two pits is just wide enough', () => {
-    // The same shape with the right pit 20px further out: 968~1032 is 64px,
-    // which clears the minimum. The line between this and the case above is
-    // four pixels wide, so it is worth pinning down.
+    // 같은 형태에서 오른쪽 구덩이를 20px 더 멀리 두면 968~1032의 64px가 남아
+    // 최소 거리를 넘는다. 위 사례와의 경계가 4px뿐이므로 테스트로 고정한다.
     expect(
       patrolSpan({
         ...base,
@@ -71,8 +70,8 @@ describe('patrolSpan', () => {
   });
 
   it('holds position when placed on a pit', () => {
-    // Should not happen — a rule already forbids spawning a ground enemy over
-    // one — but a patrol is the wrong thing to hand out if it ever does.
+    // 지상 적의 구덩이 위 생성을 금지하는 규칙이 있어 발생하면 안 되지만,
+    // 잘못 배치되더라도 순찰 범위를 부여해서는 안 된다.
     expect(
       patrolSpan({
         ...base,

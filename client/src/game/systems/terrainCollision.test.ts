@@ -7,8 +7,7 @@ import {
 
 describe('terrain collision faces', () => {
   it('lets a platform be entered from below and stood on from above', () => {
-    // The whole point: a jump taken under a ledge passes through it instead of
-    // stopping dead against its underside.
+    // 발판 아래에서 점프하면 밑면에 막히지 않고 통과해야 한다.
     expect(terrainCollisionFaces('platform')).toEqual({
       up: true,
       down: false,
@@ -18,9 +17,8 @@ describe('terrain collision faces', () => {
   });
 
   it('keeps a wall solid on every face', () => {
-    // A wall is the obstacle, not the floor of the storey above it. Opening its
-    // underside would let the player rise through the thing they are supposed
-    // to go over.
+    // 벽은 위층 바닥이 아니라 넘어야 하는 장애물이므로, 밑면을 열면 플레이어가
+    // 통과해 올라갈 수 있어서는 안 된다.
     expect(terrainCollisionFaces('wall')).toEqual({
       up: true,
       down: true,

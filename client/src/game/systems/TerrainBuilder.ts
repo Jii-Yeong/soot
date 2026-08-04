@@ -12,23 +12,22 @@ const TERRAIN_STYLE = {
 } as const;
 
 /**
- * Which faces of a terrain piece stop character physics.
+ * 캐릭터 물리를 막는 지형 조각의 면을 정의한다.
  *
- * Platforms are one-way: you rise through them and land on top. There is one
- * jump speed in this game, so a player clearing a gap climbs 130.7px whether
- * they need it or not, and a solid underside turned every ordinary hop taken
- * beneath a ledge into a headbutt. The level data had been bending around that
- * — stage 1 carries no pits at all because every open stretch there has a ledge
- * overhead — which is a lot of layout spent on a collision face nobody wants.
+ * 발판은 아래에서 통과해 위에 착지하는 일방통행 지형이다. 이 게임은 점프 속도가
+ * 하나뿐이라 간격을 넘을 때 필요 여부와 관계없이 130.7px 상승한다. 발판 밑면이
+ * 단단하면 아래에서 하는 평범한 점프마다 머리를 부딪힌다. 기존 레벨 데이터는 이를
+ * 피하려고 우회했고, 스테이지 1의 열린 구간마다 위에 발판이 있어 구덩이조차 두지
+ * 못하는 등 필요 없는 충돌면에 많은 배치를 소비했다.
  *
- * Walls stay solid on every face. A wall is the thing you are meant to go over.
+ * 벽은 모든 면이 단단하며, 플레이어가 넘어야 하는 장애물이다.
  */
 export const terrainCollisionFaces = (type: TerrainPiece["type"]) =>
   type === "wall"
     ? { up: true, down: true, left: true, right: true }
     : { up: true, down: false, left: false, right: false };
 
-/** Projectile geometry is solid from every direction, including platform undersides. */
+/** 탄환용 지형은 발판 밑면을 포함해 모든 방향에서 단단하다. */
 export const projectileCollisionFaces = {
   up: true,
   down: true,
@@ -36,7 +35,7 @@ export const projectileCollisionFaces = {
   right: true,
 };
 
-/** Every terrain piece is solid to player and enemy projectiles. */
+/** 모든 지형 조각은 플레이어와 적 탄환을 막는다. */
 export const terrainBlocksProjectiles = (_type: TerrainPiece["type"]) => true;
 
 export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
@@ -45,10 +44,9 @@ export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
   );
 
 /**
- * Builds a room's solid level geometry (platforms and walls) as static bodies
- * with placeholder visuals. The bodies live in one static group so a single
- * persistent player collider tracks them across rooms; `build` swaps the
- * contents each room.
+ * 방의 단단한 지형(발판과 벽)을 임시 시각 요소가 있는 정적 몸체로 만든다.
+ * 몸체는 하나의 정적 그룹에 두어 유지되는 플레이어 충돌체가 방 사이에서도
+ * 추적하게 하며, `build`가 방마다 내용을 교체한다.
  */
 export class TerrainBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
@@ -91,9 +89,9 @@ export class TerrainBuilder {
       body.updateFromGameObject();
       Object.assign(body.checkCollision, terrainCollisionFaces(piece.type));
 
-      // Player movement keeps platforms one-way. Projectiles instead use a
-      // separate, invisible body so every face of the same visual geometry is
-      // solid without turning a jump into a headbutt.
+      // 플레이어 이동에는 발판을 일방통행으로 유지한다. 탄환은 별도의 보이지 않는
+      // 몸체를 사용해, 점프할 때 밑면에 부딪히지 않으면서 같은 시각 지형의 모든 면을
+      // 단단하게 처리한다.
       const projectileBlocker = this.scene.add
         .rectangle(
           piece.x + piece.width / 2,

@@ -14,28 +14,27 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { patrolSpan } from '@/game/systems/patrolSpan';
 
 /**
- * Level geometry has to be checked against what the player can actually do, not
- * eyeballed. Every number below is derived from PLAYER_COMBAT_CONFIG and the
- * world gravity, so changing the jump re-derives the limits instead of silently
- * stranding a ledge.
+ * 레벨 지형은 육안이 아니라 플레이어가 실제로 할 수 있는 동작을 기준으로 검사한다.
+ * 아래 수치는 모두 PLAYER_COMBAT_CONFIG와 월드 중력에서 계산하므로, 점프 설정을
+ * 바꾸면 한계도 다시 계산되어 발판이 조용히 도달 불가능한 상태로 남지 않는다.
  */
 const GRAVITY_Y = 1200;
 const { jumpSpeed, moveSpeed, dash } = PLAYER_COMBAT_CONFIG;
 
-/** Peak height of a full jump: v^2 / 2g. */
+/** 완전한 점프의 최고 높이: v^2 / 2g. */
 const MAX_JUMP_HEIGHT = (jumpSpeed * jumpSpeed) / (2 * GRAVITY_Y);
-/** Horizontal travel across a full jump arc that lands at the take-off height. */
+/** 출발 높이로 착지하는 전체 점프 궤적의 수평 이동 거리. */
 const MAX_JUMP_DISTANCE = moveSpeed * ((2 * jumpSpeed) / GRAVITY_Y);
-/** A dash holds its speed with gravity disabled, so it adds flat distance. */
+/** 대시는 중력을 끄고 속도를 유지하므로 고정된 수평 거리를 더한다. */
 const DASH_DISTANCE = dash.speed * (dash.duration / 1000);
-/** Comfortable and skill-check gaps. A required gap should stay under SAFE. */
+/** 편안한 간격과 숙련도 확인용 간격. 필수 경로는 SAFE 이하로 유지한다. */
 const SAFE_GAP = MAX_JUMP_DISTANCE * 0.7;
 const HARD_GAP = MAX_JUMP_DISTANCE * 0.95;
 const MINIMUM_USABLE_DROP_LANE = 96;
 
 /**
- * Seconds spent rising to `climb`, from `climb = v*t - g*t^2/2`. Undefined once
- * the height is past the apex, which the caller rules out first.
+ * `climb = v*t - g*t^2/2`에서 `climb` 높이까지 상승하는 시간(초).
+ * 정점을 넘는 높이는 정의되지 않으며 호출부가 먼저 제외한다.
  */
 function timeToRise(climb: number) {
   const discriminant = jumpSpeed * jumpSpeed - 2 * GRAVITY_Y * climb;
@@ -43,9 +42,8 @@ function timeToRise(climb: number) {
 }
 
 /**
- * How far sideways the player can travel while still arriving at `climb`.
- * The dash holds its speed with gravity disabled, so it adds flat distance on
- * top of whatever the jump arc covers.
+ * `climb` 높이에 도달하면서 플레이어가 옆으로 이동할 수 있는 거리.
+ * 대시는 중력을 끄고 속도를 유지하므로 점프 궤적의 이동 거리에 고정 거리를 더한다.
  */
 function horizontalReachAt(climb: number) {
   return moveSpeed * timeToRise(climb) + DASH_DISTANCE;
@@ -67,7 +65,7 @@ function surfacesOf(room: RoomConfig): Surface[] {
   ];
 }
 
-/** True when one jump from `source` can land on `target`. */
+/** `source`에서 한 번 점프해 `target`에 착지할 수 있으면 true. */
 function canHop(source: Surface, target: Surface) {
   if (source === target || source.top <= target.top) {
     return false;
@@ -93,9 +91,9 @@ function canHop(source: Surface, target: Surface) {
 }
 
 /**
- * Reachability has to spread out from the floor, not be judged one hop at a
- * time. A ledge that is only steppable from another stranded ledge is stranded
- * too, and a per-pair check happily calls both of them fine.
+ * 도달성은 점프 한 쌍씩 판단하지 않고 바닥에서부터 확장해 계산해야 한다.
+ * 도달 불가능한 발판에서만 갈 수 있는 다른 발판도 도달 불가능하지만,
+ * 발판 쌍만 검사하면 둘 모두 정상이라고 잘못 판단할 수 있다.
  */
 function reachableFromFloor(surfaces: Surface[]) {
   const floor = surfaces.find((surface) => surface.label === 'floor')!;
@@ -194,10 +192,10 @@ describe('level geometry against player metrics', () => {
   });
 
   it('reaches every platform without standing on a wall', () => {
-    // Walls are dumpsters: things to clear, not stairs. They are short enough
-    // to stand on, so a platform out of the floor's reach can quietly end up
-    // depending on one — which is how alley-01's second perch came to need a
-    // 350px detour forward to a dumpster and a jump back to reach it.
+    // 벽은 계단이 아니라 넘어야 할 장애물이다. 위에 설 수 있을 만큼 낮으므로
+    // 바닥에서 닿지 않는 발판이 자신도 모르게 벽에 의존할 수 있다. 실제로
+    // alley-01의 두 번째 발판은 앞쪽 벽까지 350px 우회한 뒤 뒤로 점프해야만
+    // 도달할 수 있는 상태였다.
     const wallDependent: string[] = [];
 
     for (const { stage, room } of combatRooms()) {
@@ -349,20 +347,18 @@ describe('level geometry against player metrics', () => {
     expect(buriedPatrols).toEqual([]);
   });
 
-  // Removed: 'leaves sky above everything that has to be jumped'.
+  // 제거된 검사: 점프해야 하는 모든 요소 위에 빈 공간을 남긴다.
   //
-  // It kept platform undersides clear of anything the player had to jump over,
-  // because a full jump rises 130.7px whether it needs to or not and a low
-  // ledge turned an ordinary hop into a headbutt. Platforms are one-way now —
-  // the jump passes through and lands on top — so the collision it guarded
-  // against cannot happen. What is left of it is the layout it forced: stage 1
-  // still carries no pits because every open stretch there has a ledge
-  // overhead, which is no longer a reason.
+  // 완전한 점프는 필요 여부와 관계없이 130.7px 상승하므로, 낮은 발판 아래에서
+  // 평범하게 점프하면 밑면에 부딪혔다. 이 검사는 점프할 요소 위에 발판 밑면이
+  // 없도록 강제했다. 이제 발판은 아래에서 통과해 위에 착지하는 일방통행이라
+  // 해당 충돌은 발생하지 않는다. 다만 이 규칙이 강제한 배치는 남아 있어,
+  // 스테이지 1의 열린 구간마다 위에 발판이 있다는 이유로 구덩이가 전혀 없다.
 
   it('introduces each enemy type on its own before combining them', () => {
-    // Every hazard meets the player somewhere it can be read before it meets
-    // them somewhere it can kill. The first room used to open with all three
-    // types inside 500px, which teaches that enemies exist and nothing else.
+    // 모든 위협은 플레이어를 죽일 수 있는 조합으로 만나기 전에 단독으로 파악할
+    // 기회를 준다. 기존 첫 방은 500px 안에 세 유형이 모두 등장해 적이 있다는
+    // 사실 외에는 아무것도 학습시키지 못했다.
     const firstRoom = STAGES[0].rooms.find((room) => room.kind === 'combat')!;
     const order = [...firstRoom.enemySpawns]
       .sort((first, second) => first.x - second.x)
@@ -373,8 +369,8 @@ describe('level geometry against player metrics', () => {
       if (!introducedAt.has(type)) introducedAt.set(type, index);
     });
 
-    // Nothing new arrives while the previous type is still being introduced:
-    // each type gets at least one encounter to itself.
+    // 이전 유형을 소개하는 동안 새 유형이 합류하지 않으며, 각 유형은 최소 한 번
+    // 단독 교전을 갖는다.
     const introductions = [...introducedAt.values()].sort((a, b) => a - b);
     for (let index = 1; index < introductions.length; index += 1) {
       expect(
@@ -383,15 +379,14 @@ describe('level geometry against player metrics', () => {
       ).toBeGreaterThanOrEqual(2);
     }
 
-    // And the one the ground cannot answer comes last.
+    // 지상에서 대응할 수 없는 유형은 마지막에 소개한다.
     expect(order[order.length - 1]).toBe('flying');
   });
 
   it('leaves a reset stretch before every boss door', () => {
-    // The last encounter must end far enough before a boss door for the player
-    // to reload, reset their position, and read the arena transition. One third
-    // of a viewport is the minimum here; anything shorter feels like walking
-    // straight from the final enemy's fire into the boss's opening move.
+    // 마지막 교전은 보스 문보다 충분히 앞에서 끝나 재장전, 위치 재정비, 전장 전환을
+    // 읽을 시간을 줘야 한다. 여기서는 화면 너비의 3분의 1을 최소값으로 사용하며,
+    // 더 짧으면 마지막 적의 사격에서 곧바로 보스의 첫 공격으로 걸어 들어가는 느낌이 난다.
     const MINIMUM_BOSS_APPROACH = 400;
 
     for (const stage of STAGES) {
@@ -408,10 +403,9 @@ describe('level geometry against player metrics', () => {
   });
 
   it('keeps a flight stage inside the band the player can fly', () => {
-    // The one stage the player flies has no floor to stand on and no jump to
-    // measure, so its geometry is the box the flight controller clamps them to.
-    // An enemy outside it — or one whose own patrol drifts outside it — is one
-    // the player can be shot by and cannot answer.
+    // 유일한 비행 스테이지에는 서 있을 바닥이나 측정할 점프가 없으므로,
+    // 비행 컨트롤러가 플레이어를 제한하는 영역 자체가 지형이다. 이 영역 밖의 적이나
+    // 순찰 중 밖으로 나가는 적은 플레이어를 쏠 수 있지만 반격할 수 없는 대상이 된다.
     const { minY, maxY } = PLAYER_FLIGHT_BOUNDS;
     const outOfReach: string[] = [];
     const bandUse: string[] = [];
@@ -425,7 +419,7 @@ describe('level geometry against player metrics', () => {
         for (const spawn of room.enemySpawns) {
           if (spawn.type !== 'flying') continue;
           heights.push(spawn.y);
-          // A patrol or orbit swings this far either side of where it starts.
+          // 순찰 또는 궤도 이동은 시작점 양쪽으로 이만큼 움직인다.
           const swing = spawn.movement?.rangeY ?? 0;
           if (spawn.y - swing < minY || spawn.y + swing > maxY) {
             outOfReach.push(
@@ -434,8 +428,8 @@ describe('level geometry against player metrics', () => {
           }
         }
 
-        // Placement that clusters in the middle leaves the ceiling and the
-        // floor as free parking, which is the whole stage's difficulty.
+        // 적이 중앙에 몰리면 천장과 바닥이 계속 머물 수 있는 안전 지대가 되어
+        // 스테이지의 핵심 난도가 사라진다.
         const spread = Math.max(...heights) - Math.min(...heights);
         const share = spread / (maxY - minY);
         bandUse.push(
@@ -458,8 +452,8 @@ describe('level geometry against player metrics', () => {
   });
 
   it('leaves a flight stage free of terrain', () => {
-    // Solid geometry needs a jump to escape and flight mode has none, so a
-    // player pushed into a corner by a tracking enemy would have no way out.
+    // 단단한 지형에서 벗어나려면 점프가 필요하지만 비행 모드에는 점프가 없으므로,
+    // 추적 적에게 구석으로 밀린 플레이어가 빠져나올 수 없게 된다.
     for (const stage of STAGES) {
       if (stage.movementMode !== MovementMode.FLIGHT) continue;
 
@@ -471,10 +465,9 @@ describe('level geometry against player metrics', () => {
   });
 
   it('does not spawn a ground enemy over a pit', () => {
-    // A ground enemy standing where there is no floor falls out of the room the
-    // moment it is created. Easy to do by eye and invisible until someone plays
-    // the room — three of these were nearly authored while laying out stages 3
-    // and 4, because the pits go in after the enemies and nothing complained.
+    // 바닥이 없는 곳에 선 지상 적은 생성 즉시 방 밖으로 떨어진다. 육안 배치에서는
+    // 만들기 쉽고 실제 플레이 전까지 드러나지 않는다. 적을 먼저 놓고 구덩이를 나중에
+    // 추가해도 경고가 없어, 스테이지 3과 4 배치 중 세 곳에서 발생할 뻔했다.
     const floating: string[] = [];
 
     for (const { stage, room } of combatRooms()) {
@@ -551,12 +544,11 @@ describe('level geometry against player metrics', () => {
           .slice(1)
           .map((piece, index) => piece.left - sorted[index].right);
         const worst = gaps.length > 0 ? Math.max(...gaps) : 0;
-        // Between the comfortable gap and the hard one a plain jump still
-        // clears it — the arc carries 280px and only the last 14 of those are
-        // out of reach without a dash. Collapsing that band into '대시 필요'
-        // called for a dash on gaps the player jumps, and said so about stage
-        // 4's 230px seams, which were sized to need neither. The dash line is
-        // HARD_GAP so this reads the same way the pit check does.
+        // 편안한 간격과 한계 간격 사이는 일반 점프로도 넘을 수 있다. 점프 궤적은
+        // 280px이며 마지막 14px만 대시 없이는 닿지 않는다. 이 구간 전체를
+        // '대시 필요'로 묶으면 일반 점프용으로 만든 스테이지 4의 230px 간격까지
+        // 대시가 필요하다고 잘못 표시한다. 구덩이 검사와 같은 기준을 쓰도록
+        // 대시 경계를 HARD_GAP으로 둔다.
         const verdict =
           worst === 0
             ? '연속'

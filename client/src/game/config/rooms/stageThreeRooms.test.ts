@@ -109,7 +109,7 @@ describe('stage 3 room layout', () => {
     expect(roomTwoPlatforms).toHaveLength(7);
     expect(upperLedges).toHaveLength(2);
 
-    // The extra height is a 100px step off the catwalk, not a precision jump.
+    // 추가 높이는 정밀 점프가 아니라 캣워크에서 100px 올라가는 한 단계다.
     for (const ledge of upperLedges ?? []) {
       expect(CATWALK_Y - ledge.y).toBe(100);
     }

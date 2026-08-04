@@ -184,9 +184,8 @@ async function clearCityRoomOne(
 ) {
   await clearRoom(page, bounds, CITY_ROOM_ONE_GROUND_TARGETS);
 
-  // Continue through the ground encounters. The last flier is above a two-tier
-  // platform, so it cannot be damaged from the floor now that terrain blocks
-  // both sides' shots.
+  // 지상 교전을 이어 간다. 마지막 비행 적은 2단 발판 위에 있으므로,
+  // 지형이 양쪽 탄환을 막는 현재 구조에서는 바닥에서 피해를 줄 수 없다.
   await runAndFireAt(page, bounds, 1120, 630, 8000);
   await holdKeyFor(page, "KeyD", 2000);
   await whileHoldingKey(page, "Space", () => page.waitForTimeout(100));
