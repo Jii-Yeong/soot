@@ -302,11 +302,12 @@ export const HOUND_BOSS_SPRITES: Partial<
     animations: STAGE_TWO_BOSS_ANIMATIONS,
     scale: 1,
     // 사족보행 메카는 프레임을 가로로 꽉 채움(300x250). 다리/몸통에 바디를
-    // 맞추고, 발이 바닥에 닿도록 하단 정렬(프레임 발 위치 y≈239).
+    // 맞추고, 발이 바닥에 닿도록 하단 정렬. 프레임 아래쪽 그림자 여백만큼
+    // 오프셋을 줄여, 스프라이트가 바닥에 더 붙게 함.
     bodyWidth: 220,
     bodyHeight: 150,
     bodyOffsetX: 40,
-    bodyOffsetY: 89,
+    bodyOffsetY: 69,
     // 아트는 머리(귀·눈)가 왼쪽 — 기본 좌향이므로 flip 방향을 반전.
     facesLeft: true,
   },
