@@ -256,6 +256,9 @@ export type PurifierBossSpriteConfig = BossSpriteGeometry & {
     idle: string;
     walk: string;
     takeDown: string;
+    slamWindup: string;
+    slamAir: string;
+    slamStrike: string;
     suction: string;
     death: string;
   };

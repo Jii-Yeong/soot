@@ -144,6 +144,10 @@ export const STAGE_THREE_BOSS_ANIMATIONS = {
   idle: 'stage-3-boss-idle',
   walk: 'stage-3-boss-walk',
   takeDown: 'stage-3-boss-take-down',
+  // 점프 후 찍어바르기(슬램)의 단계별 단일 포즈: 준비(5)·공중(6)·내려찍기(7).
+  slamWindup: 'stage-3-boss-slam-windup',
+  slamAir: 'stage-3-boss-slam-air',
+  slamStrike: 'stage-3-boss-slam-strike',
   suction: 'stage-3-boss-suction',
   death: 'stage-3-boss-death',
 } as const;
@@ -162,6 +166,9 @@ export const STAGE_THREE_BOSS_TAG_FRAMES: Record<
     { frame: '6', duration: 90 },
     { frame: '7', duration: 150 },
   ],
+  slamWindup: [{ frame: '5', duration: 200 }],
+  slamAir: [{ frame: '6', duration: 200 }],
+  slamStrike: [{ frame: '7', duration: 200 }],
   suction: [8, 9].map((index) => ({ frame: String(index), duration: 180 })),
   death: [
     { frame: '10', duration: 160 },

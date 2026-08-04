@@ -108,10 +108,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.playSpriteAnimation(this.sprite.animations.idle);
   }
 
-  /**
-   * 애니메이션을 중복 재생하지 않도록 dedup. 텔레그래프용 tint(setTint/
-   * clearTint)와는 독립적으로 동작함.
-   */
+  /** 애니메이션을 중복 재생하지 않도록 dedup. */
   private playSpriteAnimation(animation: string) {
     if (!this.sprite || this.activeSpriteAnimation === animation) {
       return;
@@ -337,7 +334,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.slam.warnDuration;
     this.slamTargetX = target.x;
-    this.playSpriteAnimation(this.sprite?.animations.takeDown ?? '');
+    this.playSpriteAnimation(this.sprite?.animations.slamWindup ?? '');
   }
 
   private updateSlamWarn(
@@ -347,7 +344,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.setVelocityX(0);
     // Track the player during the warning, then lock this spot at takeoff.
     this.slamTargetX = target.x;
-    this.setTint(this.pattern.telegraphColor);
     this.drawGroundMarker(
       this.slamTargetX,
       this.pattern.slam.landingRadius * 2,
@@ -375,6 +371,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.slamHasLeftGround = false;
     this.setFlipX(leap.velocityX < 0);
     this.setVelocity(leap.velocityX, leap.velocityY);
+    this.playSpriteAnimation(this.sprite?.animations.slamAir ?? '');
   }
 
   private updateSlamLeap(time: number) {
@@ -408,8 +405,8 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.slam.strikeDuration;
     this.setVelocity(0);
-    this.clearTint();
     this.telegraph.clear();
+    this.playSpriteAnimation(this.sprite?.animations.slamStrike ?? '');
     this.scene.cameras.main.shake(180, 0.012);
     this.spawnShockwave(-1);
     this.spawnShockwave(1);
@@ -435,7 +432,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
-    this.setTint(this.pattern.telegraphColor);
     this.drawVacuumFlow(time, target, this.stateProgress(time) * 0.45);
 
     if (time >= this.stateEndsAt) {
