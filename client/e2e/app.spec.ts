@@ -705,12 +705,12 @@ test("stage two ground enemies stop at pit edges instead of falling", async ({
       throw new Error("Missing stage 2 melee enemy");
     }
 
-    // 플레이어를 1번 방 첫 구덩이 건너편에, 근접 적을 그 가까운 가장자리에
-    // 둠. 적의 추격 AI가 적 전용 레일 쪽으로 계속 밀고 들어옴.
-    scene.player.setPosition(1900, 600);
-    scene.player.body.reset(1900, 600);
-    melee.setPosition(1550, melee.y);
-    melee.body.reset(1550, melee.y);
+    // 플레이어를 1번 방 후반 구덩이 건너편에, 근접 적을 그 가까운 가장자리에
+    // 둔다. 적의 추격 AI가 구덩이 쪽으로 계속 밀고 들어온다.
+    scene.player.setPosition(2800, 600);
+    scene.player.body.reset(2800, 600);
+    melee.setPosition(2350, melee.y);
+    melee.body.reset(2350, melee.y);
   });
 
   await page.waitForTimeout(1500);
@@ -733,7 +733,7 @@ test("stage two ground enemies stop at pit edges instead of falling", async ({
     return { x: melee.x, y: melee.y };
   });
 
-  expect(meleePosition.x).toBeLessThan(1650);
+  expect(meleePosition.x).toBeLessThan(2450);
   expect(meleePosition.y).toBeLessThan(656);
 });
 
@@ -741,8 +741,7 @@ test("admin menu scrolls instead of overflowing a short viewport", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 800, height: 360 });
-  await page.goto("/");
-  await expect(page.locator("main")).toHaveAttribute("data-scene", "title");
+  await enterTitle(page);
   await page.keyboard.press("Enter");
   await expect(page.locator("main")).toHaveAttribute("data-scene", "game");
 
@@ -770,8 +769,7 @@ test("admin menu scrolls instead of overflowing a short viewport", async ({
 test("shows boss health without enabling the standard enemy health HUD", async ({
   page,
 }) => {
-  await page.goto("/");
-  await expect(page.locator("main")).toHaveAttribute("data-scene", "title");
+  await enterTitle(page);
   await page.keyboard.press("Enter");
   await expect(page.locator("main")).toHaveAttribute("data-scene", "game");
 
@@ -806,18 +804,35 @@ test("player fire damages the enemy without stopping combat", async ({
 
 test("platforms block player projectiles", async ({ page }) => {
   await enterGame(page);
-  await page.waitForTimeout(1000);
+  await page.evaluate(() => {
+    type RuntimeBody = { reset: (x: number, y: number) => void };
+    type RuntimeActor = {
+      body: RuntimeBody;
+      constructor: { name: string };
+      setPosition: (x: number, y: number) => void;
+      x: number;
+      y: number;
+    };
+    type RuntimeScene = {
+      enemies: RuntimeActor[];
+      player: RuntimeActor;
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene("game") as RuntimeScene;
 
-  // 비행체는 사격선 위에 놓인 2층 발판 뒤에서 떠다님. 비행체가 특별히
-  // 맞지 않고 유지되는지 확인함: 낮은 전경 경로의 지상 적들은 별개의 문제 —
-  // 이건 발판이 총알을 흡수하는지에 관한 것이고, 지상 적의 키 큰 스프라이트가
-  // 아니었다면 그것을 가렸을 것임.
+    scene.player.setPosition(3150, 600);
+    scene.player.body.reset(3150, 600);
+  });
+  await page.waitForTimeout(500);
+
+  // 플레이어와 비행 적을 같은 x축의 발판 아래·위에 놓고 위로 사격한다.
+  // 탄환이 발판을 통과하지 않으면 비행 적의 체력은 그대로 유지된다.
   const shieldedFlyerHp = () =>
-    page.evaluate((targetY) => {
+    page.evaluate(() => {
       type RuntimeScene = {
         enemies: Array<{
           active: boolean;
-          y: number;
           currentHealth: number;
           constructor: { name: string };
         }>;
@@ -825,18 +840,45 @@ test("platforms block player projectiles", async ({ page }) => {
       type DebugGame = { scene: { getScene: (key: string) => unknown } };
       const game = (window as unknown as { __game?: DebugGame }).__game!;
       const scene = game.scene.getScene("game") as RuntimeScene;
-      const flyers = scene.enemies.filter(
+      return scene.enemies.find(
         (e) => e.active && e.constructor.name === "FlyingEnemy",
-      );
-      // 사격 목표 높이에 가장 가까운 것이 발판 뒤에 있음.
-      return flyers.reduce((nearest, e) =>
-        Math.abs(e.y - targetY) < Math.abs(nearest.y - targetY) ? e : nearest,
-      ).currentHealth;
-    }, CITY_ROOM_ONE_FLYING_TARGET[1]);
+      )!.currentHealth;
+    });
+
+  const target = await page.evaluate(() => {
+    type RuntimeBody = { reset: (x: number, y: number) => void };
+    type RuntimeActor = {
+      body: RuntimeBody;
+      active: boolean;
+      constructor: { name: string };
+      setPosition: (x: number, y: number) => void;
+      setVelocity: (x: number, y: number) => void;
+      updateCombat: () => boolean;
+    };
+    type RuntimeScene = {
+      cameras: { main: { scrollX: number; scrollY: number } };
+      enemies: RuntimeActor[];
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene("game") as RuntimeScene;
+    const flyer = scene.enemies.find(
+      (enemy) => enemy.active && enemy.constructor.name === "FlyingEnemy",
+    )!;
+
+    flyer.setPosition(3150, 360);
+    flyer.body.reset(3150, 360);
+    flyer.setVelocity(0, 0);
+    flyer.updateCombat = () => false;
+    return {
+      x: 3150 - scene.cameras.main.scrollX,
+      y: 360 - scene.cameras.main.scrollY,
+    };
+  });
 
   const before = await shieldedFlyerHp();
   const bounds = await getCanvasBounds(page);
-  await fireAt(page, bounds, ...CITY_ROOM_ONE_FLYING_TARGET);
+  await fireAt(page, bounds, target.x, target.y, 300);
 
   expect(await shieldedFlyerHp()).toBe(before);
 });
