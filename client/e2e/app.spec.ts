@@ -212,9 +212,9 @@ async function clearCityRoomOne(
 
 async function enterExitPortal(page: Page) {
   await whileHoldingKey(page, 'KeyD', async () => {
-    // The portal opens at the far end of a cleared room and only lets the player
-    // through on an up/W press while standing in it. ArrowUp both hops the
-    // run-up terrain and enters the portal, so tap it until the next arena locks.
+    // 포탈은 클리어된 방의 먼 끝에 열리며, 그 안에 서서 위/W를 눌러야만
+    // 플레이어를 통과시킴. ArrowUp은 진입로 지형을 넘는 것과 포탈 진입을
+    // 겸하므로, 다음 아레나가 잠길 때까지 눌러줌.
     for (let hop = 0; hop < 34; hop += 1) {
       const roomState = await page
         .locator('main')
@@ -641,8 +641,8 @@ test('stage two ground enemies stop at pit edges instead of falling', async ({
       throw new Error('Missing stage 2 melee enemy');
     }
 
-    // Put the player across room one's first pit and the melee enemy at its
-    // near edge. Its chase AI will continuously push into the enemy-only rail.
+    // 플레이어를 1번 방 첫 구덩이 건너편에, 근접 적을 그 가까운 가장자리에
+    // 둠. 적의 추격 AI가 적 전용 레일 쪽으로 계속 밀고 들어옴.
     scene.player.setPosition(1900, 600);
     scene.player.body.reset(1900, 600);
     melee.setPosition(1550, melee.y);
@@ -746,10 +746,10 @@ test('platforms block player projectiles', async ({ page }) => {
   await enterGame(page);
   await page.waitForTimeout(1000);
 
-  // The flyer hovers behind a second-floor platform that sits on the line of
-  // fire to it. Assert the flyer specifically stays untouched: ground enemies
-  // in the low foreground path are a separate concern — this is about the
-  // platform absorbing the shot, and their tall sprites would otherwise mask it.
+  // 비행체는 사격선 위에 놓인 2층 발판 뒤에서 떠다님. 비행체가 특별히
+  // 맞지 않고 유지되는지 확인함: 낮은 전경 경로의 지상 적들은 별개의 문제 —
+  // 이건 발판이 총알을 흡수하는지에 관한 것이고, 지상 적의 키 큰 스프라이트가
+  // 아니었다면 그것을 가렸을 것임.
   const shieldedFlyerHp = () =>
     page.evaluate((targetY) => {
       type RuntimeScene = {
@@ -766,7 +766,7 @@ test('platforms block player projectiles', async ({ page }) => {
       const flyers = scene.enemies.filter(
         (e) => e.active && e.constructor.name === 'FlyingEnemy',
       );
-      // The one nearest the fire target's height is behind the platform.
+      // 사격 목표 높이에 가장 가까운 것이 발판 뒤에 있음.
       return flyers.reduce((nearest, e) =>
         Math.abs(e.y - targetY) < Math.abs(nearest.y - targetY) ? e : nearest,
       ).currentHealth;

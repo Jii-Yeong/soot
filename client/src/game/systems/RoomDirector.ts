@@ -22,7 +22,7 @@ const ENTRANCE_DETECTOR_WIDTH = 72;
 const PORTAL_WIDTH = 64;
 const PORTAL_HEIGHT = 128;
 const PORTAL_OVERLAP_PADDING = 28;
-/** How far below its resting spot the portal starts before rising into view. */
+/** 포탈이 나타나기 전, 정지 위치보다 얼마나 아래에서 올라오기 시작하는지. */
 const PORTAL_RISE = 96;
 
 export class RoomDirector {
@@ -155,8 +155,8 @@ export class RoomDirector {
   }
 
   /**
-   * Called when the player presses up/W: only leaves through an open portal the
-   * player is actually standing in, so walking past it no longer transitions.
+   * 플레이어가 위/W를 누를 때 호출됨: 실제로 서 있는 열린 포탈로만
+   * 나감. 그래서 포탈을 그냥 지나쳐도 더 이상 전환되지 않음.
    */
   tryExit() {
     if (
@@ -172,7 +172,7 @@ export class RoomDirector {
   }
 
   private clearRoom() {
-    // Rise into place from below rather than fading in on the spot.
+    // 제자리에서 페이드인하는 대신 아래에서 위로 올라오게 함.
     const restY = this.config.portal.y;
     this.portal.body.enable = true;
     this.portal.view
@@ -189,7 +189,7 @@ export class RoomDirector {
       duration: 360,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Settle into a gentle vertical bob once it has arrived.
+        // 도착한 뒤에는 부드러운 상하 흔들림(bob)으로 정착함.
         this.scene.tweens.add({
           targets: this.portal.view,
           y: restY - 6,

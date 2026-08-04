@@ -18,7 +18,7 @@ export type RangedEnemyConfig = {
   sprite?: RangedSpriteConfig;
 };
 
-/** How long the attack pose holds after a shot before returning to idle. */
+/** 사격 후 idle로 돌아가기 전 attack 포즈를 유지하는 시간. */
 const ATTACK_POSE_MS = 220;
 
 export class RangedEnemy extends Enemy {
@@ -51,7 +51,7 @@ export class RangedEnemy extends Enemy {
     this.distanceTolerance = config.distanceTolerance;
     this.projectile = { kind: 'ranged', muzzleOffset: config.muzzleOffset };
     this.sprite = config.sprite;
-    // Render in front of terrain platforms, under the player.
+    // 지형 발판 앞, 플레이어 아래에 렌더링.
     this.setDepth(ENEMY_DEPTH);
     if (this.sprite) {
       this.rig = new GroundedEnemySprite(this, this.sprite);
@@ -77,8 +77,8 @@ export class RangedEnemy extends Enemy {
 
     const moving = this.updatePositioning(time, target, targetInRange);
 
-    // Attack pose wins briefly after a shot; otherwise walk while repositioning
-    // or idle when holding at the preferred gap.
+    // 사격 직후엔 attack 포즈가 잠깐 우선함. 그 외에는 재배치 중 walk,
+    // 선호 간격에서 대기할 땐 idle.
     if (this.sprite && time >= this.attackPoseUntil) {
       this.rig?.play(
         moving ? this.sprite.animations.walk : this.sprite.animations.idle,
@@ -89,8 +89,8 @@ export class RangedEnemy extends Enemy {
   }
 
   /**
-   * Holds a preferred firing gap (still facing/firing at the player): advances
-   * when the player is too far, backpedals when they close in.
+   * 선호 사격 간격을 유지함(계속 플레이어를 향하고 사격): 플레이어가
+   * 너무 멀면 다가가고, 가까이 붙으면 물러남.
    */
   private updatePositioning(
     time: number,

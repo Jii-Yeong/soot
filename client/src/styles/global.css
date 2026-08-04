@@ -192,8 +192,8 @@ input {
   background: rgba(7, 10, 11, 0.94);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(6px);
-  /* Keep the menu between its trigger and the viewport edge. `dvh` follows
-     the actually visible height on mobile; the vh declaration is its fallback. */
+  /* 메뉴를 트리거와 뷰포트 가장자리 사이에 유지함. `dvh`는 모바일에서
+     실제로 보이는 높이를 따름. vh 선언은 그 폴백. */
   max-height: calc(100vh - 140px);
   max-height: calc(100dvh - clamp(64px, 8vw, 84px) - 56px);
   overflow-y: auto;

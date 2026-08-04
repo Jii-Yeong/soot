@@ -7,7 +7,7 @@ import {
 
 type MeleeTag = 'idle' | 'walk' | 'attack' | 'death';
 
-/** Frame ranges and frame times copied from the supplied atlas JSON. */
+/** 제공된 아틀라스 JSON에서 그대로 옮긴 프레임 범위와 프레임 시간. */
 const TAG_FRAMES: Record<MeleeTag, readonly EnemyAnimationFrame[]> = {
   idle: [0, 1].map((frame) => ({ frame: `${frame}`, duration: 130 })),
   walk: [2, 3].map((frame) => ({ frame: `${frame}`, duration: 130 })),
@@ -31,7 +31,7 @@ const MELEE_ATLAS_SET = defineEnemyAtlasSet({
   stages: [1, 2],
   tagFrames: TAG_FRAMES,
   loopingTags: new Set<MeleeTag>(['idle', 'walk']),
-  // Trimmed sourceSize is 160x160; feet sit near y=146, centred near x=89.
+  // 트림된 sourceSize는 160x160. 발은 y=146 부근, 중심은 x=89 부근.
   sprite: {
     scale: 1,
     bodyWidth: 46,

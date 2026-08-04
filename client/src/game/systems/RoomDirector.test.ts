@@ -28,7 +28,7 @@ function createScene() {
     setText: vi.fn().mockReturnThis(),
   };
   const entranceOverlap = { destroy: vi.fn() };
-  // Controls the synchronous "is the player in the portal?" test.
+  // 동기적인 "플레이어가 포탈 안에 있는가?" 판정을 제어함.
   const portalContact = { value: true };
   const scene = {
     add: {
@@ -93,18 +93,18 @@ describe('RoomDirector', () => {
       onExitRequested,
     });
 
-    // Not cleared yet: pressing to leave does nothing.
+    // 아직 클리어 전: 나가기를 눌러도 아무 일 없음.
     director.tryExit();
     expect(onExitRequested).not.toHaveBeenCalled();
 
     director.beginEncounter([]);
 
-    // Cleared but not standing in the portal: still no exit.
+    // 클리어했지만 포탈 안에 서 있지 않음: 여전히 나가지 못함.
     portalContact.value = false;
     director.tryExit();
     expect(onExitRequested).not.toHaveBeenCalled();
 
-    // Standing in the portal: leaves exactly once.
+    // 포탈 안에 서 있음: 정확히 한 번만 나감.
     portalContact.value = true;
     director.tryExit();
     director.tryExit();

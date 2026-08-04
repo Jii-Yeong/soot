@@ -8,8 +8,8 @@ import {
 type FlyingTag = 'idle' | 'hit' | 'deathFall' | 'deathLand';
 
 /**
- * Frame ranges and frame times from the supplied atlas JSON. The atlas `death`
- * tag (frames 3-5) is split so a downed flyer drops before it breaks apart.
+ * 제공된 아틀라스 JSON의 프레임 범위와 프레임 시간. 아틀라스의 `death`
+ * 태그(프레임 3-5)를 나눠, 격추된 비행체가 부서지기 전에 먼저 떨어지게 함.
  */
 const TAG_FRAMES: Record<FlyingTag, readonly EnemyAnimationFrame[]> = {
   idle: [0, 1].map((frame) => ({ frame: `${frame}`, duration: 180 })),

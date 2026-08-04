@@ -14,9 +14,9 @@ export type MeleeEnemyConfig = {
   moveSpeed: number;
   contactDamage: number;
   contactDamageCooldown: number;
-  /** When set, the enemy attacks by swinging instead of dealing contact damage. */
+  /** 설정 시 적이 접촉 데미지 대신 휘두르기로 공격함. */
   swing?: MeleeSwingConfig;
-  /** Real-atlas art; the swing then shows as an attack anim + slash VFX. */
+  /** 실제 아틀라스 아트. 휘두르기는 attack 애니메이션 + 슬래시 VFX로 표현됨. */
   sprite?: MeleeSpriteConfig;
 };
 
@@ -24,21 +24,21 @@ type MeleeState = 'chase' | 'windup' | 'swing' | 'recover';
 
 type PlayerDamageHandler = (damage: number) => void;
 
-/** Rod pivot offset from the enemy centre (front hand), in px. */
+/** 적 중심(앞손)에서 봉 회전축까지의 오프셋(px). */
 const HAND_OFFSET_X = 12;
 const HAND_OFFSET_Y = -6;
-/** Rod angles for a right-facing enemy, in radians (0 = horizontal forward). */
+/** 오른쪽을 보는 적 기준 봉 각도(라디안, 0 = 수평 전방). */
 const ROD_REST_ANGLE = 0.38;
 const ROD_RAISED_ANGLE = -2.05;
 const ROD_FORWARD_ANGLE = 0.85;
 
-/** Slash VFX geometry (right-facing); mirrored when the enemy faces left. */
+/** 슬래시 VFX 기하(오른쪽 기준). 적이 왼쪽을 보면 좌우 반전됨. */
 const SLASH_DEPTH = 9;
 const SLASH_INNER_RADIUS = 30;
 const SLASH_OUTER_RADIUS = 96;
 const SLASH_START_ANGLE = -1.95;
 const SLASH_END_ANGLE = 0.8;
-/** Angular width of the blade trail, in radians. */
+/** 칼날 궤적의 각도 폭(라디안). */
 const SLASH_ARC = 0.95;
 const SLASH_COLOR = 0xbff4ff;
 
@@ -81,7 +81,7 @@ export class MeleeEnemy extends Enemy {
     this.swing = config.swing;
     this.sprite = config.sprite;
     this.damagePlayer = damagePlayer;
-    // Render in front of terrain platforms (the rod/slash follow this.depth).
+    // 지형 발판 앞에 렌더링(봉/슬래시는 this.depth를 따름).
     this.setDepth(ENEMY_DEPTH);
 
     if (this.sprite) {
@@ -147,8 +147,8 @@ export class MeleeEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     targetInRange: boolean,
   ) {
-    // A stagger interrupts the wind-up so a well-timed knockback-heavy shot
-    // cancels the swing; visuals snap back to rest.
+    // 경직이 들어올리기 동작을 끊어, 타이밍 좋은 강한 넉백 사격이
+    // 휘두르기를 취소함. 비주얼은 rest 자세로 스냅됨.
     if (this.isStaggered(time)) {
       if (this.attackState !== 'chase') {
         this.attackState = 'chase';
@@ -202,7 +202,7 @@ export class MeleeEnemy extends Enemy {
     }
 
     this.setVelocityX(direction * this.moveSpeed);
-    // Walk while closing in (sprite), or carry the rod at rest.
+    // 다가가는 동안 walk(스프라이트), 또는 봉을 rest 자세로 듦.
     if (this.sprite) {
       this.rig?.play(this.sprite.animations.walk);
     } else {
@@ -213,7 +213,7 @@ export class MeleeEnemy extends Enemy {
   private updateWindup(time: number) {
     this.setVelocityX(0);
     if (this.rod) {
-      // Raise the rod over the windup so the incoming swing is telegraphed.
+      // 들어올리는 동안 봉을 올려, 다가올 휘두르기를 예고함.
       this.positionRod(
         Phaser.Math.Linear(
           ROD_REST_ANGLE,
@@ -232,7 +232,7 @@ export class MeleeEnemy extends Enemy {
   private updateSwing(time: number, target: Phaser.Physics.Arcade.Sprite) {
     this.setVelocityX(0);
     const progress = this.stateProgress(time);
-    // Ease-out so the arc snaps down.
+    // ease-out으로 궤적이 아래로 탁 꺾이게 함.
     const swingCurve = 1 - (1 - progress) * (1 - progress);
 
     if (this.slash) {
@@ -286,7 +286,7 @@ export class MeleeEnemy extends Enemy {
     );
   }
 
-  /** Rest pose: rod carried low, or walk/idle for the real sprite. */
+  /** rest 자세: 봉을 낮게 듦. 실제 스프라이트는 walk/idle. */
   private restVisual() {
     if (this.sprite) {
       const moving = Math.abs(this.body?.velocity.x ?? 0) > 1;
@@ -319,7 +319,7 @@ export class MeleeEnemy extends Enemy {
       sweep,
     );
     const trailRight = leadRight - SLASH_ARC;
-    // Mirror the arc across the vertical axis when facing left.
+    // 왼쪽을 볼 때 궤적을 세로축 기준으로 반전.
     const a = facing === 1 ? trailRight : Math.PI - leadRight;
     const b = facing === 1 ? leadRight : Math.PI - trailRight;
     const alpha = 0.2 + fade * 0.55;
@@ -332,7 +332,7 @@ export class MeleeEnemy extends Enemy {
     this.slash.arc(cx, cy, SLASH_INNER_RADIUS, b, a, true);
     this.slash.closePath();
     this.slash.fillPath();
-    // Bright leading edge.
+    // 밝은 선단부.
     this.slash
       .lineStyle(3, 0xffffff, alpha)
       .beginPath();
@@ -350,7 +350,7 @@ export class MeleeEnemy extends Enemy {
       this.x + facing * HAND_OFFSET_X,
       this.y + HAND_OFFSET_Y,
     );
-    // Mirror the angle when facing left so the rod stays on the front side.
+    // 왼쪽을 볼 때 각도를 반전해, 봉이 앞쪽에 유지되게 함.
     this.rod.setRotation(facing === 1 ? angleForRight : Math.PI - angleForRight);
     this.rod.setDepth(this.depth);
   }
@@ -401,7 +401,7 @@ export class MeleeEnemy extends Enemy {
   }
 
   override tryContactAttack(time: number) {
-    // Rod-swing enemies deal damage only through the swing, not on contact.
+    // 봉 휘두르기 적은 접촉이 아니라 휘두르기로만 데미지를 줌.
     if (this.swing || !this.active || time < this.contactDamageReadyAt) {
       return null;
     }

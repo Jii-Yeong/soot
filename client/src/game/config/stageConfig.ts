@@ -67,21 +67,21 @@ export type StageConfig = {
   endEvent?: StageEndEvent;
   background?: StageBackground;
   /**
-   * Render the bottom floor tiles as a visible band (a placeholder to later
-   * skin with a pixel-art tile), instead of letting the backdrop imply ground.
+   * 바닥을 배경이 암시하게 두지 않고, 맨 아래 바닥 타일을 보이는 띠로
+   * 렌더링함(추후 픽셀 아트 타일로 스킨할 placeholder).
    */
   showFloor?: boolean;
-  /** Pixel 3-slice skin for the 1층 floor; physics stays on the floor tiles. */
+  /** 1층 바닥용 픽셀 3-slice 스킨. 물리는 바닥 타일에 그대로 유지. */
   floorSkin?: SliceSkinConfig;
-  /** Pixel 3-slice skin for the 2·3층 platforms (stools). */
+  /** 2·3층 발판(stool)용 픽셀 3-slice 스킨. */
   terrainSkin?: SliceSkinConfig;
-  /** Real-atlas flying enemy art; stages without it use the placeholder. */
+  /** 실제 아틀라스 비행 적 아트. 없는 스테이지는 placeholder 사용. */
   flyingSprite?: FlyingSpriteConfig;
-  /** Real-atlas ranged enemy art; stages without it use the placeholder. */
+  /** 실제 아틀라스 원거리 적 아트. 없는 스테이지는 placeholder 사용. */
   rangedSprite?: RangedSpriteConfig;
-  /** When set, melee enemies swing a rod instead of dealing contact damage. */
+  /** 설정 시 근접 적이 접촉 데미지 대신 봉을 휘두름. */
   meleeSwing?: MeleeSwingConfig;
-  /** Real-atlas melee enemy art (swing shown via attack anim + slash VFX). */
+  /** 실제 아틀라스 근접 적 아트(휘두르기는 attack 애니메이션 + 슬래시 VFX로 표현). */
   meleeSprite?: MeleeSpriteConfig;
 };
 

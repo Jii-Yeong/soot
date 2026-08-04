@@ -36,7 +36,7 @@ export const ALLEY_ROOM_ONE = defineRoom({
     // Dumpster barriers — a running jump clears them.
     { type: 'wall', x: 1500, y: GAME_HEIGHT - 140, width: 44, height: 76 },
     { type: 'wall', x: 2950, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-    // Exit barrier near the far edge.
+    // 먼 쪽 가장자리 근처의 출구 장벽.
     { type: 'wall', x: 3380, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
   // Drainage gaps between clusters — jump across, or drop in and take damage.
@@ -75,7 +75,7 @@ export const ALLEY_ROOM_TWO = defineRoom({
     // Dumpster barriers.
     { type: 'wall', x: 1250, y: GAME_HEIGHT - 140, width: 44, height: 76 },
     { type: 'wall', x: 2750, y: GAME_HEIGHT - 140, width: 44, height: 76 },
-    // Exit barrier near the far edge.
+    // 먼 쪽 가장자리 근처의 출구 장벽.
     { type: 'wall', x: 3400, y: GAME_HEIGHT - 140, width: 44, height: 76 },
   ],
   pits: [

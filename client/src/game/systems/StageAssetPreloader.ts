@@ -11,16 +11,16 @@ const FILE_COMPLETE_EVENT = 'filecomplete';
 const atlasCompleteEvent = (key: string) => `filecomplete-atlasjson-${key}`;
 const imageCompleteEvent = (key: string) => `filecomplete-image-${key}`;
 
-/** Loads one stage's optional combat art without blocking the active stage. */
+/** 활성 스테이지를 막지 않고 한 스테이지의 선택적 전투 아트를 로드함. */
 export class StageAssetPreloader {
   private readonly pendingKeys = new Set<string>();
 
   constructor(private readonly scene: Phaser.Scene) {}
 
   /**
-   * @param onReady Fires once every texture this stage still needs has arrived.
-   *   Skipped entirely when the stage is already warm, so the caller only has to
-   *   re-skin the room when the initial build raced ahead of a cold load.
+   * @param onReady 이 스테이지가 아직 필요로 하는 텍스처가 모두 도착하면 한
+   *   번 호출됨. 이미 워밍된 스테이지에서는 아예 등록되지 않으므로, 호출자는
+   *   초기 빌드가 콜드 로드보다 앞서 나간 경우에만 방을 다시 스킨하면 됨.
    */
   preload(stage: StageConfig | undefined, onReady?: () => void) {
     if (!stage) {
@@ -29,9 +29,9 @@ export class StageAssetPreloader {
 
     const { enemyAtlases, terrainImages } = getStageAssetManifest(stage);
     let queued = false;
-    // Every key not yet in the texture cache — whether newly queued here or
-    // still in flight from an earlier speculative preload — so onReady waits
-    // for the whole set, not just what this call happened to enqueue.
+    // 아직 텍스처 캐시에 없는 모든 키 — 여기서 새로 큐에 넣었든, 이전의
+    // 예측 프리로드에서 아직 로딩 중이든 — 그래서 onReady는 이 호출이
+    // 큐에 넣은 것만이 아니라 전체 집합을 기다림.
     const awaited: string[] = [];
 
     for (const atlas of enemyAtlases) {
@@ -75,7 +75,7 @@ export class StageAssetPreloader {
     return queued;
   }
 
-  /** Invokes onReady once each awaited key has either loaded or failed. */
+  /** 기다리던 각 키가 로드되거나 실패하면 onReady를 호출함. */
   private whenAllLoaded(keys: readonly string[], onReady: () => void) {
     const remaining = new Set(keys);
     const settle = (key: string) => {

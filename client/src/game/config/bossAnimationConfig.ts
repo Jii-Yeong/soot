@@ -1,8 +1,8 @@
 /**
- * Real sprite atlas for the stage-1 boss (city warden).
+ * 스테이지 1 보스(city warden)의 실제 스프라이트 아틀라스.
  *
- * These names intentionally mirror the supplied Aseprite JSON `frameTags`.
- * The atlas is the source of truth for pose names and frame ranges.
+ * 이 이름들은 제공된 Aseprite JSON의 `frameTags`를 의도적으로 그대로 따름.
+ * 아틀라스가 포즈 이름과 프레임 범위의 원본(source of truth).
  */
 const frameName = (index: number) => `stage-1-boss ${index}.aseprite`;
 
@@ -14,7 +14,7 @@ export const STAGE_ONE_BOSS_LASER_ASSETS = {
   back: {
     key: 'stage-1-boss-laser-back',
     url: '/assets/bosses/stage-1-laser/stage-1-boss-laser-back.png',
-    /** X coordinate of the bright emitter centre in the trimmed 123px image. */
+    /** 트림된 123px 이미지에서 밝은 발사구 중심의 X 좌표. */
     muzzleAnchorX: 47,
   },
   middle: {
@@ -47,7 +47,7 @@ export const STAGE_ONE_BOSS_ANIMATIONS = {
 
 type StageOneBossTag = keyof typeof STAGE_ONE_BOSS_TAGS;
 
-/** Frame ranges and frame times copied from the supplied atlas JSON. */
+/** 제공된 아틀라스 JSON에서 그대로 옮긴 프레임 범위와 프레임 시간. */
 export const STAGE_ONE_BOSS_TAG_FRAMES: Record<
   StageOneBossTag,
   readonly { frame: string; duration: number }[]

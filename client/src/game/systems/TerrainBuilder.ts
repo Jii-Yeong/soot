@@ -11,11 +11,11 @@ const TERRAIN_STYLE = {
 } as const;
 
 /**
- * Builds a room's solid level geometry (platforms and walls) as static bodies.
- * The bodies live in one static group so a single persistent player collider
- * tracks them across rooms; `build` swaps the contents each room. When a stool
- * skin is supplied, platforms hide their placeholder block and show a 3-slice
- * pixel skin instead (the body still drives collision); walls keep the block.
+ * 방의 solid 레벨 지형(발판과 벽)을 static body로 빌드함. 바디들은 하나의
+ * static 그룹에 있어, 영구적인 플레이어 collider 하나가 방 전반에 걸쳐 이를
+ * 추적함. `build`는 방마다 내용을 교체함. 발판(stool) 스킨이 제공되면
+ * 발판은 placeholder 블록을 숨기고 대신 3-slice 픽셀 스킨을 보여줌(충돌은
+ * 여전히 바디가 담당). 벽은 블록을 그대로 유지함.
  */
 export class TerrainBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
@@ -32,8 +32,8 @@ export class TerrainBuilder {
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
       const skinned = Boolean(stoolSkin) && piece.type === 'platform';
-      // Skinned platforms take the art's thickness so collision matches the
-      // pixel slab; the top surface (piece.y) is unchanged either way.
+      // 스킨된 발판은 아트의 두께를 따라, 충돌이 픽셀 판과 일치하게 함.
+      // 상단 표면(piece.y)은 어느 쪽이든 변하지 않음.
       const height = skinned ? stoolSkin!.height : piece.height;
       const block = this.scene.add
         .rectangle(
@@ -52,7 +52,7 @@ export class TerrainBuilder {
       (block.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
 
       if (skinned) {
-        // Keep the block as the physics body but hide it under the pixel skin.
+        // 블록은 물리 바디로 유지하되 픽셀 스킨 아래에 숨김.
         block.setVisible(false);
         this.skinObjects.push(
           ...drawSliceSkin(

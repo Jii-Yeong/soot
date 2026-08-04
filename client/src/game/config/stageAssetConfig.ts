@@ -22,7 +22,7 @@ const ENEMY_ATLAS_BY_TEXTURE = new Map<string, StageEnemyAtlas>(
 
 const manifestCache = new WeakMap<StageConfig, StageAssetManifest>();
 
-/** Resolves and caches the optional enemy and terrain art owned by one stage. */
+/** 한 스테이지가 가진 선택적 적·지형 아트를 해석하고 캐시함. */
 export function getStageAssetManifest(stage: StageConfig): StageAssetManifest {
   const cached = manifestCache.get(stage);
   if (cached) {

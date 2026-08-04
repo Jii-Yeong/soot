@@ -7,7 +7,7 @@ import {
 
 type RangedTag = 'idle' | 'walk' | 'attack' | 'death';
 
-/** Frame ranges and frame times copied from the supplied atlas JSON. */
+/** 제공된 아틀라스 JSON에서 그대로 옮긴 프레임 범위와 프레임 시간. */
 const TAG_FRAMES: Record<RangedTag, readonly EnemyAnimationFrame[]> = {
   idle: [0, 1].map((frame) => ({ frame: `${frame}`, duration: 100 })),
   walk: [2, 3].map((frame) => ({ frame: `${frame}`, duration: 180 })),
@@ -28,7 +28,7 @@ const RANGED_ATLAS_SET = defineEnemyAtlasSet({
   stages: [1, 2],
   tagFrames: TAG_FRAMES,
   loopingTags: new Set<RangedTag>(['idle', 'walk']),
-  // Trimmed sourceSize is 120x120; feet sit near y=112, centred near x=66.
+  // 트림된 sourceSize는 120x120. 발은 y=112 부근, 중심은 x=66 부근.
   sprite: {
     scale: 1,
     bodyWidth: 44,

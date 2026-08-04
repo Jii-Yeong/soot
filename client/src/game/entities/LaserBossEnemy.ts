@@ -45,8 +45,8 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
   }
 
   /**
-   * The real atlas frame is padded, so the physics body is sized to the
-   * character. The supplied Aseprite tag names drive its pose animations.
+   * 실제 아틀라스 프레임에는 여백이 있어, 물리 바디를 캐릭터 크기에 맞춤.
+   * 제공된 Aseprite 태그 이름이 포즈 애니메이션을 구동함.
    */
   private applyBossSprite() {
     if (!this.sprite) {
@@ -126,9 +126,9 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     this.clearTint().setAlpha(1);
     this.playSpriteAnimation(this.sprite.animations.death);
 
-    // Stop combat and collisions immediately, but leave the final authored
-    // frame visible long enough to read before fading it out. The GameObject
-    // stays active so the two-frame death animation can advance.
+    // 전투와 충돌을 즉시 중단하되, 페이드아웃 전에 마지막 지정 프레임을
+    // 읽을 수 있을 만큼 충분히 보여줌. 두 프레임짜리 death 애니메이션이
+    // 진행될 수 있도록 GameObject는 active로 유지함.
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.enable = false;
     this.scene.time.delayedCall(DEATH_POSE_HOLD_MS, () => {
@@ -158,7 +158,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     this.effects.hideAll();
     this.moveToPreferredDistance(time, target);
     if (time >= this.recoilUntil) {
-      // Walk while closing/backing off to the preferred distance; idle once settled.
+      // 선호 거리로 다가가거나 물러나는 동안 walk. 자리 잡으면 idle.
       const moving =
         Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 1;
       this.playSpriteAnimation(

@@ -14,11 +14,11 @@ export const RANGED_ENEMY_COMBAT_CONFIG = {
   maxHealth: 100,
   aggroRadius: 520,
   fireInterval: 900,
-  /** Repositioning speed; slower than the player so it can still be run down. */
+  /** 재배치 속도. 플레이어보다 느려서 따라잡을 수 있음. */
   moveSpeed: 135,
-  /** Ideal firing gap: it advances when farther and backpedals when closer. */
+  /** 이상적인 사격 간격. 더 멀면 다가오고 더 가까우면 물러남. */
   preferredDistance: 360,
-  /** Deadzone around the preferred gap so it isn't twitching in and out. */
+  /** 선호 간격 주변 데드존. 경계에서 들락날락 떠는 것을 방지. */
   distanceTolerance: 55,
   projectile: {
     texture: 'enemy-bullet-placeholder',
@@ -39,20 +39,20 @@ export const MELEE_ENEMY_COMBAT_CONFIG = {
 } as const;
 
 /**
- * Rod-swing melee behaviour (early stages): instead of dealing contact damage,
- * the enemy closes to `attackRange`, winds the rod up, then sweeps it — only the
- * active swing arc hurts the player, so the wind-up is a punishable tell.
+ * 봉 휘두르기 근접 동작(초반 스테이지): 접촉 데미지를 주는 대신
+ * 적이 `attackRange`까지 접근해 봉을 들어올린 뒤 휘두름 — 실제 휘두르는
+ * 궤적만 플레이어를 때리므로, 들어올리는 동작이 회피 가능한 예고 신호가 됨.
  */
 export const MELEE_SWING_CONFIG = {
-  /** Horizontal gap at which it stops chasing and commits to a swing.
-   *  Kept inside `reach` so a committed swing on a still target connects. */
+  /** 추격을 멈추고 휘두르기에 돌입하는 수평 간격.
+   *  `reach` 안쪽으로 유지해, 멈춘 대상에 대한 휘두르기가 확실히 닿게 함. */
   attackRange: 92,
   windupDuration: 340,
   swingDuration: 200,
   recoverDuration: 520,
-  /** Horizontal reach of the swing hitbox from the enemy centre. */
+  /** 적 중심에서 휘두르기 히트박스가 닿는 수평 거리. */
   reach: 118,
-  /** Player must be within this vertical band of the enemy to be struck. */
+  /** 플레이어가 이 수직 범위 안에 있어야 타격됨. */
   verticalTolerance: 74,
   damage: 15,
   rodLength: 50,

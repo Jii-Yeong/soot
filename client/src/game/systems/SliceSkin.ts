@@ -2,8 +2,8 @@ import Phaser from 'phaser';
 import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
 
 /**
- * A cropped frame of the middle image (its side padding/edge line removed) so
- * tiling it repeats cleanly. Created once per texture and reused.
+ * 중앙 이미지에서 옆 여백/가장자리 선을 제거해 타일링이 깔끔하게 반복되도록
+ * 잘라낸 프레임. 텍스처당 한 번만 만들어 재사용함.
  */
 function tileableMiddleFrame(
   scene: Phaser.Scene,
@@ -27,11 +27,10 @@ function tileableMiddleFrame(
 }
 
 /**
- * Draws a horizontal 3-slice skin across [startX, endX] with its surface aligned
- * to `surfaceY`: the middle covers the whole span (stretched for short platforms,
- * or tiled at native size for long ground) and the caps sit on top of its ends,
- * so there are no gaps or repeat-seams. Returns the created objects so the caller
- * can destroy them on rebuild.
+ * [startX, endX] 구간에 수평 3-slice 스킨을 그리되 표면을 `surfaceY`에 맞춤:
+ * 중앙이 구간 전체를 덮고(짧은 발판은 늘리고, 긴 바닥은 원본 크기로 타일링)
+ * 캡이 그 양 끝 위에 올라감. 그래서 틈이나 반복 이음새가 없음. 재빌드 시
+ * 호출자가 파괴할 수 있도록 생성된 오브젝트들을 반환함.
  */
 export function drawSliceSkin(
   scene: Phaser.Scene,
@@ -51,7 +50,7 @@ export function drawSliceSkin(
     return obj;
   };
 
-  // Caps shrink to fit if the span is too narrow to hold both at full width.
+  // 구간이 두 캡을 전체 너비로 담기엔 너무 좁으면 캡이 줄어들어 맞춰짐.
   const capWidth = Math.min(
     skin.left.width,
     Math.max(0, span - skin.right.width),
@@ -79,8 +78,8 @@ export function drawSliceSkin(
       return;
     }
     if (skin.middleFit === 'tile') {
-      // Tile only the middle's uniform interior (decorative side edges cropped),
-      // so repeats butt together with no seam — sharp at native size.
+      // 중앙의 균일한 내부만 타일링(장식적인 옆 가장자리는 잘라냄).
+      // 그래서 반복이 이음새 없이 맞물림 — 원본 크기에서 선명함.
       add(
         scene.add
           .tileSprite(
@@ -104,12 +103,12 @@ export function drawSliceSkin(
   };
 
   if (skin.capInset) {
-    // Caps behind, then the middle over their inner joints (their outer ends
-    // still show), so there's no cap→middle seam.
+    // 캡을 뒤에 두고, 중앙을 그 안쪽 접합부 위에 그림(캡의 바깥 끝은
+    // 여전히 보임). 그래서 캡→중앙 이음새가 없음.
     drawCaps();
     drawMiddle(startX + skin.capInset.left, endX - skin.capInset.right);
   } else {
-    // Middle behind spanning the full width, caps laid on top of its ends.
+    // 중앙을 뒤에서 전체 너비로 펼치고, 캡을 그 양 끝 위에 올림.
     drawMiddle(startX, endX);
     drawCaps();
   }

@@ -1,8 +1,8 @@
 /**
- * Horizontal 3-slice skins for level geometry: a left cap, a tiled middle,
- * and a right cap sized to any span. Floors and platform "stools" can each
- * supply their own stage-specific skin. Physics stays on the existing bodies;
- * these are purely the visual overlay.
+ * 레벨 지형용 수평 3-slice 스킨: 왼쪽 캡, 타일링되는 중앙, 그리고 임의
+ * 길이에 맞춰지는 오른쪽 캡. 바닥과 발판("stool")은 각각 자신만의
+ * 스테이지별 스킨을 제공할 수 있음. 물리는 기존 바디에 그대로 유지되며,
+ * 이것들은 순수하게 시각적 오버레이임.
  */
 export type SliceImage = {
   key: string;
@@ -14,26 +14,26 @@ export type SliceSkinConfig = {
   left: SliceImage;
   middle: SliceImage;
   right: SliceImage;
-  /** Full image height, in px. */
+  /** 전체 이미지 높이(px). */
   height: number;
-  /** Transparent padding above the drawn surface, so it lands on the platform top. */
+  /** 그려지는 표면 위쪽의 투명 여백. 발판 상단에 정확히 맞도록. */
   surfaceInset: number;
   /**
-   * How the middle fills the span. 'stretch' scales one copy across the whole
-   * span (no repeat seams — good for short platforms). 'tile' repeats it at
-   * native size (sharp over long ground). Defaults to 'stretch'.
+   * 중앙이 길이를 채우는 방식. 'stretch'는 한 장을 전체 길이에 늘림
+   * (반복 이음새 없음 — 짧은 발판에 적합). 'tile'은 원본 크기로 반복함
+   * (긴 바닥에서 선명). 기본값은 'stretch'.
    */
   middleFit?: 'tile' | 'stretch';
   /**
-   * Columns to crop off each side of the middle before tiling, so the repeat
-   * butts together without a see-through gap or a baked-in edge line. Tiling only.
+   * 타일링 전에 중앙 양쪽에서 잘라낼 열(column). 반복이 비쳐 보이는 틈이나
+   * 박혀 있는 가장자리 선 없이 맞물리게 함. 타일링에서만 사용.
    */
   middleTrim?: { left: number; right: number };
   /**
-   * When set, the middle is drawn ON TOP of the caps, inset by this many px from
-   * each outer end — so the caps' finished ends still show but their inner joints
-   * are hidden under the continuous middle (no seam). Omit to place the caps on
-   * top of a full-width middle instead.
+   * 설정 시 중앙을 캡 '위'에 그리되 양쪽 바깥 끝에서 이 픽셀만큼 안으로
+   * 들여서 그림 — 캡의 마감된 끝은 여전히 보이지만 안쪽 접합부는 연속된
+   * 중앙 아래에 가려짐(이음새 없음). 생략하면 대신 전체 너비 중앙 위에
+   * 캡을 올림.
    */
   capInset?: { left: number; right: number };
 };
@@ -50,13 +50,13 @@ export const STAGE_ONE_FLOOR_SKIN: SliceSkinConfig = {
   right: asset('stage-1-floor-right', 230),
   height: 100,
   surfaceInset: 4,
-  // Wide ground: tile at native size (stretch would smear across the stage).
-  // Only x[8,272] of the middle is horizontally uniform; the side edges carry
-  // decorative borders that would repeat as seams, so crop to the flat interior.
+  // 넓은 바닥: 원본 크기로 타일링(stretch면 스테이지 전체에 뭉개짐).
+  // 중앙은 x[8,272]만 수평으로 균일함. 양옆 가장자리에는 이음새로 반복될
+  // 장식 테두리가 있어, 평평한 내부만 남기고 잘라냄.
   middleFit: 'tile',
   middleTrim: { left: 8, right: 23 },
-  // Draw the middle over the caps' inner joints (the left cap has a dark inner
-  // edge at ~x304); show just the caps' finished outer ends.
+  // 캡의 안쪽 접합부 위에 중앙을 그림(왼쪽 캡은 ~x304에 어두운 안쪽
+  // 가장자리가 있음). 캡의 마감된 바깥 끝만 보이게 함.
   capInset: { left: 36, right: 34 },
 };
 
@@ -66,11 +66,11 @@ export const STAGE_TWO_FLOOR_SKIN: SliceSkinConfig = {
   right: asset('stage-2-floor-right', 158),
   height: 100,
   surfaceInset: 4,
-  // Only x[16,152] of the middle is horizontally uniform; dark edge lines at
-  // x8 and x160 would repeat as seams, so crop to the flat interior and tile.
+  // 중앙은 x[16,152]만 수평으로 균일함. x8과 x160의 어두운 가장자리 선이
+  // 이음새로 반복되므로, 평평한 내부만 남기고 잘라내 타일링함.
   middleFit: 'tile',
   middleTrim: { left: 16, right: 16 },
-  // Draw the middle over the caps' inner joints; show just their finished ends.
+  // 캡의 안쪽 접합부 위에 중앙을 그림. 캡의 마감된 끝만 보이게 함.
   capInset: { left: 40, right: 34 },
 };
 

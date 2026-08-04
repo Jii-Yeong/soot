@@ -56,11 +56,11 @@ export type RoomConfig = {
   id: string;
   label: string;
   kind: 'combat' | 'boss';
-  /** Width of this room's independent world. */
+  /** 이 방의 독립된 월드 너비. */
   worldWidth: number;
   entranceX: number;
   exitX: number;
-  /** Vertical placement of the clear portal that opens near the exit. */
+  /** 출구 근처에 열리는 클리어 포탈의 세로 위치. */
   portal: {
     y: number;
     height: number;
@@ -84,9 +84,9 @@ export type RoomDefinition = Omit<
   'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'portal'
 > & {
   kind?: RoomConfig['kind'];
-  /** Room width; the exit portal sits near its right edge after combat. */
+  /** 방 너비. 전투 후 출구 포탈이 오른쪽 가장자리 근처에 생김. */
   worldWidth?: number;
-  /** Stage-specific portal placement, e.g. screen-centred for an aerial room. */
+  /** 스테이지별 포탈 위치. 예: 공중 방은 화면 중앙에 배치. */
   portal?: Partial<RoomConfig['portal']>;
 };
 

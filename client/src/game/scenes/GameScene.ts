@@ -60,7 +60,7 @@ const PIT_FALL_DAMAGE = 12;
 const PIT_RESPAWN_LIFT = 60;
 const PLAYER_START_Y = GAME_HEIGHT - 120;
 const ROOM_ENTRY_OFFSET_X = 116;
-/** On a ground stage, the player drops in from this height, as if out of the portal. */
+/** 지상 스테이지에서 플레이어가 포탈에서 나오듯 이 높이에서 떨어져 진입함. */
 const PORTAL_DROP_HEIGHT = 170;
 
 export class GameScene extends Phaser.Scene {
@@ -347,9 +347,9 @@ export class GameScene extends Phaser.Scene {
     if (this.currentRoomIndex + 1 < this.stage.rooms.length) {
       this.currentRoomIndex += 1;
       this.enterCurrentRoom();
-      // Flash only after the (heavy, synchronous) room rebuild, so the effect
-      // animates over clean frames instead of freezing at full opacity for the
-      // whole rebuild frame — which read as a stuck mint screen.
+      // 무겁고 동기적인 방 재구성 '이후'에만 플래시함. 그래야 효과가 깨끗한
+      // 프레임에 걸쳐 애니메이션되고, 재구성 프레임 내내 풀 불투명으로
+      // 멈춰(민트 화면이 멈춘 것처럼 보이던) 있지 않음.
       this.cameras.main.flash(180, 182, 255, 228);
       return;
     }
@@ -389,8 +389,8 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     this.rebuildFloorForRoom();
     this.showStageBackdrop();
-    // Drop in from a little above the ground so the player falls out of the
-    // portal into the room (flight stages have no gravity, so they arrive level).
+    // 바닥보다 조금 위에서 진입시켜, 플레이어가 포탈에서 방으로 떨어지게 함
+    // (비행 스테이지는 중력이 없어 수평으로 도착함).
     const drop =
       this.stage.movementMode === MovementMode.GROUND ? PORTAL_DROP_HEIGHT : 0;
     this.player.setPosition(this.getStartingPlayerX(), PLAYER_START_Y - drop);
@@ -456,15 +456,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private preloadStageAssets() {
-    // The current stage is normally warm already; retry it if speculative
-    // loading failed, then fetch exactly one stage ahead during active play.
-    // On a cold start the floor/terrain build below races ahead of the load, so
-    // re-skin the room once its art arrives (no-op when the stage was warm).
+    // 현재 스테이지는 보통 이미 워밍돼 있음. 예측 로딩이 실패했으면 재시도한
+    // 뒤, 플레이 중 정확히 한 스테이지 앞을 미리 가져옴.
+    // 콜드 스타트에서는 아래의 바닥/지형 빌드가 로드보다 앞서 나가므로,
+    // 아트가 도착하면 방을 다시 스킨함(워밍된 스테이지에서는 no-op).
     this.stageAssetPreloader.preload(this.stage, () => this.reskinCurrentRoom());
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
   }
 
-  /** Redraws the floor and terrain once a cold stage's pixel skins finish loading. */
+  /** 콜드 스테이지의 픽셀 스킨 로드가 끝나면 바닥과 지형을 다시 그림. */
   private reskinCurrentRoom() {
     if (!this.floorBuilder || !this.terrainBuilder) {
       return;
@@ -762,7 +762,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Up/W leaves a cleared room, but only while standing in its open portal. */
+  /** 위/W로 클리어된 방을 나감. 단, 열린 포탈 안에 서 있을 때만. */
   private handlePortalEnter() {
     if (this.phase === 'room-cleared') {
       this.roomDirector.tryExit();

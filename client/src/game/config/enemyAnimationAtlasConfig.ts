@@ -3,7 +3,7 @@ export type EnemyAnimationFrame = {
   duration: number;
 };
 
-/** A real enemy atlas and the tagged animations BootScene creates from it. */
+/** 실제 적 아틀라스와 BootScene이 거기서 만드는 태그별 애니메이션. */
 export type EnemyAnimationAtlasConfig<TTag extends string> = {
   texture: string;
   png: string;
@@ -44,7 +44,7 @@ type EnemyAtlasSetOptions<
   sprite: TGeometry;
 };
 
-/** Builds every stage-specific key, asset path, animation, atlas, and sprite. */
+/** 스테이지별 키, 에셋 경로, 애니메이션, 아틀라스, 스프라이트를 모두 생성. */
 export function defineEnemyAtlasSet<
   TTag extends string,
   const TStages extends readonly number[],

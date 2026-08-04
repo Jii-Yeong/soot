@@ -12,11 +12,11 @@ import {
 } from '@/game/entities/Enemy';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
-/** How fast a downed flyer plummets, in px/s (feeds the fall tween duration). */
+/** 격추된 비행체가 떨어지는 속도(px/s). 낙하 tween 시간에 사용됨. */
 const DEATH_FALL_SPEED = 720;
-/** How long the crumpled wreck rests on the ground before fading out. */
+/** 찌그러진 잔해가 사라지기 전에 바닥에 머무는 시간. */
 const DEATH_WRECK_HOLD_MS = 400;
-/** Fade-out duration once the hold ends. */
+/** 머무름이 끝난 뒤 페이드아웃 시간. */
 const DEATH_FADE_MS = 350;
 
 export type FlyingEnemyConfig = {
@@ -63,13 +63,13 @@ export class FlyingEnemy extends Enemy {
     this.projectile = { kind: 'flying', muzzleOffset: config.muzzleOffset };
 
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-    // Flyers hover at platform height, so they render in front of terrain
-    // instead of being hidden behind it — still under the player (8).
+    // 비행체는 발판 높이에서 떠다니므로, 지형 뒤에 가려지지 않고 그 앞에
+    // 렌더링됨 — 그래도 플레이어(8)보다는 아래.
     this.setDepth(ENEMY_DEPTH);
     this.applySprite();
   }
 
-  /** The real atlas frame is padded, so size the body down to the drone. */
+  /** 실제 아틀라스 프레임에는 여백이 있어, 바디를 드론 크기로 줄임. */
   private applySprite() {
     if (!this.sprite) {
       return;
@@ -84,7 +84,7 @@ export class FlyingEnemy extends Enemy {
     this.play(this.sprite.animations.idle);
   }
 
-  /** Shows the flinch pose while staggered, then falls back to idle hover. */
+  /** 경직 동안 움찔 포즈를 보이고, 이후 idle 호버로 복귀. */
   private updateHitPose(time: number) {
     if (!this.sprite) {
       return;
@@ -100,7 +100,7 @@ export class FlyingEnemy extends Enemy {
     }
   }
 
-  /** Real-atlas flyers play their own death animation instead of the pop ghost. */
+  /** 실제 아틀라스 비행체는 팝 잔상 대신 자체 죽음 애니메이션을 재생. */
   override get playsOwnDeathAnimation() {
     return Boolean(this.sprite);
   }
@@ -113,13 +113,13 @@ export class FlyingEnemy extends Enemy {
 
     this.dying = true;
     this.onDefeated();
-    // Stop combat/collision immediately; the wreck then falls and crumbles
-    // under a tween (physics stays off) before the object is removed.
+    // 전투/충돌을 즉시 중단. 이후 잔해가 tween으로 떨어져 부서지고
+    // (물리는 꺼진 채) 오브젝트가 제거됨.
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.enable = false;
 
     const sprite = this.sprite;
-    // Phase 1: hold the first death frame while dropping to the ground.
+    // 1단계: 바닥으로 떨어지는 동안 첫 death 프레임을 유지.
     this.play(sprite.animations.deathFall);
     const restY = FLOOR_SURFACE_Y - this.displayHeight * 0.3;
     const fallDistance = Math.max(0, restY - this.y);
@@ -133,7 +133,7 @@ export class FlyingEnemy extends Enemy {
       ),
       ease: 'Quad.easeIn',
       onComplete: () => {
-        // Phase 2: crumple on impact, hold the wreck briefly, then fade out.
+        // 2단계: 충돌 시 찌그러지고, 잔해를 잠깐 유지한 뒤 페이드아웃.
         this.play(sprite.animations.deathLand);
         this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
           this.scene.time.delayedCall(DEATH_WRECK_HOLD_MS, () => {
@@ -162,8 +162,8 @@ export class FlyingEnemy extends Enemy {
       return false;
     }
 
-    // Flinch only while a knockback stagger holds, so rapid low-knockback fire
-    // (SMG) doesn't lock the pose while a shotgun/rail hit clearly rocks it.
+    // 넉백 경직이 유지되는 동안만 움찔함. 그래서 낮은 넉백의 빠른 사격
+    // (SMG)은 포즈를 묶지 않고, 샷건/레일 타격은 확실히 흔들리게 함.
     this.updateHitPose(time);
 
     const targetInRange = this.updateRangedAttack(
