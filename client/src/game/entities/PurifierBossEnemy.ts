@@ -47,6 +47,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   private stateEndsAt: number;
   private slamTargetX = 0;
   private slamHasLeftGround = false;
+  private slamLandingAt = 0;
   // Alternate the two patterns, opening with the clearly marked leap.
   private attackIndex = 1;
   private playerTarget?: Phaser.Physics.Arcade.Sprite;
@@ -147,7 +148,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
         this.updateSlamWarn(time, target);
         break;
       case 'slam-leap':
-        this.updateSlamLeap(time);
+        this.updateSlamLeap(time, target);
         break;
       case 'slam-strike':
         this.updateSlamStrike(time);
@@ -269,20 +270,34 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
 
     this.attackState = 'slam-leap';
     this.stateStartedAt = time;
-    this.stateEndsAt =
-      time + leap.flightDurationMs + LANDING_GRACE_DURATION;
+    this.slamLandingAt = time + leap.flightDurationMs;
+    this.stateEndsAt = this.slamLandingAt + LANDING_GRACE_DURATION;
     this.slamHasLeftGround = false;
     this.setFlipX(leap.velocityX < 0);
     this.setVelocity(leap.velocityX, leap.velocityY);
     this.playSpriteAnimation(this.sprite?.animations.slamAir ?? '');
   }
 
-  private updateSlamLeap(time: number) {
+  private updateSlamLeap(time: number, target: Phaser.Physics.Arcade.Sprite) {
     const body = this.body as Phaser.Physics.Arcade.Body;
     this.drawGroundMarker(
       this.slamTargetX,
       this.pattern.slam.landingRadius * 2,
       1,
+    );
+
+    // Home onto the player while they stay inside the warned box, so standing
+    // in it gets punished; once they dash out, commit to the marked spot.
+    const insideBox =
+      Math.abs(target.x - this.slamTargetX) <= this.pattern.slam.landingRadius;
+    const landingX = insideBox ? target.x : this.slamTargetX;
+    const remainingSeconds = Math.max(0.06, (this.slamLandingAt - time) / 1000);
+    this.setVelocityX(
+      Phaser.Math.Clamp(
+        (landingX - this.x) / remainingSeconds,
+        -this.pattern.slam.maxTravelSpeedX,
+        this.pattern.slam.maxTravelSpeedX,
+      ),
     );
 
     if (!body.blocked.down) {
