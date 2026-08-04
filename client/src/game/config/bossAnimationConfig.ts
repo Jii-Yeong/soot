@@ -129,3 +129,48 @@ export const STAGE_TWO_BOSS_LOOPING_TAGS = new Set<StageTwoBossTag>([
   'idle',
   'walk',
 ]);
+
+/**
+ * 스테이지 3 보스(underground-guardian, 정화 집행기)의 실제 스프라이트 아틀라스.
+ *
+ * 프레임 키는 숫자 인덱스('0'~'11'). take_down은 붙잡기/내려찍기 타격,
+ * suction은 빨아들이기(vacuum) 패턴에 사용됨.
+ */
+export const STAGE_THREE_BOSS_ATLAS_KEY = 'stage-3-boss';
+export const STAGE_THREE_BOSS_ATLAS_PNG = '/assets/bosses/stage-3-boss.png';
+export const STAGE_THREE_BOSS_ATLAS_JSON = '/assets/bosses/stage-3-boss.json';
+
+export const STAGE_THREE_BOSS_ANIMATIONS = {
+  idle: 'stage-3-boss-idle',
+  walk: 'stage-3-boss-walk',
+  takeDown: 'stage-3-boss-take-down',
+  suction: 'stage-3-boss-suction',
+  death: 'stage-3-boss-death',
+} as const;
+
+type StageThreeBossTag = keyof typeof STAGE_THREE_BOSS_ANIMATIONS;
+
+/** 제공된 아틀라스 JSON에서 그대로 옮긴 프레임 범위와 프레임 시간. */
+export const STAGE_THREE_BOSS_TAG_FRAMES: Record<
+  StageThreeBossTag,
+  readonly { frame: string; duration: number }[]
+> = {
+  idle: [0, 1].map((index) => ({ frame: String(index), duration: 300 })),
+  walk: [2, 3, 4].map((index) => ({ frame: String(index), duration: 160 })),
+  takeDown: [
+    { frame: '5', duration: 120 },
+    { frame: '6', duration: 90 },
+    { frame: '7', duration: 150 },
+  ],
+  suction: [8, 9].map((index) => ({ frame: String(index), duration: 180 })),
+  death: [
+    { frame: '10', duration: 160 },
+    { frame: '11', duration: 260 },
+  ],
+};
+
+export const STAGE_THREE_BOSS_LOOPING_TAGS = new Set<StageThreeBossTag>([
+  'idle',
+  'walk',
+  'suction',
+]);

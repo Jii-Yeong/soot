@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type {
   PurifierBossPatternConfig,
   PurifierBossCombatConfig,
+  PurifierBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 import { getSlamLeapVelocity } from '@/game/combat/slamLeap';
 import { BossEnemy } from '@/game/entities/BossEnemy';
@@ -30,6 +31,9 @@ const TELEGRAPH_DEPTH = 7;
 const SHOCKWAVE_DEPTH = 6;
 const MARKER_HEIGHT = 74;
 const LANDING_GRACE_DURATION = 400;
+/** 죽음 포즈를 보여주는 시간과, 그 뒤 페이드아웃에 걸리는 시간. */
+const DEATH_POSE_HOLD_MS = 1600;
+const DEATH_FADE_MS = 600;
 
 /**
  * Stage-3 boss (the purification enforcer). v1 of the capture/crush kit:
@@ -58,6 +62,8 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   // Open with the clearly marked leap before introducing grab and vacuum.
   private attackIndex = 1;
   private playerTarget?: Phaser.Physics.Arcade.Sprite;
+  private activeSpriteAnimation?: string;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -68,11 +74,64 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     private readonly damagePlayer: PlayerDamageHandler,
     private readonly grabPlayer: PlayerGrabHandler,
     private readonly pullPlayer: PlayerPullHandler,
+    private readonly sprite?: PurifierBossSpriteConfig,
   ) {
     super(scene, x, y, texture, config);
 
     this.stateEndsAt = scene.time.now + config.pattern.firstAttackDelay;
     this.telegraph = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
+    this.applyBossSprite();
+  }
+
+  override get playsOwnDeathAnimation(): boolean {
+    return Boolean(this.sprite);
+  }
+
+  /**
+   * 실제 아틀라스 프레임에는 여백이 있어, 물리 바디를 메카 크기에 맞추고
+   * 발이 바닥에 닿도록 하단 정렬함. 제공된 Aseprite 태그가 포즈를 구동함.
+   */
+  private applyBossSprite() {
+    if (!this.sprite) {
+      return;
+    }
+
+    this.setScale(this.sprite.scale);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(this.sprite.bodyWidth, this.sprite.bodyHeight);
+    if (
+      this.sprite.bodyOffsetX !== undefined &&
+      this.sprite.bodyOffsetY !== undefined
+    ) {
+      body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
+    }
+    this.playSpriteAnimation(this.sprite.animations.idle);
+  }
+
+  /**
+   * 애니메이션을 중복 재생하지 않도록 dedup. 텔레그래프용 tint(setTint/
+   * clearTint)와는 독립적으로 동작함.
+   */
+  private playSpriteAnimation(animation: string) {
+    if (!this.sprite || this.activeSpriteAnimation === animation) {
+      return;
+    }
+
+    this.activeSpriteAnimation = animation;
+    this.play(animation, true);
+  }
+
+  /** 이동 중이면 walk, 멈춰 있으면 idle. */
+  private updateLocomotionAnimation() {
+    if (!this.sprite) {
+      return;
+    }
+
+    const moving =
+      Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 1;
+    this.playSpriteAnimation(
+      moving ? this.sprite.animations.walk : this.sprite.animations.idle,
+    );
   }
 
   updateCombat(
@@ -82,7 +141,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   ) {
     this.playerTarget = target;
 
-    if (!this.active) {
+    if (!this.active || this.dying) {
       this.telegraph.clear();
       return false;
     }
@@ -136,6 +195,42 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.waveCleanups.clear();
   }
 
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+
+    if (!this.sprite) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.clearTint().setAlpha(1);
+    this.setVelocity(0);
+    this.playSpriteAnimation(this.sprite.animations.death);
+
+    // 전투/충돌을 즉시 멈추되, 페이드아웃 전에 마지막 death 프레임(무너진
+    // 모습)을 읽을 수 있을 만큼 보여줌. death 애니메이션이 진행되도록
+    // GameObject는 active로 유지함.
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.enable = false;
+    this.scene.time.delayedCall(DEATH_POSE_HOLD_MS, () => {
+      if (!this.scene || !this.visible) {
+        return;
+      }
+
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        duration: DEATH_FADE_MS,
+        ease: 'Sine.easeIn',
+        onComplete: () => this.disableBody(true, true),
+      });
+    });
+  }
+
   override destroy(fromScene?: boolean) {
     this.telegraph.destroy();
     this.waveCleanups.clear();
@@ -146,6 +241,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.telegraph.clear();
     this.clearTint();
     this.moveToPreferredDistance(time, target);
+    this.updateLocomotionAnimation();
 
     if (time >= this.stateEndsAt) {
       // Rotate all three patterns so the same one never runs back to back.
@@ -171,6 +267,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     // Mark where the player stands now — moving off the spot dodges it.
     this.grabTargetX = target.x;
     this.setFlipX(target.x < this.x);
+    this.playSpriteAnimation(this.sprite?.animations.takeDown ?? '');
   }
 
   private updateGrabWarn(time: number) {
@@ -240,6 +337,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.slam.warnDuration;
     this.slamTargetX = target.x;
+    this.playSpriteAnimation(this.sprite?.animations.takeDown ?? '');
   }
 
   private updateSlamWarn(
@@ -329,6 +427,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.vacuum.warnDuration;
     this.setVelocityX(0);
+    this.playSpriteAnimation(this.sprite?.animations.suction ?? '');
   }
 
   private updateVacuumWarn(

@@ -3,6 +3,7 @@ import {
   BOSS_COMBAT_CONFIGS,
   HOUND_BOSS_SPRITES,
   LASER_BOSS_SPRITES,
+  PURIFIER_BOSS_SPRITES,
   hasBossPattern,
 } from '@/game/config/bossConfig';
 import type { BossArenaBounds } from '@/game/config/bossArena';
@@ -173,6 +174,7 @@ export class EnemyFactory {
           this.damagePlayer,
           this.grabPlayer,
           this.pullPlayer,
+          PURIFIER_BOSS_SPRITES[spawn.variant],
         ),
       );
     }

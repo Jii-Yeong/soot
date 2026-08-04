@@ -250,6 +250,17 @@ export type HoundBossSpriteConfig = BossSpriteGeometry & {
   };
 };
 
+/** 정화 집행기 보스(underground-guardian)의 스프라이트 설정. */
+export type PurifierBossSpriteConfig = BossSpriteGeometry & {
+  animations: {
+    idle: string;
+    walk: string;
+    takeDown: string;
+    suction: string;
+    death: string;
+  };
+};
+
 export type BossCombatConfig<
   Pattern extends BossPatternConfig = BossPatternConfig,
 > = {

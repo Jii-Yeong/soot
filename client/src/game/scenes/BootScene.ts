@@ -15,6 +15,12 @@ import {
   STAGE_TWO_BOSS_ATLAS_PNG,
   STAGE_TWO_BOSS_LOOPING_TAGS,
   STAGE_TWO_BOSS_TAG_FRAMES,
+  STAGE_THREE_BOSS_ANIMATIONS,
+  STAGE_THREE_BOSS_ATLAS_JSON,
+  STAGE_THREE_BOSS_ATLAS_KEY,
+  STAGE_THREE_BOSS_ATLAS_PNG,
+  STAGE_THREE_BOSS_LOOPING_TAGS,
+  STAGE_THREE_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import {
@@ -46,6 +52,11 @@ export class BootScene extends Phaser.Scene {
       STAGE_TWO_BOSS_ATLAS_KEY,
       STAGE_TWO_BOSS_ATLAS_PNG,
       STAGE_TWO_BOSS_ATLAS_JSON,
+    );
+    this.load.atlas(
+      STAGE_THREE_BOSS_ATLAS_KEY,
+      STAGE_THREE_BOSS_ATLAS_PNG,
+      STAGE_THREE_BOSS_ATLAS_JSON,
     );
     for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
       this.load.image(asset.key, asset.url);
@@ -276,6 +287,20 @@ export class BootScene extends Phaser.Scene {
           duration,
         })),
         repeat: STAGE_TWO_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
+      });
+    }
+    for (const [tag, frames] of Object.entries(STAGE_THREE_BOSS_TAG_FRAMES) as [
+      keyof typeof STAGE_THREE_BOSS_TAG_FRAMES,
+      (typeof STAGE_THREE_BOSS_TAG_FRAMES)[keyof typeof STAGE_THREE_BOSS_TAG_FRAMES],
+    ][]) {
+      this.anims.create({
+        key: STAGE_THREE_BOSS_ANIMATIONS[tag],
+        frames: frames.map(({ frame, duration }) => ({
+          key: STAGE_THREE_BOSS_ATLAS_KEY,
+          frame,
+          duration,
+        })),
+        repeat: STAGE_THREE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
       });
     }
   }

@@ -3,12 +3,15 @@ import {
   STAGE_ONE_BOSS_ATLAS_KEY,
   STAGE_TWO_BOSS_ANIMATIONS,
   STAGE_TWO_BOSS_ATLAS_KEY,
+  STAGE_THREE_BOSS_ANIMATIONS,
+  STAGE_THREE_BOSS_ATLAS_KEY,
 } from '@/game/config/bossAnimationConfig';
 import type {
   BossCombatConfig,
   BossPatternConfig,
   BossSpriteConfig,
   HoundBossSpriteConfig,
+  PurifierBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 
 export const hasBossPattern = <Type extends BossPatternConfig['type']>(
@@ -100,7 +103,7 @@ export const BOSS_COMBAT_CONFIGS = {
     },
   },
   'underground-guardian': {
-    texture: 'underground-guardian-placeholder',
+    texture: STAGE_THREE_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x3f5c28,
       accentColor: 0xc5ec72,
@@ -312,5 +315,20 @@ export const HOUND_BOSS_SPRITES: Partial<
     bodyOffsetY: 69,
     // 아트는 머리(귀·눈)가 왼쪽 — 기본 좌향이므로 flip 방향을 반전.
     facesLeft: true,
+  },
+};
+
+export const PURIFIER_BOSS_SPRITES: Partial<
+  Record<BossVariant, PurifierBossSpriteConfig>
+> = {
+  'underground-guardian': {
+    animations: STAGE_THREE_BOSS_ANIMATIONS,
+    scale: 1,
+    // 거미형 메카. 프레임(256x256)의 콘텐츠는 y[59,247]에 몸통·다리가 있음.
+    // 다리/몸통에 바디를 맞추고 발이 바닥에 닿도록 하단 정렬.
+    bodyWidth: 200,
+    bodyHeight: 132,
+    bodyOffsetX: 28,
+    bodyOffsetY: 103,
   },
 };
