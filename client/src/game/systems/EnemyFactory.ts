@@ -1,39 +1,43 @@
-import Phaser from 'phaser';
+import Phaser from "phaser";
 import {
   BOSS_COMBAT_CONFIGS,
   BOSS_SPRITES,
   hasBossPattern,
-} from '@/game/config/bossConfig';
-import type { BossArenaBounds } from '@/game/config/bossArena';
+} from "@/game/config/bossConfig";
+import type { BossArenaBounds } from "@/game/config/bossArena";
 import {
   FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   RANGED_ENEMY_COMBAT_CONFIG,
-} from '@/game/config/combatConfig';
-import type { EnemySpawnConfig } from '@/game/config/roomConfig';
-import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
-import type { Enemy } from '@/game/entities/Enemy';
-import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
-import type { PatrolBounds } from '@/game/systems/patrolSpan';
-import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
-import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
-import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
-import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
-import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
-import { RangedEnemy } from '@/game/entities/RangedEnemy';
-import type { BossPhase } from '@/game/state/bossPhase';
+  type MeleeSwingConfig,
+} from "@/game/config/combatConfig";
+import type { FlyingSpriteConfig } from "@/game/config/flyingEnemyAnimationConfig";
+import type { MeleeSpriteConfig } from "@/game/config/meleeEnemyAnimationConfig";
+import type { RangedSpriteConfig } from "@/game/config/rangedEnemyAnimationConfig";
+import type { EnemySpawnConfig } from "@/game/config/roomConfig";
+import { ArchitectBossEnemy } from "@/game/entities/ArchitectBossEnemy";
+import type { Enemy } from "@/game/entities/Enemy";
+import { FlyingEnemy } from "@/game/entities/FlyingEnemy";
+import type { PatrolBounds } from "@/game/systems/patrolSpan";
+import { HoundBossEnemy } from "@/game/entities/HoundBossEnemy";
+import { InfernalBossEnemy } from "@/game/entities/InfernalBossEnemy";
+import { LaserBossEnemy } from "@/game/entities/LaserBossEnemy";
+import { MeleeEnemy } from "@/game/entities/MeleeEnemy";
+import { PurifierBossEnemy } from "@/game/entities/PurifierBossEnemy";
+import { RangedEnemy } from "@/game/entities/RangedEnemy";
+import type { BossPhase } from "@/game/state/bossPhase";
 import {
   connectEnemyToRoomGeometry,
   type EnemyCollisionOptions,
-} from '@/game/systems/enemyCollision';
+} from "@/game/systems/enemyCollision";
 
-type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
+type SpawnOf<Type extends EnemySpawnConfig["type"]> = Extract<
   EnemySpawnConfig,
   { type: Type }
 >;
 
 const assertUnhandledBossConfig = (_config: never): never => {
-  throw new Error('Unsupported boss pattern');
+  throw new Error("Unsupported boss pattern");
 };
 
 export class EnemyFactory {
@@ -55,6 +59,10 @@ export class EnemyFactory {
      * the answer is fixed at placement, so the scene works it out.
      */
     private readonly patrolBoundsFor: (spawnX: number) => PatrolBounds | null,
+    private readonly flyingSprite?: FlyingSpriteConfig,
+    private readonly meleeSwing?: MeleeSwingConfig,
+    private readonly rangedSprite?: RangedSpriteConfig,
+    private readonly meleeSprite?: MeleeSpriteConfig,
   ) {
     this.intensity = intensity ?? 1;
   }
@@ -68,23 +76,23 @@ export class EnemyFactory {
 
   create(spawn: EnemySpawnConfig): Enemy {
     switch (spawn.type) {
-      case 'melee':
+      case "melee":
         return this.createMeleeEnemy(spawn);
-      case 'ranged':
+      case "ranged":
         return this.createRangedEnemy(spawn);
-      case 'flying':
+      case "flying":
         return this.createFlyingEnemy(spawn);
-      case 'boss':
+      case "boss":
         return this.createBossEnemy(spawn);
     }
   }
 
-  private createMeleeEnemy(spawn: SpawnOf<'melee'>) {
+  private createMeleeEnemy(spawn: SpawnOf<"melee">) {
     const enemy = new MeleeEnemy(
       this.scene,
       spawn.x,
       spawn.y,
-      'melee-enemy-placeholder',
+      this.meleeSprite?.texture ?? "melee-enemy-placeholder",
       {
         health: MELEE_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: MELEE_ENEMY_COMBAT_CONFIG.aggroRadius,
@@ -92,34 +100,41 @@ export class EnemyFactory {
         contactDamage: MELEE_ENEMY_COMBAT_CONFIG.contactDamage,
         contactDamageCooldown: MELEE_ENEMY_COMBAT_CONFIG.contactDamageCooldown,
         patrol: this.patrolFor(spawn.x),
+        swing: this.meleeSwing,
+        sprite: this.meleeSprite,
       },
+      this.damagePlayer,
     );
 
     return this.finishSpawn(enemy);
   }
 
-  private createRangedEnemy(spawn: SpawnOf<'ranged'>) {
+  private createRangedEnemy(spawn: SpawnOf<"ranged">) {
     const enemy = new RangedEnemy(
       this.scene,
       spawn.x,
       spawn.y,
-      'enemy-placeholder',
+      this.rangedSprite?.texture ?? "enemy-placeholder",
       {
         health: RANGED_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: RANGED_ENEMY_COMBAT_CONFIG.aggroRadius,
         fireInterval: RANGED_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: RANGED_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
+        moveSpeed: RANGED_ENEMY_COMBAT_CONFIG.moveSpeed * this.intensity,
+        preferredDistance: RANGED_ENEMY_COMBAT_CONFIG.preferredDistance,
+        distanceTolerance: RANGED_ENEMY_COMBAT_CONFIG.distanceTolerance,
+        sprite: this.rangedSprite,
       },
     );
     return this.finishSpawn(enemy);
   }
 
-  private createFlyingEnemy(spawn: SpawnOf<'flying'>) {
+  private createFlyingEnemy(spawn: SpawnOf<"flying">) {
     const enemy = new FlyingEnemy(
       this.scene,
       spawn.x,
       spawn.y,
-      'flying-enemy-placeholder',
+      this.flyingSprite?.texture ?? "flying-enemy-placeholder",
       {
         health: FLYING_ENEMY_COMBAT_CONFIG.maxHealth,
         aggroRadius: FLYING_ENEMY_COMBAT_CONFIG.aggroRadius,
@@ -128,15 +143,16 @@ export class EnemyFactory {
         fireInterval: FLYING_ENEMY_COMBAT_CONFIG.fireInterval / this.intensity,
         muzzleOffset: FLYING_ENEMY_COMBAT_CONFIG.projectile.muzzleOffset,
         movement: spawn.movement,
+        sprite: this.flyingSprite,
       },
     );
     return this.finishSpawn(enemy, { collidesWithFloor: false });
   }
 
-  private createBossEnemy(spawn: SpawnOf<'boss'>) {
+  private createBossEnemy(spawn: SpawnOf<"boss">) {
     const config = BOSS_COMBAT_CONFIGS[spawn.variant];
 
-    if (hasBossPattern(config, 'laser-cannon')) {
+    if (hasBossPattern(config, "laser-cannon")) {
       return this.finishSpawn(
         new LaserBossEnemy(
           this.scene,
@@ -150,7 +166,7 @@ export class EnemyFactory {
       );
     }
 
-    if (hasBossPattern(config, 'hound')) {
+    if (hasBossPattern(config, "hound")) {
       return this.finishSpawn(
         new HoundBossEnemy(
           this.scene,
@@ -163,7 +179,7 @@ export class EnemyFactory {
       );
     }
 
-    if (hasBossPattern(config, 'purifier')) {
+    if (hasBossPattern(config, "purifier")) {
       return this.finishSpawn(
         new PurifierBossEnemy(
           this.scene,
@@ -178,7 +194,7 @@ export class EnemyFactory {
       );
     }
 
-    if (hasBossPattern(config, 'infernal')) {
+    if (hasBossPattern(config, "infernal")) {
       return this.finishSpawn(
         new InfernalBossEnemy(
           this.scene,
@@ -193,7 +209,7 @@ export class EnemyFactory {
       );
     }
 
-    if (hasBossPattern(config, 'architect')) {
+    if (hasBossPattern(config, "architect")) {
       return this.finishSpawn(
         new ArchitectBossEnemy(
           this.scene,

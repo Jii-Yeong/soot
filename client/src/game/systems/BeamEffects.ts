@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { STAGE_ONE_BOSS_LASER_ASSETS } from '@/game/config/bossAnimationConfig';
 import type { BeamVisualConfig } from '@/game/config/bossConfigTypes';
 
 type Point = {
@@ -8,21 +9,30 @@ type Point = {
 
 export class BeamEffects {
   private readonly telegraph: Phaser.GameObjects.Graphics;
-  private readonly beamGlow: Phaser.GameObjects.Rectangle;
-  private readonly beamCore: Phaser.GameObjects.Rectangle;
+  private readonly beamBack: Phaser.GameObjects.Image;
+  private readonly beamMiddle: Phaser.GameObjects.Image;
+  private readonly beamFront: Phaser.GameObjects.Image;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly pattern: BeamVisualConfig,
   ) {
     this.telegraph = scene.add.graphics().setDepth(11);
-    this.beamGlow = scene.add
-      .rectangle(0, 0, pattern.range, pattern.width * 2.2, pattern.beamColor, 0.2)
-      .setOrigin(0, 0.5)
-      .setDepth(10)
+    this.beamBack = scene.add
+      .image(0, 0, STAGE_ONE_BOSS_LASER_ASSETS.back.key)
+      .setDepth(11)
       .setVisible(false);
-    this.beamCore = scene.add
-      .rectangle(0, 0, pattern.range, pattern.width, pattern.beamColor, 0.95)
+    this.beamBack.setOrigin(
+      STAGE_ONE_BOSS_LASER_ASSETS.back.muzzleAnchorX / this.beamBack.width,
+      0.5,
+    );
+    this.beamMiddle = scene.add
+      .image(0, 0, STAGE_ONE_BOSS_LASER_ASSETS.middle.key)
+      .setOrigin(0, 0.5)
+      .setDepth(11)
+      .setVisible(false);
+    this.beamFront = scene.add
+      .image(0, 0, STAGE_ONE_BOSS_LASER_ASSETS.front.key)
       .setOrigin(0, 0.5)
       .setDepth(11)
       .setVisible(false);
@@ -47,8 +57,7 @@ export class BeamEffects {
   showBeam(muzzle: Point, angle: number) {
     this.telegraph.clear();
     this.positionBeam(muzzle, angle);
-    this.beamGlow.setVisible(true);
-    this.beamCore.setVisible(true);
+    this.setBeamVisible(true);
     this.scene.cameras.main.shake(100, 0.006);
   }
 
@@ -57,8 +66,7 @@ export class BeamEffects {
   }
 
   hideBeam() {
-    this.beamGlow.setVisible(false);
-    this.beamCore.setVisible(false);
+    this.setBeamVisible(false);
   }
 
   hideAll() {
@@ -68,13 +76,40 @@ export class BeamEffects {
 
   destroy() {
     this.telegraph.destroy();
-    this.beamGlow.destroy();
-    this.beamCore.destroy();
+    this.beamBack.destroy();
+    this.beamMiddle.destroy();
+    this.beamFront.destroy();
   }
 
   private positionBeam(muzzle: Point, angle: number) {
-    for (const beam of [this.beamGlow, this.beamCore]) {
-      beam.setPosition(muzzle.x, muzzle.y).setRotation(angle);
-    }
+    const directionX = Math.cos(angle);
+    const directionY = Math.sin(angle);
+    const backForwardLength =
+      this.beamBack.width - STAGE_ONE_BOSS_LASER_ASSETS.back.muzzleAnchorX;
+    const middleLength = Math.max(
+      1,
+      this.pattern.range - backForwardLength - this.beamFront.width,
+    );
+
+    this.beamBack.setPosition(muzzle.x, muzzle.y).setRotation(angle);
+    this.beamMiddle
+      .setPosition(
+        muzzle.x + directionX * backForwardLength,
+        muzzle.y + directionY * backForwardLength,
+      )
+      .setRotation(angle)
+      .setDisplaySize(middleLength, this.beamMiddle.height);
+    this.beamFront
+      .setPosition(
+        muzzle.x + directionX * (this.pattern.range - this.beamFront.width),
+        muzzle.y + directionY * (this.pattern.range - this.beamFront.width),
+      )
+      .setRotation(angle);
+  }
+
+  private setBeamVisible(visible: boolean) {
+    this.beamBack.setVisible(visible);
+    this.beamMiddle.setVisible(visible);
+    this.beamFront.setVisible(visible);
   }
 }

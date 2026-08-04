@@ -34,6 +34,8 @@ const LANDING_POSE_DURATION = 260;
 const COYOTE_TIME = 90;
 /** A jump pressed this long before landing still fires on touchdown. */
 const JUMP_BUFFER_TIME = 110;
+/** 포탈 진입 후 점프 입력을 무시하는 시간(위/W 키를 공유하므로). */
+const JUMP_SUPPRESS_AFTER_PORTAL = 200;
 /** How fast a boss grab drags the player toward it. */
 const GRAB_PULL_SPEED = 700;
 /**
@@ -53,6 +55,7 @@ export class PlayerController {
   private invulnerable = false;
   private lastGroundedAt = 0;
   private jumpBufferedUntil = 0;
+  private jumpSuppressedUntil = 0;
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
@@ -190,7 +193,11 @@ export class PlayerController {
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.up) ||
       Phaser.Input.Keyboard.JustDown(this.cursorKeys.space);
 
-    if (jumpPressed) {
+    // 포탈 전환 직후 잠시 점프 입력(및 버퍼된 입력)을 무시함. 포탈에
+    // 진입한 위/W 누름이 다음 방에서 점프까지 하지 않도록.
+    if (time <= this.jumpSuppressedUntil) {
+      this.jumpBufferedUntil = 0;
+    } else if (jumpPressed) {
       this.jumpBufferedUntil = time + JUMP_BUFFER_TIME;
     }
 
@@ -332,6 +339,15 @@ export class PlayerController {
   stop() {
     this.finishDash();
     this.player.setVelocity(0);
+  }
+
+  /**
+   * 대기 중인 점프를 버리고 잠시 새 점프 입력을 무시함 — 위/W가 포탈
+   * 진입과 점프를 겸하므로, 플레이어가 포탈로 나갈 때 호출됨.
+   */
+  cancelJump() {
+    this.jumpBufferedUntil = 0;
+    this.jumpSuppressedUntil = this.scene.time.now + JUMP_SUPPRESS_AFTER_PORTAL;
   }
 
   get isInvulnerable() {

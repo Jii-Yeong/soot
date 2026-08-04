@@ -7,6 +7,12 @@ export type EnemyProjectileAttack = (
 
 export type EnemyProjectileKind = 'ranged' | 'flying';
 
+/**
+ * 잡몹은 지형 발판(depth 5) 앞에 렌더링되어 2·3층 발판 뒤에 가려지지
+ * 않으면서, 플레이어(8)보다는 아래에 유지됨.
+ */
+export const ENEMY_DEPTH = 6;
+
 export type EnemyProjectileProfile = {
   kind: EnemyProjectileKind;
   muzzleOffset: number;
@@ -15,6 +21,17 @@ export type EnemyProjectileProfile = {
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
   abstract readonly aggroIndicatorColor: number;
+  /** 이 적이 공용 흰색 피격 플래시를 사용하는지 여부. */
+  readonly usesHitFlash: boolean = true;
+  /** 흰색 채움 틴트가 보이는 동안의 불투명도. */
+  readonly hitFlashAlpha: number = 1;
+  /**
+   * 이 적이 자신의 `defeat()`에서 죽음 애니메이션을 재생하는지 여부.
+   * true면 씬은 공용 확장-잔상 죽음 연출을 건너뜀.
+   */
+  get playsOwnDeathAnimation(): boolean {
+    return false;
+  }
   readonly maxHealth: number;
   /** Set by ranged-style subclasses so GameScene can route fire without an instanceof check. */
   readonly projectile: EnemyProjectileProfile | null = null;
@@ -103,10 +120,14 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (targetInRange && !this.isStaggered(time) && time >= this.nextFireAt) {
       fireProjectile(this, target);
       this.nextFireAt = time + fireInterval;
+      this.onRangedFire(time);
     }
 
     return targetInRange;
   }
+
+  /** 서브클래스가 피격에 반응하는 훅(예: attack 애니메이션 재생). */
+  protected onRangedFire(_time: number) {}
 
   takeDamage(amount: number) {
     if (!this.active) {

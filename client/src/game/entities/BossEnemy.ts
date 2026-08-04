@@ -10,6 +10,7 @@ export abstract class BossEnemy<
 > extends Enemy {
   readonly aggroRadius: number;
   readonly aggroIndicatorColor: number;
+  override readonly usesHitFlash: boolean = false;
 
   private contactDamageReadyAt = 0;
 

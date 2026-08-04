@@ -14,13 +14,18 @@ import type { AudioMix } from '@/game/config/audioConfig';
  */
 type GameEventMap = {
   'health-changed': [current: number, max: number];
-  'enemy-health-changed': [current: number, max: number];
+  'enemy-health-changed': [
+    current: number,
+    max: number,
+    isBoss: boolean,
+  ];
   'boss-phase-changed': [phase: BossPhase | null];
   'phase-changed': [phase: GamePhase];
   'room-state-changed': [state: RoomState];
   'scene-changed': [scene: GameSceneKey];
   'stage-changed': [stageId: string];
   'admin-stage-requested': [stageIndex: number];
+  'admin-stage-boss-requested': [stageIndex: number];
   'admin-weapon-requested': [weaponId: string];
   /**
    * Asked for by the UI, answered by the scene. Split in two because the scene

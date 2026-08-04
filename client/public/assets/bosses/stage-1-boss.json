@@ -1,43 +1,131 @@
 { "frames": {
    "stage-1-boss 0.aseprite": {
-    "frame": { "x": 1, "y": 1, "w": 186, "h": 158 },
+    "frame": { "x": 1, "y": 1, "w": 192, "h": 172 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
     "sourceSize": { "w": 192, "h": 192 },
-    "duration": 450
+    "duration": 180
    },
    "stage-1-boss 1.aseprite": {
-    "frame": { "x": 188, "y": 1, "w": 186, "h": 158 },
+    "frame": { "x": 194, "y": 1, "w": 192, "h": 172 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
     "sourceSize": { "w": 192, "h": 192 },
-    "duration": 300
+    "duration": 240
    },
    "stage-1-boss 2.aseprite": {
-    "frame": { "x": 375, "y": 1, "w": 186, "h": 158 },
+    "frame": { "x": 387, "y": 1, "w": 192, "h": 172 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
     "sourceSize": { "w": 192, "h": 192 },
-    "duration": 450
+    "duration": 180
    },
    "stage-1-boss 3.aseprite": {
-    "frame": { "x": 1, "y": 160, "w": 186, "h": 158 },
+    "frame": { "x": 194, "y": 1, "w": 192, "h": 172 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
     "sourceSize": { "w": 192, "h": 192 },
-    "duration": 300
+    "duration": 240
    },
    "stage-1-boss 4.aseprite": {
-    "frame": { "x": 188, "y": 160, "w": 186, "h": 158 },
+    "frame": { "x": 580, "y": 1, "w": 192, "h": 172 },
     "rotated": false,
     "trimmed": true,
-    "spriteSourceSize": { "x": 3, "y": 16, "w": 184, "h": 156 },
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 350
+   },
+   "stage-1-boss 5.aseprite": {
+    "frame": { "x": 1, "y": 174, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 350
+   },
+   "stage-1-boss 6.aseprite": {
+    "frame": { "x": 194, "y": 1, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 240
+   },
+   "stage-1-boss 7.aseprite": {
+    "frame": { "x": 194, "y": 174, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 120
+   },
+   "stage-1-boss 8.aseprite": {
+    "frame": { "x": 387, "y": 174, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 120
+   },
+   "stage-1-boss 9.aseprite": {
+    "frame": { "x": 580, "y": 174, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 120
+   },
+   "stage-1-boss 10.aseprite": {
+    "frame": { "x": 1, "y": 347, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 90
+   },
+   "stage-1-boss 11.aseprite": {
+    "frame": { "x": 194, "y": 347, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 60
+   },
+   "stage-1-boss 12.aseprite": {
+    "frame": { "x": 387, "y": 347, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
     "sourceSize": { "w": 192, "h": 192 },
     "duration": 100
+   },
+   "stage-1-boss 13.aseprite": {
+    "frame": { "x": 580, "y": 347, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 180
+   },
+   "stage-1-boss 14.aseprite": {
+    "frame": { "x": 1, "y": 520, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 100
+   },
+   "stage-1-boss 15.aseprite": {
+    "frame": { "x": 194, "y": 520, "w": 192, "h": 172 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 0, "y": 13, "w": 190, "h": 170 },
+    "sourceSize": { "w": 192, "h": 192 },
+    "duration": 180
    }
  },
  "meta": {
@@ -45,21 +133,21 @@
   "version": "1.3.18.1-arm64",
   "image": "stage-1-boss.png",
   "format": "RGBA8888",
-  "size": { "w": 562, "h": 319 },
+  "size": { "w": 773, "h": 693 },
   "scale": "1",
   "frameTags": [
-   { "name": "stage_1_boss_idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
-   { "name": "stage_1_boss_battle", "from": 4, "to": 4, "direction": "forward", "color": "#000000ff" }
+   { "name": "idle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk", "from": 4, "to": 5, "direction": "forward", "color": "#000000ff" },
+   { "name": "charge", "from": 7, "to": 9, "direction": "forward", "color": "#000000ff" },
+   { "name": "fire", "from": 10, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "recoil", "from": 12, "to": 13, "direction": "forward", "color": "#000000ff" },
+   { "name": "death", "from": 14, "to": 15, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "Layer 1", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 9", "opacity": 255, "blendMode": "normal" },
    { "name": "Layer 2", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 3", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 4", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 5", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 6", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 7", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 8", "opacity": 255, "blendMode": "normal" }
+   { "name": "Layer 6", "opacity": 255, "blendMode": "normal" }
   ],
   "slices": [
   ]

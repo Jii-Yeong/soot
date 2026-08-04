@@ -6,7 +6,7 @@ import {
   type StageRooms,
 } from '@/game/config/roomConfig';
 
-const AERIAL_ROOM_DOOR = {
+const AERIAL_ROOM_PORTAL = {
   y: GAME_HEIGHT / 2,
   height: GAME_HEIGHT,
 };
@@ -31,7 +31,7 @@ export const RETURN_ROOM_ONE = defineRoom({
   id: 'return-01',
   label: 'ROOM 01',
   intensity: 1.6,
-  door: AERIAL_ROOM_DOOR,
+  portal: AERIAL_ROOM_PORTAL,
   enemySpawns: [
     // First contact comes after enough open air to establish the flight
     // controls. No enemy can fire from the room entrance.
@@ -96,7 +96,7 @@ export const RETURN_ROOM_TWO = defineRoom({
   id: 'return-02',
   label: 'ROOM 02',
   intensity: 1.7,
-  door: AERIAL_ROOM_DOOR,
+  portal: AERIAL_ROOM_PORTAL,
   enemySpawns: [
     // Room 02 also gives a short entry lane, then starts from the familiar
     // two-height formation before tightening into the final group.
@@ -173,7 +173,7 @@ export const RETURN_BOSS_ROOM = defineBossRoom({
   variant: 'returning-architect',
   intensity: 1.7,
   bossY: GAME_HEIGHT / 2,
-  door: AERIAL_ROOM_DOOR,
+  portal: AERIAL_ROOM_PORTAL,
 });
 
 export const RETURN_ROOMS = [

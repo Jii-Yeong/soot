@@ -1,8 +1,10 @@
-import Phaser from 'phaser';
-import type { TerrainPiece } from '@/game/config/roomConfig';
+import Phaser from "phaser";
+import type { TerrainPiece } from "@/game/config/roomConfig";
+import type { SliceSkinConfig } from "@/game/config/terrainSkinConfig";
+import { drawSliceSkin } from "@/game/systems/SliceSkin";
 
 const TERRAIN_DEPTH = 5;
-const TERRAIN_TYPE_DATA_KEY = 'terrain-type';
+const TERRAIN_TYPE_DATA_KEY = "terrain-type";
 
 const TERRAIN_STYLE = {
   platform: { fill: 0x9aa4ab, edge: 0xe8eef1 },
@@ -21,8 +23,8 @@ const TERRAIN_STYLE = {
  *
  * Walls stay solid on every face. A wall is the thing you are meant to go over.
  */
-export const terrainCollisionFaces = (type: TerrainPiece['type']) =>
-  type === 'wall'
+export const terrainCollisionFaces = (type: TerrainPiece["type"]) =>
+  type === "wall"
     ? { up: true, down: true, left: true, right: true }
     : { up: true, down: false, left: false, right: false };
 
@@ -35,11 +37,11 @@ export const projectileCollisionFaces = {
 };
 
 /** Every terrain piece is solid to player and enemy projectiles. */
-export const terrainBlocksProjectiles = (_type: TerrainPiece['type']) => true;
+export const terrainBlocksProjectiles = (_type: TerrainPiece["type"]) => true;
 
 export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
   terrainBlocksProjectiles(
-    terrain.getData(TERRAIN_TYPE_DATA_KEY) as TerrainPiece['type'],
+    terrain.getData(TERRAIN_TYPE_DATA_KEY) as TerrainPiece["type"],
   );
 
 /**
@@ -51,24 +53,30 @@ export const isProjectileBlocker = (terrain: Phaser.GameObjects.GameObject) =>
 export class TerrainBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
   readonly projectileGroup: Phaser.Physics.Arcade.StaticGroup;
+  private skinObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.physics.add.staticGroup();
     this.projectileGroup = scene.physics.add.staticGroup();
   }
 
-  build(pieces: readonly TerrainPiece[] = []) {
+  build(pieces: readonly TerrainPiece[] = [], stoolSkin?: SliceSkinConfig) {
     this.group.clear(true, true);
     this.projectileGroup.clear(true, true);
+    this.clearSkin();
 
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
+      const skinned = Boolean(stoolSkin) && piece.type === "platform";
+      // 스킨된 발판은 아트의 두께를 따라, 충돌이 픽셀 판과 일치하게 함.
+      // 상단 표면(piece.y)은 어느 쪽이든 변하지 않음.
+      const height = skinned ? stoolSkin!.height : piece.height;
       const block = this.scene.add
         .rectangle(
           piece.x + piece.width / 2,
-          piece.y + piece.height / 2,
+          piece.y + height / 2,
           piece.width,
-          piece.height,
+          height,
           style.fill,
         )
         .setStrokeStyle(2, style.edge, 0.9)
@@ -102,6 +110,28 @@ export class TerrainBuilder {
         projectileBlocker.body as Phaser.Physics.Arcade.StaticBody;
       projectileBody.updateFromGameObject();
       Object.assign(projectileBody.checkCollision, projectileCollisionFaces);
+
+      if (skinned) {
+        // 블록은 물리 바디로 유지하되 픽셀 스킨 아래에 숨김.
+        block.setVisible(false);
+        this.skinObjects.push(
+          ...drawSliceSkin(
+            this.scene,
+            stoolSkin!,
+            piece.x,
+            piece.x + piece.width,
+            piece.y,
+            TERRAIN_DEPTH,
+          ),
+        );
+      }
     }
+  }
+
+  private clearSkin() {
+    for (const obj of this.skinObjects) {
+      obj.destroy();
+    }
+    this.skinObjects = [];
   }
 }

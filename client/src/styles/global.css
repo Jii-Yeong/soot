@@ -450,10 +450,35 @@ input {
   background: rgba(7, 10, 11, 0.94);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(6px);
-  /* Eleven entries no longer clear a short viewport, and a debug menu running
-     off the bottom of the screen hides the very control you reached for. */
+  /* 메뉴를 트리거와 뷰포트 가장자리 사이에 유지함. `dvh`는 모바일에서
+     실제로 보이는 높이를 따름. vh 선언은 그 폴백. */
   max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - clamp(64px, 8vw, 84px) - 56px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #4f5b5f rgba(7, 10, 11, 0.3);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.admin-controls__menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-controls__menu::-webkit-scrollbar-track {
+  background: rgba(7, 10, 11, 0.3);
+}
+
+.admin-controls__menu::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #4f5b5f;
+  background-clip: padding-box;
+}
+
+.admin-controls__menu::-webkit-scrollbar-thumb:hover {
+  background: #b6ffe4;
+  background-clip: padding-box;
 }
 
 .admin-controls__group {
@@ -471,6 +496,20 @@ input {
 .admin-controls__button {
   width: 100%;
   text-align: left;
+}
+
+.admin-controls__stage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-controls__button--boss {
+  padding-right: 8px;
+  padding-left: 8px;
+  color: #e99ba3;
+  text-align: center;
 }
 
 .admin-controls__button--active {
@@ -617,5 +656,10 @@ input {
   .admin-controls {
     top: 12px;
     right: max(12px, env(safe-area-inset-right));
+  }
+
+  .admin-controls__menu {
+    max-height: calc(100vh - 68px);
+    max-height: calc(100dvh - 68px);
   }
 }
