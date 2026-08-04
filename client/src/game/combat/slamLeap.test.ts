@@ -16,7 +16,7 @@ describe('getSlamLeapVelocity', () => {
     expect(leap.flightDurationMs).toBe(1200);
   });
 
-  it('caps horizontal travel speed for distant targets', () => {
+  it('caps horizontal speed but still reaches a distant marker', () => {
     const leap = getSlamLeapVelocity({
       originX: 500,
       targetX: 2500,
@@ -25,7 +25,11 @@ describe('getSlamLeapVelocity', () => {
       maxTravelSpeedX: 900,
     });
 
+    // Horizontal speed stays capped for readability...
     expect(leap.velocityX).toBe(900);
+    // ...but the arc stretches (higher, longer jump) so it lands on the spot.
+    expect((leap.velocityX * leap.flightDurationMs) / 1000).toBe(2000);
+    expect(leap.velocityY).toBeLessThan(-720);
   });
 
   it('supports a player positioned to the left of the boss', () => {
