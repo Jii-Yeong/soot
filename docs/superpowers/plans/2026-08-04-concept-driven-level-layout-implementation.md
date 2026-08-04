@@ -50,8 +50,8 @@
 - Modify: `client/src/game/config/rooms/stageFourRooms.test.ts`
 - Modify: `client/src/game/config/rooms/stageFourRooms.ts`
 
-- [x] Build room 1 from three low cover islands, one mid ledge, and three pits.
-- [x] Build room 2 from three low, three mid, and one high platform with three pits.
+- [x] Build room 1 from four low cover islands, two optional mid ledges, and four asymmetric pits.
+- [x] Build room 2 from four low, four mid, and one high platform with four pits.
 - [x] Place a cover-demonstrating flier in each room.
 - [x] Verify enemy spacing, pit width, exit approach, and full ground-patrol exposure.
 
@@ -96,3 +96,19 @@
 - [x] Give every Stage 1-4 flier a restrained patrol route.
 - [x] Run full verification and code review.
 - [x] Commit the late-stage duration and aerial patrol pass.
+
+### Task 8: Record browser playtest follow-ups
+
+**Files:**
+- Modify: `client/src/game/controllers/PlayerController.ts`
+- Modify: `client/src/game/controllers/PlayerController.test.ts`
+- Modify: `client/src/game/config/bossConfig.ts`
+- Modify: `client/src/game/config/bossConfig.test.ts`
+
+- [x] Complete the user-owned browser playtest for cover readability, firing angles, pacing, and perceived stage length.
+- [x] Fix the Stage 4 boss portal transition so Stage 5 preserves the authored entry X position instead of spawning at the screen centre.
+- [x] Increase the Stage 4 boss entrance grace period before its first attack from 900 ms to 1800 ms.
+- [x] Preserve player movement and flight controls, boss detection radius, attack selection, and recurring attack timing.
+- [x] Verify both follow-up fixes with regression tests, the full client test suite, lint, and production build.
+
+The portal correction fixes a transition-coordinate bug and does not change the player's movement or flight rules. The boss follow-up keeps its detection radius and attack patterns intact; only the one-time delay between initial detection and the first attack telegraph is extended so the player can read the arena after entering.
