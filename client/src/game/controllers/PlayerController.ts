@@ -488,6 +488,14 @@ export class PlayerController {
       }
     }
 
+    // 방향키를 누르고 있으면 그 방향으로, 아니면 쳐다보는 방향(flipX)으로 대시.
+    const horizontal = Number(this.isMovingRight()) - Number(this.isMovingLeft());
+    if (horizontal !== 0) {
+      this.dashVelocity.x = horizontal;
+      this.dashVelocity.y = 0;
+      return;
+    }
+
     this.dashVelocity.x = this.player.flipX ? -1 : 1;
     this.dashVelocity.y = 0;
   }
