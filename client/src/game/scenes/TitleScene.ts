@@ -12,8 +12,19 @@ export class TitleScene extends Phaser.Scene {
     super('title');
   }
 
+  preload() {
+    this.load.image('title-player', '/assets/title-player.png');
+  }
+
   create() {
     gameEvents.emit('scene-changed', 'title');
+
+    // 우하단 정렬, 높이는 화면의 80%(비율 유지). 텍스트 뒤에 깔림.
+    const player = this.add
+      .image(GAME_WIDTH, GAME_HEIGHT, 'title-player')
+      .setOrigin(1, 1)
+      .setDepth(-1);
+    player.setScale((GAME_HEIGHT * 0.8) / player.height);
 
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 32, 'SOOT', {
