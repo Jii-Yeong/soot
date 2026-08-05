@@ -115,14 +115,14 @@ export const STAGE_THREE_STOOL_SKIN: SliceSkinConfig = {
 };
 
 export const STAGE_THREE_PIPE_SKIN: SliceSkinConfig = {
-  left: asset('stage-3-pipe-left', 84),
-  middle: asset('stage-3-pipe-middle', 164),
-  right: asset('stage-3-pipe-right', 91),
-  height: 64,
+  left: asset('stage-3-pipe-left', 52),
+  middle: asset('stage-3-pipe-middle', 102),
+  right: asset('stage-3-pipe-right', 56),
+  height: 40,
   surfaceInset: 0,
   middleFit: 'tile',
   // 둥근 바깥 끝과 체결부가 잘리지 않도록 캡 전체를 보존함.
-  capInset: { left: 84, right: 91 },
+  capInset: { left: 52, right: 56 },
 };
 
 export const ALL_TERRAIN_SKINS = [
