@@ -821,6 +821,95 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
     .toBeLessThan(result.healthAfterShield);
 });
 
+test('stage three pipe crawler stays aligned above its floor segment', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '3스테이지', exact: true })
+    .click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeEnemy = {
+          anims: { currentAnim?: { key: string } };
+          texture: { key: string };
+        };
+        type RuntimeScene = { enemies: RuntimeEnemy[] };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+        return enemies.find(({ texture }) => texture.key === 'stage-3-flying')
+          ?.anims.currentAnim?.key;
+      }),
+    )
+    .toBe('stage-3-flying-pipe-idle');
+
+  await page.evaluate(() => {
+    type RuntimeEnemy = {
+      takeProjectileDamage: (damage: number, x: number, y: number) => unknown;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+    const crawler = enemies.find(
+      ({ texture }) => texture.key === 'stage-3-flying',
+    )!;
+    crawler.takeProjectileDamage(50, crawler.x, crawler.y);
+  });
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeEnemy = {
+          anims: { currentAnim?: { key: string } };
+          texture: { key: string };
+        };
+        type RuntimeScene = { enemies: RuntimeEnemy[] };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+        return enemies.find(({ texture }) => texture.key === 'stage-3-flying')
+          ?.anims.currentAnim?.key;
+      }),
+      { timeout: 5_000 },
+    )
+    .toBe('stage-3-flying-floor-idle');
+
+  const groundPose = await page.evaluate(() => {
+    type RuntimeEnemy = {
+      body: { allowGravity: boolean; offset: { y: number } };
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+    const crawler = enemies.find(
+      ({ texture }) => texture.key === 'stage-3-flying',
+    )!;
+    return {
+      allowGravity: crawler.body.allowGravity,
+      bodyOffsetY: crawler.body.offset.y,
+      x: crawler.x,
+      y: crawler.y,
+    };
+  });
+
+  expect(groundPose.allowGravity).toBe(true);
+  expect(groundPose.bodyOffsetY).toBe(48);
+  expect(groundPose.y).toBeLessThan(590);
+  expect(groundPose.x).toBeGreaterThan(2_000);
+});
+
 test('stage two ground enemies stop at pit edges instead of falling', async ({
   page,
 }) => {

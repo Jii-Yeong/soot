@@ -4,8 +4,6 @@ import type { Enemy } from '@/game/entities/Enemy';
 export type EnemyCollisionOptions = {
   collidesWithFloor?: boolean;
   collidesWithTerrain?: boolean;
-  /** 피트 가장자리 장벽 충돌. 바닥을 미끄러져 피트를 건너는 적은 false. */
-  collidesWithPitBarriers?: boolean;
 };
 
 /**
@@ -25,7 +23,7 @@ export function connectEnemyToRoomGeometry(
 ) {
   if (options.collidesWithFloor ?? true) {
     scene.physics.add.collider(enemy, floor);
-    if (enemyPitBarriers && (options.collidesWithPitBarriers ?? true)) {
+    if (enemyPitBarriers) {
       scene.physics.add.collider(enemy, enemyPitBarriers);
     }
   }

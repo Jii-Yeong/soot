@@ -38,6 +38,7 @@ export class CeilingMaintainerEnemy extends Enemy {
   private contactReadyAt = 0;
   private lockedGroundTargetX = 0;
   private groundDashDirection = 1;
+  private floorSpriteAligned = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -305,17 +306,33 @@ export class CeilingMaintainerEnemy extends Enemy {
     this.maintainerState = 'ground-mark';
     this.stateEndsAt = time + GROUND_MARK_DURATION;
     this.lockedGroundTargetX = targetX;
-    // 착지 후에는 바닥면을 미끄러지듯 돌진한다. 중력을 꺼 피트 위를 지나도
-    // 떨어지지 않게 하고(피트 장벽 충돌도 없음), 지상 높이에 고정한다.
+    this.alignFloorSprite();
+    // 착지 뒤에도 중력을 유지해야 바닥 높이에 붙어 움직인다. 중력을 끄면
+    // 구덩이에 진입했을 때 바닥 아래에서 공중에 멈춰 버린다.
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false);
-    this.setVelocity(0, 0);
+    body.setAllowGravity(true);
+    this.setVelocityX(0);
     this.play(CEILING_MAINTAINER_CONFIG.animations.floorIdle, true);
     this.groundMarker?.destroy();
     this.groundMarker = this.scene.add
       .ellipse(targetX, FLOOR_SURFACE_Y - 5, 92, 20, 0xff9b62, 0.14)
       .setStrokeStyle(2, 0xffb27b, 0.95)
       .setDepth(7);
+  }
+
+  private alignFloorSprite() {
+    if (this.floorSpriteAligned) {
+      return;
+    }
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const lift = CEILING_MAINTAINER_CONFIG.floorBodyOffsetY - body.offset.y;
+    // 바디의 월드 위치는 유지하고 바닥용 납작한 그림만 위로 올림. 바디가
+    // 그림 전체와 바닥 사이를 덮으므로 투사체/접촉 판정도 끊기지 않음.
+    this.setY(this.y - lift);
+    body.setOffset(body.offset.x, CEILING_MAINTAINER_CONFIG.floorBodyOffsetY);
+    body.updateFromGameObject();
+    this.floorSpriteAligned = true;
   }
 
   private beginGroundDash(time: number) {
