@@ -294,6 +294,7 @@ export class GameScene extends Phaser.Scene {
       scene: this,
       player: this.player,
       config: roomConfig,
+      portalTint: this.stage.palette.accentSecondary,
       onStateChanged: (state) => this.handleRoomStateChanged(state),
       onExitRequested: () => {
         this.roomExitRequested = true;

@@ -30,6 +30,10 @@ import {
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
+import {
+  ROOM_PORTAL_ANIMATION,
+  ROOM_PORTAL_TEXTURE,
+} from '@/game/config/portalConfig';
 import { UI_PANEL_TEXTURES } from '@/game/config/uiAssetConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
@@ -71,6 +75,10 @@ export class BootScene extends Phaser.Scene {
     for (const panel of Object.values(UI_PANEL_TEXTURES)) {
       this.load.image(panel.key, panel.path);
     }
+    this.load.spritesheet(ROOM_PORTAL_TEXTURE.key, ROOM_PORTAL_TEXTURE.path, {
+      frameWidth: ROOM_PORTAL_TEXTURE.frameWidth,
+      frameHeight: ROOM_PORTAL_TEXTURE.frameHeight,
+    });
     this.load.image(BACK_ARM.texture, BACK_ARM.url);
     this.load.image(FRONT_ARM.texture, FRONT_ARM.url);
 
@@ -265,6 +273,15 @@ export class BootScene extends Phaser.Scene {
   }
 
   private createAnimations() {
+    this.anims.create({
+      key: ROOM_PORTAL_ANIMATION.key,
+      frames: this.anims.generateFrameNumbers(ROOM_PORTAL_TEXTURE.key, {
+        start: 0,
+        end: ROOM_PORTAL_TEXTURE.frameCount - 1,
+      }),
+      frameRate: ROOM_PORTAL_ANIMATION.frameRate,
+      repeat: -1,
+    });
     this.anims.create({
       key: PLAYER_ANIMATIONS.idle,
       frames: PLAYER_IDLE_FRAMES.map((frame) => ({

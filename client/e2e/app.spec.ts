@@ -1134,6 +1134,34 @@ test('enters the clear portal and starts combat in the next room', async ({
     'room-cleared',
     { timeout: 5000 },
   );
+  const portalState = await page.evaluate(() => {
+    type RuntimePortal = {
+      view: {
+        anims: { currentAnim?: { key: string } };
+        texture: { key: string };
+        visible: boolean;
+      };
+    };
+    type RuntimeScene = { roomDirector: { portal: RuntimePortal } };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const portal = (game.scene.getScene('game') as RuntimeScene).roomDirector
+      .portal.view;
+    return {
+      animation: portal.anims.currentAnim?.key,
+      texture: portal.texture.key,
+      visible: portal.visible,
+    };
+  });
+  expect(portalState).toEqual({
+    animation: 'room-portal-idle',
+    texture: 'room-portal',
+    visible: true,
+  });
 
   await enterExitPortal(page);
 
