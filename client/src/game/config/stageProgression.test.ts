@@ -17,9 +17,9 @@ describe('getStageExitPlan', () => {
     });
   });
 
-  it('advances from stage 4 into stage 5', () => {
+  it('shatters the stage 4 screen before entering stage 5', () => {
     expect(getStageExitPlan(STAGES, 3)).toEqual({
-      event: undefined,
+      event: 'shatter',
       nextStageIndex: 4,
     });
   });

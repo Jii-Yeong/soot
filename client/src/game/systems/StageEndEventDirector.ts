@@ -9,6 +9,13 @@ const SIEGE_REVEAL_INTERVAL = 200;
 /** 싱킹 연출에 쓰는 검은 선/점 개수. */
 const SINK_STREAK_COUNT = 14;
 
+/**
+ * 화면 파괴 안무 타이밍(파편이 화면을 덮은 시점 기준). 첫 조각이 뜸을 두고
+ * 떨어지고, 몇 조각 더 떨어진 뒤 나머지가 우르르 쏟아진다.
+ */
+const SHATTER_FIRST_DROP = 700;
+const SHATTER_AVALANCHE = 2900;
+
 export class StageEndEventDirector {
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -17,11 +24,208 @@ export class StageEndEventDirector {
       case 'siege':
         this.playSiege(onBlackout);
         return;
+      case 'shatter':
+        this.playShatter(onBlackout);
+        return;
       default: {
         const unhandledEvent: never = event;
         throw new Error(`Unsupported stage end event: ${unhandledEvent}`);
       }
     }
+  }
+
+  /**
+   * 4스테이지 종료 연출: 현재 화면을 캡쳐해 그 이미지가 유리처럼 깨진다. 흰
+   * 균열이 번지며 캡쳐 화면이 파편으로 갈라지고, 조각이 화면을 가린 순간
+   * `onBlackout`(다음 스테이지 구성)을 호출해 교체를 감춘 뒤 흩뿌려 5스테이지를
+   * 드러낸다.
+   */
+  private playShatter(onBlackout: () => void) {
+    // 현재 프레임을 캡쳐한 뒤(다음 렌더에 콜백) 그 이미지를 깨뜨린다.
+    this.scene.game.renderer.snapshot((snapshot) => {
+      if (snapshot instanceof HTMLImageElement) {
+        this.runShatter(snapshot, onBlackout);
+      } else {
+        onBlackout();
+      }
+    });
+  }
+
+  private runShatter(snapshotImage: HTMLImageElement, onBlackout: () => void) {
+    const camera = this.scene.cameras.main;
+    const centerX = GAME_WIDTH / 2;
+    const centerY = GAME_HEIGHT / 2;
+
+    const snapshotKey = 'stage-shatter-snapshot';
+    if (this.scene.textures.exists(snapshotKey)) {
+      this.scene.textures.remove(snapshotKey);
+    }
+    this.scene.textures.addImage(snapshotKey, snapshotImage);
+
+    // 캡쳐 화면으로 현재 프레임을 고정해 덮는다(그 아래 씬은 곧 교체됨).
+    const cover = this.scene.add
+      .image(0, 0, snapshotKey)
+      .setOrigin(0, 0)
+      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+      .setDepth(94)
+      .setScrollFactor(0);
+
+    // 불규칙 유리 파편 그물: 중앙 충격점서 방사형 스포크 + 동심 링으로 화면을
+    // 불규칙 셀로 나눈다. 스포크 각도·링 반경을 흔들어 진짜 깨진 유리처럼 만든다.
+    const spokes = 12;
+    const rings = [0, 130, 270, 430, 620, 900];
+    const angleJitter = Array.from({ length: spokes }, () =>
+      Phaser.Math.FloatBetween(-0.16, 0.16),
+    );
+    const radiusJitter = rings.map((_, ring) =>
+      Array.from({ length: spokes }, () =>
+        ring === 0 ? 0 : Phaser.Math.FloatBetween(-0.18, 0.18),
+      ),
+    );
+    const web = (ring: number, spoke: number) => {
+      const index = ((spoke % spokes) + spokes) % spokes;
+      const theta = (index / spokes) * Math.PI * 2 + angleJitter[index]!;
+      const radius = rings[ring]! * (1 + radiusJitter[ring]![index]!);
+      return {
+        x: centerX + Math.cos(theta) * radius,
+        y: centerY + Math.sin(theta) * radius,
+      };
+    };
+
+    // 균열선(파편 경계 그물)이 점차 번지는 연출.
+    const cracks = this.scene.add
+      .graphics()
+      .setDepth(95)
+      .setScrollFactor(0)
+      .setAlpha(0);
+    // 얇고 거친 균열선. 두 점 사이를 곧게 잇지 않고, 수직 방향으로 흔든 여러
+    // 짧은 마디로 지그재그를 그려 불규칙하게 갈라진 유리처럼 보이게 한다.
+    cracks.lineStyle(1, 0xffffff, 0.9);
+    const jaggedTo = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+      const deltaX = to.x - from.x;
+      const deltaY = to.y - from.y;
+      const length = Math.hypot(deltaX, deltaY) || 1;
+      const normalX = -deltaY / length;
+      const normalY = deltaX / length;
+      const steps = Phaser.Math.Between(2, 4);
+      for (let step = 1; step <= steps; step += 1) {
+        const t = step / steps;
+        const offset = step === steps ? 0 : Phaser.Math.Between(-9, 9);
+        cracks.lineTo(
+          from.x + deltaX * t + normalX * offset,
+          from.y + deltaY * t + normalY * offset,
+        );
+      }
+    };
+    for (let spoke = 0; spoke < spokes; spoke += 1) {
+      cracks.beginPath();
+      cracks.moveTo(centerX, centerY);
+      let previous = { x: centerX, y: centerY };
+      for (let ring = 1; ring < rings.length; ring += 1) {
+        const point = web(ring, spoke);
+        jaggedTo(previous, point);
+        previous = point;
+      }
+      cracks.strokePath();
+    }
+    for (let ring = 1; ring < rings.length; ring += 1) {
+      cracks.beginPath();
+      let previous = web(ring, 0);
+      cracks.moveTo(previous.x, previous.y);
+      for (let spoke = 1; spoke <= spokes; spoke += 1) {
+        const point = web(ring, spoke);
+        jaggedTo(previous, point);
+        previous = point;
+      }
+      cracks.strokePath();
+    }
+    this.scene.tweens.add({ targets: cracks, alpha: 1, duration: 460 });
+    camera.shake(600, 0.012);
+
+    // 균열이 번진 뒤 캡쳐 화면을 불규칙 파편(Mesh2D)으로 잘라, 다음 스테이지로
+    // 교체한 뒤 조각마다 회전·낙하시킨다. 각 메시는 캡쳐 텍스처를 UV로 매핑한
+    // 폴리곤이라, 그 셀 모양 그대로 자신의 화면 픽셀을 담는다.
+    this.scene.time.delayedCall(540, () => {
+      const meshes: Phaser.GameObjects.Mesh2D[] = [];
+      for (let ring = 0; ring < rings.length - 1; ring += 1) {
+        for (let spoke = 0; spoke < spokes; spoke += 1) {
+          const corners = [
+            web(ring, spoke),
+            web(ring, spoke + 1),
+            web(ring + 1, spoke + 1),
+            web(ring + 1, spoke),
+          ];
+          const cx =
+            corners.reduce((sum, point) => sum + point.x, 0) / corners.length;
+          const cy =
+            corners.reduce((sum, point) => sum + point.y, 0) / corners.length;
+          // 정점: [x, y, u, v] * 4. 위치는 중심(cx,cy) 기준 상대, UV는 캡쳐
+          // 텍스처(화면 전체) 좌표. 회전축이 조각 중심에 오도록 상대 좌표로 둔다.
+          const vertices = corners.flatMap((point) => [
+            point.x - cx,
+            point.y - cy,
+            point.x / GAME_WIDTH,
+            point.y / GAME_HEIGHT,
+          ]);
+          const indices = [0, 1, 2, 0, 0, 2, 3, 0];
+          // 캡쳐 텍스처는 위에서 아래로 저장되지만 GL UV는 아래에서 위라, flipV로
+          // 상하 반전을 바로잡는다.
+          const mesh = this.scene.add
+            .mesh2d(cx, cy, snapshotKey, vertices, indices, true)
+            .setDepth(94)
+            .setScrollFactor(0);
+          meshes.push(mesh);
+        }
+      }
+
+      // 파편이 화면을 완전히 가린 지금 다음 스테이지를 구성한다(교체를 감춤).
+      // 균열 간 캡쳐 화면은 잠시 그대로 멈춰 있다가 아래 안무대로 떨어진다.
+      onBlackout();
+      cover.destroy();
+      camera.shake(240, 0.006);
+
+      // 한 조각이 회전하며 떨어지는 낙하 트윈.
+      const dropShard = (mesh: Phaser.GameObjects.Mesh2D, delay: number) => {
+        this.scene.tweens.add({
+          targets: mesh,
+          x: mesh.x + Phaser.Math.Between(-80, 80),
+          y: mesh.y + GAME_HEIGHT * 1.1 + Phaser.Math.Between(0, 280),
+          angle: Phaser.Math.Between(-180, 180),
+          duration: Phaser.Math.Between(720, 1160),
+          delay,
+          ease: 'Quad.easeIn',
+          onComplete: () => mesh.destroy(),
+        });
+        this.scene.tweens.add({
+          targets: mesh,
+          alpha: 0,
+          delay: delay + Phaser.Math.Between(200, 480),
+          duration: 460,
+        });
+      };
+
+      // 안무: 1초 뒤 한 조각, 1초 뒤 한 조각, 곧이어 한 조각, 그다음 우르르.
+      Phaser.Utils.Array.Shuffle(meshes);
+      const soloDelays = [SHATTER_FIRST_DROP, 1700, 2200];
+      meshes.forEach((mesh, index) => {
+        const delay =
+          index < soloDelays.length
+            ? soloDelays[index]!
+            : SHATTER_AVALANCHE + Phaser.Math.Between(0, 700);
+        dropShard(mesh, delay);
+      });
+
+      // 우르르 쏟아지는 순간 균열선을 지우고 화면을 크게 흔든다.
+      this.scene.time.delayedCall(SHATTER_AVALANCHE, () => {
+        camera.shake(520, 0.02);
+        this.scene.tweens.add({
+          targets: cracks,
+          alpha: 0,
+          duration: 260,
+          onComplete: () => cracks.destroy(),
+        });
+      });
+    });
   }
 
   /**

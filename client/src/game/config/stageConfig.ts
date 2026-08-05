@@ -53,9 +53,9 @@ export type StagePalette = {
 /**
  * A scripted beat that plays instead of a normal exit when the stage's final
  * room is cleared. 'siege' = androids close in, blackout, fall (act 3 → hell).
- * Future stages will add their own ('crack', 'return', …).
+ * 'shatter' = 화면이 점차 깨지며 다음 스테이지가 드러남(act 4 → return).
  */
-export type StageEndEvent = 'siege';
+export type StageEndEvent = 'siege' | 'shatter';
 
 /** Backdrop art whose source width determines its horizontal parallax speed. */
 export type StageBackground = {
@@ -201,6 +201,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-04.webp',
   },
   rooms: INFERNO_ROOMS,
+  endEvent: 'shatter',
 };
 
 export const STAGE_FIVE_CONFIG: StageConfig = {

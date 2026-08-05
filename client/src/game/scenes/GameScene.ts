@@ -1038,6 +1038,15 @@ export class GameScene extends Phaser.Scene {
       this.enemyProjectiles.clear();
       this.flyingEnemyProjectiles.clear();
       this.enemyRangeGraphics.clear();
+
+      // 4스테이지: 보스가 사라진 직후 포탈을 거치지 않고 바로 화면 파괴 연출.
+      if (
+        this.stage.endEvent === 'shatter' &&
+        !this.descentRoomConfig &&
+        this.currentRoomIndex === this.stage.rooms.length - 1
+      ) {
+        this.advanceToNextStage();
+      }
     }
   }
 
