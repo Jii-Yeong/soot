@@ -19,11 +19,13 @@ local function fill(image, x0, y0, x1, y1, color)
 end
 
 local function save(path, width, height, draw)
+  local fullPath = app.fs.joinPath(output, path)
+  app.fs.makeDirectory(app.fs.filePath(fullPath))
   local sprite = Sprite(width, height, ColorMode.RGB)
   local image = sprite.cels[1].image
   image:clear()
   draw(image)
-  sprite:saveAs(app.fs.joinPath(output, path))
+  sprite:saveAs(fullPath)
   sprite:close()
 end
 
@@ -31,6 +33,7 @@ local transparent = { 0, 0, 0, 0 }
 local panelFill = { 7, 10, 11, 238 }
 local panelFillActive = { 12, 31, 27, 242 }
 local panelFillDanger = { 31, 11, 14, 242 }
+local panelFillEmpty = { 9, 11, 12, 230 }
 local darkEdge = { 20, 29, 33, 255 }
 local midEdge = { 51, 66, 74, 255 }
 local lightEdge = { 95, 113, 120, 255 }
@@ -100,23 +103,46 @@ save("controls/button-frame-danger.png", 24, 24, function(image)
   fill(image, 7, 20, 16, 20, red)
 end)
 
-save("inventory/slot-frame-neutral.png", 24, 24, function(image)
-  drawCutFrame(image, panelFill, midEdge, lightEdge)
-  pixel(image, 7, 4, midEdge)
-  pixel(image, 16, 19, midEdge)
-end)
+local inventoryFrames = {
+  {
+    name = "neutral",
+    fillColor = panelFill,
+    edgeColor = midEdge,
+    cornerColor = lightEdge,
+    topAccent = midEdge,
+    bottomAccent = midEdge,
+  },
+  {
+    name = "active",
+    fillColor = panelFillActive,
+    edgeColor = mintShadow,
+    cornerColor = mint,
+    topAccent = mint,
+    bottomAccent = mintShadow,
+    usesAccentBars = true,
+  },
+  {
+    name = "empty",
+    fillColor = panelFillEmpty,
+    edgeColor = darkEdge,
+    cornerColor = midEdge,
+    topAccent = darkEdge,
+    bottomAccent = darkEdge,
+  },
+}
 
-save("inventory/slot-frame-active.png", 24, 24, function(image)
-  drawCutFrame(image, panelFillActive, mintShadow, mint)
-  fill(image, 7, 3, 16, 3, mint)
-  fill(image, 7, 20, 16, 20, mintShadow)
-end)
-
-save("inventory/slot-frame-empty.png", 24, 24, function(image)
-  drawCutFrame(image, { 9, 11, 12, 230 }, darkEdge, midEdge)
-  pixel(image, 7, 4, darkEdge)
-  pixel(image, 16, 19, darkEdge)
-end)
+for _, frame in ipairs(inventoryFrames) do
+  save("inventory/slot-frame-" .. frame.name .. ".png", 24, 24, function(image)
+    drawCutFrame(image, frame.fillColor, frame.edgeColor, frame.cornerColor)
+    if frame.usesAccentBars then
+      fill(image, 7, 3, 16, 3, frame.topAccent)
+      fill(image, 7, 20, 16, 20, frame.bottomAccent)
+    else
+      pixel(image, 7, 4, frame.topAccent)
+      pixel(image, 16, 19, frame.bottomAccent)
+    end
+  end)
+end
 
 save("hud/hud-frame-player.png", 24, 24, function(image)
   drawHudFrame(image, playerAccent)

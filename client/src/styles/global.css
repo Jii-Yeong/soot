@@ -130,6 +130,8 @@ input {
 }
 
 .weapon-inventory__slot {
+  --weapon-slot-frame: url('/assets/ui/inventory/slot-frame-neutral.png');
+
   position: relative;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
@@ -138,23 +140,22 @@ input {
   padding: 0 2px 2px;
   overflow: hidden;
   border: 8px solid transparent;
-  border-image: url('/assets/ui/inventory/slot-frame-neutral.png') 8 fill /
-    8px / 0 stretch;
+  border-image: var(--weapon-slot-frame) 8 fill / 8px / 0 stretch;
   color: #879197;
   background: none;
   image-rendering: pixelated;
 }
 
 .weapon-inventory__slot--selected {
-  border-image-source: url('/assets/ui/inventory/slot-frame-active.png');
+  --weapon-slot-frame: url('/assets/ui/inventory/slot-frame-active.png');
+
   color: #d8ffec;
-  background: none;
 }
 
 .weapon-inventory__slot--empty {
-  border-image-source: url('/assets/ui/inventory/slot-frame-empty.png');
+  --weapon-slot-frame: url('/assets/ui/inventory/slot-frame-empty.png');
+
   color: #4f5b5f;
-  background: none;
 }
 
 .weapon-inventory__key {

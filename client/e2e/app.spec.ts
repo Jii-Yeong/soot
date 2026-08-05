@@ -498,18 +498,21 @@ test('fills four weapon slots and switches them with number keys', async ({
     name: 'Weapon inventory',
   });
   const slots = inventory.getByRole('radio');
+  const expectSlotFrame = (
+    index: number,
+    frame: 'active' | 'empty' | 'neutral',
+  ) =>
+    expect(slots.nth(index)).toHaveCSS(
+      'border-image-source',
+      new RegExp(`slot-frame-${frame}\\.png`),
+    );
+
   await expect(slots).toHaveCount(4);
   await expect(slots.nth(0)).toHaveAttribute('aria-label', '1: SMG');
   await expect(slots.nth(0)).toHaveAttribute('aria-checked', 'true');
-  await expect(slots.nth(0)).toHaveCSS(
-    'border-image-source',
-    /slot-frame-active\.png/,
-  );
+  await expectSlotFrame(0, 'active');
   await expect(slots.nth(1)).toHaveAttribute('aria-disabled', 'true');
-  await expect(slots.nth(1)).toHaveCSS(
-    'border-image-source',
-    /slot-frame-empty\.png/,
-  );
+  await expectSlotFrame(1, 'empty');
 
   const adminButton = page.getByRole('button', { name: 'ADMIN' });
   await adminButton.click();
@@ -517,14 +520,8 @@ test('fills four weapon slots and switches them with number keys', async ({
   await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
   await expect(slots.nth(1)).toHaveAttribute('aria-label', '2: SHOTGUN');
   await expect(slots.nth(1)).toHaveAttribute('aria-checked', 'true');
-  await expect(slots.nth(1)).toHaveCSS(
-    'border-image-source',
-    /slot-frame-active\.png/,
-  );
-  await expect(slots.nth(0)).toHaveCSS(
-    'border-image-source',
-    /slot-frame-neutral\.png/,
-  );
+  await expectSlotFrame(1, 'active');
+  await expectSlotFrame(0, 'neutral');
 
   await page.getByRole('button', { name: 'BURST RIFLE 지급' }).click();
   await expect(page.locator('main')).toHaveAttribute(
@@ -1174,13 +1171,17 @@ test('shows boss health without enabling the standard enemy health HUD', async (
     page.getByRole('meter', { name: 'Boss health' }),
   ).toHaveAttribute('aria-valuemax', '500');
 
-  const playerHud = await page.locator('.hud--player').boundingBox();
-  const bossHud = await page.locator('.hud--enemy').boundingBox();
-  const playerStack = await page.locator('.hud-player-stack').boundingBox();
-
-  if (!playerHud || !bossHud || !playerStack) {
-    throw new Error('HUD bounds are unavailable');
-  }
+  const [playerHud, bossHud, playerStack] = await Promise.all(
+    ['.hud--player', '.hud--enemy', '.hud-player-stack'].map(
+      async (selector) => {
+        const bounds = await page.locator(selector).boundingBox();
+        if (!bounds) {
+          throw new Error(`HUD bounds are unavailable: ${selector}`);
+        }
+        return bounds;
+      },
+    ),
+  );
 
   expect(bossHud.height).toBe(playerHud.height);
   expect(bossHud.height).toBeLessThan(playerStack.height);
