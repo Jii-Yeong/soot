@@ -123,7 +123,7 @@ export class EnemyFactory {
         pipe,
         this.damagePlayer,
       ),
-      { collidesWithTerrain: false },
+      { collidesWithTerrain: false, collidesWithPitBarriers: false },
     );
   }
 

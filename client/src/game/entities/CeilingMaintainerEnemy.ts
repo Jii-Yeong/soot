@@ -305,7 +305,11 @@ export class CeilingMaintainerEnemy extends Enemy {
     this.maintainerState = 'ground-mark';
     this.stateEndsAt = time + GROUND_MARK_DURATION;
     this.lockedGroundTargetX = targetX;
-    this.setVelocityX(0);
+    // 착지 후에는 바닥면을 미끄러지듯 돌진한다. 중력을 꺼 피트 위를 지나도
+    // 떨어지지 않게 하고(피트 장벽 충돌도 없음), 지상 높이에 고정한다.
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(false);
+    this.setVelocity(0, 0);
     this.play(CEILING_MAINTAINER_CONFIG.animations.floorIdle, true);
     this.groundMarker?.destroy();
     this.groundMarker = this.scene.add
