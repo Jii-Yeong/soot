@@ -71,6 +71,7 @@ export function App() {
   return (
     <main
       className='game-shell'
+      onDragStart={(event) => event.preventDefault()}
       data-phase={phase}
       data-room-state={roomState}
       data-scene={scene}
