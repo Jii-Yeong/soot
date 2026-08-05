@@ -155,8 +155,8 @@ export class EnemyFactory {
       throw new Error(`Missing ceiling pipe: ${spawn.pipeId}`);
     }
 
-    // 발판(2층)에 걸리지 않고 천장에서 1층 바닥까지 떨어져 돌진하도록 지형
-    // 충돌은 끄고, 바닥 착지와 구덩이 가장자리 장벽은 그대로 둔다.
+    // 발판(2층)에 걸리지 않고 천장에서 1층 바닥까지 떨어지도록 지형 충돌은 끈다.
+    // 구덩이 가장자리 장벽도 무시해, 지상 돌진 중 구덩이를 만나면 그대로 추락한다.
     return this.finishSpawn(
       new CeilingMaintainerEnemy(
         this.scene,
@@ -164,7 +164,7 @@ export class EnemyFactory {
         pipe,
         this.damagePlayer,
       ),
-      { collidesWithTerrain: false },
+      { collidesWithTerrain: false, collidesWithPitBarriers: false },
     );
   }
 

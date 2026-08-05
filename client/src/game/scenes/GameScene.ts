@@ -68,8 +68,12 @@ import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 
-/** How far the feet must sink past the floor surface to count as a pit fall. */
-const PIT_FALL_TRIGGER_DEPTH = 22;
+/**
+ * 구덩이 추락 판정 깊이. 발이 이만큼 바닥선 아래로 내려가야 추락으로 친다.
+ * 구덩이 바닥(월드 하단)까지 떨어지는 추락 모션을 다 보여준 뒤 부활시키려고
+ * 얕게 잡지 않고 바닥 근처까지 크게 잡는다.
+ */
+const PIT_FALL_TRIGGER_DEPTH = 56;
 const PIT_FALL_DAMAGE = 12;
 /** Height above the floor the player is placed at after climbing out of a pit. */
 const PIT_RESPAWN_LIFT = 60;
@@ -1256,8 +1260,17 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // 추락한 쪽에서 가까운 가장자리 위로 되살린다(구덩이를 공짜로 건너지 않도록).
     const pit = this.floorBuilder.findPitAt(this.player.x, FLOOR_TILE);
-    const targetX = pit ? pit.end + FLOOR_TILE / 2 : this.player.x;
+    let targetX = this.player.x;
+    if (pit) {
+      const nearStart =
+        Math.abs(this.player.x - pit.start) <=
+        Math.abs(this.player.x - pit.end);
+      targetX = nearStart
+        ? pit.start - FLOOR_TILE / 2
+        : pit.end + FLOOR_TILE / 2;
+    }
     this.player.setPosition(targetX, FLOOR_SURFACE_Y - PIT_RESPAWN_LIFT);
     body.setVelocity(0, 0);
 

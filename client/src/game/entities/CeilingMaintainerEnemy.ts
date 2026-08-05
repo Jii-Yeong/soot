@@ -260,8 +260,18 @@ export class CeilingMaintainerEnemy extends Enemy {
     time: number,
     target: Phaser.Physics.Arcade.Sprite,
   ) {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+
+    // 지상 상태에서 발밑이 비면(구덩이 위) 그대로 추락에 돌입한다. 반대편
+    // 구덩이 ledge 타일 벽에 걸려 멈추거나 위로 튕기지 않도록 바닥 재충돌을
+    // 끊고 낙하시켜, handleEnemyPitFalls가 화면 밖에서 처치하게 한다.
+    if (this.maintainerState !== 'falling' && !body.blocked.down) {
+      this.commitPitFall();
+      return;
+    }
+
     if (this.maintainerState === 'falling') {
-      if (!this.body?.blocked.down) {
+      if (!body.blocked.down) {
         return;
       }
       this.beginGroundMark(time, target.x);
@@ -284,7 +294,6 @@ export class CeilingMaintainerEnemy extends Enemy {
       this.beginGroundDash(time);
     }
 
-    const body = this.body as Phaser.Physics.Arcade.Body;
     const reachedTarget =
       this.groundDashDirection < 0
         ? this.x <=
@@ -300,6 +309,21 @@ export class CeilingMaintainerEnemy extends Enemy {
     this.setVelocityX(
       this.groundDashDirection * CEILING_MAINTAINER_CONFIG.groundDashSpeed,
     );
+  }
+
+  private commitPitFall() {
+    this.maintainerState = 'falling';
+    this.play(CEILING_MAINTAINER_CONFIG.animations.falling, true);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    // 바닥/ledge 타일·월드 경계와 더는 충돌하지 않게 해 구덩이로 완전히 추락시킨다.
+    body.checkCollision.none = true;
+    body.setCollideWorldBounds(false);
+    this.setVelocityX(0);
+    if (body.velocity.y < 80) {
+      this.setVelocityY(80);
+    }
+    this.groundMarker?.destroy();
+    this.groundMarker = undefined;
   }
 
   private beginGroundMark(time: number, targetX: number) {
