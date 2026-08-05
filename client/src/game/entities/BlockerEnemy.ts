@@ -15,15 +15,18 @@ import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
 const POSE = BLOCKER_CONFIG.animations;
 
-type BlockerState = 'advance' | 'windup' | 'recover';
+type BlockerState = 'patrol' | 'charge' | 'windup' | 'recover';
 
 export class BlockerEnemy extends Enemy {
   readonly aggroRadius = BLOCKER_CONFIG.aggroRadius;
   readonly aggroIndicatorColor = 0x9acb83;
 
-  private blockerState: BlockerState = 'advance';
+  private blockerState: BlockerState = 'patrol';
   private stateEndsAt = 0;
   private nextSlamAt = 0;
+  private chargeStartedAt = 0;
+  private patrolDirection = 1;
+  private readonly patrolCenterX: number;
   private dying = false;
   private readonly rig: GroundedEnemySprite;
 
@@ -37,6 +40,7 @@ export class BlockerEnemy extends Enemy {
     this.rig = new GroundedEnemySprite(this, BLOCKER_CONFIG);
     this.rig.apply();
     this.setDepth(ENEMY_DEPTH);
+    this.patrolCenterX = x;
   }
 
   updateCombat(
@@ -64,18 +68,27 @@ export class BlockerEnemy extends Enemy {
       this.setVelocityX(0);
       this.rig.play(POSE.idle);
       if (time >= this.stateEndsAt) {
-        this.blockerState = 'advance';
+        this.blockerState = 'patrol';
       }
       return targetInRange;
     }
 
     if (!targetInRange) {
-      this.setVelocityX(0);
-      this.rig.play(POSE.idle);
+      this.blockerState = 'patrol';
+      this.patrol();
       return false;
     }
 
-    if (distance <= BLOCKER_CONFIG.slamRange && time >= this.nextSlamAt) {
+    if (this.blockerState !== 'charge') {
+      this.blockerState = 'charge';
+      this.chargeStartedAt = time;
+    }
+
+    if (
+      distance <= BLOCKER_CONFIG.slamRange &&
+      time >= this.nextSlamAt &&
+      time - this.chargeStartedAt >= BLOCKER_CONFIG.minimumChargeDuration
+    ) {
       this.blockerState = 'windup';
       this.stateEndsAt = time + BLOCKER_CONFIG.slamWarningDuration;
       this.setVelocityX(0);
@@ -84,7 +97,7 @@ export class BlockerEnemy extends Enemy {
     }
 
     const direction = Math.sign(target.x - this.x) || 1;
-    this.setVelocityX(direction * BLOCKER_CONFIG.moveSpeed);
+    this.setVelocityX(direction * BLOCKER_CONFIG.chargeSpeed);
     this.rig.play(POSE.walk);
     return true;
   }
@@ -158,6 +171,25 @@ export class BlockerEnemy extends Enemy {
     ) {
       this.damagePlayer(BLOCKER_CONFIG.shockwaveDamage);
     }
+  }
+
+  private patrol() {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (
+      this.x <= this.patrolCenterX - BLOCKER_CONFIG.patrolDistance ||
+      body.blocked.left
+    ) {
+      this.patrolDirection = 1;
+    } else if (
+      this.x >= this.patrolCenterX + BLOCKER_CONFIG.patrolDistance ||
+      body.blocked.right
+    ) {
+      this.patrolDirection = -1;
+    }
+
+    this.setFlipX(this.patrolDirection > 0);
+    this.setVelocityX(this.patrolDirection * BLOCKER_CONFIG.moveSpeed);
+    this.rig.play(POSE.walk);
   }
 
   private showShieldImpact(x: number, y: number) {
