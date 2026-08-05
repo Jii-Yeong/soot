@@ -62,7 +62,7 @@ describe('StageAssetPreloader', () => {
     expect(new StageAssetPreloader(scene).preload(STAGE_THREE_CONFIG)).toBe(
       true,
     );
-    expect(load.atlas).toHaveBeenCalledTimes(2);
+    expect(load.atlas).toHaveBeenCalledTimes(3);
     expect(load.atlas).toHaveBeenCalledWith(
       'stage-3-flying',
       '/assets/enemies/stage-3-flying.png',
@@ -72,6 +72,11 @@ describe('StageAssetPreloader', () => {
       'stage-3-ranged',
       '/assets/enemies/stage-3-ranged.png',
       '/assets/enemies/stage-3-ranged.json',
+    );
+    expect(load.atlas).toHaveBeenCalledWith(
+      'stage-3-neared',
+      '/assets/enemies/stage-3-neared.png',
+      '/assets/enemies/stage-3-neared.json',
     );
     expect(load.image).toHaveBeenCalledTimes(9);
     expect(load.image).toHaveBeenCalledWith(

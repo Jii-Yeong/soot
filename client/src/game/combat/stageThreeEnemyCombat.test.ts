@@ -40,8 +40,8 @@ describe('stage three enemy combat geometry', () => {
     expect(faceArea / bodyArea).toBeCloseTo(0.15);
     expect(isExposedFaceHit(bounds, 500, 548)).toBe(true);
     expect(isExposedFaceHit(bounds, 500, 600)).toBe(false);
-    expect(isExposedFaceHit(bounds, 541, 548)).toBe(false);
-    expect(isExposedFaceHit(bounds, 541, 548, 8)).toBe(true);
+    expect(isExposedFaceHit(bounds, 549, 548)).toBe(false);
+    expect(isExposedFaceHit(bounds, 549, 548, 8)).toBe(true);
   });
 
   it('ignores projectile damage only while the maintainer is falling', () => {

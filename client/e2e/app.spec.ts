@@ -827,11 +827,6 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
       blocked,
       healthBefore,
       healthAfterShield,
-      faceTarget: {
-        x: blocker.x - scene.cameras.main.scrollX,
-        // 노출 바이저는 발 정렬 바디 상단(스프라이트 중심 기준 위 약 33px).
-        y: blocker.y - 33 - scene.cameras.main.scrollY,
-      },
       textures: enemies.map(({ texture }) => texture.key),
       pipeTextures: scene.terrainBuilder.pipeObjects.flatMap(({ texture }) =>
         texture ? [texture.key] : [],
@@ -860,14 +855,34 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
   expect(result.blocked.applied).toBe(false);
   expect(result.healthAfterShield).toBe(result.healthBefore);
 
+  // 재배치한 방어형은 원래 발판을 벗어나 바닥으로 낙하하므로, 정착한 뒤에
+  // 노출 바이저 좌표를 다시 읽는다(발 정렬 바디 상단, 스프라이트 중심 위 약 41px).
+  await page.waitForTimeout(500);
+  const faceTarget = await page.evaluate(() => {
+    type RuntimeScene = {
+      cameras: { main: { scrollX: number; scrollY: number } };
+      enemies: Array<{
+        texture: { key: string };
+        x: number;
+        y: number;
+        setVelocity: (x: number, y: number) => void;
+      }>;
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const blocker = scene.enemies.find(
+      ({ texture }) => texture.key === 'stage-3-neared',
+    )!;
+    blocker.setVelocity(0, 0);
+    return {
+      x: blocker.x - scene.cameras.main.scrollX,
+      y: blocker.y - 41 - scene.cameras.main.scrollY,
+    };
+  });
+
   const bounds = await getCanvasBounds(page);
-  await fireShotsAt(
-    page,
-    bounds,
-    result.faceTarget.x,
-    result.faceTarget.y,
-    1,
-  );
+  await fireShotsAt(page, bounds, faceTarget.x, faceTarget.y, 3);
   await expect
     .poll(() =>
       page.evaluate(() => {

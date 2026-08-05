@@ -195,24 +195,6 @@ export class BootScene extends Phaser.Scene {
     graphics.fillRect(4, 18, 40, 4);
     graphics.generateTexture('flying-enemy-placeholder', 48, 40);
 
-    // Stage 3 blocker: construction-barrier shield below an exposed green
-    // visor. The outlined visor matches the only projectile damage region.
-    graphics.clear();
-    graphics.fillStyle(0x1d292c);
-    graphics.fillRoundedRect(14, 4, 68, 116, 10);
-    graphics.fillStyle(0x607376);
-    graphics.fillRoundedRect(5, 35, 86, 84, 8);
-    graphics.lineStyle(4, 0x26383b);
-    graphics.strokeRoundedRect(5, 35, 86, 84, 8);
-    graphics.lineStyle(3, 0x9ba8a7);
-    graphics.lineBetween(12, 54, 84, 98);
-    graphics.lineBetween(84, 54, 12, 98);
-    graphics.fillStyle(0x72ff9b, 0.9);
-    graphics.fillRoundedRect(8, 4, 80, 18, 5);
-    graphics.lineStyle(2, 0xc4ffd0);
-    graphics.strokeRoundedRect(8, 4, 80, 18, 5);
-    graphics.generateTexture('blocker-placeholder', 96, 128);
-
     // 4스테이지 사냥개: 악마의 붉은 균열 사이로 민트색 회로가 노출됨.
     graphics.clear();
     graphics.fillStyle(0x160d10);

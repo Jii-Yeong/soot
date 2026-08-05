@@ -36,6 +36,7 @@ describe('stage asset manifests', () => {
       enemyAtlases: [
         expect.objectContaining({ texture: 'stage-3-flying' }),
         expect.objectContaining({ texture: 'stage-3-ranged' }),
+        expect.objectContaining({ texture: 'stage-3-neared' }),
       ],
       terrainImages: [
         expect.objectContaining({ key: 'stage-3-floor-left' }),

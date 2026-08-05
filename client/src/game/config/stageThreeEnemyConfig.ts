@@ -1,3 +1,4 @@
+import { STAGE_THREE_BLOCKER_SPRITE } from '@/game/config/blockerAnimationConfig';
 import { STAGE_THREE_CAPTOR_SPRITE } from '@/game/config/captorAnimationConfig';
 import { STAGE_THREE_CEILING_MAINTAINER_SPRITE } from '@/game/config/ceilingMaintainerAnimationConfig';
 
@@ -38,7 +39,7 @@ export const CAPTOR_CONFIG = {
 } as const;
 
 export const BLOCKER_CONFIG = {
-  texture: 'blocker-placeholder',
+  ...STAGE_THREE_BLOCKER_SPRITE,
   maxHealth: 150,
   aggroRadius: 520,
   moveSpeed: 68,
@@ -48,8 +49,6 @@ export const BLOCKER_CONFIG = {
   slamCooldown: 1500,
   shockwaveRange: 210,
   shockwaveDamage: 14,
-  bodyWidth: 80,
-  bodyHeight: 120,
   /** 바이저 폭 100% × 높이 15% = 전신 피격 면적의 정확히 15%. */
   faceWidthRatio: 1,
   faceHeightRatio: 0.15,

@@ -1,4 +1,5 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import { BLOCKER_ANIMATION_ATLASES } from '@/game/config/blockerAnimationConfig';
 import { CAPTOR_ANIMATION_ATLASES } from '@/game/config/captorAnimationConfig';
 import { CEILING_MAINTAINER_ANIMATION_ATLASES } from '@/game/config/ceilingMaintainerAnimationConfig';
 import {
@@ -171,6 +172,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
   enemyAtlases: [
     ...CEILING_MAINTAINER_ANIMATION_ATLASES,
     ...CAPTOR_ANIMATION_ATLASES,
+    ...BLOCKER_ANIMATION_ATLASES,
   ] as readonly EnemyAnimationAtlasConfig<string>[],
   showFloor: true,
   floorSkin: STAGE_THREE_FLOOR_SKIN,
