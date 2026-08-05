@@ -1580,6 +1580,83 @@ full level, loopable background bed, 88 BPM, D major
 `the melody never quite landing on the tonic`을 같이 넣으면 그것이 A5의 실수로 돌아가는
 길이다. 대비가 부족하면 그때 한 줄만 다시 넣는다.
 
+**A9 — 레퍼런스가 나왔다. 필요한 것은 감7화음이었다 (지금 쓸 것)**
+
+A8까지 아홉 개 프롬프트로 서른 테이크를 뽑았고 전부 탈락했다. **형용사를 고쳐서 좁히는
+방식이 수렴하지 않는다는 뜻이므로 그 축을 접고 레퍼런스를 받았다.**
+
+개발자 A가 지목한 것은 **なきそ「いますぐ輪廻」(Retry Now, 2025-08-01)의 도입부**다.
+집착과 광기, 윤회를 다룬 곡이고 MV가 호러 비주얼노벨 톤이다. 기획서의 "아름답지만 불편한
+광기"와 같은 자리에 있다.
+
+도입부 코드 진행이 이렇다.
+
+```
+G → G → A#dim7 → C#dim7 → Bm → G
+```
+
+**장조 화음 사이에 감7화음 두 개가 끼어 있다. 여덟 번 헛짚은 자리가 여기였다.**
+
+| 장치 | 결과 |
+| --- | --- |
+| 증4도 (A ~ A5) | 화음 자체가 상한다 → **어둡게 들린다** |
+| 해결되는 장3화음 (A7) | 아무 일도 안 일어난다 → **명랑하다** |
+| 리디안 + 서스펜디드 (A8) | 밝은 채로 떠 있기만 한다 |
+| **감7 경과화음 (A9)** | 화음은 불안한데 **지나가는 화음**이라 주변 밝음이 안 죽는다 |
+
+감7은 머무르지 않고 다음 화음으로 넘어간다. **곡 전체는 계속 밝은데 순간순간 발밑이
+꺼진다.** 밝기를 깎지 않고 불안을 넣는 유일한 방법이고, 원래 교회음악에서 나온 화음이라
+성스러운 편성에 그대로 얹힌다.
+
+##### 레퍼런스에서 가져오는 것과 안 가져오는 것
+
+**곡을 베끼지 않는다.** 5스테이지는 천국이고 성스러움이 큐의 정체성이다. 레퍼런스는
+장르가 아니라 장치 하나를 주러 왔다.
+
+| | 레퍼런스 | A9 |
+| --- | --- | --- |
+| 화성 | **감7 경과화음** | **가져온다** — 이것 하나가 목적이다 |
+| 움직임 | 145 BPM, 빠르고 복잡한 리듬 | **가져온다.** 단 성스러움을 죽이지 않을 만큼만 |
+| 편성 | 피아노 + 일렉베이스 + 드럼킷 + 핑거스냅 | **안 가져온다.** 밴드가 되면 천국이 사라진다 |
+| 공간 | 밴드 거리감, 짧은 잔향 | **안 가져온다.** 대리석 홀을 유지한다 |
+
+##### "너무 정적이다"는 템포가 아니라 질감이었다
+
+A4에 나온 피드백이고 A8까지 못 고쳤다. 원인은 BPM 숫자가 아니라 `sparse`·`ambient`·
+지속음 지시였다. **A9에서 `sparse`를 빼고 쉬지 않는 16분 아르페지오와 박을 짚는 타악을
+넣는다.** 템포는 88에서 116으로만 올린다 — 145로 가면 루프 상관이 무너지는 것이 이미
+세 지점에서 확인돼 있고(84 BPM 0.957 → 145 BPM 0.511), 편성까지 밴드로 끌려간다.
+
+파이프오르간을 처음 넣는다. **합창 없이 성스러움을 만드는 유일한 남은 수단**이고,
+16번에서 합창을 탈락시킨 이유였던 크레셴도가 구조상 안 생긴다. 오르간은 레지스트레이션이
+켜지거나 꺼질 뿐 세게 불수록 커지지 않는다. 다만 저음 오르간은 불길하게 들리므로
+**높은 음역으로 못박는다.**
+
+```
+radiant sacred orchestral, blinding and overexposed, washed out to white,
+serene and impersonal, driving and relentless, never still, recorded in a vast
+cathedral of white marble and glass with hard bright reflections, everything
+played in the top two octaves over a heavy low end, a fast continuous sixteenth
+note celesta and glockenspiel arpeggio running without pause, high register
+violins singing above it with a full open tone, a soft high pipe organ pad
+holding underneath, tubular bells marking the beat, timpani and low double bass
+driving a steady pulse, choir-free, bright major chords with diminished seventh
+chords slipping between them as passing tension, holy on the surface and wrong
+underneath, the sound of someone smiling while something terrible happens, a
+single one minute passage that returns to its exact starting point and begins
+again unchanged, every minute sounds like every other minute, purely
+instrumental, the same handful of instruments from beginning to end, the final
+section sits at exactly the same level as the opening, starts immediately at
+full level, loopable background bed, 116 BPM, D major
+```
+
+레퍼런스의 아티스트명과 곡명은 프롬프트에 안 넣는다. 필터에 걸릴 수 있고, 필요한 것은
+이름이 아니라 편성·템포·화성인데 그것은 전부 위에 옮겼다.
+
+**볼 지점은 감7이 들어왔는가 하나다.** 밝기와 대역은 8월 4일 테이크들에서 이미 목표를
+넘겼으므로(공기감 -27.4 ~ -32.8, A 계열 -47.9에서 최대 20dB 상승) 더 볼 필요가 없다.
+**측정으로 이 큐를 고르지 않는다.**
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1589,7 +1666,7 @@ full level, loopable background bed, 88 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A8** | A ~ A7 | 밝음을 한 축으로 보다 서늘한 쪽과 명랑한 쪽을 오갔다. 필요한 것은 과노출된 밝음이다 |
+| `return` | **A9** | A ~ A8 | 형용사로 밝음을 조절한 아홉 번이 전부 실패했다. 필요한 것은 감7 경과화음이다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
