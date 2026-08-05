@@ -41,14 +41,22 @@ export class TitleScene extends Phaser.Scene {
       .setDepth(-1);
     player.setScale((GAME_HEIGHT * 0.8) / player.height);
 
-    this.add
+    // SOOT: 검은 글자로 잠시 표시 후 페이드아웃.
+    const title = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 32, 'SOOT', {
-        color: '#e8ece9',
+        color: '#0b0b0b',
         fontFamily: 'Arial, sans-serif',
         fontSize: '84px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+    this.tweens.add({
+      targets: title,
+      alpha: 0,
+      delay: 1200,
+      duration: 600,
+      onComplete: () => title.destroy(),
+    });
 
     const prompt = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 68, 'PRESS ENTER', {
