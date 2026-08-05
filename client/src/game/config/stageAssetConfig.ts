@@ -37,9 +37,11 @@ export function getStageAssetManifest(stage: StageConfig): StageAssetManifest {
     const atlas = texture ? ENEMY_ATLAS_BY_TEXTURE.get(texture) : undefined;
     return atlas ? [atlas] : [];
   }).concat(stage.enemyAtlases ?? []);
-  const terrainImages = [stage.floorSkin, stage.terrainSkin].flatMap((skin) =>
-    skin ? [skin.left, skin.middle, skin.right] : [],
-  );
+  const terrainImages = [
+    stage.floorSkin,
+    stage.terrainSkin,
+    stage.pipeSkin,
+  ].flatMap((skin) => (skin ? [skin.left, skin.middle, skin.right] : []));
   const manifest = { enemyAtlases, terrainImages };
 
   manifestCache.set(stage, manifest);

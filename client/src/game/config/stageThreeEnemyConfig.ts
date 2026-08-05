@@ -3,9 +3,9 @@ import { STAGE_THREE_CEILING_MAINTAINER_SPRITE } from '@/game/config/ceilingMain
 
 export const CEILING_MAINTAINER_CONFIG = {
   ...STAGE_THREE_CEILING_MAINTAINER_SPRITE,
-  // 바닥 자세의 불투명 픽셀은 프레임 y=50..87에 몰려 있음. 바디를 아래로
-  // 옮기고 스프라이트를 같은 양 올려 다른 지상 캐릭터와 발 높이를 맞춤.
-  floorBodyOffsetY: 48,
+  // 바닥 자세의 불투명 픽셀은 프레임 y=50..87. 바디 하단도 y=87에 맞춰
+  // 새 바닥 스킨의 표면에 그림의 발이 정확히 닿게 함.
+  floorBodyOffsetY: 1,
   maxHealth: 70,
   aggroRadius: 620,
   crawlSpeed: 155,

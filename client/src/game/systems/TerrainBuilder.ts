@@ -67,6 +67,7 @@ export class TerrainBuilder {
     pieces: readonly TerrainPiece[] = [],
     stoolSkin?: SliceSkinConfig,
     ceilingPipes: readonly CeilingPipe[] = [],
+    pipeSkin?: SliceSkinConfig,
   ) {
     this.group.clear(true, true);
     this.projectileGroup.clear(true, true);
@@ -136,7 +137,20 @@ export class TerrainBuilder {
     }
 
     for (const pipe of ceilingPipes) {
-      this.drawCeilingPipe(pipe);
+      if (pipeSkin) {
+        this.pipeObjects.push(
+          ...drawSliceSkin(
+            this.scene,
+            pipeSkin,
+            pipe.x,
+            pipe.x + pipe.width,
+            pipe.y,
+            PIPE_DEPTH,
+          ),
+        );
+      } else {
+        this.drawCeilingPipe(pipe);
+      }
     }
   }
 

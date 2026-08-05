@@ -729,6 +729,9 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
       cameras: { main: { scrollX: number; scrollY: number } };
       enemies: RuntimeEnemy[];
       player: RuntimePlayer;
+      terrainBuilder: {
+        pipeObjects: Array<{ texture?: { key: string } }>;
+      };
     };
     type DebugGame = {
       scene: { getScene: (key: string) => unknown };
@@ -774,6 +777,9 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
         y: blocker.y - 51 - scene.cameras.main.scrollY,
       },
       textures: enemies.map(({ texture }) => texture.key),
+      pipeTextures: scene.terrainBuilder.pipeObjects.flatMap(({ texture }) =>
+        texture ? [texture.key] : [],
+      ),
       crawlerAnimation: crawler?.anims.currentAnim?.key,
       crawlerY: crawler?.y,
     };
@@ -788,6 +794,13 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
   );
   expect(result.crawlerY).toBeLessThan(180);
   expect(result.crawlerAnimation).toBe('stage-3-flying-pipe-idle');
+  expect(new Set(result.pipeTextures)).toEqual(
+    new Set([
+      'stage-3-pipe-left',
+      'stage-3-pipe-middle',
+      'stage-3-pipe-right',
+    ]),
+  );
   expect(result.blocked.applied).toBe(false);
   expect(result.healthAfterShield).toBe(result.healthBefore);
 
@@ -884,7 +897,8 @@ test('stage three pipe crawler stays aligned above its floor segment', async ({
 
   const groundPose = await page.evaluate(() => {
     type RuntimeEnemy = {
-      body: { allowGravity: boolean; offset: { y: number } };
+      body: { allowGravity: boolean; bottom: number; offset: { y: number } };
+      displayOriginY: number;
       texture: { key: string };
       x: number;
       y: number;
@@ -898,15 +912,17 @@ test('stage three pipe crawler stays aligned above its floor segment', async ({
     )!;
     return {
       allowGravity: crawler.body.allowGravity,
+      bodyBottom: crawler.body.bottom,
       bodyOffsetY: crawler.body.offset.y,
+      opaqueBottom: crawler.y - crawler.displayOriginY + 87,
       x: crawler.x,
       y: crawler.y,
     };
   });
 
   expect(groundPose.allowGravity).toBe(true);
-  expect(groundPose.bodyOffsetY).toBe(48);
-  expect(groundPose.y).toBeLessThan(590);
+  expect(groundPose.bodyOffsetY).toBe(1);
+  expect(groundPose.opaqueBottom).toBeCloseTo(groundPose.bodyBottom, 1);
   expect(groundPose.x).toBeGreaterThan(2_000);
 });
 

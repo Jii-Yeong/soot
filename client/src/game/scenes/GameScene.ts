@@ -313,6 +313,7 @@ export class GameScene extends Phaser.Scene {
       roomConfig.terrain,
       this.stage.terrainSkin,
       roomConfig.ceilingPipes,
+      this.stage.pipeSkin,
     );
 
     // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
@@ -540,6 +541,7 @@ export class GameScene extends Phaser.Scene {
       this.activeRoomConfig.terrain,
       this.stage.terrainSkin,
       this.activeRoomConfig.ceilingPipes,
+      this.stage.pipeSkin,
     );
     for (const enemy of this.enemies) {
       enemy.refreshAtlasSprite();

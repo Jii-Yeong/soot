@@ -56,7 +56,7 @@ describe('StageAssetPreloader', () => {
     expect(load.start).toHaveBeenCalledOnce();
   });
 
-  it('queues the stage three ceiling crawler and captor atlases', () => {
+  it('queues the stage three enemy atlases and terrain art', () => {
     const { load, scene } = createScene();
 
     expect(new StageAssetPreloader(scene).preload(STAGE_THREE_CONFIG)).toBe(
@@ -72,6 +72,19 @@ describe('StageAssetPreloader', () => {
       'stage-3-ranged',
       '/assets/enemies/stage-3-ranged.png',
       '/assets/enemies/stage-3-ranged.json',
+    );
+    expect(load.image).toHaveBeenCalledTimes(9);
+    expect(load.image).toHaveBeenCalledWith(
+      'stage-3-floor-left',
+      '/assets/terrain/stage-3-floor-left.png',
+    );
+    expect(load.image).toHaveBeenCalledWith(
+      'stage-3-stool-right',
+      '/assets/terrain/stage-3-stool-right.png',
+    );
+    expect(load.image).toHaveBeenCalledWith(
+      'stage-3-pipe-middle',
+      '/assets/terrain/stage-3-pipe-middle.png',
     );
     expect(load.start).toHaveBeenCalledOnce();
   });

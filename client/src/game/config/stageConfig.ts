@@ -24,6 +24,9 @@ import {
 import {
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_THREE_FLOOR_SKIN,
+  STAGE_THREE_PIPE_SKIN,
+  STAGE_THREE_STOOL_SKIN,
   STAGE_TWO_FLOOR_SKIN,
   STAGE_TWO_STOOL_SKIN,
   type SliceSkinConfig,
@@ -78,6 +81,8 @@ export type StageConfig = {
   floorSkin?: SliceSkinConfig;
   /** 2·3층 발판(stool)용 픽셀 3-slice 스킨. */
   terrainSkin?: SliceSkinConfig;
+  /** 천장형 적이 이동하는 파이프용 픽셀 3-slice 스킨. */
+  pipeSkin?: SliceSkinConfig;
   /** 실제 아틀라스 비행 적 아트. 없는 스테이지는 placeholder 사용. */
   flyingSprite?: FlyingSpriteConfig;
   /** 실제 아틀라스 원거리 적 아트. 없는 스테이지는 placeholder 사용. */
@@ -167,6 +172,10 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     ...CEILING_MAINTAINER_ANIMATION_ATLASES,
     ...CAPTOR_ANIMATION_ATLASES,
   ] as readonly EnemyAnimationAtlasConfig<string>[],
+  showFloor: true,
+  floorSkin: STAGE_THREE_FLOOR_SKIN,
+  terrainSkin: STAGE_THREE_STOOL_SKIN,
+  pipeSkin: STAGE_THREE_PIPE_SKIN,
   rooms: UNDERGROUND_ROOMS,
   endEvent: 'siege',
 };

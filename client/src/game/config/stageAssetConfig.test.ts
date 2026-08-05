@@ -37,7 +37,17 @@ describe('stage asset manifests', () => {
         expect.objectContaining({ texture: 'stage-3-flying' }),
         expect.objectContaining({ texture: 'stage-3-ranged' }),
       ],
-      terrainImages: [],
+      terrainImages: [
+        expect.objectContaining({ key: 'stage-3-floor-left' }),
+        expect.objectContaining({ key: 'stage-3-floor-middle' }),
+        expect.objectContaining({ key: 'stage-3-floor-right' }),
+        expect.objectContaining({ key: 'stage-3-stool-left' }),
+        expect.objectContaining({ key: 'stage-3-stool-middle' }),
+        expect.objectContaining({ key: 'stage-3-stool-right' }),
+        expect.objectContaining({ key: 'stage-3-pipe-left' }),
+        expect.objectContaining({ key: 'stage-3-pipe-middle' }),
+        expect.objectContaining({ key: 'stage-3-pipe-right' }),
+      ],
     });
   });
 
