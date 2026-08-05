@@ -16,17 +16,17 @@ export type CeilingMaintainerState =
 
 type FaceHitboxInput = {
   enemyX: number;
-  enemyY: number;
+  bodyTop: number;
   bodyWidth: number;
   bodyHeight: number;
   widthRatio: number;
   heightRatio: number;
 };
 
-/** 몸 상단 중앙에 노출된 바이저 피격 영역을 계산함. */
+/** 물리 바디 상단 중앙에 노출된 바이저 피격 영역을 계산함. */
 export function getExposedFaceBounds({
   enemyX,
-  enemyY,
+  bodyTop,
   bodyWidth,
   bodyHeight,
   widthRatio,
@@ -37,8 +37,8 @@ export function getExposedFaceBounds({
   return {
     left: enemyX - width / 2,
     right: enemyX + width / 2,
-    top: enemyY - bodyHeight / 2,
-    bottom: enemyY - bodyHeight / 2 + height,
+    top: bodyTop,
+    bottom: bodyTop + height,
   };
 }
 

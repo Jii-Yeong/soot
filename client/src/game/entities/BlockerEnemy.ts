@@ -26,7 +26,6 @@ export class BlockerEnemy extends Enemy {
   private nextSlamAt = 0;
   private dying = false;
   private readonly rig: GroundedEnemySprite;
-  private readonly faceMarker: Phaser.GameObjects.Rectangle;
 
   constructor(
     scene: Phaser.Scene,
@@ -38,18 +37,6 @@ export class BlockerEnemy extends Enemy {
     this.rig = new GroundedEnemySprite(this, BLOCKER_CONFIG);
     this.rig.apply();
     this.setDepth(ENEMY_DEPTH);
-    const bounds = this.faceBounds;
-    this.faceMarker = scene.add
-      .rectangle(
-        (bounds.left + bounds.right) / 2,
-        (bounds.top + bounds.bottom) / 2,
-        bounds.right - bounds.left,
-        bounds.bottom - bounds.top,
-        0x72ff9b,
-        0.16,
-      )
-      .setStrokeStyle(2, 0xa6ffb9, 0.9)
-      .setDepth(7);
   }
 
   updateCombat(
@@ -59,13 +46,11 @@ export class BlockerEnemy extends Enemy {
   ) {
     const distance = Math.abs(target.x - this.x);
     const targetInRange = distance <= this.aggroRadius;
-    this.setFlipX(target.x < this.x);
-    this.positionFaceMarker();
+    this.setFlipX(target.x > this.x);
 
     if (this.blockerState === 'windup') {
       this.setVelocityX(0);
       this.rig.play(POSE.slam);
-      this.faceMarker.setFillStyle(0x72ff9b, Math.floor(time / 90) % 2 ? 0.2 : 0.65);
       if (time >= this.stateEndsAt) {
         this.slam(target);
         this.blockerState = 'recover';
@@ -78,14 +63,12 @@ export class BlockerEnemy extends Enemy {
     if (this.blockerState === 'recover') {
       this.setVelocityX(0);
       this.rig.play(POSE.idle);
-      this.faceMarker.setFillStyle(0x72ff9b, 0.72);
       if (time >= this.stateEndsAt) {
         this.blockerState = 'advance';
       }
       return targetInRange;
     }
 
-    this.faceMarker.setFillStyle(0x72ff9b, 0.16);
     if (!targetInRange) {
       this.setVelocityX(0);
       this.rig.play(POSE.idle);
@@ -131,7 +114,6 @@ export class BlockerEnemy extends Enemy {
 
   override refreshAtlasSprite() {
     this.rig.refresh();
-    this.positionFaceMarker();
   }
 
   override defeat() {
@@ -144,40 +126,17 @@ export class BlockerEnemy extends Enemy {
     this.rig.playDeath(() => this.disableBody(true, true));
   }
 
-  protected override onDefeated() {
-    super.onDefeated();
-    if (this.faceMarker.active) {
-      this.faceMarker.destroy();
-    }
-  }
-
-  override destroy(fromScene?: boolean) {
-    if (this.faceMarker.active) {
-      this.faceMarker.destroy();
-    }
-    super.destroy(fromScene);
-  }
-
   private get faceBounds() {
     // 발 기준으로 배치된 아틀라스 바디는 스프라이트 중심과 대칭이 아니므로,
     // 노출 바이저(바디 상단)를 실제 물리 바디 top에서 계산한다.
-    const body = this.body as Phaser.Physics.Arcade.Body;
     return getExposedFaceBounds({
       enemyX: this.x,
-      enemyY: body.top + BLOCKER_CONFIG.bodyHeight / 2,
+      bodyTop: (this.body as Phaser.Physics.Arcade.Body).top,
       bodyWidth: BLOCKER_CONFIG.bodyWidth,
       bodyHeight: BLOCKER_CONFIG.bodyHeight,
       widthRatio: BLOCKER_CONFIG.faceWidthRatio,
       heightRatio: BLOCKER_CONFIG.faceHeightRatio,
     });
-  }
-
-  private positionFaceMarker() {
-    const bounds = this.faceBounds;
-    this.faceMarker.setPosition(
-      (bounds.left + bounds.right) / 2,
-      (bounds.top + bounds.bottom) / 2,
-    );
   }
 
   private slam(target: Phaser.Physics.Arcade.Sprite) {

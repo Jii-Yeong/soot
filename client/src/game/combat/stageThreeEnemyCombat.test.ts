@@ -27,7 +27,7 @@ describe('stage three enemy combat geometry', () => {
   it('exposes exactly fifteen percent of the blocker body as its face', () => {
     const bounds = getExposedFaceBounds({
       enemyX: 500,
-      enemyY: 600,
+      bodyTop: 548,
       bodyWidth: BLOCKER_CONFIG.bodyWidth,
       bodyHeight: BLOCKER_CONFIG.bodyHeight,
       widthRatio: BLOCKER_CONFIG.faceWidthRatio,
