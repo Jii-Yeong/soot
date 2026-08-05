@@ -110,7 +110,7 @@ describe('front arm pose', () => {
                 barrel: weapon.muzzleOffset,
               });
 
-              // Not "close enough" — exact. Under a hundredth of a pixel over
+              // Not 'close enough' — exact. Under a hundredth of a pixel over
               // both poses, both facings, all four weapons and every angle.
               expect(
                 Math.abs(reach - FRONT_ARM.length),

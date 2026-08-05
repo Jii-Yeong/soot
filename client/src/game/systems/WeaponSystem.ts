@@ -21,11 +21,12 @@ export class WeaponSystem {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly player: Phaser.Physics.Arcade.Sprite,
-    enemies: Enemy[],
+    private readonly enemies: Enemy[],
     weaponConfigs: readonly WeaponConfig[],
     startingWeaponId: string,
     private readonly canFire: () => boolean,
     private readonly onEnemyHit: EnemyHitListener,
+    private readonly canDamageEnemies: () => boolean = canFire,
   ) {
     this.activeWeaponIndex = Math.max(
       0,
@@ -64,11 +65,17 @@ export class WeaponSystem {
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
     this.feedback.update(delta, aimPoint);
+    for (const weapon of this.weapons) {
+      weapon.pool.clearOutsideCamera(this.scene.cameras.main);
+    }
   }
 
-  blockProjectilesWith(terrain: Phaser.Physics.Arcade.StaticGroup) {
+  blockProjectilesWith(
+    terrain: Phaser.Physics.Arcade.StaticGroup,
+    blocksProjectile: (blocker: Phaser.GameObjects.GameObject) => boolean,
+  ) {
     for (const weapon of this.weapons) {
-      weapon.pool.collideWith(terrain);
+      weapon.pool.collideWith(terrain, blocksProjectile);
     }
   }
 
@@ -85,13 +92,14 @@ export class WeaponSystem {
       aimPoint.y,
     );
     const { config } = weapon;
+    const canDamage = this.canDamageEnemies();
 
     for (let burstIndex = 0; burstIndex < config.burstCount; burstIndex += 1) {
       const fireVolley = () => {
         if (!this.canFire() || this.activeWeapon !== weapon) {
           return;
         }
-        this.fireVolley(weapon, baseAngle);
+        this.fireVolley(weapon, baseAngle, canDamage);
       };
 
       if (burstIndex === 0) {
@@ -142,7 +150,11 @@ export class WeaponSystem {
     return this.weapons[this.activeWeaponIndex];
   }
 
-  private fireVolley(weapon: WeaponRuntime, baseAngle: number) {
+  private fireVolley(
+    weapon: WeaponRuntime,
+    baseAngle: number,
+    canDamage: boolean,
+  ) {
     const { config } = weapon;
     const angles = this.computePelletAngles(
       baseAngle,
@@ -157,8 +169,11 @@ export class WeaponSystem {
       baseAngle,
     );
 
+    const origin = this.spawnOrigin(muzzle);
+
     for (const angle of angles) {
-      weapon.pool.fire(muzzle.x, muzzle.y, angle, {
+      weapon.pool.fire(origin.x, origin.y, angle, {
+        canDamage,
         pierce: config.pierce,
       });
     }
@@ -167,6 +182,46 @@ export class WeaponSystem {
     // A burst is three physical volleys, so emit its cue per volley instead of
     // once when the trigger only schedules the delayed rounds.
     gameEvents.emit('weapon-fired', config.id, muzzle.x, muzzle.y);
+  }
+
+  /**
+   * 총 앞에 서 있는 대상을 고려해 탄환 생성 위치를 정한다.
+   *
+   * 기본 위치는 총구지만 총구는 손잡이에서 총열 방향으로 24~47px 떨어져 있고,
+   * 그 사이에는 충돌 검사가 없었다. 적 몸체 너비는 44~48px이며 SMG를 제외한
+   * 무기는 총구가 그 너머에 놓여, 플레이어와 겹친 적의 반대편에 탄환이 생성되고
+   * 근접 사격이 빗나갔다.
+   *
+   * 이 구간에 대상이 있으면 손잡이에서 탄환을 생성한다. 이후 피해, 넉백, 관통,
+   * 피드백은 기존 탄환-적 겹침 경로에서 동일하게 처리한다. 총구 화염은 총열 위치를
+   * 유지하므로, 원래 총구가 적 안에 있던 거리 외에는 화면상 변화가 없다.
+   */
+  private spawnOrigin(muzzle: { x: number; y: number }) {
+    // 실제 게임에서는 렌더링 리그를 사용하고, 간단한 장면·테스트 환경에서는
+    // 플레이어를 대체값으로 사용해 충돌 보정을 동일하게 유지한다.
+    const grip = this.feedback.display ?? this.player;
+    const barrel = new Phaser.Geom.Line(grip.x, grip.y, muzzle.x, muzzle.y);
+
+    for (const enemy of this.enemies) {
+      const body = enemy.active
+        ? (enemy.body as Phaser.Physics.Arcade.Body | null)
+        : null;
+      if (!body) {
+        continue;
+      }
+
+      const bounds = new Phaser.Geom.Rectangle(
+        body.x,
+        body.y,
+        body.width,
+        body.height,
+      );
+      if (Phaser.Geom.Intersects.LineToRectangle(barrel, bounds)) {
+        return { x: grip.x, y: grip.y };
+      }
+    }
+
+    return muzzle;
   }
 
   private computePelletAngles(
@@ -196,6 +251,16 @@ export class WeaponSystem {
           : (firstObject as Phaser.Physics.Arcade.Image);
 
       if (!enemy || !bullet.active || !enemy.active) {
+        return;
+      }
+
+      if (!this.isVisibleToPlayer(enemy)) {
+        bullet.disableBody(true, true);
+        return;
+      }
+
+      if (!bullet.getData('canDamage') || !this.canDamageEnemies()) {
+        bullet.disableBody(true, true);
         return;
       }
 
@@ -241,5 +306,12 @@ export class WeaponSystem {
     }
 
     return secondObject instanceof Enemy ? secondObject : null;
+  }
+
+  private isVisibleToPlayer(enemy: Enemy) {
+    return Phaser.Geom.Intersects.RectangleToRectangle(
+      this.scene.cameras.main.worldView,
+      enemy.getBounds(),
+    );
   }
 }

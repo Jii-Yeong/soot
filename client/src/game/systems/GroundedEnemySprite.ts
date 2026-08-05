@@ -18,7 +18,7 @@ export type GroundedEnemySpriteConfig = {
 /**
  * 지상 적(근접, 원거리)의 공용 실제 아틀라스 라이프사이클: 여백 있는 바디의
  * 크기를 맞추고 발 기준으로 정렬하며, 애니메이션 재생을 중복 제거하고,
- * "시체가 머문 뒤 페이드아웃" 죽음 시퀀스를 실행함. 두 적 클래스가 중복
+ * '시체가 머문 뒤 페이드아웃' 죽음 시퀀스를 실행함. 두 적 클래스가 중복
  * 구현하지 않도록 조합(composition)으로 사용됨.
  */
 export class GroundedEnemySprite {

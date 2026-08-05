@@ -14,6 +14,6 @@ export function PhaserGame() {
     };
   }, []);
 
-  return <div id="game-root" className="game-canvas" />;
+  return <div id='game-root' className='game-canvas' />;
 }
 

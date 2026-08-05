@@ -4,6 +4,7 @@ import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function useGameUiEvents() {
@@ -50,6 +51,12 @@ export function useGameUiEvents() {
       }
 
       event.preventDefault();
+
+      if (useGameSettingsStore.getState().settingsOpen) {
+        useGameSettingsStore.getState().closeSettings();
+        return;
+      }
+
       gameEvents.emit('pause-toggle-requested');
     };
     window.addEventListener('keydown', handleKeyDown);

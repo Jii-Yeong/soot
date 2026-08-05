@@ -14,6 +14,8 @@ export type MeleeEnemyConfig = {
   moveSpeed: number;
   contactDamage: number;
   contactDamageCooldown: number;
+  /** 플레이어를 감지하기 전에 순찰할 구간. 없으면 순찰할 공간이 없다는 뜻이다. */
+  patrol?: { left: number; right: number; speed: number };
   /** 설정 시 적이 접촉 데미지 대신 휘두르기로 공격함. */
   swing?: MeleeSwingConfig;
   /** 실제 아틀라스 아트. 휘두르기는 attack 애니메이션 + 슬래시 VFX로 표현됨. */
@@ -42,7 +44,6 @@ const SLASH_END_ANGLE = 0.8;
 const SLASH_ARC = 0.95;
 const SLASH_COLOR = 0xbff4ff;
 
-
 export class MeleeEnemy extends Enemy {
   readonly aggroRadius: number;
   readonly aggroIndicatorColor = 0xf08b52;
@@ -50,6 +51,8 @@ export class MeleeEnemy extends Enemy {
   private readonly moveSpeed: number;
   private readonly contactDamage: number;
   private readonly contactDamageCooldown: number;
+  private readonly patrol?: MeleeEnemyConfig['patrol'];
+  private patrolHeading: -1 | 1;
   private contactDamageReadyAt = 0;
 
   private readonly swing?: MeleeSwingConfig;
@@ -78,6 +81,11 @@ export class MeleeEnemy extends Enemy {
     this.moveSpeed = config.moveSpeed;
     this.contactDamage = config.contactDamage;
     this.contactDamageCooldown = config.contactDamageCooldown;
+    this.patrol = config.patrol;
+    // 구덩이 때문에 한쪽이 짧아진 순찰 구간에서 시작부터 방향을 바꾸지 않도록
+    // 더 긴 쪽을 향해 출발한다.
+    this.patrolHeading =
+      this.patrol && x - this.patrol.left > this.patrol.right - x ? -1 : 1;
     this.swing = config.swing;
     this.sprite = config.sprite;
     this.damagePlayer = damagePlayer;
@@ -124,14 +132,13 @@ export class MeleeEnemy extends Enemy {
       return this.updateSwingCombat(time, target, targetInRange);
     }
 
-    // While staggered, let the knockback impulse carry it instead of
-    // immediately resuming the chase.
+    // 경직 중에는 즉시 추적을 재개하지 않고 밀려나는 힘을 그대로 적용한다.
     if (this.isStaggered(time)) {
       return targetInRange;
     }
 
     if (!targetInRange) {
-      this.setVelocityX(0);
+      this.patrolStep();
       return false;
     }
 
@@ -140,6 +147,27 @@ export class MeleeEnemy extends Enemy {
     this.setVelocityX(direction * this.moveSpeed);
 
     return true;
+  }
+
+  /**
+   * 감지 범위에 대상이 없을 때 순찰 구간을 걷는다. 시간 대신 끝점 도달 시
+   * 방향을 바꾸므로, 밀려나거나 추적 중 구간 밖으로 나간 적도 현재 위치에서
+   * 새로 순찰하지 않고 원래 구간으로 돌아온다.
+   */
+  private patrolStep() {
+    if (!this.patrol) {
+      this.setVelocityX(0);
+      return;
+    }
+
+    if (this.x <= this.patrol.left) {
+      this.patrolHeading = 1;
+    } else if (this.x >= this.patrol.right) {
+      this.patrolHeading = -1;
+    }
+
+    this.setFlipX(this.patrolHeading < 0);
+    this.setVelocityX(this.patrolHeading * this.patrol.speed);
   }
 
   private updateSwingCombat(
@@ -181,7 +209,7 @@ export class MeleeEnemy extends Enemy {
     targetInRange: boolean,
   ) {
     if (!targetInRange) {
-      this.setVelocityX(0);
+      this.patrolStep();
       this.restVisual();
       return;
     }
@@ -191,8 +219,7 @@ export class MeleeEnemy extends Enemy {
     this.setFlipX(direction < 0);
 
     const horizontalDistance = Math.abs(target.x - this.x);
-    const withinHeight =
-      Math.abs(target.y - this.y) <= swing.verticalTolerance;
+    const withinHeight = Math.abs(target.y - this.y) <= swing.verticalTolerance;
 
     if (horizontalDistance <= swing.attackRange && withinHeight) {
       this.beginState('windup', time, swing.windupDuration);
@@ -324,18 +351,13 @@ export class MeleeEnemy extends Enemy {
     const b = facing === 1 ? leadRight : Math.PI - trailRight;
     const alpha = 0.2 + fade * 0.55;
 
-    this.slash
-      .clear()
-      .fillStyle(SLASH_COLOR, alpha)
-      .beginPath();
+    this.slash.clear().fillStyle(SLASH_COLOR, alpha).beginPath();
     this.slash.arc(cx, cy, SLASH_OUTER_RADIUS, a, b, false);
     this.slash.arc(cx, cy, SLASH_INNER_RADIUS, b, a, true);
     this.slash.closePath();
     this.slash.fillPath();
     // 밝은 선단부.
-    this.slash
-      .lineStyle(3, 0xffffff, alpha)
-      .beginPath();
+    this.slash.lineStyle(3, 0xffffff, alpha).beginPath();
     this.slash.arc(cx, cy, SLASH_OUTER_RADIUS, a, b, false);
     this.slash.strokePath();
   }
@@ -351,7 +373,9 @@ export class MeleeEnemy extends Enemy {
       this.y + HAND_OFFSET_Y,
     );
     // 왼쪽을 볼 때 각도를 반전해, 봉이 앞쪽에 유지되게 함.
-    this.rod.setRotation(facing === 1 ? angleForRight : Math.PI - angleForRight);
+    this.rod.setRotation(
+      facing === 1 ? angleForRight : Math.PI - angleForRight,
+    );
     this.rod.setDepth(this.depth);
   }
 

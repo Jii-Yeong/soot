@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { gameConfig } from '@/game/gameConfig';
 import { AudioDirector } from '@/game/systems/AudioDirector';
+import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 export function createGame(parent: string) {
   const game = new Phaser.Game({
@@ -8,6 +9,7 @@ export function createGame(parent: string) {
     parent,
   });
   const audioDirector = new AudioDirector(game);
+  audioDirector.setMix(useGameSettingsStore.getState().audioMix);
 
   game.events.once(Phaser.Core.Events.DESTROY, () => audioDirector.destroy());
 

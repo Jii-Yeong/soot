@@ -1,47 +1,47 @@
-import Phaser from "phaser";
+import Phaser from 'phaser';
 import {
   clampPatternTarget,
   damageBeforeThreshold,
   getFanAngles,
   getRingAngles,
-} from "@/game/combat/architectPattern";
+} from '@/game/combat/architectPattern';
 import type {
   ArchitectBossCombatConfig,
   ArchitectBossPatternConfig,
-} from "@/game/config/bossConfigTypes";
-import type { BossArenaBounds } from "@/game/config/bossArena";
-import { GAME_HEIGHT } from "@/game/config/gameDimensions";
-import { ArchitectBossView } from "@/game/entities/ArchitectBossView";
-import { BossEnemy } from "@/game/entities/BossEnemy";
-import type { EnemyProjectileAttack } from "@/game/entities/Enemy";
-import type { BossPhase } from "@/game/state/bossPhase";
-import { BossProjectileField } from "@/game/systems/BossProjectileField";
-import { CleanupRegistry } from "@/game/systems/CleanupRegistry";
+} from '@/game/config/bossConfigTypes';
+import type { BossArenaBounds } from '@/game/config/bossArena';
+import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import { ArchitectBossView } from '@/game/entities/ArchitectBossView';
+import { BossEnemy } from '@/game/entities/BossEnemy';
+import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import type { BossPhase } from '@/game/state/bossPhase';
+import { BossProjectileField } from '@/game/systems/BossProjectileField';
+import { CleanupRegistry } from '@/game/systems/CleanupRegistry';
 
 type ArchitectState =
-  | "recover"
-  | "phase-transition"
-  | "halo-warning"
-  | "halo-firing"
-  | "wings"
-  | "eye-tracking"
-  | "eye-locked"
-  | "eye-wait"
-  | "eye-active"
-  | "salvation-transition"
-  | "salvation-rings"
-  | "core-exposed";
+  | 'recover'
+  | 'phase-transition'
+  | 'halo-warning'
+  | 'halo-firing'
+  | 'wings'
+  | 'eye-tracking'
+  | 'eye-locked'
+  | 'eye-wait'
+  | 'eye-active'
+  | 'salvation-transition'
+  | 'salvation-rings'
+  | 'core-exposed';
 
-type ArchitectAttack = "halo" | "wings" | "eye" | "chorus";
+type ArchitectAttack = 'halo' | 'wings' | 'eye' | 'chorus';
 
-const PHASE_ONE_SEQUENCE: readonly ArchitectAttack[] = ["halo", "wings", "eye"];
+const PHASE_ONE_SEQUENCE: readonly ArchitectAttack[] = ['halo', 'wings', 'eye'];
 const PHASE_TWO_SEQUENCE: readonly ArchitectAttack[] = [
-  "eye",
-  "halo",
-  "wings",
-  "chorus",
+  'eye',
+  'halo',
+  'wings',
+  'chorus',
 ];
-const BULLET_TEXTURE = "architect-bullet-placeholder";
+const BULLET_TEXTURE = 'architect-bullet-placeholder';
 const BULLET_DEPTH = 9;
 const JUDGMENT_ORB_DEPTH = 7;
 const PLAYER_HURTBOX_SIZE = 16;
@@ -56,7 +56,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   private readonly view: ArchitectBossView;
   private readonly effectCleanups = new CleanupRegistry();
 
-  private attackState: ArchitectState = "recover";
+  private attackState: ArchitectState = 'recover';
   private stateStartedAt = 0;
   private stateEndsAt: number;
   private phaseTwo = false;
@@ -147,50 +147,50 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     } else if (
       !this.phaseTwo &&
       this.isEnraged &&
-      this.attackState === "recover"
+      this.attackState === 'recover'
     ) {
       this.beginPhaseTransition(time);
     }
 
     switch (this.attackState) {
-      case "recover":
+      case 'recover':
         this.updateRecover(time, target);
         break;
-      case "phase-transition":
+      case 'phase-transition':
         this.updatePhaseTransition(time);
         break;
-      case "halo-warning":
+      case 'halo-warning':
         this.updateHaloWarning(time);
         break;
-      case "halo-firing":
+      case 'halo-firing':
         this.updateHaloFiring(time, target);
         break;
-      case "wings":
+      case 'wings':
         this.updateWings(time, target);
         break;
-      case "eye-tracking":
+      case 'eye-tracking':
         this.updateEyeTracking(time, target);
         break;
-      case "eye-locked":
+      case 'eye-locked':
         this.updateEyeLocked(time, target);
         break;
-      case "eye-wait":
+      case 'eye-wait':
         this.updateEyeWait(time, target);
         break;
-      case "eye-active":
+      case 'eye-active':
         if (time >= this.stateEndsAt) {
           this.beginRecover(time);
         }
         break;
-      case "salvation-transition":
+      case 'salvation-transition':
         this.updateSalvationTransition(time);
         break;
-      case "salvation-rings":
+      case 'salvation-rings':
         if (time >= this.stateEndsAt) {
           this.exposeCore();
         }
         break;
-      case "core-exposed":
+      case 'core-exposed':
         this.drawExposedCore(time);
         this.setVelocity(0, 0);
         break;
@@ -201,7 +201,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   override takeDamage(amount: number) {
-    if (this.salvationStarted && this.attackState !== "core-exposed") {
+    if (this.salvationStarted && this.attackState !== 'core-exposed') {
       return false;
     }
 
@@ -230,10 +230,10 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
 
   override tryContactAttack(time: number) {
     if (
-      this.attackState === "phase-transition" ||
-      this.attackState === "salvation-transition" ||
-      this.attackState === "salvation-rings" ||
-      this.attackState === "core-exposed"
+      this.attackState === 'phase-transition' ||
+      this.attackState === 'salvation-transition' ||
+      this.attackState === 'salvation-rings' ||
+      this.attackState === 'core-exposed'
     ) {
       return null;
     }
@@ -278,16 +278,16 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     switch (attack) {
-      case "halo":
+      case 'halo':
         this.beginHalo(time, target, false);
         break;
-      case "wings":
+      case 'wings':
         this.beginWings(time);
         break;
-      case "eye":
+      case 'eye':
         this.beginEye(time, target, true);
         break;
-      case "chorus":
+      case 'chorus':
         this.beginHalo(time, target, true);
         break;
     }
@@ -296,7 +296,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   private beginPhaseTransition(time: number) {
     this.phaseTwo = true;
     this.onPhaseChanged(2);
-    this.attackState = "phase-transition";
+    this.attackState = 'phase-transition';
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.phaseTransitionDuration;
     this.setVelocity(0, 0);
@@ -322,7 +322,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
     followWithWings: boolean,
   ) {
-    this.attackState = "halo-warning";
+    this.attackState = 'halo-warning';
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.halo.warnDuration;
     this.haloRingsToFire = followWithWings
@@ -353,7 +353,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     );
 
     if (time >= this.stateEndsAt) {
-      this.attackState = "halo-firing";
+      this.attackState = 'halo-firing';
       this.nextHaloRingAt = time;
     }
   }
@@ -413,7 +413,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   private beginWings(time: number, firstStep = 0, finalStep = 2) {
-    this.attackState = "wings";
+    this.attackState = 'wings';
     this.stateStartedAt = time;
     this.wingStep = firstStep;
     this.wingFinalStep = finalStep;
@@ -516,7 +516,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     if (resetShots) {
       this.eyeShotsRemaining = this.phaseTwo ? 2 : 1;
     }
-    this.attackState = "eye-tracking";
+    this.attackState = 'eye-tracking';
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.eye.trackingDuration;
     this.updateLockedTarget(target);
@@ -537,7 +537,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     );
 
     if (time >= this.stateEndsAt) {
-      this.attackState = "eye-locked";
+      this.attackState = 'eye-locked';
       this.stateStartedAt = time;
       this.stateEndsAt = time + this.pattern.eye.lockedWarningDuration;
       this.scene.cameras.main.flash(90, 120, 220, 255);
@@ -553,10 +553,10 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
       this.eyeShotsRemaining -= 1;
       this.stateStartedAt = time;
       if (this.eyeShotsRemaining > 0) {
-        this.attackState = "eye-wait";
+        this.attackState = 'eye-wait';
         this.stateEndsAt = time + this.pattern.eye.phaseTwoFollowUpDelay;
       } else {
-        this.attackState = "eye-active";
+        this.attackState = 'eye-active';
         this.stateEndsAt = time + this.pattern.eye.orbDuration;
       }
     }
@@ -641,7 +641,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     this.projectiles.clear();
     this.effectCleanups.clear();
     this.view.beginSalvation();
-    this.attackState = "salvation-transition";
+    this.attackState = 'salvation-transition';
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.salvation.transitionDuration;
     const center = clampPatternTarget(target.x, target.y, {
@@ -683,7 +683,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   private beginSalvationRings(time: number) {
-    this.attackState = "salvation-rings";
+    this.attackState = 'salvation-rings';
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.salvation.ringDuration;
     this.view.clearOverlay();
@@ -715,7 +715,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   private exposeCore() {
-    this.attackState = "core-exposed";
+    this.attackState = 'core-exposed';
     this.projectiles.clear();
     this.clearTint();
     this.view.exposeCore();
@@ -727,7 +727,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   private beginRecover(time: number) {
-    this.attackState = "recover";
+    this.attackState = 'recover';
     this.stateStartedAt = time;
     this.stateEndsAt =
       time +

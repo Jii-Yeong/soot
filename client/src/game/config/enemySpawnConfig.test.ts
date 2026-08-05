@@ -2,13 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { STAGES } from '@/game/config/stageConfig';
 
 const EXPECTED_COMBAT_ROOM_COUNTS = [
-  [7, 8],
+  [6, 6],
   [8, 9],
-  // Stage 3 uses fewer, higher-impact control enemies instead of trash mobs.
+  // 스테이지 3는 잡몹 대신 소수의 제어형 적(천장 정비병·포박형·방어형)을 씀.
   [6, 7],
-  [10, 11],
-  [8, 9],
+  [11, 13],
+  [6, 7],
 ];
+
+const EXPECTED_COMBAT_ROOM_WIDTHS = [3657, 4000, 5200, 6000, 4200];
 
 describe('enemy spawn progression', () => {
   it('keeps encounter sizes tuned for each stage combat model', () => {
@@ -21,11 +23,19 @@ describe('enemy spawn progression', () => {
     ).toEqual(EXPECTED_COMBAT_ROOM_COUNTS);
   });
 
+  it('expands later combat stages without stretching the opening lesson', () => {
+    expect(
+      STAGES.map((stage) =>
+        stage.rooms
+          .filter(({ kind }) => kind === 'combat')
+          .map(({ worldWidth }) => worldWidth),
+      ),
+    ).toEqual(EXPECTED_COMBAT_ROOM_WIDTHS.map((width) => [width, width]));
+  });
+
   it('distributes every combat encounter across the full room', () => {
     for (const stage of STAGES) {
-      for (const room of stage.rooms.filter(
-        ({ kind }) => kind === 'combat',
-      )) {
+      for (const room of stage.rooms.filter(({ kind }) => kind === 'combat')) {
         const bandWidth = room.worldWidth / 3;
 
         for (let band = 0; band < 3; band += 1) {

@@ -5,54 +5,81 @@ import {
   type StageRooms,
 } from '@/game/config/roomConfig';
 
+// 3스테이지는 피트 위 캣워크와 단단한 바닥 위 엄폐 캣워크를 구분함.
+// 캣워크는 바닥에서 116px 높이라 최대 점프에 여유가 있으며, 짧은 엄폐
+// 구간에서는 아래에서 탄환을 막고 가장자리에서 반격할 수 있음.
+const CATWALK_Y = GAME_HEIGHT - 180;
+const HIGH_LEDGE_Y = GAME_HEIGHT - 280;
+
+// 지상 제어형 적은 캣워크·구덩이 지형(레벨 디자인)을 그대로 쓰되, 스테이지 3
+// 고유 적(천장 정비병·포박형·방어형)으로 배치함. 이 적들은 추적 반경이 넓어
+// 첫 적은 진입 여유(약 x=1000 이후)를 두고, 지상 적은 구덩이 위에 두지 않으며,
+// 천장 정비병은 위쪽 파이프 구간 안에서만 생성함.
 export const UNDERGROUND_ROOM_ONE = defineRoom({
   id: 'underground-01',
   label: 'ROOM 01',
+  worldWidth: 5200,
   intensity: 1.25,
   enemySpawns: [
-    { type: 'ceiling-maintainer', pipeId: 'u1-west', x: 720 },
-    { type: 'captor', x: 980, y: GAME_HEIGHT - 120 },
-    { type: 'blocker', x: 1450, y: GAME_HEIGHT - 130 },
-    { type: 'ceiling-maintainer', pipeId: 'u1-east', x: 2150 },
-    { type: 'captor', x: 2460, y: GAME_HEIGHT - 120 },
-    { type: 'blocker', x: 3120, y: GAME_HEIGHT - 130 },
+    { type: 'blocker', x: 1000, y: GAME_HEIGHT - 130 },
+    { type: 'captor', x: 1500, y: GAME_HEIGHT - 120 },
+    { type: 'ceiling-maintainer', pipeId: 'u1-west', x: 2150 },
+    { type: 'captor', x: 2600, y: GAME_HEIGHT - 120 },
+    { type: 'blocker', x: 3050, y: GAME_HEIGHT - 130 },
+    { type: 'ceiling-maintainer', pipeId: 'u1-east', x: 3700 },
   ],
   ceilingPipes: [
-    { id: 'u1-west', x: 280, y: 76, width: 1160 },
-    { id: 'u1-east', x: 1760, y: 92, width: 1120 },
+    { id: 'u1-west', x: 1500, y: 80, width: 1200 },
+    { id: 'u1-east', x: 3200, y: 96, width: 1100 },
   ],
   terrain: [
-    { type: 'wall', x: 1260, y: GAME_HEIGHT - 174, width: 54, height: 110 },
-    { type: 'platform', x: 1570, y: GAME_HEIGHT - 210, width: 260, height: 24 },
-    { type: 'wall', x: 2740, y: GAME_HEIGHT - 154, width: 48, height: 90 },
-    { type: 'platform', x: 2980, y: GAME_HEIGHT - 230, width: 280, height: 24 },
+    { type: 'platform', x: 1050, y: CATWALK_Y, width: 250, height: 22 },
+    { type: 'platform', x: 1800, y: CATWALK_Y, width: 250, height: 22 },
+    { type: 'platform', x: 2650, y: CATWALK_Y, width: 220, height: 22 },
+    { type: 'platform', x: 3300, y: CATWALK_Y, width: 260, height: 22 },
+    { type: 'platform', x: 4150, y: CATWALK_Y, width: 250, height: 22 },
+  ],
+  pits: [
+    { x: 1100, width: 150 },
+    { x: 1850, width: 150 },
+    { x: 3350, width: 160 },
+    { x: 4200, width: 150 },
   ],
 });
 
 export const UNDERGROUND_ROOM_TWO = defineRoom({
   id: 'underground-02',
   label: 'ROOM 02',
+  worldWidth: 5200,
   intensity: 1.35,
   enemySpawns: [
-    { type: 'ceiling-maintainer', pipeId: 'u2-west', x: 560 },
-    { type: 'captor', x: 780, y: GAME_HEIGHT - 120 },
-    { type: 'blocker', x: 1200, y: GAME_HEIGHT - 130 },
-    { type: 'captor', x: 1760, y: GAME_HEIGHT - 120 },
-    { type: 'ceiling-maintainer', pipeId: 'u2-mid', x: 2100 },
-    { type: 'blocker', x: 2520, y: GAME_HEIGHT - 130 },
-    { type: 'ceiling-maintainer', pipeId: 'u2-east', x: 3160 },
+    { type: 'blocker', x: 1000, y: GAME_HEIGHT - 130 },
+    { type: 'captor', x: 1500, y: GAME_HEIGHT - 120 },
+    { type: 'ceiling-maintainer', pipeId: 'u2-west', x: 1750 },
+    { type: 'captor', x: 2400, y: GAME_HEIGHT - 120 },
+    { type: 'ceiling-maintainer', pipeId: 'u2-mid', x: 2750 },
+    { type: 'blocker', x: 3000, y: GAME_HEIGHT - 130 },
+    { type: 'ceiling-maintainer', pipeId: 'u2-east', x: 3700 },
   ],
   ceilingPipes: [
-    { id: 'u2-west', x: 220, y: 92, width: 980 },
-    { id: 'u2-mid', x: 1500, y: 70, width: 1040 },
-    { id: 'u2-east', x: 2800, y: 100, width: 620 },
+    { id: 'u2-west', x: 1400, y: 88, width: 900 },
+    { id: 'u2-mid', x: 2450, y: 72, width: 900 },
+    { id: 'u2-east', x: 3300, y: 100, width: 900 },
   ],
   terrain: [
-    { type: 'platform', x: 520, y: GAME_HEIGHT - 220, width: 250, height: 24 },
-    { type: 'wall', x: 1380, y: GAME_HEIGHT - 184, width: 58, height: 120 },
-    { type: 'platform', x: 1840, y: GAME_HEIGHT - 250, width: 300, height: 24 },
-    { type: 'wall', x: 2650, y: GAME_HEIGHT - 164, width: 52, height: 100 },
-    { type: 'platform', x: 3000, y: GAME_HEIGHT - 210, width: 250, height: 24 },
+    { type: 'platform', x: 1100, y: CATWALK_Y, width: 250, height: 22 },
+    { type: 'platform', x: 1950, y: CATWALK_Y, width: 250, height: 22 },
+    { type: 'platform', x: 2700, y: CATWALK_Y, width: 220, height: 22 },
+    { type: 'platform', x: 3300, y: CATWALK_Y, width: 260, height: 22 },
+    { type: 'platform', x: 4300, y: CATWALK_Y, width: 250, height: 22 },
+    { type: 'platform', x: 1980, y: HIGH_LEDGE_Y, width: 180, height: 22 },
+    { type: 'platform', x: 3330, y: HIGH_LEDGE_Y, width: 200, height: 22 },
+  ],
+  pits: [
+    { x: 1150, width: 150 },
+    { x: 2000, width: 150 },
+    { x: 3350, width: 160 },
+    { x: 4350, width: 150 },
   ],
 });
 

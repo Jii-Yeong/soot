@@ -10,6 +10,7 @@ import { WeaponSystem } from '@/game/systems/WeaponSystem';
 
 const mocks = vi.hoisted(() => ({
   fireProjectile: vi.fn(),
+  clearOutsideCamera: vi.fn(),
   getMuzzlePosition: vi.fn(),
   muzzleAngleScale: 0,
   playFire: vi.fn(),
@@ -35,6 +36,10 @@ vi.mock('@/game/systems/ProjectilePool', () => ({
     }
 
     collideWith() {}
+
+    clearOutsideCamera(...args: unknown[]) {
+      mocks.clearOutsideCamera(...args);
+    }
 
     clear() {}
 
@@ -74,6 +79,7 @@ vi.mock('@/game/systems/WeaponFeedback', () => ({
 describe('WeaponSystem bursts', () => {
   afterEach(() => {
     mocks.fireProjectile.mockReset();
+    mocks.clearOutsideCamera.mockReset();
     mocks.getMuzzlePosition.mockReset();
     mocks.muzzleAngleScale = 0;
     mocks.playFire.mockReset();
@@ -160,5 +166,27 @@ describe('WeaponSystem bursts', () => {
       ),
     ).toEqual(new Set(['100,200']));
     expect(mocks.getMuzzlePosition).toHaveBeenCalledExactlyOnceWith(0, 47, 6.5, 0);
+  });
+
+  it('clears player projectiles outside the current camera view', () => {
+    const camera = {} as Phaser.Cameras.Scene2D.Camera;
+    const scene = {
+      cameras: { main: camera },
+      physics: { add: { overlap: vi.fn() } },
+      time: { delayedCall: vi.fn() },
+    } as unknown as Phaser.Scene;
+    const system = new WeaponSystem(
+      scene,
+      { x: 100, y: 200 } as Phaser.Physics.Arcade.Sprite,
+      [],
+      [SHOTGUN_WEAPON_CONFIG],
+      SHOTGUN_WEAPON_CONFIG.id,
+      () => true,
+      () => {},
+    );
+
+    system.update(16, { x: 300, y: 200 } as Phaser.Math.Vector2);
+
+    expect(mocks.clearOutsideCamera).toHaveBeenCalledExactlyOnceWith(camera);
   });
 });

@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
 import {
   AUDIO_MIX_CONFIG,
+  clampAudioMixValue,
   MUSIC_CONFIG,
   SFX_CONFIG,
   WEAPON_FIRE_SFX,
   type AudioAssetKey,
+  type AudioMix,
   type MusicKey,
   type SfxKey,
 } from '@/game/config/audioConfig';
@@ -15,12 +17,6 @@ import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
 
-export type AudioMix = {
-  master: number;
-  music: number;
-  sfx: number;
-};
-
 /**
  * `decodeAudio` lives on the Web Audio manager only. The HTML5 and no-audio
  * managers do not expose it, so deferred music is skipped there rather than
@@ -28,6 +24,11 @@ export type AudioMix = {
  */
 type DecodingSoundManager = Phaser.Sound.BaseSoundManager & {
   decodeAudio(key: string, data: ArrayBuffer): void;
+};
+
+/** `BaseSoundManager`에서 런타임에 반환되는 구체적인 사운드 타입을 보완한다. */
+type VolumeControlledSound = Phaser.Sound.BaseSound & {
+  setVolume(value: number): Phaser.Sound.BaseSound;
 };
 
 function canDecode(
@@ -47,7 +48,7 @@ function canDecode(
 export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
   private readonly playedAt = new Map<SfxKey, number>();
-  private music?: Phaser.Sound.BaseSound;
+  private music?: VolumeControlledSound;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
   /** Tracks already fetched, so a revisited stage does not download twice. */
@@ -60,6 +61,7 @@ export class AudioDirector {
     gameEvents.on('stage-changed', this.handleStageChanged);
     gameEvents.on('phase-changed', this.handlePhaseChanged);
     gameEvents.on('room-state-changed', this.handleRoomStateChanged);
+    gameEvents.on('audio-mix-changed', this.handleAudioMixChanged);
     gameEvents.on('weapon-fired', this.handleWeaponFired);
     gameEvents.on('player-damaged', this.handlePlayerDamaged);
     gameEvents.on('player-dashed', this.handlePlayerDashed);
@@ -72,6 +74,7 @@ export class AudioDirector {
     gameEvents.off('stage-changed', this.handleStageChanged);
     gameEvents.off('phase-changed', this.handlePhaseChanged);
     gameEvents.off('room-state-changed', this.handleRoomStateChanged);
+    gameEvents.off('audio-mix-changed', this.handleAudioMixChanged);
     gameEvents.off('weapon-fired', this.handleWeaponFired);
     gameEvents.off('player-damaged', this.handlePlayerDamaged);
     gameEvents.off('player-dashed', this.handlePlayerDashed);
@@ -98,9 +101,9 @@ export class AudioDirector {
   }
 
   /**
-   * Music is fetched after boot rather than during it. Sound effects total
-   * 113KB while one track is over a megabyte, so loading music in BootScene
-   * meant the title screen waited on a file nothing needs yet.
+   * 스테이지 음악은 부팅 중이 아니라 이후에 가져온다. 타이틀 곡은 예외로,
+   * BootScene에서 미리 불러와 플레이어가 브라우저 시작 안내를 통과하는 즉시
+   * 재생을 시도할 수 있게 한다. 효과음 전체는 113KB지만 음악 한 곡은 1MB가 넘는다.
    *
    * Only the track that is about to be needed is fetched, plus the one for the
    * stage after it. Fetching every track up front would mean a player who
@@ -116,7 +119,14 @@ export class AudioDirector {
   private requestMusic(key: MusicKey | undefined) {
     const manager = this.game.sound;
 
-    if (!key || this.requested.has(key) || !canDecode(manager)) {
+    // BootScene이 타이틀 곡을 미리 불러오므로 타이틀 표시 즉시 재생할 수 있다.
+    // 같은 파일을 다시 가져와 디코딩하지 않는다.
+    if (
+      !key ||
+      this.isLoaded(key) ||
+      this.requested.has(key) ||
+      !canDecode(manager)
+    ) {
       return;
     }
 
@@ -182,6 +192,20 @@ export class AudioDirector {
       this.playSfx('sfx-room-cleared');
     }
   };
+
+  private readonly handleAudioMixChanged = (mix: AudioMix) => {
+    this.setMix(mix);
+  };
+
+  setMix(mix: AudioMix) {
+    this.mix.master = clampAudioMixValue(mix.master);
+    this.mix.music = clampAudioMixValue(mix.music);
+    this.mix.sfx = clampAudioMixValue(mix.sfx);
+
+    if (this.music && this.wantedMusic) {
+      this.music.setVolume(this.musicVolume(this.wantedMusic));
+    }
+  }
 
   private readonly handleWeaponFired = (weaponId: string) => {
     const key = WEAPON_FIRE_SFX[weaponId];
@@ -256,8 +280,8 @@ export class AudioDirector {
 
     this.music = this.game.sound.add(key, {
       loop: true,
-      volume: MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master,
-    });
+      volume: this.musicVolume(key),
+    }) as VolumeControlledSound;
 
     if (this.game.sound.locked) {
       this.game.sound.once(Phaser.Sound.Events.UNLOCKED, this.handleUnlocked);
@@ -267,7 +291,7 @@ export class AudioDirector {
     this.music.play();
   }
 
-  /** Web Audio stays locked until the first gesture, which is the title ENTER. */
+  /** 플레이어가 시작 안내를 누를 때까지 Web Audio는 잠긴 상태로 유지된다. */
   private readonly handleUnlocked = () => {
     this.music?.play();
   };
@@ -282,6 +306,10 @@ export class AudioDirector {
 
   private isLoaded(key: AudioAssetKey) {
     return this.game.cache.audio.exists(key);
+  }
+
+  private musicVolume(key: MusicKey) {
+    return MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master;
   }
 
   private jitteredRate(rateJitter = 0) {
