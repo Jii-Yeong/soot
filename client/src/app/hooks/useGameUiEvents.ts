@@ -34,6 +34,14 @@ export function useGameUiEvents() {
     const handleWeaponChanged = (id: string, label: string) => {
       useGameUiStore.getState().setWeapon(id, label);
     };
+    const handleWeaponInventoryChanged = (
+      slots: readonly (string | null)[],
+      activeSlotIndex: number,
+    ) => {
+      useGameUiStore
+        .getState()
+        .setWeaponInventory(slots, activeSlotIndex);
+    };
     const handleNearbyWeaponChanged = (id: string | null) => {
       useGameUiStore.getState().setNearbyWeapon(id);
     };
@@ -68,6 +76,7 @@ export function useGameUiEvents() {
     gameEvents.on('room-state-changed', handleRoomStateChanged);
     gameEvents.on('scene-changed', handleSceneChanged);
     gameEvents.on('weapon-changed', handleWeaponChanged);
+    gameEvents.on('weapon-inventory-changed', handleWeaponInventoryChanged);
     gameEvents.on('nearby-weapon-changed', handleNearbyWeaponChanged);
     gameEvents.on('pause-changed', handlePauseChanged);
 
@@ -81,6 +90,10 @@ export function useGameUiEvents() {
       gameEvents.off('room-state-changed', handleRoomStateChanged);
       gameEvents.off('scene-changed', handleSceneChanged);
       gameEvents.off('weapon-changed', handleWeaponChanged);
+      gameEvents.off(
+        'weapon-inventory-changed',
+        handleWeaponInventoryChanged,
+      );
       gameEvents.off('nearby-weapon-changed', handleNearbyWeaponChanged);
     };
   }, []);

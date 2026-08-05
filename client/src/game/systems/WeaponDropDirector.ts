@@ -24,11 +24,11 @@ export class WeaponDropDirector {
   dropBossReward(
     x: number,
     y: number,
-    activeWeaponId: string,
+    ownedWeaponIds: readonly string[],
   ): WeaponPickup | null {
     const weapon = selectBossWeaponDrop(
       this.weapons,
-      activeWeaponId,
+      ownedWeaponIds,
       this.random,
     );
     if (!weapon) {
@@ -54,16 +54,14 @@ export class WeaponDropDirector {
 
   takeNearest(
     player: Phaser.Physics.Arcade.Sprite,
-    previousWeapon: WeaponConfig,
   ): WeaponConfig | null {
     const pickup = this.findNearestPickup(player.x, player.y);
     if (!pickup) {
       return null;
     }
 
-    const { weapon, x, y } = pickup;
+    const { weapon } = pickup;
     this.removePickup(pickup);
-    this.spawnPickup(previousWeapon, x, y - 6);
     return weapon;
   }
 

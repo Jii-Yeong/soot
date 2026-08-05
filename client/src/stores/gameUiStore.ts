@@ -3,6 +3,7 @@ import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
+import { WEAPON_INVENTORY_SIZE } from '@/game/config/weaponConfig';
 
 type GameUiState = {
   health: number;
@@ -16,6 +17,8 @@ type GameUiState = {
   roomState: RoomState;
   weaponId: string;
   weaponLabel: string;
+  weaponSlots: readonly (string | null)[];
+  activeWeaponSlot: number;
   nearbyWeaponId: string | null;
   paused: boolean;
   setHealth: (health: number, maxHealth: number) => void;
@@ -25,6 +28,10 @@ type GameUiState = {
   setPhase: (phase: GamePhase) => void;
   setRoomState: (roomState: RoomState) => void;
   setWeapon: (weaponId: string, weaponLabel: string) => void;
+  setWeaponInventory: (
+    weaponSlots: readonly (string | null)[],
+    activeWeaponSlot: number,
+  ) => void;
   setNearbyWeapon: (nearbyWeaponId: string | null) => void;
   setPaused: (paused: boolean) => void;
 };
@@ -41,6 +48,11 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   roomState: 'idle',
   weaponId: 'smg',
   weaponLabel: 'SMG',
+  weaponSlots: Array.from(
+    { length: WEAPON_INVENTORY_SIZE },
+    (_, index) => (index === 0 ? 'smg' : null),
+  ),
+  activeWeaponSlot: 0,
   nearbyWeaponId: null,
   paused: false,
   setHealth: (health, maxHealth) => set({ health, maxHealth }),
@@ -51,6 +63,8 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   setPhase: (phase) => set({ phase }),
   setRoomState: (roomState) => set({ roomState }),
   setWeapon: (weaponId, weaponLabel) => set({ weaponId, weaponLabel }),
+  setWeaponInventory: (weaponSlots, activeWeaponSlot) =>
+    set({ weaponSlots: [...weaponSlots], activeWeaponSlot }),
   setNearbyWeapon: (nearbyWeaponId) => set({ nearbyWeaponId }),
   setPaused: (paused) => set({ paused }),
 }));

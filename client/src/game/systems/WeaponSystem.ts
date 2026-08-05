@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import type { WeaponConfig } from '@/game/config/weaponConfig';
+import {
+  WEAPON_INVENTORY_SIZE,
+  type WeaponConfig,
+} from '@/game/config/weaponConfig';
 import { Enemy } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
@@ -15,8 +18,10 @@ type EnemyHitListener = (enemy: Enemy, defeated: boolean) => void;
 
 export class WeaponSystem {
   private readonly weapons: WeaponRuntime[];
+  private readonly inventorySlots: Array<WeaponRuntime | null>;
   private readonly feedback: WeaponFeedback;
   private activeWeaponIndex: number;
+  private activeInventorySlotIndex = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -51,6 +56,11 @@ export class WeaponSystem {
       );
       return runtime;
     });
+    this.inventorySlots = Array.from(
+      { length: WEAPON_INVENTORY_SIZE },
+      () => null,
+    );
+    this.inventorySlots[0] = this.weapons[this.activeWeaponIndex] ?? null;
     this.feedback = new WeaponFeedback(
       scene,
       player,
@@ -61,6 +71,14 @@ export class WeaponSystem {
 
   get activeConfig() {
     return this.activeWeapon.config;
+  }
+
+  get inventoryWeaponIds() {
+    return this.inventorySlots.map((weapon) => weapon?.config.id ?? null);
+  }
+
+  get activeSlotIndex() {
+    return this.activeInventorySlotIndex;
   }
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
@@ -115,15 +133,35 @@ export class WeaponSystem {
     weapon.nextFireAt = time + config.fireInterval;
   }
 
-  equip(weaponId: string) {
-    const index = this.weapons.findIndex(
+  /** 새 무기를 첫 빈 슬롯에 넣고, 이미 소유했다면 기존 슬롯을 선택함. */
+  collect(weaponId: string) {
+    const weapon = this.weapons.find(
       (weapon) => weapon.config.id === weaponId,
     );
-    if (index < 0) {
+    if (!weapon) {
       return false;
     }
 
-    this.activeWeaponIndex = index;
+    const ownedSlot = this.inventorySlots.indexOf(weapon);
+    const slotIndex =
+      ownedSlot >= 0 ? ownedSlot : this.inventorySlots.indexOf(null);
+    if (slotIndex < 0) {
+      return false;
+    }
+
+    this.inventorySlots[slotIndex] = weapon;
+    return this.equipSlot(slotIndex);
+  }
+
+  /** 숫자키에 대응하는, 이미 채워진 슬롯만 선택함. */
+  equipSlot(slotIndex: number) {
+    const weapon = this.inventorySlots[slotIndex];
+    if (!weapon) {
+      return false;
+    }
+
+    this.activeInventorySlotIndex = slotIndex;
+    this.activeWeaponIndex = this.weapons.indexOf(weapon);
     this.feedback.setWeapon(this.activeConfig);
     return true;
   }

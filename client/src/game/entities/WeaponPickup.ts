@@ -38,7 +38,7 @@ export class WeaponPickup extends Phaser.Physics.Arcade.Sprite {
       .setOrigin(0.5)
       .setDepth(12);
     this.prompt = scene.add
-      .text(x, y - 47, '[E] EQUIP', {
+      .text(x, y - 47, '[E] PICK UP', {
         color: '#ffffff',
         backgroundColor: '#070a0bd9',
         fontFamily: 'Arial, sans-serif',

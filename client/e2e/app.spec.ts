@@ -489,6 +489,48 @@ test('enters the game and shows the React HUD', async ({ page }) => {
   );
 });
 
+test('fills four weapon slots and switches them with number keys', async ({
+  page,
+}) => {
+  await enterGame(page);
+
+  const inventory = page.getByRole('radiogroup', {
+    name: 'Weapon inventory',
+  });
+  const slots = inventory.getByRole('radio');
+  await expect(slots).toHaveCount(4);
+  await expect(slots.nth(0)).toHaveAttribute('aria-label', '1: SMG');
+  await expect(slots.nth(0)).toHaveAttribute('aria-checked', 'true');
+  await expect(slots.nth(1)).toHaveAttribute('aria-disabled', 'true');
+
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  await adminButton.click();
+  await page.getByRole('button', { name: 'SHOTGUN 지급' }).click();
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
+  await expect(slots.nth(1)).toHaveAttribute('aria-label', '2: SHOTGUN');
+  await expect(slots.nth(1)).toHaveAttribute('aria-checked', 'true');
+
+  await page.getByRole('button', { name: 'BURST RIFLE 지급' }).click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-weapon',
+    'burst-rifle',
+  );
+  await expect(slots.nth(2)).toHaveAttribute('aria-checked', 'true');
+  await adminButton.click();
+
+  await page.keyboard.press('Digit1');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'smg');
+  await expect(slots.nth(0)).toHaveAttribute('aria-checked', 'true');
+
+  await page.keyboard.press('Digit2');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
+  await expect(slots.nth(1)).toHaveAttribute('aria-checked', 'true');
+
+  await page.keyboard.press('Digit4');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
+  await expect(slots.nth(3)).toHaveAttribute('aria-disabled', 'true');
+});
+
 test('accepts WASD movement and mouse fire input', async ({ page }) => {
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
@@ -745,7 +787,7 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
     const scene = game.scene.getScene('game') as RuntimeScene;
     const enemies = scene.enemies;
     const blocker = enemies.find(
-      ({ texture }) => texture.key === 'blocker-placeholder',
+      ({ texture }) => texture.key === 'stage-3-neared',
     );
     if (!blocker) {
       throw new Error('Missing stage 3 blocker');
@@ -774,7 +816,8 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
       healthAfterShield,
       faceTarget: {
         x: blocker.x - scene.cameras.main.scrollX,
-        y: blocker.y - 51 - scene.cameras.main.scrollY,
+        // 노출 바이저는 발 정렬 바디 상단(스프라이트 중심 기준 위 약 33px).
+        y: blocker.y - 33 - scene.cameras.main.scrollY,
       },
       textures: enemies.map(({ texture }) => texture.key),
       pipeTextures: scene.terrainBuilder.pipeObjects.flatMap(({ texture }) =>
@@ -789,7 +832,7 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
     new Set([
       'stage-3-flying',
       'stage-3-ranged',
-      'blocker-placeholder',
+      'stage-3-neared',
     ]),
   );
   expect(result.crawlerY).toBeLessThan(180);
@@ -827,7 +870,7 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
         const game = (window as unknown as { __game?: DebugGame }).__game!;
         const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
         return enemies.find(
-          ({ texture }) => texture.key === 'blocker-placeholder',
+          ({ texture }) => texture.key === 'stage-3-neared',
         )?.currentHealth;
       }),
     )

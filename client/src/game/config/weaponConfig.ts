@@ -77,6 +77,8 @@ export type WeaponConfig = {
   feedback: WeaponFeedbackConfig;
 };
 
+export const WEAPON_INVENTORY_SIZE = 4;
+
 export const getWeaponTriggerDamage = (weapon: WeaponConfig) =>
   weapon.damage * weapon.pelletCount * weapon.burstCount;
 

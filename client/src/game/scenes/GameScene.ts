@@ -31,6 +31,7 @@ import {
 import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
+  WEAPON_INVENTORY_SIZE,
   type WeaponConfig,
 } from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
@@ -708,6 +709,7 @@ export class GameScene extends Phaser.Scene {
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
     keyboard.on('keydown-UP', this.handlePortalEnter, this);
     keyboard.on('keydown-W', this.handlePortalEnter, this);
+    keyboard.on('keydown', this.handleWeaponSlotInput, this);
     gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
     gameEvents.on(
       'admin-stage-boss-requested',
@@ -731,6 +733,7 @@ export class GameScene extends Phaser.Scene {
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
       keyboard.off('keydown-UP', this.handlePortalEnter, this);
       keyboard.off('keydown-W', this.handlePortalEnter, this);
+      keyboard.off('keydown', this.handleWeaponSlotInput, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
       gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
       gameEvents.off(
@@ -750,11 +753,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const weapon = this.weaponDropDirector.takeNearest(
-      this.player,
-      this.weaponSystem.activeConfig,
-    );
-    if (!weapon || !this.weaponSystem.equip(weapon.id)) {
+    const weapon = this.weaponDropDirector.takeNearest(this.player);
+    if (!weapon || !this.weaponSystem.collect(weapon.id)) {
       return;
     }
 
@@ -766,6 +766,39 @@ export class GameScene extends Phaser.Scene {
     const weapon = this.weaponSystem.activeConfig;
     this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
     gameEvents.emit('weapon-changed', weapon.id, weapon.label);
+    gameEvents.emit(
+      'weapon-inventory-changed',
+      this.weaponSystem.inventoryWeaponIds,
+      this.weaponSystem.activeSlotIndex,
+    );
+  }
+
+  private handleWeaponSlotInput(event: KeyboardEvent) {
+    if (
+      event.repeat ||
+      (this.phase !== 'playing' && this.phase !== 'room-cleared')
+    ) {
+      return;
+    }
+
+    const slotIndex = Number(event.key) - 1;
+    if (
+      !Number.isInteger(slotIndex) ||
+      slotIndex < 0 ||
+      slotIndex >= WEAPON_INVENTORY_SIZE
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (
+      slotIndex === this.weaponSystem.activeSlotIndex ||
+      !this.weaponSystem.equipSlot(slotIndex)
+    ) {
+      return;
+    }
+
+    this.updateWeaponLabel();
+    this.showWeaponEquipped(this.weaponSystem.activeConfig);
   }
 
   private showWeaponEquipped(weapon: WeaponConfig) {
@@ -964,7 +997,7 @@ export class GameScene extends Phaser.Scene {
    * the alternative, and the drop tables do not guarantee it appears at all.
    */
   private handleAdminWeaponRequested = (weaponId: string) => {
-    if (!this.weaponSystem.equip(weaponId)) {
+    if (!this.weaponSystem.collect(weaponId)) {
       return;
     }
 
@@ -1085,7 +1118,9 @@ export class GameScene extends Phaser.Scene {
       this.weaponDropDirector.dropBossReward(
         enemy.x,
         enemy.y,
-        this.weaponSystem.activeConfig.id,
+        this.weaponSystem.inventoryWeaponIds.flatMap((id) =>
+          id === null ? [] : [id],
+        ),
       );
     } else {
       if (!enemy.playsOwnDeathAnimation) {

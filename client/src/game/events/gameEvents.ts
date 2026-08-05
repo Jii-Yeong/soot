@@ -41,6 +41,10 @@ type GameEventMap = {
   'enemy-damaged': [x: number, y: number];
   'enemy-defeated': [x: number, y: number];
   'weapon-changed': [id: string, label: string];
+  'weapon-inventory-changed': [
+    slots: readonly (string | null)[],
+    activeSlotIndex: number,
+  ];
   'nearby-weapon-changed': [id: string | null];
 };
 
