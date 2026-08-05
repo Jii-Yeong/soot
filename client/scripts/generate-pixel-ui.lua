@@ -36,7 +36,7 @@ local midEdge = { 51, 66, 74, 255 }
 local lightEdge = { 95, 113, 120, 255 }
 local mint = { 182, 255, 228, 255 }
 local mintShadow = { 71, 141, 110, 255 }
-local orange = { 240, 163, 91, 255 }
+local playerAccent = { 111, 214, 166, 255 }
 local red = { 255, 113, 128, 255 }
 local redShadow = { 125, 47, 57, 255 }
 local overload = { 255, 155, 69, 255 }
@@ -100,8 +100,26 @@ save("controls/button-frame-danger.png", 24, 24, function(image)
   fill(image, 7, 20, 16, 20, red)
 end)
 
+save("inventory/slot-frame-neutral.png", 24, 24, function(image)
+  drawCutFrame(image, panelFill, midEdge, lightEdge)
+  pixel(image, 7, 4, midEdge)
+  pixel(image, 16, 19, midEdge)
+end)
+
+save("inventory/slot-frame-active.png", 24, 24, function(image)
+  drawCutFrame(image, panelFillActive, mintShadow, mint)
+  fill(image, 7, 3, 16, 3, mint)
+  fill(image, 7, 20, 16, 20, mintShadow)
+end)
+
+save("inventory/slot-frame-empty.png", 24, 24, function(image)
+  drawCutFrame(image, { 9, 11, 12, 230 }, darkEdge, midEdge)
+  pixel(image, 7, 4, darkEdge)
+  pixel(image, 16, 19, darkEdge)
+end)
+
 save("hud/hud-frame-player.png", 24, 24, function(image)
-  drawHudFrame(image, orange)
+  drawHudFrame(image, playerAccent)
 end)
 
 save("hud/hud-frame-enemy.png", 24, 24, function(image)
