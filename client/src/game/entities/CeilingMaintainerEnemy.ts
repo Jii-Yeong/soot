@@ -68,6 +68,21 @@ export class CeilingMaintainerEnemy extends Enemy {
 
   private readonly pipe: CeilingPipe;
 
+  override refreshAtlasSprite() {
+    this.setScale(CEILING_MAINTAINER_CONFIG.scale);
+    const anims = CEILING_MAINTAINER_CONFIG.animations;
+    const keyByState: Record<CeilingMaintainerState, string> = {
+      crawl: anims.pipeIdle,
+      warning: anims.warning,
+      relocate: anims.pipeMove,
+      falling: anims.falling,
+      'ground-mark': anims.floorIdle,
+      'ground-dash': anims.groundDash,
+      'floor-idle': anims.floorIdle,
+    };
+    this.play(keyByState[this.maintainerState], true);
+  }
+
   updateCombat(
     time: number,
     target: Phaser.Physics.Arcade.Sprite,

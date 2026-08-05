@@ -34,6 +34,8 @@ function createScene(loadedKeys: readonly string[] = []) {
     textures: {
       exists: vi.fn((key: string) => loadedKeys.includes(key)),
     },
+    // onReady는 애니메이션 생성 후로 미뤄지므로, 테스트에서는 즉시 실행한다.
+    time: { delayedCall: (_delay: number, cb: () => void) => cb() },
   } as unknown as Phaser.Scene;
 
   return { anims, listeners, load, scene };

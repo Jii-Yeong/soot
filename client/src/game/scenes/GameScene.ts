@@ -520,18 +520,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * 콜드 스테이지의 아트 로드가 끝나면 방을 다시 지어 로드된 스프라이트를
-   * 적용한다. 즉시 교전 모델에서는 적이 아틀라스보다 먼저 스폰될 수 있어,
-   * 바닥·지형뿐 아니라 적도 로드된 아틀라스로 재생성해야 한다(워밍된
-   * 스테이지에서는 onReady가 호출되지 않아 no-op).
+   * 콜드 스테이지의 아트 로드가 끝나면 바닥·지형을 다시 그리고, 아틀라스보다
+   * 먼저 스폰돼 __MISSING이던 적 스프라이트를 제자리에서 갱신한다(적을 파괴/
+   * 재스폰하지 않아 전투 상태를 유지함). 워밍된 스테이지에서는 onReady가
+   * 호출되지 않아 no-op.
    */
   private reskinCurrentRoom() {
-    if (!this.floorBuilder || !this.terrainBuilder || !this.roomDirector) {
+    if (!this.floorBuilder || !this.terrainBuilder) {
       return;
     }
 
     this.rebuildFloorForRoom();
-    this.buildRoom(this.activeRoomConfig);
+    this.terrainBuilder.build(
+      this.activeRoomConfig.terrain,
+      this.stage.terrainSkin,
+      this.activeRoomConfig.ceilingPipes,
+    );
+    for (const enemy of this.enemies) {
+      enemy.refreshAtlasSprite();
+    }
   }
 
   private createCombatSystems() {

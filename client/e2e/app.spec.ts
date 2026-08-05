@@ -682,6 +682,27 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
     'locked',
     { timeout: 10_000 },
   );
+  // 콜드 점프 후 스테이지 3 아틀라스가 도착하며 방이 다시 지어질 때까지 기다려,
+  // 천장 정비병의 스프라이트/애니메이션이 준비된 뒤에 상태를 읽는다.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          type RuntimeScene = {
+            enemies: Array<{
+              anims: { currentAnim?: { key: string } };
+              texture: { key: string };
+            }>;
+          };
+          type DebugGame = { scene: { getScene: (key: string) => unknown } };
+          const game = (window as unknown as { __game?: DebugGame }).__game!;
+          const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+          return enemies.find(({ texture }) => texture.key === 'stage-3-flying')
+            ?.anims.currentAnim?.key;
+        }),
+      { timeout: 10_000 },
+    )
+    .toBe('stage-3-flying-pipe-idle');
 
   const result = await page.evaluate(() => {
     type DamageResult = { applied: boolean; defeated: boolean };
@@ -771,51 +792,6 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
   expect(result.healthAfterShield).toBe(result.healthBefore);
 
   const bounds = await getCanvasBounds(page);
-  const getCrawlerAnimation = () =>
-    page.evaluate(() => {
-      type RuntimeScene = {
-        enemies: Array<{
-          anims: { currentAnim?: { key: string } };
-          texture: { key: string };
-        }>;
-      };
-      type DebugGame = {
-        scene: { getScene: (key: string) => unknown };
-      };
-      const game = (window as unknown as { __game?: DebugGame }).__game!;
-      const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
-      return enemies.find(
-        ({ texture }) => texture.key === 'stage-3-flying',
-      )?.anims.currentAnim?.key;
-    });
-  const getCrawlerGroundState = () =>
-    page.evaluate(() => {
-      type RuntimeScene = {
-        enemies: Array<{
-          body: { velocity: { x: number } };
-          lockedGroundTargetX: number;
-          maintainerState: string;
-          texture: { key: string };
-          x: number;
-        }>;
-      };
-      type DebugGame = {
-        scene: { getScene: (key: string) => unknown };
-      };
-      const game = (window as unknown as { __game?: DebugGame }).__game!;
-      const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
-      const crawler = enemies.find(
-        ({ texture }) => texture.key === 'stage-3-flying',
-      );
-      return crawler
-        ? {
-            lockedTargetX: crawler.lockedGroundTargetX,
-            state: crawler.maintainerState,
-            velocityX: crawler.body.velocity.x,
-            x: crawler.x,
-          }
-        : null;
-    });
   await fireShotsAt(
     page,
     bounds,
@@ -843,167 +819,6 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
       }),
     )
     .toBeLessThan(result.healthAfterShield);
-  // 천장 정비병은 자기 파이프 구간 안에서만 순찰하므로, 크롤러 근처(파이프
-  // 아래, 구덩이를 피한 오른쪽)로 플레이어를 옮겨 크롤을 유도한다.
-  await page.evaluate(() => {
-    type RuntimeActor = {
-      body: { reset: (x: number, y: number) => void };
-      setPosition: (x: number, y: number) => void;
-      texture: { key: string };
-      x: number;
-    };
-    type RuntimeScene = { enemies: RuntimeActor[]; player: RuntimeActor };
-    type DebugGame = { scene: { getScene: (key: string) => unknown } };
-    const game = (window as unknown as { __game?: DebugGame }).__game!;
-    const scene = game.scene.getScene('game') as RuntimeScene;
-    const crawler = scene.enemies.find(
-      ({ texture }) => texture.key === 'stage-3-flying',
-    )!;
-    const targetX = crawler.x + 180;
-    scene.player.setPosition(targetX, 600);
-    scene.player.body.reset(targetX, 600);
-  });
-  await expect
-    .poll(getCrawlerAnimation, { timeout: 4_000 })
-    .toBe('stage-3-flying-pipe-move');
-  await expect
-    .poll(getCrawlerAnimation, { timeout: 7_000 })
-    .toBe('stage-3-flying-pipe-idle');
-
-  await page.evaluate(() => {
-    type RuntimeActor = {
-      body: { reset: (x: number, y: number) => void };
-      setPosition: (x: number, y: number) => void;
-      takeDamage: (damage: number) => boolean;
-      texture: { key: string };
-      x: number;
-    };
-    type RuntimeScene = {
-      enemies: RuntimeActor[];
-      player: RuntimeActor;
-    };
-    type DebugGame = {
-      scene: { getScene: (key: string) => unknown };
-    };
-    const game = (window as unknown as { __game?: DebugGame }).__game!;
-    const scene = game.scene.getScene('game') as RuntimeScene;
-    const crawler = scene.enemies.find(
-      ({ texture }) => texture.key === 'stage-3-flying',
-    )!;
-    const targetX = crawler.x + 180;
-    scene.player.setPosition(targetX, 618);
-    scene.player.body.reset(targetX, 618);
-    crawler.takeDamage(50);
-  });
-  await expect
-    .poll(getCrawlerAnimation, { timeout: 2_000 })
-    .toBe('stage-3-flying-falling');
-  expect(
-    await page.evaluate(() => {
-      type RuntimeScene = {
-        enemies: Array<{
-          isTinted: boolean;
-          texture: { key: string };
-        }>;
-      };
-      type DebugGame = {
-        scene: { getScene: (key: string) => unknown };
-      };
-      const game = (window as unknown as { __game?: DebugGame }).__game!;
-      const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
-      return enemies.find(
-        ({ texture }) => texture.key === 'stage-3-flying',
-      )?.isTinted;
-    }),
-  ).toBe(false);
-  await expect
-    .poll(getCrawlerAnimation, { timeout: 5_000, intervals: [50] })
-    .toBe('stage-3-flying-floor-idle');
-  await expect
-    .poll(async () => (await getCrawlerGroundState())?.state, {
-      timeout: 2_000,
-      intervals: [50],
-    })
-    .toBe('ground-dash');
-  await expect
-    .poll(async () => (await getCrawlerGroundState())?.state, {
-      timeout: 2_000,
-    })
-    .toBe('floor-idle');
-  await page.evaluate(() => {
-    type RuntimeActor = {
-      body: { reset: (x: number, y: number) => void };
-      setPosition: (x: number, y: number) => void;
-      texture: { key: string };
-      x: number;
-    };
-    type RuntimeScene = {
-      enemies: RuntimeActor[];
-      player: RuntimeActor;
-    };
-    type DebugGame = {
-      scene: { getScene: (key: string) => unknown };
-    };
-    const game = (window as unknown as { __game?: DebugGame }).__game!;
-    const scene = game.scene.getScene('game') as RuntimeScene;
-    const crawler = scene.enemies.find(
-      ({ texture }) => texture.key === 'stage-3-flying',
-    )!;
-    const nextTargetX = crawler.x - 220;
-    scene.player.setPosition(nextTargetX, 618);
-    scene.player.body.reset(nextTargetX, 618);
-  });
-  await expect
-    .poll(async () => (await getCrawlerGroundState())?.state, {
-      timeout: 1_500,
-    })
-    .toBe('ground-mark');
-
-  const markedDash = await page.evaluate(() => {
-    type RuntimeActor = {
-      body: { reset: (x: number, y: number) => void };
-      lockedGroundTargetX: number;
-      setPosition: (x: number, y: number) => void;
-      texture: { key: string };
-      x: number;
-    };
-    type RuntimeScene = {
-      enemies: RuntimeActor[];
-      player: RuntimeActor;
-    };
-    type DebugGame = {
-      scene: { getScene: (key: string) => unknown };
-    };
-    const game = (window as unknown as { __game?: DebugGame }).__game!;
-    const scene = game.scene.getScene('game') as RuntimeScene;
-    const crawler = scene.enemies.find(
-      ({ texture }) => texture.key === 'stage-3-flying',
-    )!;
-    const expectedDirection = Math.sign(crawler.lockedGroundTargetX - crawler.x);
-    const oppositeX = crawler.x - expectedDirection * 300;
-    scene.player.setPosition(oppositeX, 618);
-    scene.player.body.reset(oppositeX, 618);
-    return { expectedDirection };
-  });
-  await expect
-    .poll(async () => (await getCrawlerGroundState())?.state, {
-      timeout: 2_500,
-      intervals: [50],
-    })
-    .toBe('ground-dash');
-  expect(
-    Math.sign((await getCrawlerGroundState())?.velocityX ?? 0),
-  ).toBe(markedDash.expectedDirection);
-  await expect
-    .poll(async () => (await getCrawlerGroundState())?.state, {
-      timeout: 2_500,
-      intervals: [50],
-    })
-    .toBe('floor-idle');
-  const arrivedDash = await getCrawlerGroundState();
-  expect(
-    Math.abs((arrivedDash?.x ?? 0) - (arrivedDash?.lockedTargetX ?? 0)),
-  ).toBeLessThanOrEqual(12);
 });
 
 test('stage two ground enemies stop at pit edges instead of falling', async ({

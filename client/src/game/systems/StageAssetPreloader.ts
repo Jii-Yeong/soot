@@ -85,7 +85,9 @@ export class StageAssetPreloader {
 
       this.scene.load.off(FILE_COMPLETE_EVENT, onComplete);
       this.scene.load.off(FILE_LOAD_ERROR_EVENT, onError);
-      onReady();
+      // 다음 틱으로 미뤄, 같은 파일 완료 이벤트에서 뒤이어 실행되는 아틀라스
+      // 애니메이션 생성이 끝난 뒤에 onReady(리스킨)가 돌게 한다.
+      this.scene.time.delayedCall(0, onReady);
     };
     const onComplete = (key: string) => settle(key);
     const onError = (file: Phaser.Loader.File) => settle(file.key);

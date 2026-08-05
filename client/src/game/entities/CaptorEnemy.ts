@@ -52,6 +52,10 @@ export class CaptorEnemy extends Enemy {
     return true;
   }
 
+  override refreshAtlasSprite() {
+    this.rig.refresh();
+  }
+
   updateCombat(
     time: number,
     target: Phaser.Physics.Arcade.Sprite,
