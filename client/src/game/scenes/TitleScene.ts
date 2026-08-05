@@ -14,12 +14,27 @@ export class TitleScene extends Phaser.Scene {
 
   preload() {
     this.load.image('title-player', '/assets/title-player.png');
+    const bg = STAGES[STARTING_STAGE_INDEX]?.background;
+    if (bg) {
+      this.load.image(bg.key, bg.path);
+    }
   }
 
   create() {
     gameEvents.emit('scene-changed', 'title');
 
-    // 우하단 정렬, 높이는 화면의 80%(비율 유지). 텍스트 뒤에 깔림.
+    // 1스테이지 배경을 cover로 채움(비율 유지, 다른 해상도 지원). 맨 뒤.
+    const bg = STAGES[STARTING_STAGE_INDEX]?.background;
+    if (bg && this.textures.exists(bg.key)) {
+      const image = this.add
+        .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, bg.key)
+        .setDepth(-2);
+      image.setScale(
+        Math.max(GAME_WIDTH / image.width, GAME_HEIGHT / image.height),
+      );
+    }
+
+    // 우하단 정렬, 높이는 화면의 80%(비율 유지). 배경 앞, 텍스트 뒤.
     const player = this.add
       .image(GAME_WIDTH, GAME_HEIGHT, 'title-player')
       .setOrigin(1, 1)
