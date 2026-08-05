@@ -17,14 +17,6 @@ function createScene() {
     setTint: vi.fn().mockReturnThis(),
     setVisible: vi.fn().mockReturnThis(),
   };
-  const statusText = {
-    destroy: vi.fn(),
-    setColor: vi.fn().mockReturnThis(),
-    setDepth: vi.fn().mockReturnThis(),
-    setOrigin: vi.fn().mockReturnThis(),
-    setScrollFactor: vi.fn().mockReturnThis(),
-    setText: vi.fn().mockReturnThis(),
-  };
   const portalPrompt = {
     destroy: vi.fn(),
     setDepth: vi.fn().mockReturnThis(),
@@ -37,10 +29,7 @@ function createScene() {
   const scene = {
     add: {
       sprite: vi.fn(() => portalView),
-      text: vi
-        .fn()
-        .mockReturnValueOnce(portalPrompt)
-        .mockReturnValueOnce(statusText),
+      text: vi.fn(() => portalPrompt),
       zone: vi.fn(() => portalZone),
     },
     physics: {

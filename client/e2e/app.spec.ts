@@ -689,6 +689,32 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
+test('shows the current stage and room directly above the admin button', async ({
+  page,
+}) => {
+  await enterTitle(page);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const location = page.getByLabel('Stage location');
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+
+  await expect(location).toContainText('STAGE 1 | THE CITY');
+  await expect(location).toContainText('ROOM #1');
+
+  const [locationBox, adminBox] = await Promise.all([
+    location.boundingBox(),
+    adminButton.boundingBox(),
+  ]);
+  expect(locationBox).not.toBeNull();
+  expect(adminBox).not.toBeNull();
+  expect(locationBox!.y + locationBox!.height).toBeLessThanOrEqual(adminBox!.y);
+
+  await adminButton.click();
+  await page.getByRole('button', { name: '보스', exact: true }).first().click();
+  await expect(location).toContainText('ROOM #3');
+});
+
 test('stage two spawns each standard enemy with its supplied atlas', async ({
   page,
 }) => {

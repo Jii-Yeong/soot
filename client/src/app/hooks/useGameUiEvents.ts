@@ -31,6 +31,12 @@ export function useGameUiEvents() {
     const handleRoomStateChanged = (roomState: RoomState) => {
       useGameUiStore.getState().setRoomState(roomState);
     };
+    const handleStageLocationChanged = (
+      stageLabel: string,
+      roomNumber: number,
+    ) => {
+      useGameUiStore.getState().setStageLocation(stageLabel, roomNumber);
+    };
     const handleWeaponChanged = (id: string, label: string) => {
       useGameUiStore.getState().setWeapon(id, label);
     };
@@ -74,6 +80,7 @@ export function useGameUiEvents() {
     gameEvents.on('boss-phase-changed', handleBossPhaseChanged);
     gameEvents.on('phase-changed', handlePhaseChanged);
     gameEvents.on('room-state-changed', handleRoomStateChanged);
+    gameEvents.on('stage-location-changed', handleStageLocationChanged);
     gameEvents.on('scene-changed', handleSceneChanged);
     gameEvents.on('weapon-changed', handleWeaponChanged);
     gameEvents.on('weapon-inventory-changed', handleWeaponInventoryChanged);
@@ -88,6 +95,7 @@ export function useGameUiEvents() {
       gameEvents.off('boss-phase-changed', handleBossPhaseChanged);
       gameEvents.off('phase-changed', handlePhaseChanged);
       gameEvents.off('room-state-changed', handleRoomStateChanged);
+      gameEvents.off('stage-location-changed', handleStageLocationChanged);
       gameEvents.off('scene-changed', handleSceneChanged);
       gameEvents.off('weapon-changed', handleWeaponChanged);
       gameEvents.off(

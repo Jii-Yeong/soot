@@ -22,6 +22,8 @@ export function App() {
     scene,
     phase,
     roomState,
+    stageLabel,
+    roomNumber,
     weaponId,
     weaponSlots,
     activeWeaponSlot,
@@ -151,6 +153,13 @@ export function App() {
             )}
 
             <div className='admin-controls'>
+              <div className='stage-location' aria-label='Stage location'>
+                <span className='stage-location__stage'>{stageLabel}</span>
+                <strong className='stage-location__room'>
+                  ROOM #{roomNumber}
+                </strong>
+              </div>
+
               <button
                 type='button'
                 className='admin-controls__trigger'

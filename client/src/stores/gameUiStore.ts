@@ -15,6 +15,8 @@ type GameUiState = {
   scene: GameSceneKey;
   phase: GamePhase;
   roomState: RoomState;
+  stageLabel: string;
+  roomNumber: number;
   weaponId: string;
   weaponLabel: string;
   weaponSlots: readonly (string | null)[];
@@ -27,6 +29,7 @@ type GameUiState = {
   setScene: (scene: GameSceneKey) => void;
   setPhase: (phase: GamePhase) => void;
   setRoomState: (roomState: RoomState) => void;
+  setStageLocation: (stageLabel: string, roomNumber: number) => void;
   setWeapon: (weaponId: string, weaponLabel: string) => void;
   setWeaponInventory: (
     weaponSlots: readonly (string | null)[],
@@ -46,6 +49,8 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   scene: 'boot',
   phase: 'boot',
   roomState: 'idle',
+  stageLabel: 'STAGE 1 | THE CITY',
+  roomNumber: 1,
   weaponId: 'smg',
   weaponLabel: 'SMG',
   weaponSlots: Array.from(
@@ -62,6 +67,7 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   setScene: (scene) => set({ scene }),
   setPhase: (phase) => set({ phase }),
   setRoomState: (roomState) => set({ roomState }),
+  setStageLocation: (stageLabel, roomNumber) => set({ stageLabel, roomNumber }),
   setWeapon: (weaponId, weaponLabel) => set({ weaponId, weaponLabel }),
   setWeaponInventory: (weaponSlots, activeWeaponSlot) =>
     set({ weaponSlots: [...weaponSlots], activeWeaponSlot }),

@@ -36,7 +36,6 @@ export class RoomDirector {
   private readonly onExitRequested: () => void;
   private readonly portal: RoomPortal;
   private readonly portalPrompt: Phaser.GameObjects.Text;
-  private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
   private exitRequested = false;
 
@@ -65,16 +64,6 @@ export class RoomDirector {
       .setOrigin(0.5)
       .setDepth(12)
       .setVisible(false);
-    this.statusText = this.scene.add
-      .text(this.scene.scale.width / 2, 154, '', {
-        color: '#ff7180',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
   }
 
   destroy() {
@@ -82,7 +71,6 @@ export class RoomDirector {
     this.scene.tweens.killTweensOf(this.portal.view);
     this.portal.view.destroy();
     this.portalPrompt.destroy();
-    this.statusText.destroy();
   }
 
   update() {
@@ -118,8 +106,6 @@ export class RoomDirector {
       this.clearRoom();
       return;
     }
-
-    this.updateStatusText();
   }
 
   private createPortal(x: number): RoomPortal {
@@ -208,30 +194,5 @@ export class RoomDirector {
 
     this.state = state;
     this.onStateChanged(state);
-    this.updateStatusText();
-  }
-
-  private updateStatusText() {
-    if (this.state === 'locked') {
-      if (this.config.kind === 'boss') {
-        this.statusText.setText(`${this.config.label}  //  BOSS ENGAGED`);
-        return;
-      }
-
-      const suffix = this.enemies.size === 1 ? 'HOSTILE' : 'HOSTILES';
-      this.statusText.setText(
-        `${this.config.label}  //  LOCKDOWN  //  ${this.enemies.size} ${suffix}`,
-      );
-      return;
-    }
-
-    if (this.state === 'cleared') {
-      const result = this.config.kind === 'boss' ? 'BOSS DEFEATED' : 'CLEAR';
-      this.statusText
-        .setText(
-          `${this.config.label}  //  ${result}  //  ↑ / W TO ENTER PORTAL`,
-        )
-        .setColor('#b6ffe4');
-    }
   }
 }

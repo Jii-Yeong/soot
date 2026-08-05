@@ -107,9 +107,7 @@ export class GameScene extends Phaser.Scene {
   private deathOverlay!: Phaser.GameObjects.Container;
   private victoryOverlay!: Phaser.GameObjects.Container;
   private stageEndOverlay!: Phaser.GameObjects.Container;
-  private weaponLabelText!: Phaser.GameObjects.Text;
   private weaponEquippedText!: Phaser.GameObjects.Text;
-  private stageLabelText!: Phaser.GameObjects.Text;
   private controlHintText?: Phaser.GameObjects.Text;
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
@@ -462,7 +460,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.buildRoom(this.currentRoomConfig);
-    this.updateStageLabel();
+    this.emitStageLocation();
     this.setPhase('playing');
   }
 
@@ -499,11 +497,11 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private updateStageLabel() {
-    this.stageLabelText.setText(
-      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${
-        this.stage.rooms.length
-      }`,
+  private emitStageLocation() {
+    gameEvents.emit(
+      'stage-location-changed',
+      this.stage.label.replace(/\s*\/\/\s*/, ' | '),
+      this.currentRoomIndex + 1,
     );
   }
 
@@ -641,31 +639,8 @@ export class GameScene extends Phaser.Scene {
       'SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY',
     );
 
-    this.stageLabelText = this.add
-      .text(GAME_WIDTH / 2, 96, '', {
-        color: '#d8dfdc',
-        backgroundColor: '#070a0bbd',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        padding: { x: 10, y: 5 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateStageLabel();
+    this.emitStageLocation();
 
-    this.weaponLabelText = this.add
-      .text(32, GAME_HEIGHT - 96, '', {
-        color: '#d8ffec',
-        backgroundColor: '#070a0bd9',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        fontStyle: 'bold',
-        padding: { x: 10, y: 6 },
-      })
-      .setOrigin(0, 0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
     this.syncWeaponUi();
 
     this.weaponEquippedText = this.add
@@ -768,7 +743,6 @@ export class GameScene extends Phaser.Scene {
   private syncWeaponUi() {
     const weapon = this.weaponSystem.activeConfig;
     const inventory = this.weaponSystem.inventorySnapshot;
-    this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
     gameEvents.emit('weapon-changed', weapon.id, weapon.label);
     gameEvents.emit(
       'weapon-inventory-changed',
