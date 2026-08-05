@@ -3,7 +3,6 @@ import type Phaser from 'phaser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   BURST_RIFLE_WEAPON_CONFIG,
-  RAIL_RIFLE_WEAPON_CONFIG,
   SHOTGUN_WEAPON_CONFIG,
   SMG_WEAPON_CONFIG,
   WEAPON_CONFIGS,
@@ -211,42 +210,17 @@ describe('WeaponSystem inventory', () => {
     );
   };
 
-  it('starts with the SMG in slot one and leaves the other slots empty', () => {
+  it('uses inventory selections to change the active weapon runtime', () => {
     const system = createSystem();
 
-    expect(system.inventoryWeaponIds).toEqual(['smg', null, null, null]);
-    expect(system.activeSlotIndex).toBe(0);
+    expect(system.inventorySnapshot).toEqual({
+      slots: ['smg', null, null, null],
+      activeSlotIndex: 0,
+    });
     expect(system.activeConfig).toBe(SMG_WEAPON_CONFIG);
-  });
-
-  it('stores pickups in order and automatically equips the newest slot', () => {
-    const system = createSystem();
-
     expect(system.collect(SHOTGUN_WEAPON_CONFIG.id)).toBe(true);
-    expect(system.collect(BURST_RIFLE_WEAPON_CONFIG.id)).toBe(true);
-    expect(system.collect(RAIL_RIFLE_WEAPON_CONFIG.id)).toBe(true);
-
-    expect(system.inventoryWeaponIds).toEqual([
-      'smg',
-      'shotgun',
-      'burst-rifle',
-      'rail-rifle',
-    ]);
-    expect(system.activeSlotIndex).toBe(3);
-    expect(system.activeConfig).toBe(RAIL_RIFLE_WEAPON_CONFIG);
-  });
-
-  it('switches only to filled slots and reuses an owned weapon slot', () => {
-    const system = createSystem();
-    system.collect(SHOTGUN_WEAPON_CONFIG.id);
-
+    expect(system.activeConfig).toBe(SHOTGUN_WEAPON_CONFIG);
     expect(system.equipSlot(0)).toBe(true);
     expect(system.activeConfig).toBe(SMG_WEAPON_CONFIG);
-    expect(system.equipSlot(3)).toBe(false);
-    expect(system.activeSlotIndex).toBe(0);
-
-    expect(system.collect(SHOTGUN_WEAPON_CONFIG.id)).toBe(true);
-    expect(system.inventoryWeaponIds).toEqual(['smg', 'shotgun', null, null]);
-    expect(system.activeSlotIndex).toBe(1);
   });
 });

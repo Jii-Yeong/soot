@@ -666,7 +666,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
       .setDepth(20)
       .setScrollFactor(0);
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
 
     this.weaponEquippedText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, '', {
@@ -753,23 +753,27 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const weapon = this.weaponDropDirector.takeNearest(this.player);
-    if (!weapon || !this.weaponSystem.collect(weapon.id)) {
+    const weapon = this.weaponDropDirector.takeNearest(
+      this.player,
+      ({ id }) => this.weaponSystem.collect(id),
+    );
+    if (!weapon) {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
     this.showWeaponEquipped(weapon);
   }
 
-  private updateWeaponLabel() {
+  private syncWeaponUi() {
     const weapon = this.weaponSystem.activeConfig;
+    const inventory = this.weaponSystem.inventorySnapshot;
     this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
     gameEvents.emit('weapon-changed', weapon.id, weapon.label);
     gameEvents.emit(
       'weapon-inventory-changed',
-      this.weaponSystem.inventoryWeaponIds,
-      this.weaponSystem.activeSlotIndex,
+      inventory.slots,
+      inventory.activeSlotIndex,
     );
   }
 
@@ -790,14 +794,15 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     event.preventDefault();
+    const { activeSlotIndex } = this.weaponSystem.inventorySnapshot;
     if (
-      slotIndex === this.weaponSystem.activeSlotIndex ||
+      slotIndex === activeSlotIndex ||
       !this.weaponSystem.equipSlot(slotIndex)
     ) {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
     this.showWeaponEquipped(this.weaponSystem.activeConfig);
   }
 
@@ -1001,7 +1006,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
 
     // The equip flourish is a camera flash and two tweens, and neither advances
     // while the scene is paused — asked for from the pause menu they would sit
@@ -1118,9 +1123,7 @@ export class GameScene extends Phaser.Scene {
       this.weaponDropDirector.dropBossReward(
         enemy.x,
         enemy.y,
-        this.weaponSystem.inventoryWeaponIds.flatMap((id) =>
-          id === null ? [] : [id],
-        ),
+        this.weaponSystem.ownedWeaponIds,
       );
     } else {
       if (!enemy.playsOwnDeathAnimation) {

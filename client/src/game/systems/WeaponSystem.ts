@@ -7,6 +7,7 @@ import { Enemy } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { WeaponFeedback } from '@/game/systems/WeaponFeedback';
+import { WeaponInventory } from '@/game/systems/WeaponInventory';
 
 type WeaponRuntime = {
   config: WeaponConfig;
@@ -18,10 +19,9 @@ type EnemyHitListener = (enemy: Enemy, defeated: boolean) => void;
 
 export class WeaponSystem {
   private readonly weapons: WeaponRuntime[];
-  private readonly inventorySlots: Array<WeaponRuntime | null>;
+  private readonly weaponById: Map<string, WeaponRuntime>;
+  private readonly inventory: WeaponInventory;
   private readonly feedback: WeaponFeedback;
-  private activeWeaponIndex: number;
-  private activeInventorySlotIndex = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -33,10 +33,6 @@ export class WeaponSystem {
     private readonly onEnemyHit: EnemyHitListener,
     private readonly canDamageEnemies: () => boolean = canFire,
   ) {
-    this.activeWeaponIndex = Math.max(
-      0,
-      weaponConfigs.findIndex((weapon) => weapon.id === startingWeaponId),
-    );
     this.weapons = weaponConfigs.map((config) => {
       const runtime: WeaponRuntime = {
         config,
@@ -56,11 +52,18 @@ export class WeaponSystem {
       );
       return runtime;
     });
-    this.inventorySlots = Array.from(
-      { length: WEAPON_INVENTORY_SIZE },
-      () => null,
+    this.weaponById = new Map(
+      this.weapons.map((weapon) => [weapon.config.id, weapon]),
     );
-    this.inventorySlots[0] = this.weapons[this.activeWeaponIndex] ?? null;
+    const startingWeapon =
+      this.weaponById.get(startingWeaponId) ?? this.weapons[0];
+    if (!startingWeapon) {
+      throw new Error('Weapon system requires at least one weapon');
+    }
+    this.inventory = new WeaponInventory(
+      startingWeapon.config.id,
+      WEAPON_INVENTORY_SIZE,
+    );
     this.feedback = new WeaponFeedback(
       scene,
       player,
@@ -73,12 +76,12 @@ export class WeaponSystem {
     return this.activeWeapon.config;
   }
 
-  get inventoryWeaponIds() {
-    return this.inventorySlots.map((weapon) => weapon?.config.id ?? null);
+  get inventorySnapshot() {
+    return this.inventory.snapshot;
   }
 
-  get activeSlotIndex() {
-    return this.activeInventorySlotIndex;
+  get ownedWeaponIds() {
+    return this.inventory.ownedWeaponIds;
   }
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
@@ -135,33 +138,18 @@ export class WeaponSystem {
 
   /** 새 무기를 첫 빈 슬롯에 넣고, 이미 소유했다면 기존 슬롯을 선택함. */
   collect(weaponId: string) {
-    const weapon = this.weapons.find(
-      (weapon) => weapon.config.id === weaponId,
-    );
-    if (!weapon) {
+    if (!this.weaponById.has(weaponId) || !this.inventory.collect(weaponId)) {
       return false;
     }
-
-    const ownedSlot = this.inventorySlots.indexOf(weapon);
-    const slotIndex =
-      ownedSlot >= 0 ? ownedSlot : this.inventorySlots.indexOf(null);
-    if (slotIndex < 0) {
-      return false;
-    }
-
-    this.inventorySlots[slotIndex] = weapon;
-    return this.equipSlot(slotIndex);
+    this.feedback.setWeapon(this.activeConfig);
+    return true;
   }
 
   /** 숫자키에 대응하는, 이미 채워진 슬롯만 선택함. */
   equipSlot(slotIndex: number) {
-    const weapon = this.inventorySlots[slotIndex];
-    if (!weapon) {
+    if (!this.inventory.select(slotIndex)) {
       return false;
     }
-
-    this.activeInventorySlotIndex = slotIndex;
-    this.activeWeaponIndex = this.weapons.indexOf(weapon);
     this.feedback.setWeapon(this.activeConfig);
     return true;
   }
@@ -185,7 +173,11 @@ export class WeaponSystem {
   }
 
   private get activeWeapon() {
-    return this.weapons[this.activeWeaponIndex];
+    const weapon = this.weaponById.get(this.inventory.activeWeaponId);
+    if (!weapon) {
+      throw new Error('Active inventory weapon is not configured');
+    }
+    return weapon;
   }
 
   private fireVolley(

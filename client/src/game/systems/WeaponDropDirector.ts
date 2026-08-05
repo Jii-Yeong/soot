@@ -52,11 +52,13 @@ export class WeaponDropDirector {
     nearest?.setHighlighted(true, activeWeapon);
   }
 
+  /** 인벤토리가 수락한 경우에만 바닥의 무기를 소비함. */
   takeNearest(
     player: Phaser.Physics.Arcade.Sprite,
+    tryCollect: (weapon: WeaponConfig) => boolean,
   ): WeaponConfig | null {
     const pickup = this.findNearestPickup(player.x, player.y);
-    if (!pickup) {
+    if (!pickup || !tryCollect(pickup.weapon)) {
       return null;
     }
 
