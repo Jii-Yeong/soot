@@ -75,20 +75,23 @@ input {
   bottom: clamp(10px, 4%, 28px);
   left: 50%;
   z-index: 60;
-  padding: 8px 20px;
-  border: 1px solid #4f5b5f;
+  padding: 4px 16px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/controls/button-frame-neutral.png') 8 fill /
+    8px / 0 round;
   color: #879197;
-  background: rgba(7, 10, 11, 0.72);
+  background: none;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
   cursor: pointer;
+  image-rendering: pixelated;
   transform: translateX(-50%);
 }
 
 .title-settings-trigger:hover,
 .title-settings-trigger:focus-visible {
-  border-color: #b6ffe4;
+  border-image-source: url('/assets/ui/controls/button-frame-active.png');
   color: #b6ffe4;
   outline: none;
 }
@@ -110,25 +113,28 @@ input {
   align-items: center;
   gap: 10px;
   width: min(360px, calc(50vw - 40px));
-  padding: 9px 12px;
-  background: rgba(7, 10, 11, 0.78);
-  backdrop-filter: blur(4px);
+  padding: 4px 6px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/hud/hud-frame-player.png') 8 fill / 8px / 0
+    round;
+  background: none;
+  image-rendering: pixelated;
 }
 
 .hud--player {
-  border-left: 3px solid #f0a35b;
+  border-image-source: url('/assets/ui/hud/hud-frame-player.png');
 }
 
 .hud--enemy {
-  border-right: 3px solid #e45d68;
+  border-image-source: url('/assets/ui/hud/hud-frame-enemy.png');
 }
 
 .hud--boss-phase-1 {
-  border-right-color: #ff7180;
+  border-image-source: url('/assets/ui/hud/hud-frame-enemy.png');
 }
 
 .hud--boss-phase-2 {
-  border-right-color: #ff9b45;
+  border-image-source: url('/assets/ui/hud/hud-frame-overload.png');
   box-shadow:
     0 0 18px rgba(255, 94, 35, 0.24),
     inset 0 0 18px rgba(255, 94, 35, 0.08);
@@ -151,9 +157,11 @@ input {
   justify-items: center;
   gap: 10px;
   min-width: 260px;
-  padding: 32px 40px;
-  border: 1px solid #33424a;
-  background: rgba(7, 10, 11, 0.92);
+  padding: 24px 32px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/panels/panel-frame.png') 8 fill / 8px / 0 round;
+  background: none;
+  image-rendering: pixelated;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   text-align: center;
 }
@@ -176,34 +184,37 @@ input {
 .pause-overlay__settings {
   width: 140px;
   margin-top: 8px;
-  padding: 11px 34px;
-  border: 1px solid #6fd6a6;
+  padding: 5px 28px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/controls/button-frame-active.png') 8 fill /
+    8px / 0 round;
   color: #b6ffe4;
-  background: rgba(21, 57, 45, 0.72);
+  background: none;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   cursor: pointer;
+  image-rendering: pixelated;
 }
 
 .pause-overlay__resume:hover,
 .pause-overlay__resume:focus-visible {
-  color: #070a0b;
-  background: #b6ffe4;
+  color: #b6ffe4;
+  background: none;
   outline: none;
 }
 
 .pause-overlay__settings {
   margin-top: 2px;
-  padding: 8px 26px;
-  border-color: #4f5b5f;
+  padding: 2px 20px;
+  border-image-source: url('/assets/ui/controls/button-frame-neutral.png');
   color: #aeb8bc;
-  background: rgba(18, 24, 27, 0.88);
+  background: none;
 }
 
 .pause-overlay__settings:hover,
 .pause-overlay__settings:focus-visible {
-  border-color: #b6ffe4;
+  border-image-source: url('/assets/ui/controls/button-frame-active.png');
   color: #b6ffe4;
   outline: none;
 }
@@ -229,9 +240,11 @@ input {
   display: grid;
   gap: 22px;
   width: min(390px, 100%);
-  padding: 32px;
-  border: 1px solid #33424a;
-  background: rgba(7, 10, 11, 0.96);
+  padding: 24px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/panels/panel-frame.png') 8 fill / 8px / 0 round;
+  background: none;
+  image-rendering: pixelated;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
@@ -389,27 +402,23 @@ input {
 }
 
 .settings-panel__close {
-  padding: 9px 17px;
-  border: 1px solid #4f5b5f;
-  color: #aeb8bc;
-  background: rgba(18, 24, 27, 0.88);
+  padding: 3px 11px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/controls/button-frame-active.png') 8 fill /
+    8px / 0 round;
+  color: #b6ffe4;
+  background: none;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   cursor: pointer;
-}
-
-.settings-panel__close {
-  border-color: #6fd6a6;
-  color: #b6ffe4;
-  background: rgba(21, 57, 45, 0.72);
+  image-rendering: pixelated;
 }
 
 .settings-panel__close:hover,
 .settings-panel__close:focus-visible {
-  border-color: #b6ffe4;
-  color: #070a0b;
-  background: #b6ffe4;
+  color: #b6ffe4;
+  background: none;
   outline: none;
 }
 
@@ -426,21 +435,24 @@ input {
 
 .admin-controls__trigger,
 .admin-controls__button {
-  padding: 9px 14px;
-  border: 1px solid #4f5b5f;
+  padding: 3px 8px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/controls/button-frame-neutral.png') 8 fill /
+    8px / 0 round;
   color: #879197;
-  background: rgba(7, 10, 11, 0.84);
+  background: none;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   cursor: pointer;
+  image-rendering: pixelated;
 }
 
 .admin-controls__trigger:hover,
 .admin-controls__trigger:focus-visible,
 .admin-controls__button:hover,
 .admin-controls__button:focus-visible {
-  border-color: #b6ffe4;
+  border-image-source: url('/assets/ui/controls/button-frame-active.png');
   color: #b6ffe4;
   outline: none;
 }
@@ -448,10 +460,12 @@ input {
 .admin-controls__menu {
   display: grid;
   gap: 6px;
-  width: 190px;
-  padding: 10px;
-  border: 1px solid #33424a;
-  background: rgba(7, 10, 11, 0.94);
+  width: 210px;
+  padding: 6px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/panels/panel-frame.png') 8 fill / 8px / 0 round;
+  background: none;
+  image-rendering: pixelated;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(6px);
   /* 메뉴를 트리거와 뷰포트 가장자리 사이에 유지함. `dvh`는 모바일에서
@@ -504,7 +518,7 @@ input {
 
 .admin-controls__stage-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px;
+  grid-template-columns: minmax(0, 1fr) 60px;
   align-items: center;
   gap: 4px;
 }
@@ -513,19 +527,20 @@ input {
   padding-right: 8px;
   padding-left: 8px;
   color: #e99ba3;
+  border-image-source: url('/assets/ui/controls/button-frame-danger.png');
   text-align: center;
 }
 
 .admin-controls__button--active {
-  border-color: #6fd6a6;
+  border-image-source: url('/assets/ui/controls/button-frame-active.png');
   color: #b6ffe4;
-  background: rgba(21, 57, 45, 0.9);
+  background: none;
   box-shadow: 0 0 14px rgba(111, 214, 166, 0.24);
 }
 
 .admin-controls__button--close {
   margin-top: 4px;
-  border-color: #6c3e43;
+  border-image-source: url('/assets/ui/controls/button-frame-danger.png');
   color: #e99ba3;
 }
 
@@ -549,21 +564,22 @@ input {
 .hud__meter {
   position: relative;
   width: 100%;
-  height: 8px;
+  height: 10px;
   overflow: hidden;
   border: 1px solid #4f5b5f;
-  background: #151a1c;
+  background: #151a1c url('/assets/ui/hud/meter-track.png') repeat;
+  image-rendering: pixelated;
 }
 
 .hud__meter-fill {
   display: block;
   height: 100%;
-  background: #b6ffe4;
+  background: #b6ffe4 url('/assets/ui/hud/meter-fill-player.png') repeat-x;
   transition: width 120ms ease-out;
 }
 
 .hud__meter-fill--enemy {
-  background: #ff7180;
+  background: #ff7180 url('/assets/ui/hud/meter-fill-enemy.png') repeat-x;
 }
 
 .hud--boss-phase-2 .hud__label,
@@ -576,7 +592,7 @@ input {
 }
 
 .hud--boss-phase-2 .hud__meter-fill--enemy {
-  background: linear-gradient(90deg, #ff542f, #ffad52);
+  background: #ff7c37 url('/assets/ui/hud/meter-fill-overload.png') repeat-x;
   box-shadow: 0 0 10px rgba(255, 93, 42, 0.7);
 }
 
@@ -658,12 +674,12 @@ input {
   }
 
   .admin-controls {
-    top: 12px;
+    top: auto;
     right: max(12px, env(safe-area-inset-right));
+    bottom: 12px;
   }
 
   .admin-controls__menu {
-    max-height: calc(100vh - 68px);
-    max-height: calc(100dvh - 68px);
+    max-height: min(calc(100dvh - 68px), calc(100vw * 9 / 16 - 68px));
   }
 }

@@ -14,10 +14,6 @@ export class TitleScene extends Phaser.Scene {
 
   preload() {
     this.load.image('title-player', '/assets/title-player.png');
-    const bg = STAGES[STARTING_STAGE_INDEX]?.background;
-    if (bg) {
-      this.load.image(bg.key, bg.path);
-    }
   }
 
   create() {

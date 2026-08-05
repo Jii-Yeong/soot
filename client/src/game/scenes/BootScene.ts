@@ -30,6 +30,7 @@ import {
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
+import { UI_PANEL_TEXTURES } from '@/game/config/uiAssetConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 
 export class BootScene extends Phaser.Scene {
@@ -66,6 +67,9 @@ export class BootScene extends Phaser.Scene {
     // stage starts.
     for (const weapon of WEAPON_CONFIGS) {
       this.load.image(weapon.displayTexture, `/assets/weapons/${weapon.id}.png`);
+    }
+    for (const panel of Object.values(UI_PANEL_TEXTURES)) {
+      this.load.image(panel.key, panel.path);
     }
     this.load.image(BACK_ARM.texture, BACK_ARM.url);
     this.load.image(FRONT_ARM.texture, FRONT_ARM.url);

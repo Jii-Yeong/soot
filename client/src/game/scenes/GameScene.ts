@@ -25,6 +25,10 @@ import { getStageExitPlan } from '@/game/config/stageProgression';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
+  UI_PANEL_SLICE,
+  UI_PANEL_TEXTURES,
+} from '@/game/config/uiAssetConfig';
+import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
   type WeaponConfig,
@@ -615,19 +619,19 @@ export class GameScene extends Phaser.Scene {
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.deathOverlay = this.createOverlay(
-      0xe45d68,
+      UI_PANEL_TEXTURES.danger.key,
       '#ff7180',
       'SYSTEM FAILURE',
       'PRESS R OR ENTER TO RESTART',
     );
     this.victoryOverlay = this.createOverlay(
-      0xffe1a8,
+      UI_PANEL_TEXTURES.victory.key,
       '#ffe9c4',
       'RETURN COMPLETE',
       'YOU\'RE AWAKE  //  PRESS R OR ENTER TO REPLAY',
     );
     this.stageEndOverlay = this.createOverlay(
-      0xe45d68,
+      UI_PANEL_TEXTURES.danger.key,
       '#ff7180',
       'SURROUNDED',
       'SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY',
@@ -1306,14 +1310,27 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createOverlay(
-    strokeColor: number,
+    panelTexture: string,
     titleColor: string,
     titleText: string,
     promptText: string,
   ) {
     const panel = this.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 470, 150, 0x070a0b, 0.92)
-      .setStrokeStyle(2, strokeColor);
+      .nineslice(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        panelTexture,
+        undefined,
+        470,
+        150,
+        UI_PANEL_SLICE,
+        UI_PANEL_SLICE,
+        UI_PANEL_SLICE,
+        UI_PANEL_SLICE,
+        true,
+        true,
+      )
+      .setOrigin(0.5);
     const title = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, titleText, {
         color: titleColor,
