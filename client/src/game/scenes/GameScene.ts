@@ -17,6 +17,10 @@ import {
 } from '@/game/config/playerMovementConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import {
+  UNDERGROUND_DESCENT_ROOM,
+  UNDERGROUND_LANDING_ROOM,
+} from '@/game/config/rooms/stageThreeRooms';
+import {
   STARTING_STAGE_INDEX,
   STAGES,
   type StageEndEvent,
@@ -79,6 +83,10 @@ const PIT_FALL_DAMAGE = 12;
 const PIT_RESPAWN_LIFT = 60;
 const PLAYER_START_Y = GAME_HEIGHT - 120;
 const ROOM_ENTRY_OFFSET_X = 116;
+/** 강하 컷신 타이밍: 구멍 밖 낙하, 두리번 전환 간격, 착지 후 정적. */
+const DESCENT_FALL_OFF_MS = 750;
+const DESCENT_LOOK_INTERVAL = 360;
+const DESCENT_POST_LOOK_PAUSE = 2000;
 /** 지상 스테이지에서 플레이어가 포탈에서 나오듯 이 높이에서 떨어져 진입함. */
 const PORTAL_DROP_HEIGHT = 170;
 
@@ -96,6 +104,11 @@ export class GameScene extends Phaser.Scene {
   private startFlightEntryLift = false;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
+  /** 설정되면 방 배열 대신 이 연출용 강하 방을 현재 방으로 사용한다. */
+  private descentRoomConfig?: RoomConfig;
+  private descentCutsceneStarted = false;
+  private descentPromptText?: Phaser.GameObjects.Text;
+  private pendingNextStageIndex: number | null = null;
   private roomDirector!: RoomDirector;
   private playerController!: PlayerController;
   private weaponDropDirector!: WeaponDropDirector;
@@ -135,7 +148,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private get currentRoomConfig() {
-    return this.stage.rooms[this.currentRoomIndex];
+    return this.descentRoomConfig ?? this.stage.rooms[this.currentRoomIndex];
   }
 
   create() {
@@ -320,6 +333,11 @@ export class GameScene extends Phaser.Scene {
       this.stage.pipeSkin,
     );
 
+    // 연출용 강하 방은 교전 없이 자유 이동만 한다.
+    if (roomConfig.kind === 'descent') {
+      return;
+    }
+
     // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
     // 스테이지 진입 후 보이지 않는 전투 트리거가 따로 생기지 않는다.
     if (roomConfig.kind === 'combat') {
@@ -412,12 +430,52 @@ export class GameScene extends Phaser.Scene {
   private advanceToNextStage() {
     const plan = getStageExitPlan(STAGES, this.currentStageIndex);
 
+    // 3스테이지 종료 연출: 보스 포탈이 빈 강하 방으로 이어지고, 플레이어가
+    // 중앙 구멍에 떨어지면 강하 컷신이 시작된다(handlePitFall 참조).
+    if (plan.event === 'siege') {
+      this.enterDescentRoom(plan.nextStageIndex);
+      return;
+    }
+
     if (plan.event) {
       this.playStageEndEvent(plan.event, plan.nextStageIndex);
       return;
     }
 
     this.completeStageExit(plan.nextStageIndex);
+  }
+
+  /** 보스 뒤 연출용 강하 방(빈 방·중앙 구멍·낙하 유도 문구)으로 진입한다. */
+  private enterDescentRoom(nextStageIndex: number | null) {
+    this.pendingNextStageIndex = nextStageIndex;
+    this.descentCutsceneStarted = false;
+    this.descentRoomConfig = UNDERGROUND_DESCENT_ROOM;
+    this.enterCurrentRoom();
+    this.showDescentPrompt();
+  }
+
+  /** 중앙 구멍 위에 떠 있는 낙하 유도 문구. 낙하 시작 시 제거된다. */
+  private showDescentPrompt() {
+    const pit = this.descentRoomConfig?.pits?.[0];
+    const holeCenterX = pit ? pit.x + pit.width / 2 : GAME_WIDTH / 2;
+    const text = this.add
+      .text(holeCenterX, FLOOR_SURFACE_Y - 150, '▼  떨어져라  ▼', {
+        color: '#c9ffe0',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '22px',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(20);
+    this.tweens.add({
+      targets: text,
+      y: text.y - 14,
+      duration: 780,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+    this.descentPromptText = text;
   }
 
   private completeStageExit(nextStageIndex: number | null) {
@@ -427,6 +485,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     const exitPortalY = this.activeRoomConfig.portal.y;
+    // 연출용 강하 방을 벗어나 실제 다음 스테이지 방 배열로 복귀한다.
+    this.descentRoomConfig = undefined;
     this.currentStageIndex = nextStageIndex;
     this.currentRoomIndex = 0;
     gameEvents.emit('stage-changed', this.stage.id);
@@ -478,6 +538,87 @@ export class GameScene extends Phaser.Scene {
     // screen to warm light (waking up) before the ending card resolves.
     this.cameras.main.flash(700, 255, 240, 210);
     this.victoryOverlay.setVisible(true);
+  }
+
+  /**
+   * 강하 컷신. 플레이어가 강하 방 구멍에 떨어지면 시작한다:
+   * 1) 화면 밖으로 완전히 낙하해 사라진다.
+   * 2) 지하 착지 방에 떨어져 착지한다.
+   * 3) 좌우로 두리번(양쪽 2번)거린 뒤 2초간 정적.
+   * 4) 안드로이드가 하나씩 나타나 포위하고, 암전·싱킹 뒤 4스테이지로 진입한다.
+   */
+  private beginDescentCutscene() {
+    if (this.descentCutsceneStarted) {
+      return;
+    }
+    this.descentCutsceneStarted = true;
+    this.descentPromptText?.destroy();
+    this.descentPromptText = undefined;
+
+    this.setPhase('transitioning');
+    this.weaponSystem.cancelHitStop();
+    this.weaponSystem.hide();
+    this.weaponDropDirector.clear();
+    this.aimGraphics.clear();
+    this.enemyRangeGraphics.clear();
+
+    // Beat 1: 바닥·월드 경계 충돌을 끊어 구멍 아래로 완전히 사라지도록 낙하.
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.checkCollision.none = true;
+    body.setCollideWorldBounds(false);
+    if (body.velocity.y < 200) {
+      this.player.setVelocityY(200);
+    }
+
+    this.time.delayedCall(DESCENT_FALL_OFF_MS, () => this.dropIntoLandingRoom());
+  }
+
+  /** Beat 2: 지하 착지 방으로 전환해 플레이어를 위에서 떨어뜨려 착지시킨다. */
+  private dropIntoLandingRoom() {
+    this.descentRoomConfig = UNDERGROUND_LANDING_ROOM;
+    this.activeRoomConfig = UNDERGROUND_LANDING_ROOM;
+    this.configureRoomWorld();
+    this.rebuildFloorForRoom();
+    this.showStageBackdrop();
+    this.resetCameraToRoomEntrance();
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.checkCollision.none = false;
+    body.setCollideWorldBounds(true);
+    this.player.setPosition(GAME_WIDTH / 2, -60);
+    body.reset(GAME_WIDTH / 2, -60);
+    this.player.setVelocity(0, 0);
+    this.player.play(PLAYER_ANIMATIONS.idle, true);
+
+    const landingWatcher = this.time.addEvent({
+      delay: 60,
+      loop: true,
+      callback: () => {
+        if ((this.player.body as Phaser.Physics.Arcade.Body).blocked.down) {
+          landingWatcher.remove();
+          this.playDescentLookAround();
+        }
+      },
+    });
+  }
+
+  /** Beat 3~4: 좌우 두리번 → 2초 정적 → 안드로이드 등장·암전 컷신 → 4스테이지. */
+  private playDescentLookAround() {
+    this.player.setVelocity(0, 0);
+    // 좌우 양쪽으로 2번씩 두리번(총 4회 전환).
+    const facings = [true, false, true, false];
+    facings.forEach((faceLeft, index) => {
+      this.time.delayedCall(DESCENT_LOOK_INTERVAL * (index + 1), () => {
+        this.player.setFlipX(faceLeft);
+      });
+    });
+
+    const lookDoneAt = DESCENT_LOOK_INTERVAL * (facings.length + 1);
+    this.time.delayedCall(lookDoneAt + DESCENT_POST_LOOK_PAUSE, () => {
+      this.stageEndEventDirector.play('siege', () => {
+        this.completeStageExit(this.pendingNextStageIndex);
+      });
+    });
   }
 
   private playStageEndEvent(
@@ -1257,6 +1398,12 @@ export class GameScene extends Phaser.Scene {
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     if (body.bottom <= FLOOR_SURFACE_Y + PIT_FALL_TRIGGER_DEPTH) {
+      return;
+    }
+
+    // 강하 방에서는 구멍에 떨어지는 것이 목적이다. 되살리지 않고 강하 컷신 시작.
+    if (this.activeRoomConfig.kind === 'descent') {
+      this.beginDescentCutscene();
       return;
     }
 

@@ -1,4 +1,4 @@
-import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import {
   defineBossRoom,
   defineRoom,
@@ -98,3 +98,31 @@ export const UNDERGROUND_ROOMS = [
   UNDERGROUND_ROOM_TWO,
   UNDERGROUND_BOSS_ROOM,
 ] as const satisfies StageRooms;
+
+/**
+ * 보스 처치 후 포탈로 진입하는 연출용 빈 방. 한 화면 크기에 중앙에 넓은 구멍이
+ * 있고, 그 위에 낙하 유도 문구가 뜬다. 플레이어가 구멍에 떨어지면 강하 컷신이
+ * 시작된다. `StageRooms` 튜플(3방·보스 마지막) 불변식을 지키기 위해 방 배열이
+ * 아니라 런타임에서 주입한다.
+ */
+export const UNDERGROUND_DESCENT_ROOM = defineRoom({
+  id: 'underground-descent',
+  label: '지하 강하 // DESCENT',
+  kind: 'descent',
+  worldWidth: GAME_WIDTH,
+  enemySpawns: [],
+  pits: [{ x: 440, width: 400 }],
+});
+
+/**
+ * 구멍으로 사라진 플레이어가 떨어져 착지하는 지하 착지 방. 한 화면 크기에 구멍
+ * 없는 단단한 바닥이라 플레이어가 중앙에 착지한다. 착지 후 두리번 연출과 적
+ * 등장 컷신이 이어진다. 강하 방과 마찬가지로 런타임에서 주입한다.
+ */
+export const UNDERGROUND_LANDING_ROOM = defineRoom({
+  id: 'underground-landing',
+  label: '지하 심부 // SUBLEVEL',
+  kind: 'descent',
+  worldWidth: GAME_WIDTH,
+  enemySpawns: [],
+});

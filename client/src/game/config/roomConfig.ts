@@ -93,7 +93,8 @@ export type CeilingPipe = {
 export type RoomConfig = {
   id: string;
   label: string;
-  kind: 'combat' | 'boss';
+  /** 'descent' = 적 없는 연출용 빈 방(3스테이지 종료 강하). */
+  kind: 'combat' | 'boss' | 'descent';
   /** 이 방의 독립된 월드 너비. */
   worldWidth: number;
   entranceX: number;
