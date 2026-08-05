@@ -16,7 +16,10 @@ vi.hoisted(() => {
 
 function createEnemy() {
   const setVelocityX = vi.fn();
+  const rigPlay = vi.fn();
+  const slam = vi.fn();
   const enemy = Object.assign(Object.create(BlockerEnemy.prototype), {
+    active: true,
     x: 500,
     aggroRadius: BLOCKER_CONFIG.aggroRadius,
     blockerState: 'patrol',
@@ -25,14 +28,15 @@ function createEnemy() {
     chargeStartedAt: 0,
     patrolDirection: 1,
     patrolCenterX: 500,
+    dying: false,
     body: { blocked: { left: false, right: false } },
-    rig: { play: vi.fn() },
+    rig: { play: rigPlay },
     setFlipX: vi.fn(),
     setVelocityX,
-    slam: vi.fn(),
+    slam,
   }) as BlockerEnemy;
 
-  return { enemy, setVelocityX };
+  return { enemy, rigPlay, setVelocityX, slam };
 }
 
 describe('BlockerEnemy charge combo', () => {
@@ -57,7 +61,7 @@ describe('BlockerEnemy charge combo', () => {
   });
 
   it('chains a close charge into the existing slam', () => {
-    const { enemy, setVelocityX } = createEnemy();
+    const { enemy, setVelocityX, slam } = createEnemy();
     const target = { x: 650 } as Phaser.Physics.Arcade.Sprite;
 
     enemy.updateCombat(100, target, vi.fn());
@@ -77,8 +81,26 @@ describe('BlockerEnemy charge combo', () => {
       target,
       vi.fn(),
     );
+    expect(slam).toHaveBeenCalledWith(target);
+  });
+
+  it('does not overwrite the death animation with a pending attack', () => {
+    const { enemy, rigPlay, setVelocityX, slam } = createEnemy();
+    Object.assign(enemy, {
+      blockerState: 'windup',
+      dying: true,
+      stateEndsAt: 0,
+    });
+
     expect(
-      (enemy as unknown as { slam: ReturnType<typeof vi.fn> }).slam,
-    ).toHaveBeenCalledWith(target);
+      enemy.updateCombat(
+        1_000,
+        { x: 520 } as Phaser.Physics.Arcade.Sprite,
+        vi.fn(),
+      ),
+    ).toBe(false);
+    expect(setVelocityX).not.toHaveBeenCalled();
+    expect(rigPlay).not.toHaveBeenCalled();
+    expect(slam).not.toHaveBeenCalled();
   });
 });

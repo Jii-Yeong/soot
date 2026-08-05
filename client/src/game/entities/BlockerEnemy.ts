@@ -48,6 +48,10 @@ export class BlockerEnemy extends Enemy {
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
+    if (!this.active || this.dying) {
+      return false;
+    }
+
     const distance = Math.abs(target.x - this.x);
     const targetInRange = distance <= this.aggroRadius;
     this.setFlipX(target.x > this.x);
