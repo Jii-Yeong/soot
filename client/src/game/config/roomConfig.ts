@@ -39,6 +39,21 @@ export type EnemySpawnConfig =
       y: number;
     }
   | {
+      type: 'infernal-hound';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'executioner-doll';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'judgment-eye';
+      x: number;
+      y: number;
+    }
+  | {
       type: 'boss';
       variant: BossVariant;
       x: number;

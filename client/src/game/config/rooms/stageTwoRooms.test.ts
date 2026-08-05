@@ -31,6 +31,9 @@ function activationX(spawn: EnemySpawnConfig) {
     case 'captor':
     case 'blocker':
     case 'ceiling-maintainer':
+    case 'infernal-hound':
+    case 'executioner-doll':
+    case 'judgment-eye':
     case 'boss':
       throw new Error('stage 2 combat room does not contain this enemy type');
   }

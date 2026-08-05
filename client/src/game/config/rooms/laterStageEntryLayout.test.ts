@@ -11,6 +11,11 @@ import {
   CAPTOR_CONFIG,
   CEILING_MAINTAINER_CONFIG,
 } from '@/game/config/stageThreeEnemyConfig';
+import {
+  EXECUTIONER_DOLL_CONFIG,
+  INFERNAL_HOUND_CONFIG,
+  JUDGMENT_EYE_CONFIG,
+} from '@/game/config/stageFourEnemyConfig';
 import { INFERNO_ROOM_ONE, INFERNO_ROOM_TWO } from './stageFourRooms';
 import { RETURN_ROOM_ONE, RETURN_ROOM_TWO } from './stageFiveRooms';
 import {
@@ -46,6 +51,12 @@ function activationX(spawn: EnemySpawnConfig, playerY: number) {
       return spawn.x - BLOCKER_CONFIG.aggroRadius;
     case 'ceiling-maintainer':
       return spawn.x - CEILING_MAINTAINER_CONFIG.aggroRadius;
+    case 'infernal-hound':
+      return spawn.x - INFERNAL_HOUND_CONFIG.aggroRadius;
+    case 'executioner-doll':
+      return spawn.x - EXECUTIONER_DOLL_CONFIG.aggroRadius;
+    case 'judgment-eye':
+      return spawn.x - JUDGMENT_EYE_CONFIG.aggroRadius;
     case 'boss':
       throw new Error('combat room does not contain a boss');
   }

@@ -834,6 +834,78 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
     .toBeLessThan(result.healthAfterShield);
 });
 
+test('stage four uses three infernal patterns with at most two attackers', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '4스테이지', exact: true })
+    .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '150');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+    { timeout: 10_000 },
+  );
+
+  const result = await page.evaluate(async () => {
+    type RuntimeEnemy = {
+      active: boolean;
+      getData: (key: string) => unknown;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimePlayer = {
+      body: { reset: (x: number, y: number) => void };
+      setPosition: (x: number, y: number) => void;
+    };
+    type RuntimeScene = {
+      enemies: RuntimeEnemy[];
+      player: RuntimePlayer;
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+
+    scene.player.setPosition(2_500, 600);
+    scene.player.body.reset(2_500, 600);
+    let maximumAttackers = 0;
+    let sawThreeNearbyEnemies = false;
+    for (let sample = 0; sample < 30; sample += 1) {
+      const active = scene.enemies.filter(({ active }) => active);
+      maximumAttackers = Math.max(
+        maximumAttackers,
+        active.filter((enemy) => enemy.getData('stage-four-attacking')).length,
+      );
+      sawThreeNearbyEnemies ||=
+        active.filter(
+          ({ x, y }) => Math.hypot(x - 2_500, y - 600) <= 760,
+        ).length >= 3;
+      await new Promise((resolve) => window.setTimeout(resolve, 100));
+    }
+
+    return {
+      textures: scene.enemies.map(({ texture }) => texture.key),
+      maximumAttackers,
+      sawThreeNearbyEnemies,
+    };
+  });
+
+  expect(new Set(result.textures)).toEqual(
+    new Set([
+      'infernal-hound-placeholder',
+      'executioner-doll-placeholder',
+      'judgment-eye-placeholder',
+    ]),
+  );
+  expect(result.sawThreeNearbyEnemies).toBe(true);
+  expect(result.maximumAttackers).toBe(2);
+});
+
 test('stage three pipe crawler stays aligned above its floor segment', async ({
   page,
 }) => {

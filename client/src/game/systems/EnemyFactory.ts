@@ -25,15 +25,19 @@ import { BlockerEnemy } from '@/game/entities/BlockerEnemy';
 import { CaptorEnemy } from '@/game/entities/CaptorEnemy';
 import { CeilingMaintainerEnemy } from '@/game/entities/CeilingMaintainerEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
+import { ExecutionerDollEnemy } from '@/game/entities/ExecutionerDollEnemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import { InfernalHoundEnemy } from '@/game/entities/InfernalHoundEnemy';
 import type { PatrolBounds } from '@/game/systems/patrolSpan';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
 import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
+import { JudgmentEyeEnemy } from '@/game/entities/JudgmentEyeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
 import type { BossPhase } from '@/game/state/bossPhase';
+import { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
 import {
   connectEnemyToRoomGeometry,
   type EnemyCollisionOptions,
@@ -50,6 +54,7 @@ const assertUnhandledBossConfig = (_config: never): never => {
 
 export class EnemyFactory {
   private readonly intensity: number;
+  private readonly stageFourAttackCoordinator = new EnemyAttackCoordinator(2);
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -103,6 +108,12 @@ export class EnemyFactory {
         return this.createCaptor(spawn);
       case 'blocker':
         return this.createBlocker(spawn);
+      case 'infernal-hound':
+        return this.createInfernalHound(spawn);
+      case 'executioner-doll':
+        return this.createExecutionerDoll(spawn);
+      case 'judgment-eye':
+        return this.createJudgmentEye(spawn);
       case 'boss':
         return this.createBossEnemy(spawn);
     }
@@ -148,6 +159,44 @@ export class EnemyFactory {
         spawn.y,
         this.damagePlayer,
       ),
+    );
+  }
+
+  private createInfernalHound(spawn: SpawnOf<'infernal-hound'>) {
+    return this.finishSpawn(
+      new InfernalHoundEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+    );
+  }
+
+  private createExecutionerDoll(spawn: SpawnOf<'executioner-doll'>) {
+    return this.finishSpawn(
+      new ExecutionerDollEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createJudgmentEye(spawn: SpawnOf<'judgment-eye'>) {
+    return this.finishSpawn(
+      new JudgmentEyeEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
     );
   }
 
