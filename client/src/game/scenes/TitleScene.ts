@@ -20,14 +20,27 @@ export class TitleScene extends Phaser.Scene {
     gameEvents.emit('scene-changed', 'title');
 
     // 1스테이지 배경을 cover로 채움(비율 유지, 다른 해상도 지원). 맨 뒤.
+    // 콜드 로드에서도 타이틀 진입은 막지 않고, 도착 즉시 배경만 붙인다.
     const bg = STAGES[STARTING_STAGE_INDEX]?.background;
-    if (bg && this.textures.exists(bg.key)) {
+    let backgroundImage: Phaser.GameObjects.Image | undefined;
+    const showBackground = () => {
+      if (!bg || backgroundImage || !this.textures.exists(bg.key)) {
+        return;
+      }
+
       const image = this.add
         .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, bg.key)
         .setDepth(-2);
       image.setScale(
         Math.max(GAME_WIDTH / image.width, GAME_HEIGHT / image.height),
       );
+      backgroundImage = image;
+    };
+
+    if (bg && this.textures.exists(bg.key)) {
+      showBackground();
+    } else if (bg) {
+      this.load.once(`filecomplete-image-${bg.key}`, showBackground);
     }
 
     // 우하단 정렬, 높이는 화면의 80%(비율 유지). 배경 앞, 텍스트 뒤.
