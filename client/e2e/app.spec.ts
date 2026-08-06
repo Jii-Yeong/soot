@@ -1406,7 +1406,7 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
     depth: 7.25,
     visible: true,
     xOffset: -6,
-    yOffset: -30,
+    yOffset: -34,
   });
   expect(result.pointerOffsets).toEqual({
     leftPointerAfterFlipXOffset: 6,
