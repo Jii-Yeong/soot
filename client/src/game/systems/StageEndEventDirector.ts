@@ -28,7 +28,9 @@ export class StageEndEventDirector {
         this.playShatter(onBlackout);
         return;
       case 'ascension':
-        this.playAscension(onBlackout);
+        // 방 교체는 GameScene이 직접 playAscension을 호출해 처리한다. 이 경로로
+        // 들어오면 방 교체 없이 포위 오버레이만 재생하는 안전한 대체 동작.
+        this.playAscension(() => {}, onBlackout);
         return;
       default: {
         const unhandledEvent: never = event;
@@ -38,11 +40,11 @@ export class StageEndEventDirector {
   }
 
   /**
-   * 5스테이지 종료 연출: 화면이 점점 하얘진 뒤, 그 하얀 화면 속에서 적에게
-   * 포위된 화면(3스테이지 종료 포위 장면)으로 복귀한다. 잠시 그대로 두었다가
-   * `onComplete`(클리어/승리 화면)로 넘어간다.
+   * 5스테이지 종료 연출: 화면이 점점 하얘진 뒤, 그 하얀 화면 뒤에서 3스테이지
+   * 종료 포위 방으로 복귀(`onEnterRoom`)하고 적 실루엣이 플레이어를 포위한다.
+   * 잠시 그대로 두었다가 `onComplete`(클리어/승리 화면)로 넘어간다.
    */
-  private playAscension(onComplete: () => void) {
+  playAscension(onEnterRoom: () => void, onComplete: () => void) {
     const centerX = GAME_WIDTH / 2;
     const centerY = GAME_HEIGHT / 2;
     const bodyY = GAME_HEIGHT - 116;
@@ -60,7 +62,10 @@ export class StageEndEventDirector {
       duration: 900,
       ease: 'Sine.easeIn',
       onComplete: () => {
-        // 하얀 화면 속에서 좌우로 적 실루엣이 나타나 플레이어를 포위한다.
+        // 완전히 하얀 순간 3스테이지 지하 착지 방으로 교체(교체를 흰빛으로 감춤).
+        onEnterRoom();
+
+        // 좌우로 적 실루엣이 나타나 플레이어를 포위한다.
         const flankXs = SIEGE_FLANK_OFFSETS.flatMap((offset) => [
           centerX - offset,
           centerX + offset,
@@ -78,8 +83,8 @@ export class StageEndEventDirector {
             .setAlpha(0);
           props.push(body, eye);
         }
-        // 흰빛을 옅게 내려 포위 장면이 드러나게 하고 실루엣을 밝힌다.
-        this.scene.tweens.add({ targets: white, alpha: 0.55, duration: 600 });
+        // 흰빛을 옅게 내려 지하 포위 방이 드러나게 하고 실루엣을 밝힌다.
+        this.scene.tweens.add({ targets: white, alpha: 0.2, duration: 700 });
         this.scene.tweens.add({
           targets: props,
           alpha: 1,

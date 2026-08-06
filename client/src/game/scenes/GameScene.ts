@@ -20,6 +20,7 @@ import {
   UNDERGROUND_LANDING_ROOM,
 } from '@/game/config/rooms/stageThreeRooms';
 import {
+  STAGE_THREE_CONFIG,
   STARTING_STAGE_INDEX,
   STAGES,
   type StageEndEvent,
@@ -648,12 +649,54 @@ export class GameScene extends Phaser.Scene {
     this.aimGraphics.clear();
     this.enemyRangeGraphics.clear();
 
-    // 보스 처치 후 3초 여운을 둔 뒤 종료 연출을 재생한다.
+    // 보스 처치 후 3초 여운을 둔 뒤 종료 연출을 재생한다. 화면이 하얘진 순간
+    // 3스테이지 지하 포위 방으로 복귀하고, 3초 뒤 클리어로 넘어간다.
     this.time.delayedCall(3000, () => {
-      this.stageEndEventDirector.play('ascension', () =>
-        this.handleRunCleared(),
+      this.stageEndEventDirector.playAscension(
+        () => this.enterAscensionRoom(),
+        () => this.handleRunCleared(),
       );
     });
+  }
+
+  /**
+   * 흰 화면 뒤에서 3스테이지 종료 포위 방(지하 착지 방)으로 복귀한다. 현재
+   * 스테이지는 5스테이지지만 배경·바닥은 3스테이지 것을 강제로 그려, 그때 그
+   * 지하 포위 장면을 재현한다. (실제 플레이로 3스테이지를 거쳤다면 관련 텍스처가
+   * 이미 로드되어 있다.)
+   */
+  private enterAscensionRoom() {
+    // 5스테이지의 남은 적을 정리해 지하 포위 장면에 섞이지 않게 한다.
+    for (const enemy of this.enemies) {
+      enemy.destroy();
+    }
+    this.replaceEnemies([]);
+
+    this.descentRoomConfig = UNDERGROUND_LANDING_ROOM;
+    this.activeRoomConfig = UNDERGROUND_LANDING_ROOM;
+    this.configureRoomWorld();
+    this.floorBuilder.build(
+      UNDERGROUND_LANDING_ROOM,
+      Boolean(STAGE_THREE_CONFIG.background),
+      STAGE_THREE_CONFIG.showFloor,
+      STAGE_THREE_CONFIG.floorSkin,
+    );
+    this.backdropDirector.show(
+      STAGE_THREE_CONFIG,
+      this.roomWorldWidth,
+      undefined,
+    );
+    this.resetCameraToRoomEntrance();
+
+    // 플레이어를 지상 모드로 바꿔 바닥 중앙에 세운다.
+    this.playerController.setMovementMode(MovementMode.GROUND);
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.checkCollision.none = false;
+    body.setCollideWorldBounds(true);
+    this.player.setPosition(GAME_WIDTH / 2, FLOOR_SURFACE_Y - 40);
+    body.reset(GAME_WIDTH / 2, FLOOR_SURFACE_Y - 40);
+    this.player.setVelocity(0, 0);
+    this.player.play(this.playerSprite.animations.idle, true);
   }
 
   private playStageEndEvent(
