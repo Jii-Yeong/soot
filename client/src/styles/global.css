@@ -515,9 +515,12 @@ input {
   position: absolute;
   top: clamp(64px, 8vw, 84px);
   right: max(clamp(12px, 2vw, 32px), env(safe-area-inset-right));
+  bottom: max(clamp(12px, 2vw, 32px), env(safe-area-inset-bottom));
   z-index: 60;
-  display: grid;
-  justify-items: end;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 4px;
   pointer-events: auto;
 }
@@ -576,6 +579,8 @@ input {
 
 .admin-controls__menu {
   display: grid;
+  min-height: 0;
+  flex: 0 1 auto;
   gap: 6px;
   width: 210px;
   padding: 6px;

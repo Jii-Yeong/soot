@@ -1189,6 +1189,18 @@ test('admin menu scrolls instead of overflowing a short viewport', async ({
     initialMetrics.clientHeight,
   );
 
+  const [menuBounds, viewportBounds] = await Promise.all([
+    adminMenu.boundingBox(),
+    page.locator('.game-viewport').boundingBox(),
+  ]);
+  if (!menuBounds || !viewportBounds) {
+    throw new Error('Admin menu bounds are unavailable');
+  }
+  expect(menuBounds.y).toBeGreaterThanOrEqual(viewportBounds.y);
+  expect(menuBounds.y + menuBounds.height).toBeLessThanOrEqual(
+    viewportBounds.y + viewportBounds.height,
+  );
+
   await adminMenu.evaluate((menu) => {
     menu.scrollTop = menu.scrollHeight;
   });
