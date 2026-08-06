@@ -17,6 +17,7 @@ import {
   type MeleeSpriteConfig,
 } from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
+import { EXECUTIONER_DOLL_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
 import {
   STAGE_ONE_RANGED_SPRITE,
   STAGE_TWO_RANGED_SPRITE,
@@ -56,8 +57,10 @@ export type StagePalette = {
  * A scripted beat that plays instead of a normal exit when the stage's final
  * room is cleared. 'siege' = androids close in, blackout, fall (act 3 → hell).
  * 'shatter' = 화면이 점차 깨지며 다음 스테이지가 드러남(act 4 → return).
+ * 'ascension' = 보스 처치 3초 뒤 화면이 하얘지며 적에게 포위된 화면으로 복귀,
+ *   3초 뒤 클리어(act 5 종료).
  */
-export type StageEndEvent = 'siege' | 'shatter';
+export type StageEndEvent = 'siege' | 'shatter' | 'ascension';
 
 /** Backdrop art whose source width determines its horizontal parallax speed. */
 export type StageBackground = {
@@ -202,6 +205,8 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
     key: 'stage-04-bg',
     path: '/assets/backgrounds/stage-04.webp',
   },
+  enemyAtlases:
+    EXECUTIONER_DOLL_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
   showFloor: true,
   floorSkin: STAGE_FOUR_FLOOR_SKIN,
   terrainSkin: STAGE_FOUR_STOOL_SKIN,
@@ -228,6 +233,7 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-05.webp',
   },
   rooms: RETURN_ROOMS,
+  endEvent: 'ascension',
 };
 
 export const STAGES: readonly StageConfig[] = [

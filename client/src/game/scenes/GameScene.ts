@@ -631,6 +631,28 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * 5스테이지 종료 연출. 보스 처치 3초 뒤 화면이 하얘지며 적에게 포위된 화면으로
+   * 복귀하고, 다시 3초 뒤 클리어(승리 화면)로 넘어간다.
+   */
+  private beginAscension() {
+    this.setPhase('transitioning');
+    this.weaponSystem.cancelHitStop();
+    this.playerController.stop();
+    this.player.setVelocity(0);
+    this.weaponSystem.hide();
+    this.weaponDropDirector.clear();
+    this.aimGraphics.clear();
+    this.enemyRangeGraphics.clear();
+
+    // 보스 처치 후 3초 여운을 둔 뒤 종료 연출을 재생한다.
+    this.time.delayedCall(3000, () => {
+      this.stageEndEventDirector.play('ascension', () =>
+        this.handleRunCleared(),
+      );
+    });
+  }
+
   private playStageEndEvent(
     event: StageEndEvent,
     nextStageIndex: number | null,
@@ -1029,6 +1051,15 @@ export class GameScene extends Phaser.Scene {
         this.currentRoomIndex === this.stage.rooms.length - 1
       ) {
         this.advanceToNextStage();
+      }
+
+      // 5스테이지: 보스 처치 3초 뒤 포탈 없이 종료 연출을 시작한다.
+      if (
+        this.stage.endEvent === 'ascension' &&
+        !this.descentRoomConfig &&
+        this.currentRoomIndex === this.stage.rooms.length - 1
+      ) {
+        this.beginAscension();
       }
     }
   }

@@ -27,11 +27,83 @@ export class StageEndEventDirector {
       case 'shatter':
         this.playShatter(onBlackout);
         return;
+      case 'ascension':
+        this.playAscension(onBlackout);
+        return;
       default: {
         const unhandledEvent: never = event;
         throw new Error(`Unsupported stage end event: ${unhandledEvent}`);
       }
     }
+  }
+
+  /**
+   * 5스테이지 종료 연출: 화면이 점점 하얘진 뒤, 그 하얀 화면 속에서 적에게
+   * 포위된 화면(3스테이지 종료 포위 장면)으로 복귀한다. 잠시 그대로 두었다가
+   * `onComplete`(클리어/승리 화면)로 넘어간다.
+   */
+  private playAscension(onComplete: () => void) {
+    const centerX = GAME_WIDTH / 2;
+    const centerY = GAME_HEIGHT / 2;
+    const bodyY = GAME_HEIGHT - 116;
+    const eyeY = GAME_HEIGHT - 150;
+    const props: Phaser.GameObjects.GameObject[] = [];
+
+    // 화면이 점점 하얘진다.
+    const white = this.scene.add
+      .rectangle(centerX, centerY, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0)
+      .setDepth(90)
+      .setScrollFactor(0);
+    this.scene.tweens.add({
+      targets: white,
+      alpha: 1,
+      duration: 900,
+      ease: 'Sine.easeIn',
+      onComplete: () => {
+        // 하얀 화면 속에서 좌우로 적 실루엣이 나타나 플레이어를 포위한다.
+        const flankXs = SIEGE_FLANK_OFFSETS.flatMap((offset) => [
+          centerX - offset,
+          centerX + offset,
+        ]);
+        for (const flankX of flankXs) {
+          const body = this.scene.add
+            .rectangle(flankX, bodyY, 34, 96, 0x05070b, 0.98)
+            .setDepth(92)
+            .setScrollFactor(0)
+            .setAlpha(0);
+          const eye = this.scene.add
+            .rectangle(flankX, eyeY, 22, 6, 0xff4657, 1)
+            .setDepth(93)
+            .setScrollFactor(0)
+            .setAlpha(0);
+          props.push(body, eye);
+        }
+        // 흰빛을 옅게 내려 포위 장면이 드러나게 하고 실루엣을 밝힌다.
+        this.scene.tweens.add({ targets: white, alpha: 0.55, duration: 600 });
+        this.scene.tweens.add({
+          targets: props,
+          alpha: 1,
+          duration: 600,
+          delay: 200,
+        });
+
+        // 3초 뒤 클리어로 넘어가고, 연출용 오브젝트를 정리한다.
+        this.scene.time.delayedCall(3000, () => {
+          onComplete();
+          this.scene.tweens.add({
+            targets: [white, ...props],
+            alpha: 0,
+            duration: 500,
+            onComplete: () => {
+              white.destroy();
+              for (const prop of props) {
+                prop.destroy();
+              }
+            },
+          });
+        });
+      },
+    });
   }
 
   /**

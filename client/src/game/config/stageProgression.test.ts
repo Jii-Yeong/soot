@@ -24,9 +24,9 @@ describe('getStageExitPlan', () => {
     });
   });
 
-  it('finishes the run after stage 5', () => {
+  it('finishes the run after stage 5 with the ascension end event', () => {
     expect(getStageExitPlan(STAGES, 4)).toEqual({
-      event: undefined,
+      event: 'ascension',
       nextStageIndex: null,
     });
   });
