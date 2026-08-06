@@ -423,6 +423,20 @@ export class PlayerController {
       return false;
     }
 
+    // 진입 연출은 짧은 연출일 뿐이다. 플레이어가 이동 입력을 시작하면 즉시
+    // 끝내고 제어를 넘겨, 연출이 어떤 이유로든 끝나지 않아 플레이어가 제자리에서
+    // 파닥이며 움직이지 못하는 상태에 갇히지 않게 한다. 시간 상한도 함께 둔다.
+    const completesAt =
+      FLIGHT_ENTRY_JUMP_RISE_DURATION +
+      FLIGHT_ENTRY_JUMP_FALL_DURATION +
+      FLIGHT_ENTRY_LANDING_DURATION;
+    if (this.hasFlightMovementInput() || time - lift.startsAt >= completesAt) {
+      this.flightEntryLift = undefined;
+      this.currentPose = null;
+      this.updateFlightAnimation(false);
+      return false;
+    }
+
     const elapsed = time - lift.startsAt;
     const apexY = Phaser.Math.Clamp(
       lift.targetY - FLIGHT_ENTRY_JUMP_APEX_HEIGHT,
@@ -431,7 +445,6 @@ export class PlayerController {
     );
     const fallStartsAt = FLIGHT_ENTRY_JUMP_RISE_DURATION;
     const landingStartsAt = fallStartsAt + FLIGHT_ENTRY_JUMP_FALL_DURATION;
-    const completesAt = landingStartsAt + FLIGHT_ENTRY_LANDING_DURATION;
 
     if (elapsed < fallStartsAt) {
       this.moveFlightEntryBodyTo(
@@ -461,12 +474,6 @@ export class PlayerController {
       this.setPose(PLAYER_JUMP_FRAMES.landing);
     }
     this.player.setVelocity(0);
-
-    if (elapsed >= completesAt) {
-      this.flightEntryLift = undefined;
-      this.currentPose = null;
-      this.updateFlightAnimation(false);
-    }
 
     return true;
   }
@@ -518,6 +525,16 @@ export class PlayerController {
         PLAYER_FLIGHT_BOUNDS.minY,
         PLAYER_FLIGHT_BOUNDS.maxY,
       ),
+    );
+  }
+
+  /** 비행 중 어느 방향으로든 이동 입력이 있는지. */
+  private hasFlightMovementInput() {
+    return (
+      this.isMovingLeft() ||
+      this.isMovingRight() ||
+      this.isMovingUp() ||
+      this.isMovingDown()
     );
   }
 
