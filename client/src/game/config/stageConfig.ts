@@ -1,5 +1,31 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import {
+  MELEE_SWING_CONFIG,
+  type MeleeSwingConfig,
+} from '@/game/config/combatConfig';
+import {
+  STAGE_ONE_FLYING_SPRITE,
+  STAGE_TWO_FLYING_SPRITE,
+  type FlyingSpriteConfig,
+} from '@/game/config/flyingEnemyAnimationConfig';
+import {
+  STAGE_ONE_MELEE_SPRITE,
+  STAGE_TWO_MELEE_SPRITE,
+  type MeleeSpriteConfig,
+} from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
+import {
+  STAGE_ONE_RANGED_SPRITE,
+  STAGE_TWO_RANGED_SPRITE,
+  type RangedSpriteConfig,
+} from '@/game/config/rangedEnemyAnimationConfig';
+import {
+  STAGE_ONE_FLOOR_SKIN,
+  STAGE_ONE_STOOL_SKIN,
+  STAGE_TWO_FLOOR_SKIN,
+  STAGE_TWO_STOOL_SKIN,
+  type SliceSkinConfig,
+} from '@/game/config/terrainSkinConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
 import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
@@ -40,6 +66,23 @@ export type StageConfig = {
   rooms: StageRooms;
   endEvent?: StageEndEvent;
   background?: StageBackground;
+  /**
+   * 바닥을 배경이 암시하게 두지 않고, 맨 아래 바닥 타일을 보이는 띠로
+   * 렌더링함(추후 픽셀 아트 타일로 스킨할 placeholder).
+   */
+  showFloor?: boolean;
+  /** 1층 바닥용 픽셀 3-slice 스킨. 물리는 바닥 타일에 그대로 유지. */
+  floorSkin?: SliceSkinConfig;
+  /** 2·3층 발판(stool)용 픽셀 3-slice 스킨. */
+  terrainSkin?: SliceSkinConfig;
+  /** 실제 아틀라스 비행 적 아트. 없는 스테이지는 placeholder 사용. */
+  flyingSprite?: FlyingSpriteConfig;
+  /** 실제 아틀라스 원거리 적 아트. 없는 스테이지는 placeholder 사용. */
+  rangedSprite?: RangedSpriteConfig;
+  /** 설정 시 근접 적이 접촉 데미지 대신 봉을 휘두름. */
+  meleeSwing?: MeleeSwingConfig;
+  /** 실제 아틀라스 근접 적 아트(휘두르기는 attack 애니메이션 + 슬래시 VFX로 표현). */
+  meleeSprite?: MeleeSpriteConfig;
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -59,6 +102,13 @@ export const STAGE_ONE_CONFIG: StageConfig = {
     key: 'stage-01-bg',
     path: '/assets/backgrounds/stage-01.webp',
   },
+  flyingSprite: STAGE_ONE_FLYING_SPRITE,
+  rangedSprite: STAGE_ONE_RANGED_SPRITE,
+  meleeSwing: MELEE_SWING_CONFIG,
+  meleeSprite: STAGE_ONE_MELEE_SPRITE,
+  showFloor: true,
+  floorSkin: STAGE_ONE_FLOOR_SKIN,
+  terrainSkin: STAGE_ONE_STOOL_SKIN,
   rooms: CITY_ROOMS,
 };
 
@@ -80,6 +130,13 @@ export const STAGE_TWO_CONFIG: StageConfig = {
     key: 'stage-02-bg',
     path: '/assets/backgrounds/stage-02.webp',
   },
+  flyingSprite: STAGE_TWO_FLYING_SPRITE,
+  rangedSprite: STAGE_TWO_RANGED_SPRITE,
+  meleeSwing: MELEE_SWING_CONFIG,
+  meleeSprite: STAGE_TWO_MELEE_SPRITE,
+  showFloor: true,
+  floorSkin: STAGE_TWO_FLOOR_SKIN,
+  terrainSkin: STAGE_TWO_STOOL_SKIN,
   rooms: ALLEY_ROOMS,
 };
 

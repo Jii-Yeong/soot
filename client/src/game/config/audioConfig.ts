@@ -14,6 +14,8 @@ export type MusicKey =
 export type SfxKey =
   | 'sfx-smg-fire'
   | 'sfx-shotgun-fire'
+  | 'sfx-burst-rifle-fire'
+  | 'sfx-rail-rifle-fire'
   | 'sfx-enemy-hit'
   | 'sfx-enemy-down'
   | 'sfx-player-hit'
@@ -59,12 +61,22 @@ export type MusicConfig = {
   volume: number;
 };
 
+export type AudioMix = {
+  master: number;
+  music: number;
+  sfx: number;
+};
+
 /** Three buses so the title screen can expose master/music/sfx separately. */
-export const AUDIO_MIX_CONFIG = {
+export const AUDIO_MIX_CONFIG: AudioMix = {
   master: 0.9,
   music: 0.45,
   sfx: 0.8,
-} as const;
+};
+
+export function clampAudioMixValue(value: number) {
+  return Math.min(1, Math.max(0, value));
+}
 
 export const MUSIC_CONFIG: Record<MusicKey, MusicConfig> = {
   'bgm-title': { volume: 0.7 },
@@ -80,6 +92,10 @@ export const MUSIC_CONFIG: Record<MusicKey, MusicConfig> = {
 export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-smg-fire': { volume: 0.35, rateJitter: 0.08 },
   'sfx-shotgun-fire': { volume: 0.6, rateJitter: 0.04 },
+  // Three rounds land inside 144ms, so the jitter is wide enough that a burst
+  // does not read as one sound played three times.
+  'sfx-burst-rifle-fire': { volume: 0.42, rateJitter: 0.1 },
+  'sfx-rail-rifle-fire': { volume: 0.7, rateJitter: 0.03 },
   'sfx-enemy-hit': { volume: 0.45, rateJitter: 0.12, minInterval: 45 },
   'sfx-enemy-down': { volume: 0.7, rateJitter: 0.05 },
   // The monitor beep under this cue is the audio half of the foreshadowing in
@@ -109,4 +125,6 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
 export const WEAPON_FIRE_SFX: Record<string, SfxKey | undefined> = {
   smg: 'sfx-smg-fire',
   shotgun: 'sfx-shotgun-fire',
+  'burst-rifle': 'sfx-burst-rifle-fire',
+  'rail-rifle': 'sfx-rail-rifle-fire',
 };

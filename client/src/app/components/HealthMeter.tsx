@@ -27,12 +27,12 @@ export function HealthMeter({
       aria-label={`${accessibleLabel} status`}
       data-boss-phase={bossPhase ?? undefined}
     >
-      <span className="hud__label">
+      <span className='hud__label'>
         {bossPhase ? `BOSS // PHASE ${bossPhase}` : label}
       </span>
       <div
-        className="hud__meter"
-        role="meter"
+        className='hud__meter'
+        role='meter'
         aria-label={`${accessibleLabel} health`}
         aria-valuemin={0}
         aria-valuemax={maxValue}
@@ -44,9 +44,9 @@ export function HealthMeter({
           }`}
           style={{ width: `${percentage}%` }}
         />
-        {bossPhase && <span className="hud__phase-threshold" aria-hidden />}
+        {bossPhase && <span className='hud__phase-threshold' aria-hidden />}
       </div>
-      <span className="hud__value">
+      <span className='hud__value'>
         {value}/{maxValue}
       </span>
     </aside>

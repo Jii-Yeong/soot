@@ -8,6 +8,7 @@ describe('gameUiStore', () => {
       maxHealth: 100,
       enemyHealth: 100,
       enemyMaxHealth: 100,
+      enemyIsBoss: false,
       bossPhase: null,
       scene: 'boot',
       phase: 'boot',
@@ -43,6 +44,16 @@ describe('gameUiStore', () => {
     useGameUiStore.getState().setBossPhase(2);
 
     expect(useGameUiStore.getState().bossPhase).toBe(2);
+  });
+
+  it('tracks whether the reported enemy health belongs to a boss', () => {
+    useGameUiStore.getState().setEnemyHealth(750, 1000, true);
+
+    expect(useGameUiStore.getState()).toMatchObject({
+      enemyHealth: 750,
+      enemyMaxHealth: 1000,
+      enemyIsBoss: true,
+    });
   });
 
   it('tracks room lock and clear states for React overlays', () => {

@@ -31,9 +31,9 @@ export type EnemySpawnConfig =
     };
 
 /**
- * A solid, static piece of level geometry. `x`/`y` are the top-left corner.
- * A `platform` is a low ledge to stand on; a `wall` is a tall barrier to jump
- * or dash over. Both are solid on every side.
+ * 움직이지 않는 단단한 지형 조각. `x`/`y`는 왼쪽 위 모서리 좌표다.
+ * `platform`은 높이를 바꾸는 일방통행 발판이고, `wall`은 점프나 대시로
+ * 넘어야 하는 높은 장애물이다. 두 유형 모두 모든 방향에서 일반 탄환을 막는다.
  */
 export type TerrainPiece = {
   type: 'platform' | 'wall';
@@ -56,13 +56,13 @@ export type RoomConfig = {
   id: string;
   label: string;
   kind: 'combat' | 'boss';
-  /** How wide this room's segment is in the continuous stage. */
+  /** 이 방의 독립된 월드 너비. */
   worldWidth: number;
   entranceX: number;
   exitX: number;
-  door: {
+  /** 출구 근처에 열리는 클리어 포탈의 세로 위치. */
+  portal: {
     y: number;
-    width: number;
     height: number;
   };
   enemySpawns: EnemySpawnConfig[];
@@ -74,39 +74,38 @@ export type RoomConfig = {
 
 export type StageRooms = readonly [RoomConfig, RoomConfig, RoomConfig];
 
-const ROOM_DOOR = {
+const ROOM_PORTAL = {
   y: GAME_HEIGHT - 154,
-  width: 32,
   height: 180,
 };
 
 export type RoomDefinition = Omit<
   RoomConfig,
-  'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'door'
+  'kind' | 'worldWidth' | 'entranceX' | 'exitX' | 'portal'
 > & {
   kind?: RoomConfig['kind'];
-  /** Room segment width; the exit door sits near its right edge. */
+  /** 방 너비. 전투 후 출구 포탈이 오른쪽 가장자리 근처에 생김. */
   worldWidth?: number;
-  /** Stage-specific door geometry, e.g. a full-height aerial barrier. */
-  door?: Partial<RoomConfig['door']>;
+  /** 스테이지별 포탈 위치. 예: 공중 방은 화면 중앙에 배치. */
+  portal?: Partial<RoomConfig['portal']>;
 };
 
 export const defineRoom = ({
   worldWidth = ROOM_WORLD_WIDTH,
-  door,
+  portal,
   ...definition
 }: RoomDefinition): RoomConfig => ({
   kind: 'combat',
   worldWidth,
   entranceX: 64,
   exitX: worldWidth - 64,
-  door: { ...ROOM_DOOR, ...door },
+  portal: { ...ROOM_PORTAL, ...portal },
   ...definition,
 });
 
 export type BossRoomDefinition = Pick<
   RoomDefinition,
-  'id' | 'label' | 'intensity' | 'door'
+  'id' | 'label' | 'intensity' | 'portal'
 > & {
   variant: BossVariant;
   /** Override the boss-room width (e.g. a bigger boss needs more arena). */

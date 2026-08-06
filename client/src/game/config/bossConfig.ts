@@ -1,7 +1,6 @@
 import {
   STAGE_ONE_BOSS_ANIMATIONS,
   STAGE_ONE_BOSS_ATLAS_KEY,
-  STAGE_ONE_BOSS_BATTLE_FRAME,
 } from '@/game/config/bossAnimationConfig';
 import type {
   BossCombatConfig,
@@ -36,7 +35,7 @@ export const BOSS_COMBAT_CONFIGS = {
       moveSpeed: 95,
       enragedMoveSpeed: 125,
       enrageHealthRatio: 0.5,
-      preferredDistance: 520,
+      preferredDistance: 360,
       distanceTolerance: 90,
       firstAttackDelay: 800,
       chargeDuration: 900,
@@ -158,7 +157,7 @@ export const BOSS_COMBAT_CONFIGS = {
     pattern: {
       type: 'infernal',
       enrageHealthRatio: 0.5,
-      firstAttackDelay: 900,
+      firstAttackDelay: 1800,
       recoveryDuration: 750,
       enragedRecoveryDuration: 550,
       phaseTransitionDuration: 700,
@@ -284,8 +283,7 @@ export type BossVariant = keyof typeof BOSS_COMBAT_CONFIGS;
  */
 export const BOSS_SPRITES: Partial<Record<BossVariant, BossSpriteConfig>> = {
   'city-warden': {
-    idleAnimation: STAGE_ONE_BOSS_ANIMATIONS.idle,
-    battleFrame: STAGE_ONE_BOSS_BATTLE_FRAME,
+    animations: STAGE_ONE_BOSS_ANIMATIONS,
     scale: 1,
     bodyWidth: 72,
     bodyHeight: 132,

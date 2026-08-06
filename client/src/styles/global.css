@@ -34,8 +34,31 @@ input {
 
 .game-shell {
   position: relative;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
   width: 100%;
   height: 100%;
+  overflow: hidden;
+}
+
+.game-viewport {
+  position: relative;
+  min-width: 0;
+  width: min(100%, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+}
+
+.game-shell[data-display-resolution='960x540'] .game-viewport {
+  width: min(100%, calc(100vh * 16 / 9), 960px);
+}
+
+.game-shell[data-display-resolution='1280x720'] .game-viewport {
+  width: min(100%, calc(100vh * 16 / 9), 1280px);
+}
+
+.game-shell[data-display-resolution='1600x900'] .game-viewport {
+  width: min(100%, calc(100vh * 16 / 9), 1600px);
 }
 
 .game-canvas {
@@ -47,11 +70,34 @@ input {
   display: block;
 }
 
+.title-settings-trigger {
+  position: absolute;
+  bottom: clamp(10px, 4%, 28px);
+  left: 50%;
+  z-index: 60;
+  padding: 8px 20px;
+  border: 1px solid #4f5b5f;
+  color: #879197;
+  background: rgba(7, 10, 11, 0.72);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.title-settings-trigger:hover,
+.title-settings-trigger:focus-visible {
+  border-color: #b6ffe4;
+  color: #b6ffe4;
+  outline: none;
+}
+
 .hud-layer {
   position: absolute;
-  top: clamp(16px, 3vw, 32px);
-  left: clamp(16px, 3vw, 32px);
-  right: clamp(16px, 3vw, 32px);
+  top: max(clamp(12px, 2vw, 32px), env(safe-area-inset-top));
+  left: max(clamp(12px, 2vw, 32px), env(safe-area-inset-left));
+  right: max(clamp(12px, 2vw, 32px), env(safe-area-inset-right));
   display: flex;
   justify-content: space-between;
   gap: 24px;
@@ -88,10 +134,289 @@ input {
     inset 0 0 18px rgba(255, 94, 35, 0.08);
 }
 
+/* Above the HUD and the admin menu, below nothing. A pause that something else
+   can be clicked through is not a pause. */
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 10, 11, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.pause-overlay__panel {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-width: 260px;
+  padding: 32px 40px;
+  border: 1px solid #33424a;
+  background: rgba(7, 10, 11, 0.92);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.pause-overlay__eyebrow {
+  color: #6fd6a6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+}
+
+.pause-overlay__title {
+  color: #d8dfdc;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.pause-overlay__resume,
+.pause-overlay__settings {
+  width: 140px;
+  margin-top: 8px;
+  padding: 11px 34px;
+  border: 1px solid #6fd6a6;
+  color: #b6ffe4;
+  background: rgba(21, 57, 45, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+}
+
+.pause-overlay__resume:hover,
+.pause-overlay__resume:focus-visible {
+  color: #070a0b;
+  background: #b6ffe4;
+  outline: none;
+}
+
+.pause-overlay__settings {
+  margin-top: 2px;
+  padding: 8px 26px;
+  border-color: #4f5b5f;
+  color: #aeb8bc;
+  background: rgba(18, 24, 27, 0.88);
+}
+
+.pause-overlay__settings:hover,
+.pause-overlay__settings:focus-visible {
+  border-color: #b6ffe4;
+  color: #b6ffe4;
+  outline: none;
+}
+
+.pause-overlay__hint {
+  color: #5f6c72;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(7, 10, 11, 0.78);
+  backdrop-filter: blur(5px);
+}
+
+.settings-panel {
+  display: grid;
+  gap: 22px;
+  width: min(390px, 100%);
+  padding: 32px;
+  border: 1px solid #33424a;
+  background: rgba(7, 10, 11, 0.96);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.settings-panel__section {
+  display: grid;
+  gap: 12px;
+  min-height: 190px;
+  padding-top: 4px;
+}
+
+.settings-panel__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-bottom: 1px solid #33424a;
+}
+
+.settings-panel__tab {
+  padding: 10px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #69767c;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.settings-panel__tab:hover,
+.settings-panel__tab:focus-visible {
+  color: #b6ffe4;
+  outline: none;
+}
+
+.settings-panel__tab--active {
+  border-bottom-color: #6fd6a6;
+  color: #b6ffe4;
+  background: rgba(21, 57, 45, 0.34);
+}
+
+.settings-panel__section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-panel__section-heading h3 {
+  margin: 0;
+  color: #d8dfdc;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+
+.settings-panel__section-reset {
+  padding: 3px 0;
+  border: 0;
+  color: #879197;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.settings-panel__section-reset:hover:not(:disabled),
+.settings-panel__section-reset:focus-visible {
+  color: #b6ffe4;
+  outline: none;
+}
+
+.settings-panel__section-reset:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.settings-panel__select {
+  display: grid;
+  gap: 8px;
+  color: #c9d1d1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.settings-panel__select select {
+  appearance: none;
+  width: 100%;
+  padding: 9px 44px 9px 10px;
+  border: 1px solid #4f5b5f;
+  color: #d8dfdc;
+  background: #111719;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23d8dfdc' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  cursor: pointer;
+}
+
+.settings-panel__select select:focus-visible {
+  border-color: #b6ffe4;
+  outline: none;
+}
+
+.settings-panel__description {
+  margin: -4px 0 0;
+  color: #5f6c72;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settings-panel__eyebrow {
+  margin: 0;
+  color: #6fd6a6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.settings-panel__title {
+  margin: -12px 0 0;
+  color: #d8dfdc;
+  font-size: 28px;
+  letter-spacing: 0.16em;
+}
+
+.settings-panel__channels {
+  display: grid;
+  gap: 18px;
+}
+
+.settings-panel__channel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  align-items: center;
+  color: #c9d1d1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.settings-panel__channel output {
+  color: #6fd6a6;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-panel__channel input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: #6fd6a6;
+  cursor: pointer;
+}
+
+.settings-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.settings-panel__close {
+  padding: 9px 17px;
+  border: 1px solid #4f5b5f;
+  color: #aeb8bc;
+  background: rgba(18, 24, 27, 0.88);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.settings-panel__close {
+  border-color: #6fd6a6;
+  color: #b6ffe4;
+  background: rgba(21, 57, 45, 0.72);
+}
+
+.settings-panel__close:hover,
+.settings-panel__close:focus-visible {
+  border-color: #b6ffe4;
+  color: #070a0b;
+  background: #b6ffe4;
+  outline: none;
+}
+
 .admin-controls {
   position: absolute;
   top: clamp(64px, 8vw, 84px);
-  right: clamp(16px, 3vw, 32px);
+  right: max(clamp(12px, 2vw, 32px), env(safe-area-inset-right));
   z-index: 60;
   display: grid;
   justify-items: end;
@@ -129,11 +454,66 @@ input {
   background: rgba(7, 10, 11, 0.94);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(6px);
+  /* 메뉴를 트리거와 뷰포트 가장자리 사이에 유지함. `dvh`는 모바일에서
+     실제로 보이는 높이를 따름. vh 선언은 그 폴백. */
+  max-height: calc(100vh - 140px);
+  max-height: calc(100dvh - clamp(64px, 8vw, 84px) - 56px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #4f5b5f rgba(7, 10, 11, 0.3);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.admin-controls__menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-controls__menu::-webkit-scrollbar-track {
+  background: rgba(7, 10, 11, 0.3);
+}
+
+.admin-controls__menu::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #4f5b5f;
+  background-clip: padding-box;
+}
+
+.admin-controls__menu::-webkit-scrollbar-thumb:hover {
+  background: #b6ffe4;
+  background-clip: padding-box;
+}
+
+.admin-controls__group {
+  margin-top: 4px;
+  color: #5f6c72;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.admin-controls__group:first-child {
+  margin-top: 0;
 }
 
 .admin-controls__button {
   width: 100%;
   text-align: left;
+}
+
+.admin-controls__stage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-controls__button--boss {
+  padding-right: 8px;
+  padding-left: 8px;
+  color: #e99ba3;
+  text-align: center;
 }
 
 .admin-controls__button--active {
@@ -279,6 +659,11 @@ input {
 
   .admin-controls {
     top: 12px;
-    right: 12px;
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  .admin-controls__menu {
+    max-height: calc(100vh - 68px);
+    max-height: calc(100dvh - 68px);
   }
 }

@@ -3,6 +3,7 @@ import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
+import type { AudioMix } from '@/game/config/audioConfig';
 
 /**
  * State events describe what the world *is* and drive the React HUD. Cue events
@@ -13,13 +14,27 @@ import type { RoomState } from '@/game/state/roomState';
  */
 type GameEventMap = {
   'health-changed': [current: number, max: number];
-  'enemy-health-changed': [current: number, max: number];
+  'enemy-health-changed': [
+    current: number,
+    max: number,
+    isBoss: boolean,
+  ];
   'boss-phase-changed': [phase: BossPhase | null];
   'phase-changed': [phase: GamePhase];
   'room-state-changed': [state: RoomState];
   'scene-changed': [scene: GameSceneKey];
   'stage-changed': [stageId: string];
   'admin-stage-requested': [stageIndex: number];
+  'admin-stage-boss-requested': [stageIndex: number];
+  'admin-weapon-requested': [weaponId: string];
+  /**
+   * Asked for by the UI, answered by the scene. Split in two because the scene
+   * is the only thing that knows whether pausing is allowed right now, and a UI
+   * that flipped its own flag would drift out of step the first time it was not.
+   */
+  'pause-toggle-requested': [];
+  'pause-changed': [paused: boolean];
+  'audio-mix-changed': [mix: AudioMix];
   'weapon-fired': [weaponId: string, x: number, y: number];
   'player-damaged': [x: number, y: number];
   'player-dashed': [x: number, y: number];

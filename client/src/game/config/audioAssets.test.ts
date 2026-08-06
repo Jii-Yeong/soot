@@ -44,8 +44,8 @@ describe('matchAudioAssets', () => {
     const { assets, missingKeys, unusedFiles } = matchAudioAssets({});
 
     expect(assets).toEqual([]);
-    // Counted from the configs rather than written out, so adding a cue does
-    // not fail a test that has nothing to say about it.
+    // Counted off the config rather than written down, so adding a cue does not
+    // fail a test that has nothing to do with it.
     expect(missingKeys).toHaveLength(
       Object.keys(MUSIC_CONFIG).length + Object.keys(SFX_CONFIG).length,
     );

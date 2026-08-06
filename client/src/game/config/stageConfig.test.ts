@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AerialMovementMode } from '@/game/config/aerialMovementConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
@@ -61,6 +62,58 @@ describe('stage configuration', () => {
     });
   });
 
+  it('skins the stage 2 upper platforms with the supplied 3-slice art', () => {
+    expect(STAGE_TWO_CONFIG.terrainSkin).toMatchObject({
+      left: {
+        key: 'stage-2-stool-left',
+        path: '/assets/terrain/stage-2-stool-left.png',
+        width: 38,
+      },
+      middle: {
+        key: 'stage-2-stool-middle',
+        path: '/assets/terrain/stage-2-stool-middle.png',
+        width: 100,
+      },
+      right: {
+        key: 'stage-2-stool-right',
+        path: '/assets/terrain/stage-2-stool-right.png',
+        width: 38,
+      },
+      height: 35,
+      surfaceInset: 3,
+    });
+  });
+
+  it('uses the supplied stage 2 art for every standard enemy role', () => {
+    expect(STAGE_TWO_CONFIG.meleeSprite).toMatchObject({
+      texture: 'stage-2-neared',
+      animations: {
+        idle: 'stage-2-neared-idle',
+        walk: 'stage-2-neared-walk',
+        attack: 'stage-2-neared-attack',
+        death: 'stage-2-neared-death',
+      },
+    });
+    expect(STAGE_TWO_CONFIG.rangedSprite).toMatchObject({
+      texture: 'stage-2-ranged',
+      animations: {
+        idle: 'stage-2-ranged-idle',
+        walk: 'stage-2-ranged-walk',
+        attack: 'stage-2-ranged-attack',
+        death: 'stage-2-ranged-death',
+      },
+    });
+    expect(STAGE_TWO_CONFIG.flyingSprite).toMatchObject({
+      texture: 'stage-2-flying',
+      animations: {
+        idle: 'stage-2-flying-idle',
+        hit: 'stage-2-flying-hit',
+        deathFall: 'stage-2-flying-death-fall',
+        deathLand: 'stage-2-flying-death-land',
+      },
+    });
+  });
+
   it('loads the supplied stage 3 background with the same structure', () => {
     expect(STAGE_THREE_CONFIG.background).toEqual({
       key: 'stage-03-bg',
@@ -110,15 +163,29 @@ describe('stage configuration', () => {
     }
   });
 
-  it('prevents flight from bypassing stage five exit doors', () => {
+  it('gives every ground-stage flier a restrained patrol route', () => {
+    for (const stage of STAGES.slice(0, 4)) {
+      for (const room of stage.rooms.filter(({ kind }) => kind === 'combat')) {
+        for (const spawn of room.enemySpawns) {
+          if (spawn.type !== 'flying') continue;
+
+          expect(spawn.movement?.mode).toBe(AerialMovementMode.PATROL);
+          expect(spawn.movement?.rangeX).toBeLessThanOrEqual(120);
+          expect(spawn.movement?.rangeY).toBeLessThanOrEqual(40);
+        }
+      }
+    }
+  });
+
+  it('centres the stage five clear portal for aerial rooms', () => {
     expect(
       STAGE_FIVE_CONFIG.rooms.every(
-        (room) => room.door.height === 720 && room.door.y === 360,
+        (room) => room.portal.height === 720 && room.portal.y === 360,
       ),
     ).toBe(true);
     expect(
       STAGES.slice(0, 4).every((stage) =>
-        stage.rooms.every((room) => room.door.height === 180),
+        stage.rooms.every((room) => room.portal.height === 180),
       ),
     ).toBe(true);
   });

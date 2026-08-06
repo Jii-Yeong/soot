@@ -9,6 +9,7 @@ type GameUiState = {
   maxHealth: number;
   enemyHealth: number;
   enemyMaxHealth: number;
+  enemyIsBoss: boolean;
   bossPhase: BossPhase | null;
   scene: GameSceneKey;
   phase: GamePhase;
@@ -16,14 +17,16 @@ type GameUiState = {
   weaponId: string;
   weaponLabel: string;
   nearbyWeaponId: string | null;
+  paused: boolean;
   setHealth: (health: number, maxHealth: number) => void;
-  setEnemyHealth: (health: number, maxHealth: number) => void;
+  setEnemyHealth: (health: number, maxHealth: number, isBoss: boolean) => void;
   setBossPhase: (bossPhase: BossPhase | null) => void;
   setScene: (scene: GameSceneKey) => void;
   setPhase: (phase: GamePhase) => void;
   setRoomState: (roomState: RoomState) => void;
   setWeapon: (weaponId: string, weaponLabel: string) => void;
   setNearbyWeapon: (nearbyWeaponId: string | null) => void;
+  setPaused: (paused: boolean) => void;
 };
 
 export const useGameUiStore = create<GameUiState>((set) => ({
@@ -31,6 +34,7 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   maxHealth: 100,
   enemyHealth: 100,
   enemyMaxHealth: 100,
+  enemyIsBoss: false,
   bossPhase: null,
   scene: 'boot',
   phase: 'boot',
@@ -38,13 +42,15 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   weaponId: 'smg',
   weaponLabel: 'SMG',
   nearbyWeaponId: null,
+  paused: false,
   setHealth: (health, maxHealth) => set({ health, maxHealth }),
-  setEnemyHealth: (enemyHealth, enemyMaxHealth) =>
-    set({ enemyHealth, enemyMaxHealth }),
+  setEnemyHealth: (enemyHealth, enemyMaxHealth, enemyIsBoss) =>
+    set({ enemyHealth, enemyMaxHealth, enemyIsBoss }),
   setBossPhase: (bossPhase) => set({ bossPhase }),
   setScene: (scene) => set({ scene }),
   setPhase: (phase) => set({ phase }),
   setRoomState: (roomState) => set({ roomState }),
   setWeapon: (weaponId, weaponLabel) => set({ weaponId, weaponLabel }),
   setNearbyWeapon: (nearbyWeaponId) => set({ nearbyWeaponId }),
+  setPaused: (paused) => set({ paused }),
 }));
