@@ -45,15 +45,21 @@ export class StageEndEventDirector {
    * 잠시 그대로 두었다가 `onComplete`(클리어/승리 화면)로 넘어간다.
    */
   playAscension(onEnterRoom: () => void, onComplete: () => void) {
-    const centerX = GAME_WIDTH / 2;
-    const centerY = GAME_HEIGHT / 2;
-    const bodyY = GAME_HEIGHT - 116;
-    const eyeY = GAME_HEIGHT - 150;
+    // 화면 스케일이 EXPAND라 넓은 화면에서는 카메라 폭이 GAME_WIDTH보다 크다.
+    // scrollFactor 0 오버레이·실루엣은 실제 카메라 크기를 기준으로 배치해야
+    // 흰 화면이 옆까지 덮이고 실루엣이 좌우로 고르게 포위한다.
+    const camera = this.scene.cameras.main;
+    const screenWidth = camera.width;
+    const screenHeight = camera.height;
+    const centerX = screenWidth / 2;
+    const centerY = screenHeight / 2;
+    const bodyY = screenHeight - 116;
+    const eyeY = screenHeight - 150;
     const props: Phaser.GameObjects.GameObject[] = [];
 
     // 화면이 점점 하얘진다.
     const white = this.scene.add
-      .rectangle(centerX, centerY, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0)
+      .rectangle(centerX, centerY, screenWidth, screenHeight, 0xffffff, 0)
       .setDepth(90)
       .setScrollFactor(0);
     this.scene.tweens.add({
@@ -65,11 +71,16 @@ export class StageEndEventDirector {
         // 완전히 하얀 순간 3스테이지 지하 착지 방으로 교체(교체를 흰빛으로 감춤).
         onEnterRoom();
 
-        // 좌우로 적 실루엣이 나타나 플레이어를 포위한다.
-        const flankXs = SIEGE_FLANK_OFFSETS.flatMap((offset) => [
-          centerX - offset,
-          centerX + offset,
-        ]);
+        // 좌우로 적 실루엣이 화면 폭에 고르게 퍼져 플레이어를 포위한다.
+        const perSide = SIEGE_FLANK_OFFSETS.length;
+        const flankXs: number[] = [];
+        for (const side of [-1, 1]) {
+          for (let index = 0; index < perSide; index += 1) {
+            flankXs.push(
+              centerX + side * centerX * ((index + 1) / (perSide + 1)),
+            );
+          }
+        }
         for (const flankX of flankXs) {
           const body = this.scene.add
             .rectangle(flankX, bodyY, 34, 96, 0x05070b, 0.98)
