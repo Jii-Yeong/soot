@@ -974,12 +974,31 @@ test('stage four uses three infernal patterns with at most two attackers', async
     'locked',
     { timeout: 10_000 },
   );
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeScene = { anims: { exists: (key: string) => boolean } };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        return (game.scene.getScene('game') as RuntimeScene).anims.exists(
+          'stage-4-takedown-idle',
+        );
+      }),
+    )
+    .toBe(true);
 
   const result = await page.evaluate(async () => {
     type RuntimeEnemy = {
       active: boolean;
+      anims: { currentAnim?: { key: string } };
+      constructor: { name: string };
       getData: (key: string) => unknown;
       texture: { key: string };
+      updateCombat: (
+        time: number,
+        target: RuntimePlayer,
+        fireProjectile: () => void,
+      ) => boolean;
       x: number;
       y: number;
     };
@@ -994,6 +1013,18 @@ test('stage four uses three infernal patterns with at most two attackers', async
     type DebugGame = { scene: { getScene: (key: string) => unknown } };
     const game = (window as unknown as { __game?: DebugGame }).__game!;
     const scene = game.scene.getScene('game') as RuntimeScene;
+
+    const executioner = scene.enemies.find(
+      ({ constructor }) => constructor.name === 'ExecutionerDollEnemy',
+    )!;
+    scene.player.setPosition(executioner.x + 200, executioner.y);
+    scene.player.body.reset(executioner.x + 200, executioner.y);
+    executioner.updateCombat(0, scene.player, () => undefined);
+    const idleAnimation = executioner.anims.currentAnim?.key;
+    scene.player.setPosition(executioner.x + 200, executioner.y + 100);
+    scene.player.body.reset(executioner.x + 200, executioner.y + 100);
+    executioner.updateCombat(0, scene.player, () => undefined);
+    const flyAnimation = executioner.anims.currentAnim?.key;
 
     scene.player.setPosition(2_500, 600);
     scene.player.body.reset(2_500, 600);
@@ -1014,6 +1045,8 @@ test('stage four uses three infernal patterns with at most two attackers', async
 
     return {
       textures: scene.enemies.map(({ texture }) => texture.key),
+      idleAnimation,
+      flyAnimation,
       maximumAttackers,
       sawThreeNearbyEnemies,
     };
@@ -1022,10 +1055,12 @@ test('stage four uses three infernal patterns with at most two attackers', async
   expect(new Set(result.textures)).toEqual(
     new Set([
       'infernal-hound-placeholder',
-      'executioner-doll-placeholder',
+      'stage-4-takedown',
       'judgment-eye-placeholder',
     ]),
   );
+  expect(result.idleAnimation).toBe('stage-4-takedown-idle');
+  expect(result.flyAnimation).toBe('stage-4-takedown-fly');
   expect(result.sawThreeNearbyEnemies).toBe(true);
   expect(result.maximumAttackers).toBe(2);
 });

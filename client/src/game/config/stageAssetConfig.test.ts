@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   STAGE_ONE_CONFIG,
+  STAGE_FOUR_CONFIG,
   STAGE_THREE_CONFIG,
   STAGE_TWO_CONFIG,
 } from '@/game/config/stageConfig';
@@ -50,6 +51,12 @@ describe('stage asset manifests', () => {
         expect.objectContaining({ key: 'stage-3-pipe-right' }),
       ],
     });
+  });
+
+  it('includes the stage four executioner doll atlas', () => {
+    expect(getStageAssetManifest(STAGE_FOUR_CONFIG).enemyAtlases).toEqual([
+      expect.objectContaining({ texture: 'stage-4-takedown' }),
+    ]);
   });
 
   it('reuses the resolved manifest for repeated room transitions', () => {
