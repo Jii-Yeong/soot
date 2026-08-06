@@ -336,6 +336,11 @@ export class PlayerController {
   stop() {
     this.finishDash();
     this.flightEntryLift = undefined;
+    // 방 전환 시 중력을 스테이지 모드에 맞춰 강제 복원한다. 보스 그랩·포박·대시
+    // 등으로 중력이 꺼진 채 다음 방으로 넘어가 플레이어가 공중에 멈추는 것을 막는다.
+    (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(
+      this.movementMode === MovementMode.GROUND,
+    );
     this.player.setVelocity(0);
   }
 
