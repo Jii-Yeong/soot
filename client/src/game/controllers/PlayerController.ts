@@ -488,7 +488,9 @@ export class PlayerController {
       }
     }
 
-    // 방향키를 누르고 있으면 그 방향으로, 아니면 쳐다보는 방향(flipX)으로 대시.
+    // 지상 대시 방향: 좌/우 방향키를 누르고 있으면 그 방향으로 대시한다. 좌우를
+    // 동시에 눌러 서로 상쇄되면(horizontal === 0) 방향키 미입력과 똑같이 취급해
+    // 쳐다보는 방향(flipX)으로 대시한다.
     const horizontal = Number(this.isMovingRight()) - Number(this.isMovingLeft());
     if (horizontal !== 0) {
       this.dashVelocity.x = horizontal;
