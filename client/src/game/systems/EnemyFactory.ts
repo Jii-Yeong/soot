@@ -23,7 +23,9 @@ import type {
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
 import { BlockerEnemy } from '@/game/entities/BlockerEnemy';
 import { CaptorEnemy } from '@/game/entities/CaptorEnemy';
+import { CelestialOracleEnemy } from '@/game/entities/CelestialOracleEnemy';
 import { CeilingMaintainerEnemy } from '@/game/entities/CeilingMaintainerEnemy';
+import { ChoirSupporterEnemy } from '@/game/entities/ChoirSupporterEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
 import { ExecutionerDollEnemy } from '@/game/entities/ExecutionerDollEnemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
@@ -36,6 +38,7 @@ import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
 import { JudgmentEyeEnemy } from '@/game/entities/JudgmentEyeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
+import { SanctumEnforcerEnemy } from '@/game/entities/SanctumEnforcerEnemy';
 import type { BossPhase } from '@/game/state/bossPhase';
 import { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
 import {
@@ -96,6 +99,7 @@ export class EnemyFactory {
   private readonly rangedSprite?: RangedSpriteConfig;
   private readonly meleeSprite?: MeleeSpriteConfig;
   private readonly stageFourAttackCoordinator = new EnemyAttackCoordinator(2);
+  private readonly stageFiveAttackCoordinator = new EnemyAttackCoordinator(2);
 
   constructor(options: EnemyFactoryOptions) {
     this.scene = options.scene;
@@ -144,6 +148,12 @@ export class EnemyFactory {
         return this.createExecutionerDoll(spawn);
       case 'judgment-eye':
         return this.createJudgmentEye(spawn);
+      case 'choir-supporter':
+        return this.createChoirSupporter(spawn);
+      case 'sanctum-enforcer':
+        return this.createSanctumEnforcer(spawn);
+      case 'celestial-oracle':
+        return this.createCelestialOracle(spawn);
       case 'boss':
         return this.createBossEnemy(spawn);
     }
@@ -224,6 +234,45 @@ export class EnemyFactory {
         spawn.x,
         spawn.y,
         this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createChoirSupporter(spawn: SpawnOf<'choir-supporter'>) {
+    return this.finishSpawn(
+      new ChoirSupporterEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFiveAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createSanctumEnforcer(spawn: SpawnOf<'sanctum-enforcer'>) {
+    return this.finishSpawn(
+      new SanctumEnforcerEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFiveAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createCelestialOracle(spawn: SpawnOf<'celestial-oracle'>) {
+    return this.finishSpawn(
+      new CelestialOracleEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFiveAttackCoordinator,
         this.damagePlayer,
       ),
       { collidesWithFloor: false, collidesWithTerrain: false },

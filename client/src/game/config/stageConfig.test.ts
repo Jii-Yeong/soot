@@ -158,13 +158,16 @@ describe('stage configuration', () => {
     });
   });
 
-  it('uses independently configured aerial enemies throughout stage five', () => {
+  it('uses stage-specific bullet-pattern enemies throughout stage five', () => {
+    const expectedTypes = new Set([
+      'choir-supporter',
+      'sanctum-enforcer',
+      'celestial-oracle',
+    ]);
     for (const room of STAGE_FIVE_CONFIG.rooms.slice(0, 2)) {
-      expect(
-        room.enemySpawns.every(
-          (spawn) => spawn.type === 'flying' && Boolean(spawn.movement),
-        ),
-      ).toBe(true);
+      expect(new Set(room.enemySpawns.map(({ type }) => type))).toEqual(
+        expectedTypes,
+      );
     }
   });
 

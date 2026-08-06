@@ -1030,6 +1030,75 @@ test('stage four uses three infernal patterns with at most two attackers', async
   expect(result.maximumAttackers).toBe(2);
 });
 
+test('stage five uses three celestial bullet enemies with at most two attackers', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page.getByRole('button', { name: '5스테이지', exact: true }).click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+    { timeout: 10_000 },
+  );
+
+  const result = await page.evaluate(async () => {
+    type RuntimeEnemy = {
+      active: boolean;
+      getData: (key: string) => unknown;
+      texture: { key: string };
+    };
+    type RuntimePlayer = {
+      body: { reset: (x: number, y: number) => void };
+      setPosition: (x: number, y: number) => void;
+    };
+    type RuntimeScene = {
+      children: { list: Array<{ active: boolean; texture?: { key: string } }> };
+      enemies: RuntimeEnemy[];
+      player: RuntimePlayer;
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+
+    scene.player.setPosition(1_700, 360);
+    scene.player.body.reset(1_700, 360);
+    let maximumAttackers = 0;
+    let sawProjectile = false;
+    for (let sample = 0; sample < 40; sample += 1) {
+      maximumAttackers = Math.max(
+        maximumAttackers,
+        scene.enemies.filter(
+          (enemy) => enemy.active && enemy.getData('stage-five-attacking'),
+        ).length,
+      );
+      sawProjectile ||= scene.children.list.some(
+        ({ active, texture }) =>
+          active &&
+          (texture?.key === 'celestial-bullet-placeholder' ||
+            texture?.key === 'celestial-spear-placeholder'),
+      );
+      await new Promise((resolve) => window.setTimeout(resolve, 100));
+    }
+
+    return {
+      textures: scene.enemies.map(({ texture }) => texture.key),
+      maximumAttackers,
+      sawProjectile,
+    };
+  });
+
+  expect(new Set(result.textures)).toEqual(
+    new Set([
+      'choir-supporter-placeholder',
+      'sanctum-enforcer-placeholder',
+      'celestial-oracle-placeholder',
+    ]),
+  );
+  expect(result.maximumAttackers).toBeLessThanOrEqual(2);
+  expect(result.sawProjectile).toBe(true);
+});
+
 test('stage three pipe crawler stays aligned above its floor segment', async ({
   page,
 }) => {

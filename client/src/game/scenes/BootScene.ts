@@ -262,6 +262,63 @@ export class BootScene extends Phaser.Scene {
     graphics.fillRect(47, 55, 11, 2);
     graphics.generateTexture('judgment-eye-placeholder', 72, 72);
 
+    // 성가의 소형 서포터: 작은 날개와 밝아지는 후광을 가진 천사 드론.
+    graphics.clear();
+    graphics.lineStyle(4, 0xffeaa1, 0.95);
+    graphics.strokeCircle(28, 24, 20);
+    graphics.fillStyle(0xe9edf0);
+    graphics.fillCircle(28, 28, 15);
+    graphics.fillTriangle(14, 28, 0, 18, 7, 38);
+    graphics.fillTriangle(42, 28, 56, 18, 49, 38);
+    graphics.fillStyle(0x8fffe0);
+    graphics.fillCircle(28, 28, 5);
+    graphics.fillStyle(0x88959b);
+    graphics.fillRect(24, 42, 8, 10);
+    graphics.generateTexture('choir-supporter-placeholder', 56, 54);
+
+    // 성역의 집행자: 창 발사기와 금속 날개를 단 중형 안드로이드.
+    graphics.clear();
+    graphics.fillStyle(0xd7dde0);
+    graphics.fillRoundedRect(18, 8, 36, 68, 7);
+    graphics.fillTriangle(18, 20, 0, 34, 18, 48);
+    graphics.fillTriangle(54, 20, 72, 34, 54, 48);
+    graphics.fillStyle(0xffd66f);
+    graphics.fillRect(25, 19, 22, 8);
+    graphics.fillStyle(0x69767c);
+    graphics.fillRect(4, 38, 52, 8);
+    graphics.fillStyle(0x8fffe0);
+    graphics.fillRect(31, 32, 10, 26);
+    graphics.generateTexture('sanctum-enforcer-placeholder', 72, 84);
+
+    // 천계의 오라클: 후광과 성서 조각이 둘러싼 대형 카메라 코어.
+    graphics.clear();
+    graphics.lineStyle(7, 0xffe59a, 0.9);
+    graphics.strokeCircle(48, 48, 40);
+    graphics.fillStyle(0xf0f2ee);
+    graphics.fillCircle(48, 48, 30);
+    graphics.fillStyle(0x3a4248);
+    graphics.fillEllipse(48, 48, 42, 20);
+    graphics.fillStyle(0x8fffe0);
+    graphics.fillCircle(48, 48, 7);
+    graphics.fillStyle(0xfff1b8);
+    graphics.fillRect(0, 23, 18, 28);
+    graphics.fillRect(78, 45, 18, 28);
+    graphics.generateTexture('celestial-oracle-placeholder', 96, 96);
+
+    graphics.clear();
+    graphics.fillStyle(0xffe9a6);
+    graphics.fillCircle(6, 6, 6);
+    graphics.fillStyle(0xffffff);
+    graphics.fillCircle(6, 6, 2);
+    graphics.generateTexture('celestial-bullet-placeholder', 12, 12);
+
+    graphics.clear();
+    graphics.fillStyle(0xffe79a);
+    graphics.fillTriangle(0, 4, 25, 0, 25, 8);
+    graphics.fillStyle(0xffffff);
+    graphics.fillRect(8, 3, 22, 2);
+    graphics.generateTexture('celestial-spear-placeholder', 30, 8);
+
     graphics.clear();
     graphics.fillStyle(0x6f0713);
     graphics.fillCircle(5, 5, 5);

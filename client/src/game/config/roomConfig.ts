@@ -54,6 +54,21 @@ export type EnemySpawnConfig =
       y: number;
     }
   | {
+      type: 'choir-supporter';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'sanctum-enforcer';
+      x: number;
+      y: number;
+    }
+  | {
+      type: 'celestial-oracle';
+      x: number;
+      y: number;
+    }
+  | {
       type: 'boss';
       variant: BossVariant;
       x: number;
