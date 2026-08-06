@@ -765,6 +765,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createCombatUi() {
+    const viewportWidth = this.scale.width;
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.deathOverlay = this.createOverlay(
@@ -791,7 +792,7 @@ export class GameScene extends Phaser.Scene {
     this.syncWeaponUi();
 
     this.weaponEquippedText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, '', {
+      .text(viewportWidth / 2, GAME_HEIGHT - 128, '', {
         color: '#ffffff',
         backgroundColor: '#070a0be8',
         fontFamily: 'Arial, sans-serif',
@@ -805,7 +806,7 @@ export class GameScene extends Phaser.Scene {
       .setVisible(false);
 
     this.controlHintText = this.add
-      .text(GAME_WIDTH - 32, GAME_HEIGHT - 96, '', {
+      .text(viewportWidth - 32, GAME_HEIGHT - 96, '', {
         color: '#d8dfdc',
         backgroundColor: '#070a0bd9',
         fontFamily: 'Arial, sans-serif',
@@ -1501,9 +1502,10 @@ export class GameScene extends Phaser.Scene {
     titleText: string,
     promptText: string,
   ) {
+    const viewportCenterX = this.scale.width / 2;
     const panel = this.add
       .nineslice(
-        GAME_WIDTH / 2,
+        viewportCenterX,
         GAME_HEIGHT / 2,
         panelTexture,
         undefined,
@@ -1518,7 +1520,7 @@ export class GameScene extends Phaser.Scene {
       )
       .setOrigin(0.5);
     const title = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, titleText, {
+      .text(viewportCenterX, GAME_HEIGHT / 2 - 28, titleText, {
         color: titleColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',
@@ -1526,7 +1528,7 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const prompt = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 34, promptText, {
+      .text(viewportCenterX, GAME_HEIGHT / 2 + 34, promptText, {
         color: '#e8ece9',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',

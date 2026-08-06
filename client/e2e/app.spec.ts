@@ -347,10 +347,21 @@ test('keeps the HUD inside the rendered canvas at narrow and wide ratios', async
     await enterGame(page);
 
     const canvas = await getCanvasBounds(page);
+    const shell = await page.locator('.game-shell').boundingBox();
     const hud = await page.locator('.hud-layer').boundingBox();
 
-    if (!hud) {
+    if (!hud || !shell) {
       throw new Error('HUD bounds are unavailable');
+    }
+
+    if (viewport.width / viewport.height >= 16 / 9) {
+      expect(canvas.x).toBeCloseTo(shell.x);
+      expect(canvas.width).toBeCloseTo(shell.width);
+      expect(canvas.width / canvas.height).toBeCloseTo(
+        await page
+          .locator('#game-root canvas')
+          .evaluate((element) => element.width / element.height),
+      );
     }
 
     expect(hud.x).toBeGreaterThanOrEqual(canvas.x);
