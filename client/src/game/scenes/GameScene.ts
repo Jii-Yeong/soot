@@ -21,6 +21,7 @@ import {
   STAGES,
   type StageEndEvent,
 } from '@/game/config/stageConfig';
+import { formatStageLabel } from '@/game/config/stageLabel';
 import { getStageExitPlan } from '@/game/config/stageProgression';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
@@ -324,25 +325,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnRoomEnemies() {
-    const enemyFactory = new EnemyFactory(
-      this,
-      this.floorBuilder.group,
-      this.terrainBuilder.group,
-      this.floorBuilder.enemyPitBarriers,
-      this.activeRoomConfig.intensity,
-      (damage) => this.applyPlayerDamage(damage),
-      (sourceX, slowFactor, pullSpeed) =>
+    const enemyFactory = new EnemyFactory({
+      scene: this,
+      floor: this.floorBuilder.group,
+      terrain: this.terrainBuilder.group,
+      enemyPitBarriers: this.floorBuilder.enemyPitBarriers,
+      intensity: this.activeRoomConfig.intensity,
+      damagePlayer: (damage) => this.applyPlayerDamage(damage),
+      tetherPlayer: (sourceX, slowFactor, pullSpeed) =>
         this.playerController.applyTether(sourceX, slowFactor, pullSpeed),
-      () => this.playerController.isDashing,
-      (bossX, pullSpeed) =>
+      isPlayerDashing: () => this.playerController.isDashing,
+      pullPlayer: (bossX, pullSpeed) =>
         this.playerController.applyVacuum(bossX, pullSpeed),
-      this.activeRoomConfig.ceilingPipes ?? [],
-      {
+      ceilingPipes: this.activeRoomConfig.ceilingPipes ?? [],
+      bossArena: {
         left: this.activeRoomConfig.entranceX,
         right: this.activeRoomConfig.exitX,
       },
-      (phase) => gameEvents.emit('boss-phase-changed', phase),
-      (spawnX) =>
+      onBossPhaseChanged: (phase) =>
+        gameEvents.emit('boss-phase-changed', phase),
+      patrolBoundsFor: (spawnX) =>
         patrolSpan({
           spawnX,
           range: MELEE_ENEMY_COMBAT_CONFIG.patrolRange,
@@ -352,11 +354,11 @@ export class GameScene extends Phaser.Scene {
           edgeMargin: MELEE_ENEMY_COMBAT_CONFIG.patrolEdgeMargin,
           minimumSpan: MELEE_ENEMY_COMBAT_CONFIG.patrolMinimumSpan,
         }),
-      this.stage.flyingSprite,
-      this.stage.meleeSwing,
-      this.stage.rangedSprite,
-      this.stage.meleeSprite,
-    );
+      flyingSprite: this.stage.flyingSprite,
+      meleeSwing: this.stage.meleeSwing,
+      rangedSprite: this.stage.rangedSprite,
+      meleeSprite: this.stage.meleeSprite,
+    });
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
@@ -500,7 +502,7 @@ export class GameScene extends Phaser.Scene {
   private emitStageLocation() {
     gameEvents.emit(
       'stage-location-changed',
-      this.stage.label.replace(/\s*\/\/\s*/, ' | '),
+      formatStageLabel(this.stage.label),
       this.currentRoomIndex + 1,
     );
   }

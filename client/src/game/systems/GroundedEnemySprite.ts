@@ -51,14 +51,16 @@ export class GroundedEnemySprite {
   }
 
   /**
-   * 콜드 로드로 아틀라스가 스폰보다 늦게 도착한 경우, 스케일과 idle 애니메이션을
+   * 콜드 로드로 아틀라스가 스폰보다 늦게 도착한 경우, 스케일과 현재 애니메이션을
    * 다시 적용해 __MISSING 텍스처를 실제 프레임으로 교체한다(위치·바디는 초기
-   * apply에서 이미 잡혀 있어 건드리지 않는다).
+   * apply에서 이미 잡혀 있어 건드리지 않는다). 공격 중이라면 idle로 되돌리지 않음.
    */
   refresh() {
+    const currentAnimation =
+      this.activeAnimation ?? this.config.animations.idle;
     this.sprite.setScale(this.config.scale);
     this.activeAnimation = undefined;
-    this.play(this.config.animations.idle);
+    this.play(currentAnimation);
   }
 
   /** 이미 활성인 애니메이션이 아닐 때만 재생. */

@@ -3,7 +3,17 @@ import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
-import { WEAPON_INVENTORY_SIZE } from '@/game/config/weaponConfig';
+import { STAGE_ONE_CONFIG } from '@/game/config/stageConfig';
+import { formatStageLabel } from '@/game/config/stageLabel';
+import {
+  STARTING_WEAPON_ID,
+  WEAPON_CONFIGS,
+  WEAPON_INVENTORY_SIZE,
+} from '@/game/config/weaponConfig';
+
+const startingWeapon = WEAPON_CONFIGS.find(
+  ({ id }) => id === STARTING_WEAPON_ID,
+)!;
 
 type GameUiState = {
   health: number;
@@ -49,13 +59,13 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   scene: 'boot',
   phase: 'boot',
   roomState: 'idle',
-  stageLabel: 'STAGE 1 | THE CITY',
+  stageLabel: formatStageLabel(STAGE_ONE_CONFIG.label),
   roomNumber: 1,
-  weaponId: 'smg',
-  weaponLabel: 'SMG',
+  weaponId: startingWeapon.id,
+  weaponLabel: startingWeapon.label,
   weaponSlots: Array.from(
     { length: WEAPON_INVENTORY_SIZE },
-    (_, index) => (index === 0 ? 'smg' : null),
+    (_, index) => (index === 0 ? STARTING_WEAPON_ID : null),
   ),
   activeWeaponSlot: 0,
   nearbyWeaponId: null,

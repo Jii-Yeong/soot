@@ -34,8 +34,6 @@ function createScene(loadedKeys: readonly string[] = []) {
     textures: {
       exists: vi.fn((key: string) => loadedKeys.includes(key)),
     },
-    // onReady는 애니메이션 생성 후로 미뤄지므로, 테스트에서는 즉시 실행한다.
-    time: { delayedCall: (_delay: number, cb: () => void) => cb() },
   } as unknown as Phaser.Scene;
 
   return { anims, listeners, load, scene };
@@ -129,8 +127,13 @@ describe('StageAssetPreloader', () => {
   });
 
   it('runs onReady once every awaited texture has arrived', () => {
-    const { listeners, scene } = createScene();
-    const onReady = vi.fn();
+    const { anims, listeners, scene } = createScene();
+    const finalKey = 'stage-2-neared';
+    const onReady = vi.fn(() => {
+      expect(anims.create).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'stage-2-neared-attack' }),
+      );
+    });
 
     new StageAssetPreloader(scene).preload(STAGE_TWO_CONFIG, onReady);
 
@@ -145,16 +148,20 @@ describe('StageAssetPreloader', () => {
       'stage-2-stool-middle',
       'stage-2-stool-right',
     ];
-    const complete = listeners.get('filecomplete') ?? [];
-    for (const key of awaited.slice(0, -1)) {
-      for (const listener of complete) {
-        listener(key as never);
+    for (const key of awaited.filter((key) => key !== finalKey)) {
+      const type = key.includes('floor') || key.includes('stool')
+        ? 'image'
+        : 'atlasjson';
+      for (const listener of
+        listeners.get(`filecomplete-${type}-${key}`) ?? []) {
+        listener();
       }
     }
     expect(onReady).not.toHaveBeenCalled();
 
-    for (const listener of complete) {
-      listener(awaited.at(-1) as never);
+    for (const listener of
+      listeners.get(`filecomplete-atlasjson-${finalKey}`) ?? []) {
+      listener();
     }
     expect(onReady).toHaveBeenCalledOnce();
   });
@@ -177,7 +184,7 @@ describe('StageAssetPreloader', () => {
     new StageAssetPreloader(warm.scene).preload(STAGE_TWO_CONFIG, onReady);
 
     expect(onReady).not.toHaveBeenCalled();
-    expect(warm.listeners.get('filecomplete') ?? []).toHaveLength(0);
+    expect(warm.listeners.size).toBe(0);
   });
 
   it('deduplicates pending files and permits retry after a failure', () => {

@@ -15,7 +15,7 @@ export function WeaponInventory({
   return (
     <ol
       className='weapon-inventory'
-      role='radiogroup'
+      role='list'
       aria-label='Weapon inventory'
     >
       {Array.from({ length: WEAPON_INVENTORY_SIZE }, (_, index) => {
@@ -29,9 +29,7 @@ export function WeaponInventory({
             className={`weapon-inventory__slot${
               selected ? ' weapon-inventory__slot--selected' : ''
             }${weapon ? '' : ' weapon-inventory__slot--empty'}`}
-            role='radio'
-            aria-checked={selected}
-            aria-disabled={!weapon}
+            aria-current={selected ? 'true' : undefined}
             aria-label={
               weapon ? `${index + 1}: ${weapon.label}` : `${index + 1}: Empty`
             }

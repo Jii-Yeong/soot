@@ -13,3 +13,4 @@ export const ROOM_PORTAL_ANIMATION = {
 
 export const ROOM_PORTAL_WIDTH = 64;
 export const ROOM_PORTAL_HEIGHT = 128;
+export const ROOM_PORTAL_DEFAULT_TINT = 0xb6ffe4;

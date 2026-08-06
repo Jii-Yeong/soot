@@ -48,43 +48,73 @@ type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   { type: Type }
 >;
 
+type EnemyFactoryOptions = {
+  scene: Phaser.Scene;
+  floor: Phaser.Physics.Arcade.StaticGroup;
+  terrain: Phaser.Physics.Arcade.StaticGroup;
+  enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup;
+  intensity?: number;
+  damagePlayer: (damage: number) => void;
+  tetherPlayer: (
+    sourceX: number,
+    slowFactor: number,
+    pullSpeed: number,
+  ) => void;
+  isPlayerDashing: () => boolean;
+  pullPlayer: (bossX: number, pullSpeed: number) => void;
+  ceilingPipes: readonly CeilingPipe[];
+  bossArena: BossArenaBounds;
+  onBossPhaseChanged: (phase: BossPhase) => void;
+  /** 방의 구덩이와 가장자리에 맞춰 잘라낸 순찰 범위를 반환함. */
+  patrolBoundsFor: (spawnX: number) => PatrolBounds | null;
+  flyingSprite?: FlyingSpriteConfig;
+  meleeSwing?: MeleeSwingConfig;
+  rangedSprite?: RangedSpriteConfig;
+  meleeSprite?: MeleeSpriteConfig;
+};
+
 const assertUnhandledBossConfig = (_config: never): never => {
   throw new Error('Unsupported boss pattern');
 };
 
 export class EnemyFactory {
+  private readonly scene: Phaser.Scene;
+  private readonly floor: Phaser.Physics.Arcade.StaticGroup;
+  private readonly terrain: Phaser.Physics.Arcade.StaticGroup;
+  private readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup;
   private readonly intensity: number;
+  private readonly damagePlayer: (damage: number) => void;
+  private readonly tetherPlayer: EnemyFactoryOptions['tetherPlayer'];
+  private readonly isPlayerDashing: () => boolean;
+  private readonly pullPlayer: EnemyFactoryOptions['pullPlayer'];
+  private readonly ceilingPipes: readonly CeilingPipe[];
+  private readonly bossArena: BossArenaBounds;
+  private readonly onBossPhaseChanged: EnemyFactoryOptions['onBossPhaseChanged'];
+  private readonly patrolBoundsFor: EnemyFactoryOptions['patrolBoundsFor'];
+  private readonly flyingSprite?: FlyingSpriteConfig;
+  private readonly meleeSwing?: MeleeSwingConfig;
+  private readonly rangedSprite?: RangedSpriteConfig;
+  private readonly meleeSprite?: MeleeSpriteConfig;
   private readonly stageFourAttackCoordinator = new EnemyAttackCoordinator(2);
 
-  constructor(
-    private readonly scene: Phaser.Scene,
-    private readonly floor: Phaser.Physics.Arcade.StaticGroup,
-    private readonly terrain: Phaser.Physics.Arcade.StaticGroup,
-    private readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup,
-    intensity: number | undefined,
-    private readonly damagePlayer: (damage: number) => void,
-    private readonly tetherPlayer: (
-      sourceX: number,
-      slowFactor: number,
-      pullSpeed: number,
-    ) => void,
-    private readonly isPlayerDashing: () => boolean,
-    private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
-    private readonly ceilingPipes: readonly CeilingPipe[],
-    private readonly bossArena: BossArenaBounds,
-    private readonly onBossPhaseChanged: (phase: BossPhase) => void,
-    /**
-     * 이 위치의 적이 순찰할 수 있도록 방의 구덩이와 가장자리에 맞춰 잘라낸
-     * 바닥 구간. 팩토리는 방의 형태를 모르고 배치 시점에 범위가 고정되므로,
-     * 장면에서 계산해 전달한다.
-     */
-    private readonly patrolBoundsFor: (spawnX: number) => PatrolBounds | null,
-    private readonly flyingSprite?: FlyingSpriteConfig,
-    private readonly meleeSwing?: MeleeSwingConfig,
-    private readonly rangedSprite?: RangedSpriteConfig,
-    private readonly meleeSprite?: MeleeSpriteConfig,
-  ) {
-    this.intensity = intensity ?? 1;
+  constructor(options: EnemyFactoryOptions) {
+    this.scene = options.scene;
+    this.floor = options.floor;
+    this.terrain = options.terrain;
+    this.enemyPitBarriers = options.enemyPitBarriers;
+    this.intensity = options.intensity ?? 1;
+    this.damagePlayer = options.damagePlayer;
+    this.tetherPlayer = options.tetherPlayer;
+    this.isPlayerDashing = options.isPlayerDashing;
+    this.pullPlayer = options.pullPlayer;
+    this.ceilingPipes = options.ceilingPipes;
+    this.bossArena = options.bossArena;
+    this.onBossPhaseChanged = options.onBossPhaseChanged;
+    this.patrolBoundsFor = options.patrolBoundsFor;
+    this.flyingSprite = options.flyingSprite;
+    this.meleeSwing = options.meleeSwing;
+    this.rangedSprite = options.rangedSprite;
+    this.meleeSprite = options.meleeSprite;
   }
 
   private patrolFor(spawnX: number) {

@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 import { describe, expect, it, vi } from 'vitest';
 import { defineRoom } from '@/game/config/roomConfig';
+import { ROOM_PORTAL_DEFAULT_TINT } from '@/game/config/portalConfig';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 
 function createScene() {
@@ -69,6 +70,30 @@ describe('RoomDirector', () => {
     expect(portalBody.enable).toBe(true);
     expect(portalView.play).toHaveBeenCalledWith('room-portal-idle');
     expect(portalView.setTint).toHaveBeenCalledWith(0x123456);
+  });
+
+  it('preserves a clamped portal height during its opening tween', () => {
+    const { portalView, scene } = createScene();
+    const director = new RoomDirector({
+      scene,
+      player: {} as Phaser.Physics.Arcade.Sprite,
+      config: defineRoom({
+        id: 'short-portal-room',
+        label: 'SHORT PORTAL',
+        enemySpawns: [],
+        portal: { height: 96 },
+      }),
+      onStateChanged: vi.fn(),
+      onExitRequested: vi.fn(),
+    });
+
+    director.beginEncounter([]);
+
+    expect(portalView.setTint).toHaveBeenCalledWith(ROOM_PORTAL_DEFAULT_TINT);
+    expect(portalView.setScale).toHaveBeenCalledWith(0.9, 0.4375);
+    expect(scene.tweens.add).toHaveBeenCalledWith(
+      expect.objectContaining({ scaleX: 1, scaleY: 0.625 }),
+    );
   });
 
   it('leaves only while standing in a cleared portal, and only once', () => {

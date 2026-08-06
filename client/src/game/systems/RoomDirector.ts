@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import {
   ROOM_PORTAL_ANIMATION,
+  ROOM_PORTAL_DEFAULT_TINT,
   ROOM_PORTAL_HEIGHT,
   ROOM_PORTAL_TEXTURE,
   ROOM_PORTAL_WIDTH,
@@ -12,6 +13,8 @@ type RoomPortal = {
   view: Phaser.GameObjects.Sprite;
   zone: Phaser.GameObjects.Zone;
   body: Phaser.Physics.Arcade.StaticBody;
+  restScaleX: number;
+  restScaleY: number;
 };
 
 type RoomDirectorOptions = {
@@ -43,7 +46,7 @@ export class RoomDirector {
     this.scene = options.scene;
     this.player = options.player;
     this.config = options.config;
-    this.portalTint = options.portalTint ?? 0xb6ffe4;
+    this.portalTint = options.portalTint ?? ROOM_PORTAL_DEFAULT_TINT;
     this.onStateChanged = options.onStateChanged;
     this.onExitRequested = options.onExitRequested;
     this.portal = this.createPortal(this.config.exitX);
@@ -131,7 +134,13 @@ export class RoomDirector {
     const body = zone.body as Phaser.Physics.Arcade.StaticBody;
     body.enable = false;
 
-    return { view, zone, body };
+    return {
+      view,
+      zone,
+      body,
+      restScaleX: ROOM_PORTAL_WIDTH / ROOM_PORTAL_TEXTURE.frameWidth,
+      restScaleY: height / ROOM_PORTAL_TEXTURE.frameHeight,
+    };
   }
 
   /**
@@ -162,14 +171,17 @@ export class RoomDirector {
       .play(ROOM_PORTAL_ANIMATION.key)
       .setVisible(true)
       .setAlpha(0)
-      .setScale(0.9, 0.7)
+      .setScale(
+        this.portal.restScaleX * 0.9,
+        this.portal.restScaleY * 0.7,
+      )
       .setPosition(this.config.exitX, restY + PORTAL_RISE);
     this.scene.tweens.add({
       targets: this.portal.view,
       y: restY,
       alpha: 1,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: this.portal.restScaleX,
+      scaleY: this.portal.restScaleY,
       duration: 360,
       ease: 'Back.easeOut',
       onComplete: () => {

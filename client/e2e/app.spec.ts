@@ -494,10 +494,10 @@ test('fills four weapon slots and switches them with number keys', async ({
 }) => {
   await enterGame(page);
 
-  const inventory = page.getByRole('radiogroup', {
+  const inventory = page.getByRole('list', {
     name: 'Weapon inventory',
   });
-  const slots = inventory.getByRole('radio');
+  const slots = inventory.getByRole('listitem');
   const expectSlotFrame = (
     index: number,
     frame: 'active' | 'empty' | 'neutral',
@@ -509,9 +509,9 @@ test('fills four weapon slots and switches them with number keys', async ({
 
   await expect(slots).toHaveCount(4);
   await expect(slots.nth(0)).toHaveAttribute('aria-label', '1: SMG');
-  await expect(slots.nth(0)).toHaveAttribute('aria-checked', 'true');
+  await expect(slots.nth(0)).toHaveAttribute('aria-current', 'true');
   await expectSlotFrame(0, 'active');
-  await expect(slots.nth(1)).toHaveAttribute('aria-disabled', 'true');
+  await expect(slots.nth(1)).toHaveAttribute('aria-label', '2: Empty');
   await expectSlotFrame(1, 'empty');
 
   const adminButton = page.getByRole('button', { name: 'ADMIN' });
@@ -519,7 +519,7 @@ test('fills four weapon slots and switches them with number keys', async ({
   await page.getByRole('button', { name: 'SHOTGUN 지급' }).click();
   await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
   await expect(slots.nth(1)).toHaveAttribute('aria-label', '2: SHOTGUN');
-  await expect(slots.nth(1)).toHaveAttribute('aria-checked', 'true');
+  await expect(slots.nth(1)).toHaveAttribute('aria-current', 'true');
   await expectSlotFrame(1, 'active');
   await expectSlotFrame(0, 'neutral');
 
@@ -528,20 +528,20 @@ test('fills four weapon slots and switches them with number keys', async ({
     'data-weapon',
     'burst-rifle',
   );
-  await expect(slots.nth(2)).toHaveAttribute('aria-checked', 'true');
+  await expect(slots.nth(2)).toHaveAttribute('aria-current', 'true');
   await adminButton.click();
 
   await page.keyboard.press('Digit1');
   await expect(page.locator('main')).toHaveAttribute('data-weapon', 'smg');
-  await expect(slots.nth(0)).toHaveAttribute('aria-checked', 'true');
+  await expect(slots.nth(0)).toHaveAttribute('aria-current', 'true');
 
   await page.keyboard.press('Digit2');
   await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
-  await expect(slots.nth(1)).toHaveAttribute('aria-checked', 'true');
+  await expect(slots.nth(1)).toHaveAttribute('aria-current', 'true');
 
   await page.keyboard.press('Digit4');
   await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
-  await expect(slots.nth(3)).toHaveAttribute('aria-disabled', 'true');
+  await expect(slots.nth(3)).toHaveAttribute('aria-label', '4: Empty');
 });
 
 test('accepts WASD movement and mouse fire input', async ({ page }) => {
@@ -699,6 +699,8 @@ test('shows the current stage and room directly above the admin button', async (
   const location = page.getByLabel('Stage location');
   const adminButton = page.getByRole('button', { name: 'ADMIN' });
 
+  await expect(page.locator('.hud-layer .stage-location')).toHaveCount(1);
+  await expect(page.locator('.admin-controls .stage-location')).toHaveCount(0);
   await expect(location).toContainText('STAGE 1 | THE CITY');
   await expect(location).toContainText('ROOM #1');
 

@@ -23,6 +23,7 @@ import {
   STAGE_THREE_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
@@ -36,6 +37,34 @@ import {
 } from '@/game/config/portalConfig';
 import { UI_PANEL_TEXTURES } from '@/game/config/uiAssetConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
+import { createAtlasAnimations } from '@/game/systems/createAtlasAnimations';
+
+const BOSS_ANIMATION_ATLASES = [
+  {
+    texture: STAGE_ONE_BOSS_ATLAS_KEY,
+    png: STAGE_ONE_BOSS_ATLAS_PNG,
+    json: STAGE_ONE_BOSS_ATLAS_JSON,
+    animations: STAGE_ONE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_ONE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_ONE_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_TWO_BOSS_ATLAS_KEY,
+    png: STAGE_TWO_BOSS_ATLAS_PNG,
+    json: STAGE_TWO_BOSS_ATLAS_JSON,
+    animations: STAGE_TWO_BOSS_ANIMATIONS,
+    tagFrames: STAGE_TWO_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_TWO_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_THREE_BOSS_ATLAS_KEY,
+    png: STAGE_THREE_BOSS_ATLAS_PNG,
+    json: STAGE_THREE_BOSS_ATLAS_JSON,
+    animations: STAGE_THREE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_THREE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_THREE_BOSS_LOOPING_TAGS,
+  },
+] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -48,21 +77,9 @@ export class BootScene extends Phaser.Scene {
       '/assets/player/player.png',
       '/assets/player/player.json',
     );
-    this.load.atlas(
-      STAGE_ONE_BOSS_ATLAS_KEY,
-      STAGE_ONE_BOSS_ATLAS_PNG,
-      STAGE_ONE_BOSS_ATLAS_JSON,
-    );
-    this.load.atlas(
-      STAGE_TWO_BOSS_ATLAS_KEY,
-      STAGE_TWO_BOSS_ATLAS_PNG,
-      STAGE_TWO_BOSS_ATLAS_JSON,
-    );
-    this.load.atlas(
-      STAGE_THREE_BOSS_ATLAS_KEY,
-      STAGE_THREE_BOSS_ATLAS_PNG,
-      STAGE_THREE_BOSS_ATLAS_JSON,
-    );
+    for (const atlas of BOSS_ANIMATION_ATLASES) {
+      this.load.atlas(atlas.texture, atlas.png, atlas.json);
+    }
     for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
       this.load.image(asset.key, asset.url);
     }
@@ -339,47 +356,8 @@ export class BootScene extends Phaser.Scene {
       duration: 480,
       repeat: -1,
     });
-    for (const [tag, frames] of Object.entries(STAGE_ONE_BOSS_TAG_FRAMES) as [
-      keyof typeof STAGE_ONE_BOSS_TAG_FRAMES,
-      (typeof STAGE_ONE_BOSS_TAG_FRAMES)[keyof typeof STAGE_ONE_BOSS_TAG_FRAMES],
-    ][]) {
-      this.anims.create({
-        key: STAGE_ONE_BOSS_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_ONE_BOSS_ATLAS_KEY,
-          frame,
-          duration,
-        })),
-        repeat: STAGE_ONE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
-    }
-    for (const [tag, frames] of Object.entries(STAGE_TWO_BOSS_TAG_FRAMES) as [
-      keyof typeof STAGE_TWO_BOSS_TAG_FRAMES,
-      (typeof STAGE_TWO_BOSS_TAG_FRAMES)[keyof typeof STAGE_TWO_BOSS_TAG_FRAMES],
-    ][]) {
-      this.anims.create({
-        key: STAGE_TWO_BOSS_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_TWO_BOSS_ATLAS_KEY,
-          frame,
-          duration,
-        })),
-        repeat: STAGE_TWO_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
-    }
-    for (const [tag, frames] of Object.entries(STAGE_THREE_BOSS_TAG_FRAMES) as [
-      keyof typeof STAGE_THREE_BOSS_TAG_FRAMES,
-      (typeof STAGE_THREE_BOSS_TAG_FRAMES)[keyof typeof STAGE_THREE_BOSS_TAG_FRAMES],
-    ][]) {
-      this.anims.create({
-        key: STAGE_THREE_BOSS_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_THREE_BOSS_ATLAS_KEY,
-          frame,
-          duration,
-        })),
-        repeat: STAGE_THREE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
+    for (const atlas of BOSS_ANIMATION_ATLASES) {
+      createAtlasAnimations(this.anims, atlas);
     }
   }
 }
