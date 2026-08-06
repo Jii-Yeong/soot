@@ -166,8 +166,8 @@ export class CaptorEnemy extends Enemy {
     }
 
     const direction = Math.sign(target.x - this.x) || 1;
-    const chasing = distance > 430;
-    this.setVelocityX(chasing ? direction * 75 : 0);
+    const chasing = distance > CAPTOR_CONFIG.chaseTriggerDistance;
+    this.setVelocityX(chasing ? direction * CAPTOR_CONFIG.chaseSpeed : 0);
     this.rig.play(chasing ? POSE.walk : POSE.idle);
     if (time >= this.nextAttackAt) {
       this.captorState = 'warning';

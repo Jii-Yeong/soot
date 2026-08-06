@@ -24,6 +24,9 @@ export const CAPTOR_CONFIG = {
   aggroRadius: 610,
   warningDuration: 620,
   attackCooldown: 1900,
+  /** 이 거리보다 멀면 이 속도로 사거리 안까지 걸어서 접근한다. */
+  chaseTriggerDistance: 430,
+  chaseSpeed: 75,
   tetherDuration: 1000,
   tetherBreakDamage: 25,
   slowFactor: 0,
