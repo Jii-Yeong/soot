@@ -25,6 +25,7 @@ import {
 import {
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_FOUR_FLOOR_SKIN,
   STAGE_THREE_FLOOR_SKIN,
   STAGE_THREE_PIPE_SKIN,
   STAGE_THREE_STOOL_SKIN,
@@ -200,6 +201,8 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
     key: 'stage-04-bg',
     path: '/assets/backgrounds/stage-04.webp',
   },
+  showFloor: true,
+  floorSkin: STAGE_FOUR_FLOOR_SKIN,
   rooms: INFERNO_ROOMS,
   endEvent: 'shatter',
 };

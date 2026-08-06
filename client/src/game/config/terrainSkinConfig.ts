@@ -88,6 +88,18 @@ export const STAGE_THREE_FLOOR_SKIN: SliceSkinConfig = {
   capInset: { left: 107, right: 107 },
 };
 
+export const STAGE_FOUR_FLOOR_SKIN: SliceSkinConfig = {
+  left: asset('stage-4-floor-left', 120),
+  middle: asset('stage-4-floor-middle', 137),
+  right: asset('stage-4-floor-right', 155),
+  height: 100,
+  // 불투명 바닥 표면이 원본 y=3에서 시작함.
+  surfaceInset: 3,
+  middleFit: 'tile',
+  // 양끝의 비스듬한 외곽선을 보존하고 중앙만 반복함.
+  capInset: { left: 120, right: 155 },
+};
+
 export const STAGE_ONE_STOOL_SKIN: SliceSkinConfig = {
   left: asset('stage-1-stool-left', 55),
   middle: asset('stage-1-stool-middle', 68),
@@ -133,4 +145,5 @@ export const ALL_TERRAIN_SKINS = [
   STAGE_THREE_FLOOR_SKIN,
   STAGE_THREE_STOOL_SKIN,
   STAGE_THREE_PIPE_SKIN,
+  STAGE_FOUR_FLOOR_SKIN,
 ] as const;
