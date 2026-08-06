@@ -290,6 +290,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetCameraToRoomEntrance() {
+    // 컷신(강하·화면 파괴 연출)이 카메라에 남긴 스크롤 트윈·흔들림·플래시가
+    // 다음 방까지 이어져 화면을 밀거나 흔들지 않도록 모두 정리한다.
+    this.tweens.killTweensOf(this.cameras.main);
+    this.cameras.main.shakeEffect.reset();
+    this.cameras.main.resetFX();
     this.cameras.main.stopFollow();
     this.cameras.main.setScroll(0, 0);
     this.configureCamera();
