@@ -84,7 +84,7 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
       }
       if (
         targetInRange &&
-        this.isInsideAttackEdge() &&
+        this.isInsideAttackEdge(90) &&
         time >= this.nextAttackAt &&
         this.tryBeginAttack()
       ) {
@@ -243,18 +243,6 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     this.moveToward(desiredX, desiredY, SANCTUM_ENFORCER_CONFIG.moveSpeed);
   }
 
-  private moveToward(x: number, y: number, speed: number) {
-    if (Phaser.Math.Distance.Between(this.x, this.y, x, y) < 8) {
-      this.setVelocity(0);
-      return;
-    }
-    this.scene.physics.velocityFromRotation(
-      Phaser.Math.Angle.Between(this.x, this.y, x, y),
-      speed,
-      (this.body as Phaser.Physics.Arcade.Body).velocity,
-    );
-  }
-
   private drawWarningLine(y: number) {
     const view = this.scene.cameras.main.worldView;
     this.warningLine.clear();
@@ -273,11 +261,6 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
       duration: 320,
       onComplete: () => fragment.destroy(),
     });
-  }
-
-  private isInsideAttackEdge() {
-    const view = this.scene.cameras.main.worldView;
-    return this.x >= view.left && this.x <= view.right - 90;
   }
 
   private clearAttackObjects() {

@@ -37,6 +37,30 @@ export abstract class CoordinatedAerialEnemy extends Enemy {
     this.setData('stage-five-attacking', false);
   }
 
+  /** 지정 위치까지 일정 속도로 이동하고 도착 오차 안에서는 멈춤. */
+  protected moveToward(
+    x: number,
+    y: number,
+    speed: number,
+    stopDistance = 8,
+  ) {
+    if (Phaser.Math.Distance.Between(this.x, this.y, x, y) < stopDistance) {
+      this.setVelocity(0);
+      return;
+    }
+    this.scene.physics.velocityFromRotation(
+      Phaser.Math.Angle.Between(this.x, this.y, x, y),
+      speed,
+      (this.body as Phaser.Physics.Arcade.Body).velocity,
+    );
+  }
+
+  /** 화면 안쪽 공격 위치에 도달했는지 확인함. */
+  protected isInsideAttackEdge(rightMargin: number) {
+    const view = this.scene.cameras.main.worldView;
+    return this.x >= view.left && this.x <= view.right - rightMargin;
+  }
+
   protected override onDefeated() {
     super.onDefeated();
     this.finishAttack();

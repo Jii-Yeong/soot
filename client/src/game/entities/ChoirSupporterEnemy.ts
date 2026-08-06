@@ -84,7 +84,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     } else if (
       !this.activePattern &&
       targetInRange &&
-      this.isInsideAttackEdge() &&
+      this.isInsideAttackEdge(80) &&
       time >= this.nextAttackAt &&
       this.tryBeginAttack()
     ) {
@@ -206,25 +206,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     const desiredY = this.homeAbove
       ? PLAYER_FLIGHT_BOUNDS.minY + 70
       : PLAYER_FLIGHT_BOUNDS.maxY - 70;
-    this.moveToward(desiredX, desiredY);
-  }
-
-  private isInsideAttackEdge() {
-    const view = this.scene.cameras.main.worldView;
-    return this.x >= view.left && this.x <= view.right - 80;
-  }
-
-  private moveToward(x: number, y: number) {
-    const distance = Phaser.Math.Distance.Between(this.x, this.y, x, y);
-    if (distance < 8) {
-      this.setVelocity(0);
-      return;
-    }
-    this.scene.physics.velocityFromRotation(
-      Phaser.Math.Angle.Between(this.x, this.y, x, y),
-      CHOIR_SUPPORTER_CONFIG.moveSpeed,
-      (this.body as Phaser.Physics.Arcade.Body).velocity,
-    );
+    this.moveToward(desiredX, desiredY, CHOIR_SUPPORTER_CONFIG.moveSpeed);
   }
 
   private endAttack(time: number) {

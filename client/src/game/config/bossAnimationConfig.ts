@@ -1,3 +1,5 @@
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
+
 /**
  * 스테이지 1 보스(city warden)의 실제 스프라이트 아틀라스.
  *
@@ -222,3 +224,39 @@ export const STAGE_FOUR_BOSS_LOOPING_TAGS = new Set<StageFourBossTag>([
   'walk',
   'rush',
 ]);
+
+/** 부팅 단계에서 불러오고 애니메이션을 생성할 모든 보스 아틀라스. */
+export const BOSS_ANIMATION_ATLASES = [
+  {
+    texture: STAGE_ONE_BOSS_ATLAS_KEY,
+    png: STAGE_ONE_BOSS_ATLAS_PNG,
+    json: STAGE_ONE_BOSS_ATLAS_JSON,
+    animations: STAGE_ONE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_ONE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_ONE_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_TWO_BOSS_ATLAS_KEY,
+    png: STAGE_TWO_BOSS_ATLAS_PNG,
+    json: STAGE_TWO_BOSS_ATLAS_JSON,
+    animations: STAGE_TWO_BOSS_ANIMATIONS,
+    tagFrames: STAGE_TWO_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_TWO_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_THREE_BOSS_ATLAS_KEY,
+    png: STAGE_THREE_BOSS_ATLAS_PNG,
+    json: STAGE_THREE_BOSS_ATLAS_JSON,
+    animations: STAGE_THREE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_THREE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_THREE_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_FOUR_BOSS_ATLAS_KEY,
+    png: STAGE_FOUR_BOSS_ATLAS_PNG,
+    json: STAGE_FOUR_BOSS_ATLAS_JSON,
+    animations: STAGE_FOUR_BOSS_ANIMATIONS,
+    tagFrames: STAGE_FOUR_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_FOUR_BOSS_LOOPING_TAGS,
+  },
+] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];

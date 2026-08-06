@@ -71,7 +71,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     } else if (targetInRange) {
       this.hoverAtScreenEdge();
       if (
-        this.isInsideAttackEdge() &&
+        this.isInsideAttackEdge(110) &&
         time >= this.nextAttackAt &&
         this.tryBeginAttack()
       ) {
@@ -233,20 +233,12 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     );
     const desiredY =
       (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2;
-    if (Phaser.Math.Distance.Between(this.x, this.y, desiredX, desiredY) < 10) {
-      this.setVelocity(0);
-      return;
-    }
-    this.scene.physics.velocityFromRotation(
-      Phaser.Math.Angle.Between(this.x, this.y, desiredX, desiredY),
+    this.moveToward(
+      desiredX,
+      desiredY,
       CELESTIAL_ORACLE_CONFIG.moveSpeed,
-      (this.body as Phaser.Physics.Arcade.Body).velocity,
+      10,
     );
-  }
-
-  private isInsideAttackEdge() {
-    const view = this.scene.cameras.main.worldView;
-    return this.x >= view.left && this.x <= view.right - 110;
   }
 
   private endAttack(time: number) {

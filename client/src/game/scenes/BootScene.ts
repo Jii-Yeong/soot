@@ -2,34 +2,10 @@ import Phaser from 'phaser';
 import { resolveAudioAssets } from '@/game/config/audioAssets';
 import { MUSIC_CONFIG } from '@/game/config/audioConfig';
 import {
-  STAGE_ONE_BOSS_ANIMATIONS,
-  STAGE_ONE_BOSS_ATLAS_JSON,
-  STAGE_ONE_BOSS_ATLAS_KEY,
-  STAGE_ONE_BOSS_ATLAS_PNG,
-  STAGE_ONE_BOSS_LOOPING_TAGS,
+  BOSS_ANIMATION_ATLASES,
   STAGE_ONE_BOSS_LASER_ASSETS,
-  STAGE_ONE_BOSS_TAG_FRAMES,
-  STAGE_TWO_BOSS_ANIMATIONS,
-  STAGE_TWO_BOSS_ATLAS_JSON,
-  STAGE_TWO_BOSS_ATLAS_KEY,
-  STAGE_TWO_BOSS_ATLAS_PNG,
-  STAGE_TWO_BOSS_LOOPING_TAGS,
-  STAGE_TWO_BOSS_TAG_FRAMES,
-  STAGE_THREE_BOSS_ANIMATIONS,
-  STAGE_THREE_BOSS_ATLAS_JSON,
-  STAGE_THREE_BOSS_ATLAS_KEY,
-  STAGE_THREE_BOSS_ATLAS_PNG,
-  STAGE_THREE_BOSS_LOOPING_TAGS,
-  STAGE_THREE_BOSS_TAG_FRAMES,
-  STAGE_FOUR_BOSS_ANIMATIONS,
-  STAGE_FOUR_BOSS_ATLAS_JSON,
-  STAGE_FOUR_BOSS_ATLAS_KEY,
-  STAGE_FOUR_BOSS_ATLAS_PNG,
-  STAGE_FOUR_BOSS_LOOPING_TAGS,
-  STAGE_FOUR_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
-import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
 import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
@@ -45,41 +21,6 @@ import {
 import { UI_PANEL_TEXTURES } from '@/game/config/uiAssetConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
 import { createAtlasAnimations } from '@/game/systems/createAtlasAnimations';
-
-const BOSS_ANIMATION_ATLASES = [
-  {
-    texture: STAGE_ONE_BOSS_ATLAS_KEY,
-    png: STAGE_ONE_BOSS_ATLAS_PNG,
-    json: STAGE_ONE_BOSS_ATLAS_JSON,
-    animations: STAGE_ONE_BOSS_ANIMATIONS,
-    tagFrames: STAGE_ONE_BOSS_TAG_FRAMES,
-    loopingTags: STAGE_ONE_BOSS_LOOPING_TAGS,
-  },
-  {
-    texture: STAGE_TWO_BOSS_ATLAS_KEY,
-    png: STAGE_TWO_BOSS_ATLAS_PNG,
-    json: STAGE_TWO_BOSS_ATLAS_JSON,
-    animations: STAGE_TWO_BOSS_ANIMATIONS,
-    tagFrames: STAGE_TWO_BOSS_TAG_FRAMES,
-    loopingTags: STAGE_TWO_BOSS_LOOPING_TAGS,
-  },
-  {
-    texture: STAGE_THREE_BOSS_ATLAS_KEY,
-    png: STAGE_THREE_BOSS_ATLAS_PNG,
-    json: STAGE_THREE_BOSS_ATLAS_JSON,
-    animations: STAGE_THREE_BOSS_ANIMATIONS,
-    tagFrames: STAGE_THREE_BOSS_TAG_FRAMES,
-    loopingTags: STAGE_THREE_BOSS_LOOPING_TAGS,
-  },
-  {
-    texture: STAGE_FOUR_BOSS_ATLAS_KEY,
-    png: STAGE_FOUR_BOSS_ATLAS_PNG,
-    json: STAGE_FOUR_BOSS_ATLAS_JSON,
-    animations: STAGE_FOUR_BOSS_ANIMATIONS,
-    tagFrames: STAGE_FOUR_BOSS_TAG_FRAMES,
-    loopingTags: STAGE_FOUR_BOSS_LOOPING_TAGS,
-  },
-] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];
 
 const PLAYER_SPRITES = [
   PLAYER_SPRITE_CONFIG,

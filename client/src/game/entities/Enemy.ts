@@ -1,5 +1,12 @@
 import Phaser from 'phaser';
 
+/** 격추된 공중 적이 떨어지는 속도(px/s). */
+const AERIAL_DEATH_FALL_SPEED = 720;
+/** 착지한 잔해가 사라지기 전에 머무는 시간. */
+const AERIAL_DEATH_HOLD_MS = 400;
+/** 잔해 페이드아웃 시간. */
+const AERIAL_DEATH_FADE_MS = 350;
+
 export type EnemyProjectileAttack = (
   enemy: Enemy,
   target: Phaser.Physics.Arcade.Sprite,
@@ -120,6 +127,44 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   protected onDefeated() {
     this.setVelocity(0);
+  }
+
+  /** 공중 적이 첫 자세로 추락한 뒤 착지 자세를 보이고 사라지는 공용 연출. */
+  protected playAerialDeath(
+    fallAnimation: string,
+    landAnimation: string,
+    restY: number,
+  ) {
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.play(fallAnimation, true);
+    const fallDistance = Math.max(0, restY - this.y);
+    this.scene.tweens.add({
+      targets: this,
+      y: this.y + fallDistance,
+      duration: Phaser.Math.Clamp(
+        (fallDistance / AERIAL_DEATH_FALL_SPEED) * 1_000,
+        120,
+        900,
+      ),
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.play(landAnimation, true);
+        this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          this.scene.time.delayedCall(AERIAL_DEATH_HOLD_MS, () => {
+            if (!this.active) {
+              return;
+            }
+            this.scene.tweens.add({
+              targets: this,
+              alpha: 0,
+              duration: AERIAL_DEATH_FADE_MS,
+              ease: 'Sine.easeIn',
+              onComplete: () => this.disableBody(true, true),
+            });
+          });
+        });
+      },
+    });
   }
 
   /**
