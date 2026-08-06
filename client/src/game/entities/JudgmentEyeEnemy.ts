@@ -29,6 +29,8 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
   private radialVolleyIndex = 0;
   private readonly reticle: Phaser.GameObjects.Graphics;
   private readonly bullets: EyeBullet[] = [];
+  /** 방사 탄막을 매번 새로 만들지 않고 재사용하는 탄환 풀(비활성 스프라이트). */
+  private readonly bulletPool: Phaser.Physics.Arcade.Image[] = [];
 
   constructor(
     scene: Phaser.Scene,
@@ -130,6 +132,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
 
   override destroy(fromScene?: boolean) {
     this.clearAttackObjects();
+    this.destroyBulletPool();
     super.destroy(fromScene);
   }
 
@@ -162,15 +165,10 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
     this.radialVolleyIndex += 1;
     for (let index = 0; index < bulletCount; index += 1) {
       const angle = (Math.PI * 2 * index) / bulletCount + Math.PI / bulletCount;
-      const sprite = this.scene.physics.add
-        .image(
-          this.lockedTarget.x,
-          this.lockedTarget.y,
-          JUDGMENT_EYE_CONFIG.bulletTexture,
-        )
-        .setDepth(9);
-      const body = sprite.body as Phaser.Physics.Arcade.Body;
-      body.setAllowGravity(false).setCircle(5);
+      const sprite = this.acquireBullet(
+        this.lockedTarget.x,
+        this.lockedTarget.y,
+      );
       sprite.setVelocity(
         Math.cos(angle) * JUDGMENT_EYE_CONFIG.bulletSpeed,
         Math.sin(angle) * JUDGMENT_EYE_CONFIG.bulletSpeed,
@@ -194,7 +192,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
         bullet.sprite.y < 0 ||
         bullet.sprite.y > GAME_HEIGHT;
       if (time >= bullet.expiresAt || outsideWorld) {
-        bullet.sprite.destroy();
+        this.releaseBullet(bullet.sprite);
         this.bullets.splice(index, 1);
         continue;
       }
@@ -208,7 +206,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
         ) <= 24
       ) {
         this.damagePlayer(JUDGMENT_EYE_CONFIG.bulletDamage);
-        bullet.sprite.destroy();
+        this.releaseBullet(bullet.sprite);
         this.bullets.splice(index, 1);
       }
     }
@@ -241,6 +239,29 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
     );
   }
 
+  /** 풀에서 탄환을 꺼내 재사용하거나, 비면 새로 만든다. */
+  private acquireBullet(x: number, y: number) {
+    const pooled = this.bulletPool.pop();
+    if (pooled) {
+      pooled.enableBody(true, x, y, true, true);
+      return pooled;
+    }
+
+    const sprite = this.scene.physics.add
+      .image(x, y, JUDGMENT_EYE_CONFIG.bulletTexture)
+      .setDepth(9);
+    (sprite.body as Phaser.Physics.Arcade.Body)
+      .setAllowGravity(false)
+      .setCircle(5);
+    return sprite;
+  }
+
+  /** 탄환을 파괴하지 않고 비활성화해 풀로 되돌린다. */
+  private releaseBullet(sprite: Phaser.Physics.Arcade.Image) {
+    sprite.disableBody(true, true);
+    this.bulletPool.push(sprite);
+  }
+
   private clearAttackObjects() {
     this.reticle.clear();
     if (this.reticle.active) {
@@ -249,8 +270,15 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
     this.orb?.destroy();
     this.orb = undefined;
     for (const bullet of this.bullets) {
-      bullet.sprite.destroy();
+      this.releaseBullet(bullet.sprite);
     }
     this.bullets.length = 0;
+  }
+
+  private destroyBulletPool() {
+    for (const sprite of this.bulletPool) {
+      sprite.destroy();
+    }
+    this.bulletPool.length = 0;
   }
 }
