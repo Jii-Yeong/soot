@@ -53,9 +53,11 @@ describe('stage asset manifests', () => {
     });
   });
 
-  it('includes the stage four executioner doll atlas', () => {
+  it('includes the three stage four enemy atlases', () => {
     expect(getStageAssetManifest(STAGE_FOUR_CONFIG).enemyAtlases).toEqual([
+      expect.objectContaining({ texture: 'stage-4-dog' }),
       expect.objectContaining({ texture: 'stage-4-takedown' }),
+      expect.objectContaining({ texture: 'stage-4-floating' }),
     ]);
   });
 

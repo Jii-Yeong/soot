@@ -4,6 +4,7 @@ import {
   EXECUTIONER_DOLL_CONFIG,
   INFERNAL_HOUND_CONFIG,
   JUDGMENT_EYE_CONFIG,
+  STAGE_FOUR_ENEMY_ANIMATION_ATLASES,
 } from '@/game/config/stageFourEnemyConfig';
 
 describe('stage four enemy timing', () => {
@@ -24,6 +25,29 @@ describe('stage four enemy timing', () => {
       slam: [{ frame: '5', duration: 1_000 }],
       land: [{ frame: '6', duration: 1_000 }],
     });
+  });
+
+  it('maps the hound and judgment eye atlases to their combat poses', () => {
+    expect(INFERNAL_HOUND_CONFIG).toMatchObject({
+      texture: 'stage-4-dog',
+      animations: {
+        idle: 'stage-4-dog-idle',
+        attack: 'stage-4-dog-attack',
+        walk: 'stage-4-dog-walk',
+        death: 'stage-4-dog-death',
+      },
+    });
+    expect(JUDGMENT_EYE_CONFIG).toMatchObject({
+      texture: 'stage-4-floating',
+      animations: {
+        idle: 'stage-4-floating-idle',
+        attack: 'stage-4-floating-attack',
+        death: 'stage-4-floating-death',
+      },
+    });
+    expect(
+      STAGE_FOUR_ENEMY_ANIMATION_ATLASES.map(({ texture }) => texture),
+    ).toEqual(['stage-4-dog', 'stage-4-takedown', 'stage-4-floating']);
   });
 
   it('keeps the authored warnings and recovery windows readable', () => {

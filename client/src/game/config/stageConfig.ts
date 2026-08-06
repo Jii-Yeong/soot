@@ -17,7 +17,7 @@ import {
   type MeleeSpriteConfig,
 } from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
-import { EXECUTIONER_DOLL_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
+import { STAGE_FOUR_ENEMY_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
 import {
   STAGE_ONE_RANGED_SPRITE,
   STAGE_TWO_RANGED_SPRITE,
@@ -206,7 +206,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-04.webp',
   },
   enemyAtlases:
-    EXECUTIONER_DOLL_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
+    STAGE_FOUR_ENEMY_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
   showFloor: true,
   floorSkin: STAGE_FOUR_FLOOR_SKIN,
   terrainSkin: STAGE_FOUR_STOOL_SKIN,

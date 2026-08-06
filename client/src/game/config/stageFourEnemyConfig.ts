@@ -3,6 +3,7 @@ import {
   type EnemyAnimationFrame,
 } from '@/game/config/enemyAnimationAtlasConfig';
 
+type InfernalHoundTag = 'idle' | 'attack' | 'walk' | 'death';
 type ExecutionerDollTag =
   | 'idle'
   | 'fly'
@@ -10,6 +11,20 @@ type ExecutionerDollTag =
   | 'slam'
   | 'land'
   | 'death';
+type JudgmentEyeTag = 'idle' | 'attack' | 'death';
+
+const INFERNAL_HOUND_TAG_FRAMES: Record<
+  InfernalHoundTag,
+  readonly EnemyAnimationFrame[]
+> = {
+  idle: [0, 1].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+  attack: [2, 3, 4].map((frame) => ({
+    frame: `${frame}`,
+    duration: frame === 3 ? 300 : 180,
+  })),
+  walk: [5, 6].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+  death: [7, 8].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+};
 
 /** 제공된 아틀라스 JSON의 태그별 프레임과 재생 시간. */
 const EXECUTIONER_DOLL_TAG_FRAMES: Record<
@@ -34,6 +49,32 @@ const EXECUTIONER_DOLL_TAG_FRAMES: Record<
   })),
 };
 
+const JUDGMENT_EYE_TAG_FRAMES: Record<
+  JudgmentEyeTag,
+  readonly EnemyAnimationFrame[]
+> = {
+  idle: [0, 1].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+  attack: [
+    { frame: '2', duration: 180 },
+    { frame: '3', duration: 130 },
+  ],
+  death: [4, 5].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+};
+
+const INFERNAL_HOUND_ATLAS_SET = defineEnemyAtlasSet({
+  slug: 'dog',
+  stages: [4],
+  tagFrames: INFERNAL_HOUND_TAG_FRAMES,
+  loopingTags: new Set<InfernalHoundTag>(['idle', 'walk']),
+  sprite: {
+    scale: 1,
+    bodyWidth: 68,
+    bodyHeight: 34,
+    bodyOffsetX: 26,
+    bodyOffsetY: 39,
+  },
+});
+
 const EXECUTIONER_DOLL_ATLAS_SET = defineEnemyAtlasSet({
   slug: 'takedown',
   stages: [4],
@@ -52,12 +93,30 @@ const EXECUTIONER_DOLL_ATLAS_SET = defineEnemyAtlasSet({
 export const EXECUTIONER_DOLL_ANIMATION_ATLASES =
   EXECUTIONER_DOLL_ATLAS_SET.atlases;
 
+const JUDGMENT_EYE_ATLAS_SET = defineEnemyAtlasSet({
+  slug: 'floating',
+  stages: [4],
+  tagFrames: JUDGMENT_EYE_TAG_FRAMES,
+  loopingTags: new Set<JudgmentEyeTag>(['idle', 'attack']),
+  sprite: {
+    scale: 1,
+    bodyWidth: 52,
+    bodyHeight: 52,
+    bodyOffsetX: 22,
+    bodyOffsetY: 22,
+  },
+});
+
+export const STAGE_FOUR_ENEMY_ANIMATION_ATLASES = [
+  ...INFERNAL_HOUND_ATLAS_SET.atlases,
+  ...EXECUTIONER_DOLL_ATLAS_SET.atlases,
+  ...JUDGMENT_EYE_ATLAS_SET.atlases,
+];
+
 export const INFERNAL_HOUND_CONFIG = {
-  texture: 'infernal-hound-placeholder',
+  ...INFERNAL_HOUND_ATLAS_SET.sprites[4],
   maxHealth: 85,
   aggroRadius: 680,
-  bodyWidth: 68,
-  bodyHeight: 34,
   prowlSpeed: 150,
   warningDuration: 650,
   chargeSpeed: 820,
@@ -86,11 +145,10 @@ export const EXECUTIONER_DOLL_CONFIG = {
 } as const;
 
 export const JUDGMENT_EYE_CONFIG = {
-  texture: 'judgment-eye-placeholder',
+  ...JUDGMENT_EYE_ATLAS_SET.sprites[4],
   bulletTexture: 'judgment-eye-bullet-placeholder',
   maxHealth: 75,
   aggroRadius: 720,
-  bodySize: 52,
   moveSpeed: 150,
   trackingDuration: 600,
   orbChargeDuration: 300,

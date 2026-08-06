@@ -980,9 +980,17 @@ test('stage four uses three infernal patterns with at most two attackers', async
         type RuntimeScene = { anims: { exists: (key: string) => boolean } };
         type DebugGame = { scene: { getScene: (key: string) => unknown } };
         const game = (window as unknown as { __game?: DebugGame }).__game!;
-        return (game.scene.getScene('game') as RuntimeScene).anims.exists(
+        const { anims } = game.scene.getScene('game') as RuntimeScene;
+        return [
+          'stage-4-dog-idle',
+          'stage-4-dog-attack',
+          'stage-4-dog-walk',
+          'stage-4-dog-death',
           'stage-4-takedown-idle',
-        );
+          'stage-4-floating-idle',
+          'stage-4-floating-attack',
+          'stage-4-floating-death',
+        ].every((key) => anims.exists(key));
       }),
     )
     .toBe(true);
@@ -1045,6 +1053,12 @@ test('stage four uses three infernal patterns with at most two attackers', async
 
     return {
       textures: scene.enemies.map(({ texture }) => texture.key),
+      dogAnimation: scene.enemies.find(
+        ({ texture }) => texture.key === 'stage-4-dog',
+      )?.anims.currentAnim?.key,
+      floatingAnimation: scene.enemies.find(
+        ({ texture }) => texture.key === 'stage-4-floating',
+      )?.anims.currentAnim?.key,
       idleAnimation,
       flyAnimation,
       maximumAttackers,
@@ -1054,10 +1068,16 @@ test('stage four uses three infernal patterns with at most two attackers', async
 
   expect(new Set(result.textures)).toEqual(
     new Set([
-      'infernal-hound-placeholder',
+      'stage-4-dog',
       'stage-4-takedown',
-      'judgment-eye-placeholder',
+      'stage-4-floating',
     ]),
+  );
+  expect(['stage-4-dog-idle', 'stage-4-dog-attack', 'stage-4-dog-walk']).toContain(
+    result.dogAnimation,
+  );
+  expect(['stage-4-floating-idle', 'stage-4-floating-attack']).toContain(
+    result.floatingAnimation,
   );
   expect(result.idleAnimation).toBe('stage-4-takedown-idle');
   expect(result.flyAnimation).toBe('stage-4-takedown-fly');
