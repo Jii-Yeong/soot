@@ -28,6 +28,7 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
   PLAYER_SPRITE_CONFIG,
+  STAGE_FIVE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
@@ -66,7 +67,11 @@ const BOSS_ANIMATION_ATLASES = [
   },
 ] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];
 
-const PLAYER_SPRITES = [PLAYER_SPRITE_CONFIG, STAGE_FOUR_PLAYER_SPRITE];
+const PLAYER_SPRITES = [
+  PLAYER_SPRITE_CONFIG,
+  STAGE_FOUR_PLAYER_SPRITE,
+  STAGE_FIVE_PLAYER_SPRITE,
+];
 
 export class BootScene extends Phaser.Scene {
   constructor() {

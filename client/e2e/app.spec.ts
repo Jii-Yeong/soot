@@ -1110,8 +1110,10 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
       texture: { key: string };
     };
     type RuntimePlayer = {
+      anims: { currentAnim?: { key: string } };
       body: { reset: (x: number, y: number) => void };
       setPosition: (x: number, y: number) => void;
+      texture: { key: string };
     };
     type RuntimeScene = {
       children: { list: Array<{ active: boolean; texture?: { key: string } }> };
@@ -1144,6 +1146,8 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
 
     return {
       textures: scene.enemies.map(({ texture }) => texture.key),
+      playerAnimation: scene.player.anims.currentAnim?.key,
+      playerTexture: scene.player.texture.key,
       maximumAttackers,
       sawProjectile,
     };
@@ -1158,6 +1162,8 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
   );
   expect(result.maximumAttackers).toBeLessThanOrEqual(2);
   expect(result.sawProjectile).toBe(true);
+  expect(result.playerTexture).toBe('stage-5-player');
+  expect(result.playerAnimation).toBe('stage-5-player-idle');
 });
 
 test('stage three pipe crawler stays aligned above its floor segment', async ({

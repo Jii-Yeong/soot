@@ -40,6 +40,17 @@ export const STAGE_FOUR_PLAYER_SPRITE: PlayerSpriteConfig = {
   },
 };
 
+export const STAGE_FIVE_PLAYER_SPRITE: PlayerSpriteConfig = {
+  texture: 'stage-5-player',
+  png: '/assets/player/stage-5-player.png',
+  json: '/assets/player/stage-5-player.json',
+  animations: {
+    ...PLAYER_ANIMATIONS,
+    idle: 'stage-5-player-idle',
+    run: 'stage-5-player-run',
+  },
+};
+
 export const PLAYER_IDLE_FRAMES = [0, 1, 2, 3].map(frameName);
 export const PLAYER_RUN_FRAMES = [7, 8, 9, 10, 11, 12].map(frameName);
 

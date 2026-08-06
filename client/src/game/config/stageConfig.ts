@@ -18,6 +18,7 @@ import {
 } from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
+  STAGE_FIVE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
   type PlayerSpriteConfig,
 } from '@/game/config/playerAnimationConfig';
@@ -239,6 +240,7 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
     key: 'stage-05-bg',
     path: '/assets/backgrounds/stage-05.webp',
   },
+  playerSprite: STAGE_FIVE_PLAYER_SPRITE,
   rooms: RETURN_ROOMS,
   endEvent: 'ascension',
 };
