@@ -126,6 +126,6 @@ export const UNDERGROUND_LANDING_ROOM = defineRoom({
   id: 'underground-landing',
   label: '지하 심부 // SUBLEVEL',
   kind: 'descent',
-  worldWidth: GAME_WIDTH * 2.5,
+  worldWidth: GAME_WIDTH * 4,
   enemySpawns: [],
 });
