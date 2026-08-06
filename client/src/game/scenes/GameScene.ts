@@ -9,6 +9,8 @@ import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import {
   PLAYER_INITIAL_FRAME,
   PLAYER_SPRITE_CONFIG,
+  STAGE_FIVE_PLAYER_HALO,
+  STAGE_FIVE_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
@@ -94,6 +96,7 @@ const PORTAL_DROP_HEIGHT = 170;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
+  private playerHalo!: Phaser.GameObjects.Sprite;
   private roomWorldWidth = 0;
   private enemies: Enemy[] = [];
   private floorBuilder!: FloorBuilder;
@@ -229,6 +232,11 @@ export class GameScene extends Phaser.Scene {
    * against a position the body had already left.
    */
   private updateAiming(time: number, delta: number) {
+    const pointer = this.input.activePointer;
+    const aimPoint = pointer.positionToCamera(
+      this.cameras.main,
+    ) as Phaser.Math.Vector2;
+    this.syncPlayerHalo(aimPoint.x);
     if (
       this.phase === 'dead' ||
       this.phase === 'ending' ||
@@ -237,10 +245,6 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const pointer = this.input.activePointer;
-    const aimPoint = pointer.positionToCamera(
-      this.cameras.main,
-    ) as Phaser.Math.Vector2;
     this.weaponSystem.update(delta, aimPoint);
     this.drawAimGuide(aimPoint);
 
@@ -275,7 +279,26 @@ export class GameScene extends Phaser.Scene {
     // list after the player, so without this they render on top of the
     // player whenever a melee enemy closes to contact range.
     this.player.setDepth(PLAYER_STACK_DEPTH.body);
+    this.playerHalo = this.add
+      .sprite(
+        this.player.x,
+        this.player.y + STAGE_FIVE_PLAYER_HALO.offsetY,
+        STAGE_FIVE_PLAYER_HALO.texture,
+      )
+      .setDepth(PLAYER_STACK_DEPTH.halo)
+      .setVisible(false)
+      .play(STAGE_FIVE_PLAYER_HALO.animation);
     this.physics.add.collider(this.player, this.floorBuilder.group);
+  }
+
+  private syncPlayerHalo(pointerX: number) {
+    this.playerHalo.setPosition(
+      this.player.x +
+        (pointerX < this.player.x
+          ? STAGE_FIVE_PLAYER_HALO.offsetX
+          : -STAGE_FIVE_PLAYER_HALO.offsetX),
+      this.player.y + STAGE_FIVE_PLAYER_HALO.offsetY,
+    );
   }
 
   private configureRoomWorld() {
@@ -1123,6 +1146,9 @@ export class GameScene extends Phaser.Scene {
     this.playerController.setMovementMode(this.stage.movementMode);
     this.player.setTexture(this.playerSprite.texture, PLAYER_INITIAL_FRAME);
     this.playerController.setAnimations(this.playerSprite.animations);
+    this.playerHalo.setVisible(
+      this.playerSprite.texture === STAGE_FIVE_PLAYER_SPRITE.texture,
+    );
   }
 
   private setPhase(phase: GamePhase) {

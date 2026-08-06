@@ -1312,13 +1312,27 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
     type RuntimePlayer = {
       anims: { currentAnim?: { key: string } };
       body: { reset: (x: number, y: number) => void };
+      depth: number;
+      setFlipX: (flipX: boolean) => void;
       setPosition: (x: number, y: number) => void;
       texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimeDisplayObject = {
+      active: boolean;
+      anims?: { currentAnim?: { key: string } };
+      depth: number;
+      texture?: { key: string };
+      visible: boolean;
+      x: number;
+      y: number;
     };
     type RuntimeScene = {
-      children: { list: Array<{ active: boolean; texture?: { key: string } }> };
+      children: { list: RuntimeDisplayObject[] };
       enemies: RuntimeEnemy[];
       player: RuntimePlayer;
+      syncPlayerHalo: (pointerX: number) => void;
     };
     type DebugGame = { scene: { getScene: (key: string) => unknown } };
     const game = (window as unknown as { __game?: DebugGame }).__game!;
@@ -1343,10 +1357,33 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
       );
       await new Promise((resolve) => window.setTimeout(resolve, 100));
     }
+    const halo = scene.children.list.find(
+      ({ texture }) => texture?.key === 'stage-5-player-halo',
+    )!;
+    scene.syncPlayerHalo(scene.player.x - 100);
+    const leftPointerXOffset = halo.x - scene.player.x;
+    scene.player.setFlipX(true);
+    scene.syncPlayerHalo(scene.player.x - 100);
+    const leftPointerAfterFlipXOffset = halo.x - scene.player.x;
+    scene.syncPlayerHalo(scene.player.x + 100);
+    const rightPointerXOffset = halo.x - scene.player.x;
 
     return {
+      pointerOffsets: {
+        leftPointerAfterFlipXOffset,
+        leftPointerXOffset,
+        rightPointerXOffset,
+      },
+      halo: {
+        animation: halo.anims?.currentAnim?.key,
+        depth: halo.depth,
+        visible: halo.visible,
+        xOffset: halo.x - scene.player.x,
+        yOffset: halo.y - scene.player.y,
+      },
       textures: scene.enemies.map(({ texture }) => texture.key),
       playerAnimation: scene.player.anims.currentAnim?.key,
+      playerDepth: scene.player.depth,
       playerTexture: scene.player.texture.key,
       maximumAttackers,
       sawProjectile,
@@ -1364,6 +1401,19 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
   expect(result.sawProjectile).toBe(true);
   expect(result.playerTexture).toBe('stage-5-player');
   expect(result.playerAnimation).toBe('stage-5-player-fly');
+  expect(result.halo).toEqual({
+    animation: 'stage-5-player-halo-spin',
+    depth: 7.25,
+    visible: true,
+    xOffset: -6,
+    yOffset: -30,
+  });
+  expect(result.pointerOffsets).toEqual({
+    leftPointerAfterFlipXOffset: 6,
+    leftPointerXOffset: 6,
+    rightPointerXOffset: -6,
+  });
+  expect(result.halo.depth).toBeLessThan(result.playerDepth);
 });
 
 test('stage five boss direct jump loads the ascension room floor skin', async ({

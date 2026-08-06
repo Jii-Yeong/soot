@@ -10,6 +10,7 @@ import {
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
   PLAYER_SPRITE_CONFIG,
+  STAGE_FIVE_PLAYER_HALO,
   STAGE_FIVE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
@@ -58,6 +59,15 @@ export class BootScene extends Phaser.Scene {
     });
     this.load.image(BACK_ARM.texture, BACK_ARM.url);
     this.load.image(FRONT_ARM.texture, FRONT_ARM.url);
+    this.load.spritesheet(
+      STAGE_FIVE_PLAYER_HALO.texture,
+      STAGE_FIVE_PLAYER_HALO.png,
+      {
+        frameWidth: STAGE_FIVE_PLAYER_HALO.frameWidth,
+        frameHeight: STAGE_FIVE_PLAYER_HALO.frameHeight,
+        spacing: STAGE_FIVE_PLAYER_HALO.spacing,
+      },
+    );
 
     const { assets, missingKeys, unusedFiles } = resolveAudioAssets();
 
@@ -386,6 +396,15 @@ export class BootScene extends Phaser.Scene {
         });
       }
     }
+    this.anims.create({
+      key: STAGE_FIVE_PLAYER_HALO.animation,
+      frames: this.anims.generateFrameNumbers(
+        STAGE_FIVE_PLAYER_HALO.texture,
+        { start: 0, end: STAGE_FIVE_PLAYER_HALO.frameCount - 1 },
+      ),
+      duration: 400,
+      repeat: -1,
+    });
     for (const atlas of BOSS_ANIMATION_ATLASES) {
       createAtlasAnimations(this.anims, atlas);
     }

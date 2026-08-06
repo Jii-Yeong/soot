@@ -56,6 +56,19 @@ export const STAGE_FIVE_PLAYER_SPRITE: PlayerSpriteConfig = {
   flyFrames: [13, 14].map(frameName),
 };
 
+/** 5스테이지 플레이어 뒤에서 회전하는 헤일로. */
+export const STAGE_FIVE_PLAYER_HALO = {
+  texture: 'stage-5-player-halo',
+  png: '/assets/player/stage-5-halo.png',
+  animation: 'stage-5-player-halo-spin',
+  frameWidth: 94,
+  frameHeight: 98,
+  frameCount: 4,
+  spacing: 1,
+  offsetX: 6,
+  offsetY: -30,
+} as const;
+
 export const PLAYER_IDLE_FRAMES = [0, 1, 2, 3].map(frameName);
 export const PLAYER_RUN_FRAMES = [7, 8, 9, 10, 11, 12].map(frameName);
 
