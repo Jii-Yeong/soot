@@ -52,8 +52,15 @@ export class BackdropDirector {
   private draw({ background, palette }: BackdropConfig, stageWidth: number) {
     this.clear();
 
-    if (background && this.scene.textures.exists(background.key)) {
-      this.drawImage(background, stageWidth);
+    if (background) {
+      if (this.scene.textures.exists(background.key)) {
+        this.drawImage(background, stageWidth);
+      } else {
+        // 배경 이미지가 아직 로드되지 않았으면 초록 격자 placeholder 대신 팔레트
+        // 그라디언트만 깔아, 로드 완료 시(handleBackgroundReady) 매끄럽게 이미지로
+        // 교체되게 한다. 격자·강조선을 그리면 진입 첫 프레임에 초록 선이 번쩍인다.
+        this.drawGradient(palette);
+      }
       return;
     }
 
@@ -99,7 +106,8 @@ export class BackdropDirector {
     this.layers.push(image);
   }
 
-  private drawProcedural(palette: StagePalette, stageWidth: number) {
+  /** 팔레트 배경색 그라디언트 한 겹만 깐다(격자·강조선 없음). */
+  private drawGradient(palette: StagePalette) {
     const viewportWidth = this.scene.scale.width;
     const viewportHeight = this.scene.scale.height;
     const farLayer = this.scene.add
@@ -113,6 +121,13 @@ export class BackdropDirector {
       palette.backgroundBottom,
     );
     farLayer.fillRect(0, 0, viewportWidth, viewportHeight);
+    this.layers.push(farLayer);
+  }
+
+  private drawProcedural(palette: StagePalette, stageWidth: number) {
+    const viewportWidth = this.scene.scale.width;
+    const viewportHeight = this.scene.scale.height;
+    this.drawGradient(palette);
 
     const gridWidth = getParallaxLayerWidth(
       PROCEDURAL_PARALLAX.grid,
@@ -149,7 +164,7 @@ export class BackdropDirector {
       .setDepth(BACKDROP_DEPTH.near)
       .setScrollFactor(PROCEDURAL_PARALLAX.accent, 0);
 
-    this.layers.push(farLayer, gridLayer, accentLayer, neonAccent);
+    this.layers.push(gridLayer, accentLayer, neonAccent);
     this.startNeonFlicker(neonAccent, palette.neonFlicker);
   }
 
