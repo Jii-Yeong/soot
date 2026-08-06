@@ -42,3 +42,42 @@ describe('GameScene enemy defeat cleanup', () => {
     expect(clearFrom).toHaveBeenCalledWith(enemy);
   });
 });
+
+describe('GameScene admin stage restart', () => {
+  it('ignores load errors from assets other than the requested background', () => {
+    const gameScene = new GameScene();
+    const listeners = new Map<string, (...args: never[]) => void>();
+    const restart = vi.fn();
+    const load = {
+      image: vi.fn(),
+      off: vi.fn((event: string) => listeners.delete(event)),
+      on: vi.fn((event: string, listener: (...args: never[]) => void) =>
+        listeners.set(event, listener),
+      ),
+      once: vi.fn((event: string, listener: (...args: never[]) => void) =>
+        listeners.set(event, listener),
+      ),
+      start: vi.fn(),
+    };
+    Object.defineProperties(gameScene, {
+      load: { value: load },
+      scene: { value: { restart } },
+      textures: { value: { exists: vi.fn(() => false) } },
+    });
+    Object.assign(gameScene, { setPaused: vi.fn() });
+
+    (
+      gameScene as unknown as { restartToStage(stageIndex: number): void }
+    ).restartToStage(4);
+
+    listeners.get('loaderror')?.({ key: 'unrelated' } as never);
+    expect(restart).not.toHaveBeenCalled();
+
+    listeners.get('filecomplete-image-stage-05-bg')?.();
+    expect(restart).toHaveBeenCalledOnce();
+    expect(load.off).toHaveBeenCalledWith(
+      'loaderror',
+      expect.any(Function),
+    );
+  });
+});

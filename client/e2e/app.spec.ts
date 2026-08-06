@@ -371,6 +371,68 @@ test('keeps the HUD inside the rendered canvas at narrow and wide ratios', async
   }
 });
 
+test('covers a wide viewport with the stage shatter snapshot', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 2560, height: 1080 });
+  await enterGame(page);
+  const sizes = await page.evaluate(
+    () =>
+      new Promise<{
+        cameraHeight: number;
+        cameraWidth: number;
+        coverHeight: number;
+        coverWidth: number;
+      }>((resolve, reject) => {
+        type RuntimeImage = {
+          active: boolean;
+          displayHeight: number;
+          displayWidth: number;
+          type: string;
+          texture?: { key: string };
+        };
+        type RuntimeScene = {
+          cameras: { main: { height: number; width: number } };
+          children: { list: RuntimeImage[] };
+          stageEndEventDirector: {
+            play: (event: 'shatter', onBlackout: () => void) => void;
+          };
+        };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const scene = game.scene.getScene('game') as RuntimeScene;
+        const timeout = window.setTimeout(
+          () => reject(new Error('Missing stage shatter cover')),
+          1_000,
+        );
+        const inspect = () => {
+          const cover = scene.children.list.find(
+            ({ active, texture, type }) =>
+              active &&
+              texture?.key === 'stage-shatter-snapshot' &&
+              type === 'Image',
+          );
+          if (!cover) {
+            window.requestAnimationFrame(inspect);
+            return;
+          }
+          window.clearTimeout(timeout);
+          resolve({
+            cameraHeight: scene.cameras.main.height,
+            cameraWidth: scene.cameras.main.width,
+            coverHeight: cover.displayHeight,
+            coverWidth: cover.displayWidth,
+          });
+        };
+        scene.stageEndEventDirector.play('shatter', () => {});
+        inspect();
+      }),
+  );
+
+  expect(sizes.coverWidth).toBeCloseTo(sizes.cameraWidth);
+  expect(sizes.coverHeight).toBeCloseTo(sizes.cameraHeight);
+});
+
 test('shows the title before the stage one background finishes loading', async ({
   page,
 }) => {
@@ -1185,6 +1247,9 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
   await enterGame(page);
   await page.getByRole('button', { name: 'ADMIN' }).click();
   await page.getByRole('button', { name: '5스테이지', exact: true }).click();
+  await expect(page.getByLabel('Stage location')).toContainText(
+    'STAGE 5 | THE RETURN',
+  );
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',
@@ -1252,6 +1317,60 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
   expect(result.sawProjectile).toBe(true);
   expect(result.playerTexture).toBe('stage-5-player');
   expect(result.playerAnimation).toBe('stage-5-player-idle');
+});
+
+test('stage five boss direct jump loads the ascension room floor skin', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page.getByRole('button', { name: '보스' }).nth(4).click();
+  await expect(page.getByLabel('Stage location')).toContainText(
+    'STAGE 5 | THE RETURN',
+  );
+  await expect(page.getByRole('meter', { name: 'Boss health' })).toBeVisible();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+    { timeout: ROOM_TRANSITION_TIMEOUT },
+  );
+
+  await clearCurrentRoomThroughRuntime(page);
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'cleared',
+  );
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          type RuntimeScene = {
+            activeRoomConfig: { id: string };
+            floorBuilder: {
+              skinObjects: Array<{ texture?: { key: string } }>;
+            };
+          };
+          type DebugGame = { scene: { getScene: (key: string) => unknown } };
+          const game = (window as unknown as { __game?: DebugGame }).__game!;
+          const scene = game.scene.getScene('game') as RuntimeScene;
+          return {
+            roomId: scene.activeRoomConfig.id,
+            textureKeys: scene.floorBuilder.skinObjects.flatMap(({ texture }) =>
+              texture ? [texture.key] : [],
+            ),
+          };
+        }),
+      { timeout: 10_000 },
+    )
+    .toEqual({
+      roomId: 'underground-landing',
+      textureKeys: expect.arrayContaining([
+        'stage-3-floor-left',
+        'stage-3-floor-middle',
+        'stage-3-floor-right',
+      ]),
+    });
 });
 
 test('stage three pipe crawler stays aligned above its floor segment', async ({

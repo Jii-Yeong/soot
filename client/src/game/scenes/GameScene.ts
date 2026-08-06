@@ -690,17 +690,14 @@ export class GameScene extends Phaser.Scene {
     this.descentRoomConfig = UNDERGROUND_LANDING_ROOM;
     this.activeRoomConfig = UNDERGROUND_LANDING_ROOM;
     this.configureRoomWorld();
-    this.floorBuilder.build(
-      UNDERGROUND_LANDING_ROOM,
-      Boolean(STAGE_THREE_CONFIG.background),
-      STAGE_THREE_CONFIG.showFloor,
-      STAGE_THREE_CONFIG.floorSkin,
-    );
-    this.backdropDirector.show(
-      STAGE_THREE_CONFIG,
-      this.roomWorldWidth,
-      undefined,
-    );
+    // 어드민으로 5스테이지 보스에 직행하면 3스테이지 지형은 아직 캐시에 없다.
+    // 도착 뒤 다시 그려 콜드 로드에서도 바닥 스킨이 placeholder로 굳지 않게 한다.
+    this.stageAssetPreloader.preload(STAGE_THREE_CONFIG, () => {
+      if (this.activeRoomConfig === UNDERGROUND_LANDING_ROOM) {
+        this.drawAscensionRoom();
+      }
+    });
+    this.drawAscensionRoom();
     this.resetCameraToRoomEntrance();
 
     // 플레이어를 지상 모드로 바꿔 바닥 중앙에 세운다.
@@ -713,6 +710,21 @@ export class GameScene extends Phaser.Scene {
     body.reset(centerX, FLOOR_SURFACE_Y - 40);
     this.player.setVelocity(0, 0);
     this.player.play(this.playerSprite.animations.idle, true);
+  }
+
+  /** 5스테이지 엔딩의 지하 포위 방 배경과 바닥을 다시 그림. */
+  private drawAscensionRoom() {
+    this.floorBuilder.build(
+      UNDERGROUND_LANDING_ROOM,
+      Boolean(STAGE_THREE_CONFIG.background),
+      STAGE_THREE_CONFIG.showFloor,
+      STAGE_THREE_CONFIG.floorSkin,
+    );
+    this.backdropDirector.show(
+      STAGE_THREE_CONFIG,
+      this.roomWorldWidth,
+      undefined,
+    );
   }
 
   private playStageEndEvent(
@@ -1173,9 +1185,19 @@ export class GameScene extends Phaser.Scene {
     this.setPaused(false);
     const background = STAGES[stageIndex].background;
     if (background && !this.textures.exists(background.key)) {
-      const restart = () => this.scene.restart();
-      this.load.once(`filecomplete-image-${background.key}`, restart);
-      this.load.once('loaderror', restart);
+      const completeEvent = `filecomplete-image-${background.key}`;
+      const restart = () => {
+        this.load.off(completeEvent, restart);
+        this.load.off('loaderror', handleError);
+        this.scene.restart();
+      };
+      const handleError = (file: Phaser.Loader.File) => {
+        if (file.key === background.key) {
+          restart();
+        }
+      };
+      this.load.once(completeEvent, restart);
+      this.load.on('loaderror', handleError);
       this.load.image(background.key, background.path);
       this.load.start();
       return;

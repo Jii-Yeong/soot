@@ -141,8 +141,10 @@ export class StageEndEventDirector {
 
   private runShatter(snapshotImage: HTMLImageElement, onBlackout: () => void) {
     const camera = this.scene.cameras.main;
-    const centerX = GAME_WIDTH / 2;
-    const centerY = GAME_HEIGHT / 2;
+    const viewportWidth = camera.width;
+    const viewportHeight = camera.height;
+    const centerX = viewportWidth / 2;
+    const centerY = viewportHeight / 2;
 
     const snapshotKey = 'stage-shatter-snapshot';
     if (this.scene.textures.exists(snapshotKey)) {
@@ -154,14 +156,17 @@ export class StageEndEventDirector {
     const cover = this.scene.add
       .image(0, 0, snapshotKey)
       .setOrigin(0, 0)
-      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT)
+      .setDisplaySize(viewportWidth, viewportHeight)
       .setDepth(94)
       .setScrollFactor(0);
 
     // 불규칙 유리 파편 그물: 중앙 충격점서 방사형 스포크 + 동심 링으로 화면을
     // 불규칙 셀로 나눈다. 스포크 각도·링 반경을 흔들어 진짜 깨진 유리처럼 만든다.
     const spokes = 12;
-    const rings = [0, 130, 270, 430, 620, 900];
+    const outerRadius = Math.hypot(viewportWidth, viewportHeight) * 0.62;
+    const rings = [0, 0.15, 0.3, 0.48, 0.69, 1].map(
+      (ratio) => outerRadius * ratio,
+    );
     const angleJitter = Array.from({ length: spokes }, () =>
       Phaser.Math.FloatBetween(-0.16, 0.16),
     );
@@ -252,8 +257,8 @@ export class StageEndEventDirector {
           const vertices = corners.flatMap((point) => [
             point.x - cx,
             point.y - cy,
-            point.x / GAME_WIDTH,
-            point.y / GAME_HEIGHT,
+            point.x / viewportWidth,
+            point.y / viewportHeight,
           ]);
           const indices = [0, 1, 2, 0, 0, 2, 3, 0];
           // 캡쳐 텍스처는 위에서 아래로 저장되지만 GL UV는 아래에서 위라, flipV로
@@ -277,7 +282,7 @@ export class StageEndEventDirector {
         this.scene.tweens.add({
           targets: mesh,
           x: mesh.x + Phaser.Math.Between(-80, 80),
-          y: mesh.y + GAME_HEIGHT * 1.1 + Phaser.Math.Between(0, 280),
+          y: mesh.y + viewportHeight * 1.1 + Phaser.Math.Between(0, 280),
           angle: Phaser.Math.Between(-180, 180),
           duration: Phaser.Math.Between(720, 1160),
           delay,
