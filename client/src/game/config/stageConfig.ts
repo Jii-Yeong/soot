@@ -26,6 +26,7 @@ import {
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
   STAGE_FOUR_FLOOR_SKIN,
+  STAGE_FOUR_STOOL_SKIN,
   STAGE_THREE_FLOOR_SKIN,
   STAGE_THREE_PIPE_SKIN,
   STAGE_THREE_STOOL_SKIN,
@@ -203,6 +204,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
   },
   showFloor: true,
   floorSkin: STAGE_FOUR_FLOOR_SKIN,
+  terrainSkin: STAGE_FOUR_STOOL_SKIN,
   rooms: INFERNO_ROOMS,
   endEvent: 'shatter',
 };
