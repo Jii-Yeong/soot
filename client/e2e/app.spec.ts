@@ -989,9 +989,12 @@ test('stage four uses three infernal patterns with at most two attackers', async
           'stage-4-dog-walk',
           'stage-4-dog-death',
           'stage-4-takedown-idle',
+          'stage-4-takedown-death-fall',
+          'stage-4-takedown-death-land',
           'stage-4-floating-idle',
           'stage-4-floating-attack',
-          'stage-4-floating-death',
+          'stage-4-floating-death-fall',
+          'stage-4-floating-death-land',
         ].every((key) => anims.exists(key));
       }),
     )
@@ -1089,6 +1092,91 @@ test('stage four uses three infernal patterns with at most two attackers', async
   expect(result.flyAnimation).toBe('stage-4-takedown-fly');
   expect(result.sawThreeNearbyEnemies).toBe(true);
   expect(result.maximumAttackers).toBe(2);
+});
+
+test('stage four flying enemies change death pose after landing', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '4스테이지', exact: true })
+    .click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+    { timeout: 10_000 },
+  );
+
+  const targetTextures = ['stage-4-takedown', 'stage-4-floating'];
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeScene = { anims: { exists: (key: string) => boolean } };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const { anims } = game.scene.getScene('game') as RuntimeScene;
+        return [
+          'stage-4-takedown-death-fall',
+          'stage-4-takedown-death-land',
+          'stage-4-floating-death-fall',
+          'stage-4-floating-death-land',
+        ].every((key) => anims.exists(key));
+      }),
+    )
+    .toBe(true);
+
+  const falling = await page.evaluate((textures) => {
+    type RuntimeEnemy = {
+      anims: { currentAnim?: { key: string } };
+      body: { reset: (x: number, y: number) => void };
+      defeat: () => void;
+      setPosition: (x: number, y: number) => void;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const { enemies } = game.scene.getScene('game') as RuntimeScene;
+    return textures.map((texture) => {
+      const enemy = enemies.find((candidate) => candidate.texture.key === texture)!;
+      enemy.setPosition(enemy.x, 220);
+      enemy.body.reset(enemy.x, 220);
+      enemy.defeat();
+      return { animation: enemy.anims.currentAnim?.key, y: enemy.y };
+    });
+  }, targetTextures);
+
+  expect(falling).toEqual([
+    { animation: 'stage-4-takedown-death-fall', y: 220 },
+    { animation: 'stage-4-floating-death-fall', y: 220 },
+  ]);
+  await expect
+    .poll(() =>
+      page.evaluate((textures) => {
+        type RuntimeEnemy = {
+          anims: { currentAnim?: { key: string } };
+          texture: { key: string };
+          y: number;
+        };
+        type RuntimeScene = { enemies: RuntimeEnemy[] };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const { enemies } = game.scene.getScene('game') as RuntimeScene;
+        return textures.map((texture) => {
+          const enemy = enemies.find(
+            (candidate) => candidate.texture.key === texture,
+          );
+          return { animation: enemy?.anims.currentAnim?.key, y: enemy?.y };
+        });
+      }, targetTextures),
+    )
+    .toEqual([
+      { animation: 'stage-4-takedown-death-land', y: 586 },
+      { animation: 'stage-4-floating-death-land', y: 619 },
+    ]);
 });
 
 test('stage five uses three celestial bullet enemies with at most two attackers', async ({

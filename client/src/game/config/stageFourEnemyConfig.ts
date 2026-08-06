@@ -10,8 +10,9 @@ type ExecutionerDollTag =
   | 'takeDown'
   | 'slam'
   | 'land'
-  | 'death';
-type JudgmentEyeTag = 'idle' | 'attack' | 'death';
+  | 'deathFall'
+  | 'deathLand';
+type JudgmentEyeTag = 'idle' | 'attack' | 'deathFall' | 'deathLand';
 
 const INFERNAL_HOUND_TAG_FRAMES: Record<
   InfernalHoundTag,
@@ -43,10 +44,8 @@ const EXECUTIONER_DOLL_TAG_FRAMES: Record<
   takeDown: [{ frame: '4', duration: 1_000 }],
   slam: [{ frame: '5', duration: 1_000 }],
   land: [{ frame: '6', duration: 1_000 }],
-  death: [7, 8].map((frame) => ({
-    frame: `${frame}`,
-    duration: 180,
-  })),
+  deathFall: [{ frame: '7', duration: 500 }],
+  deathLand: [{ frame: '8', duration: 180 }],
 };
 
 const JUDGMENT_EYE_TAG_FRAMES: Record<
@@ -58,7 +57,8 @@ const JUDGMENT_EYE_TAG_FRAMES: Record<
     { frame: '2', duration: 180 },
     { frame: '3', duration: 130 },
   ],
-  death: [4, 5].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+  deathFall: [{ frame: '4', duration: 500 }],
+  deathLand: [{ frame: '5', duration: 180 }],
 };
 
 const INFERNAL_HOUND_ATLAS_SET = defineEnemyAtlasSet({
@@ -146,6 +146,8 @@ export const EXECUTIONER_DOLL_CONFIG = {
 
 export const JUDGMENT_EYE_CONFIG = {
   ...JUDGMENT_EYE_ATLAS_SET.sprites[4],
+  // sourceSize 96의 하단 투명 여백과 지면 그림자를 고려해 11px 내림.
+  deathLandOffsetY: 11,
   bulletTexture: 'judgment-eye-bullet-placeholder',
   maxHealth: 75,
   aggroRadius: 720,

@@ -17,13 +17,16 @@ describe('stage four enemy timing', () => {
         takeDown: 'stage-4-takedown-take-down',
         slam: 'stage-4-takedown-slam',
         land: 'stage-4-takedown-land',
-        death: 'stage-4-takedown-death',
+        deathFall: 'stage-4-takedown-death-fall',
+        deathLand: 'stage-4-takedown-death-land',
       },
     });
     expect(EXECUTIONER_DOLL_ANIMATION_ATLASES[0]?.tagFrames).toMatchObject({
       takeDown: [{ frame: '4', duration: 1_000 }],
       slam: [{ frame: '5', duration: 1_000 }],
       land: [{ frame: '6', duration: 1_000 }],
+      deathFall: [{ frame: '7', duration: 500 }],
+      deathLand: [{ frame: '8', duration: 180 }],
     });
   });
 
@@ -39,11 +42,21 @@ describe('stage four enemy timing', () => {
     });
     expect(JUDGMENT_EYE_CONFIG).toMatchObject({
       texture: 'stage-4-floating',
+      deathLandOffsetY: 11,
       animations: {
         idle: 'stage-4-floating-idle',
         attack: 'stage-4-floating-attack',
-        death: 'stage-4-floating-death',
+        deathFall: 'stage-4-floating-death-fall',
+        deathLand: 'stage-4-floating-death-land',
       },
+    });
+    expect(
+      STAGE_FOUR_ENEMY_ANIMATION_ATLASES.find(
+        ({ texture }) => texture === 'stage-4-floating',
+      )?.tagFrames,
+    ).toMatchObject({
+      deathFall: [{ frame: '4', duration: 500 }],
+      deathLand: [{ frame: '5', duration: 180 }],
     });
     expect(
       STAGE_FOUR_ENEMY_ANIMATION_ATLASES.map(({ texture }) => texture),

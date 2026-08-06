@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 import { Enemy } from '@/game/entities/Enemy';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
+
+const DEATH_FALL_SPEED = 720;
+const DEATH_WRECK_HOLD_MS = 400;
+const DEATH_FADE_MS = 350;
 
 /** 4스테이지 악마형 잡몹의 공격 순서와 기계 잔해 연출을 공유함. */
 export abstract class HallucinatedAndroidEnemy extends Enemy {
@@ -45,6 +50,45 @@ export abstract class HallucinatedAndroidEnemy extends Enemy {
   override destroy(fromScene?: boolean) {
     this.finishAttack();
     super.destroy(fromScene);
+  }
+
+  /** 첫 death 자세로 떨어진 뒤 착지 자세를 보여주고 잔해를 제거함. */
+  protected playFallingDeath(
+    fallAnimation: string,
+    landAnimation: string,
+    landOffsetY = 0,
+  ) {
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.play(fallAnimation, true);
+    const restY = FLOOR_SURFACE_Y - this.displayHeight / 2 + landOffsetY;
+    const fallDistance = Math.max(0, restY - this.y);
+    this.scene.tweens.add({
+      targets: this,
+      y: this.y + fallDistance,
+      duration: Phaser.Math.Clamp(
+        (fallDistance / DEATH_FALL_SPEED) * 1_000,
+        120,
+        900,
+      ),
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.play(landAnimation, true);
+        this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          this.scene.time.delayedCall(DEATH_WRECK_HOLD_MS, () => {
+            if (!this.active) {
+              return;
+            }
+            this.scene.tweens.add({
+              targets: this,
+              alpha: 0,
+              duration: DEATH_FADE_MS,
+              ease: 'Sine.easeIn',
+              onComplete: () => this.disableBody(true, true),
+            });
+          });
+        });
+      },
+    });
   }
 
   private flashMechanicalRemains() {

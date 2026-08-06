@@ -77,18 +77,17 @@ export class ExecutionerDollEnemy extends HallucinatedAndroidEnemy {
     if (!this.active || this.dying) {
       return;
     }
-    if (!this.scene.anims.exists(POSE.death)) {
+    if (
+      !this.scene.anims.exists(POSE.deathFall) ||
+      !this.scene.anims.exists(POSE.deathLand)
+    ) {
       super.defeat();
       return;
     }
 
     this.dying = true;
     this.onDefeated();
-    (this.body as Phaser.Physics.Arcade.Body).enable = false;
-    this.play(POSE.death, true);
-    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
-      this.disableBody(true, true),
-    );
+    this.playFallingDeath(POSE.deathFall, POSE.deathLand);
   }
 
   updateCombat(
