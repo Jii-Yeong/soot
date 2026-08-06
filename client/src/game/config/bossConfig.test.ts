@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import {
+  BOSS_COMBAT_CONFIGS,
+  INFERNAL_BOSS_SPRITES,
+} from '@/game/config/bossConfig';
+import { STAGE_FOUR_BOSS_TAG_FRAMES } from '@/game/config/bossAnimationConfig';
 import { PLAYER_COMBAT_CONFIG } from '@/game/config/combatConfig';
 
 describe('boss combat configuration', () => {
@@ -82,6 +86,31 @@ describe('boss combat configuration', () => {
     expect(pattern.shards.magmaDuration).toBeGreaterThan(
       pattern.shards.warnDuration,
     );
+    expect(BOSS_COMBAT_CONFIGS['infernal-executioner'].texture).toBe(
+      'stage-4-boss',
+    );
+    expect(INFERNAL_BOSS_SPRITES['infernal-executioner']).toMatchObject({
+      scale: 0.86,
+      facesLeft: true,
+      animations: {
+        idle: 'stage-4-boss-idle',
+        gush: 'stage-4-boss-gush',
+        rush: 'stage-4-boss-rush',
+        getDown: 'stage-4-boss-get-down',
+        death: 'stage-4-boss-death',
+      },
+    });
+    expect(STAGE_FOUR_BOSS_TAG_FRAMES).toMatchObject({
+      gush: [
+        { frame: '4', duration: 500 },
+        { frame: '5', duration: 700 },
+      ],
+      getDown: [{ frame: '8', duration: 100 }],
+      death: [
+        { frame: '9', duration: 100 },
+        { frame: '10', duration: 100 },
+      ],
+    });
   });
 
   it('gives the returning architect a three-pattern final phase', () => {

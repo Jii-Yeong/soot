@@ -5,12 +5,15 @@ import {
   STAGE_TWO_BOSS_ATLAS_KEY,
   STAGE_THREE_BOSS_ANIMATIONS,
   STAGE_THREE_BOSS_ATLAS_KEY,
+  STAGE_FOUR_BOSS_ANIMATIONS,
+  STAGE_FOUR_BOSS_ATLAS_KEY,
 } from '@/game/config/bossAnimationConfig';
 import type {
   BossCombatConfig,
   BossPatternConfig,
   BossSpriteConfig,
   HoundBossSpriteConfig,
+  InfernalBossSpriteConfig,
   PurifierBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 
@@ -147,7 +150,7 @@ export const BOSS_COMBAT_CONFIGS = {
     },
   },
   'infernal-executioner': {
-    texture: 'infernal-executioner-placeholder',
+    texture: STAGE_FOUR_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x7d1f16,
       accentColor: 0xff6a3d,
@@ -325,5 +328,19 @@ export const PURIFIER_BOSS_SPRITES: Partial<
     bodyHeight: 132,
     bodyOffsetX: 28,
     bodyOffsetY: 103,
+  },
+};
+
+export const INFERNAL_BOSS_SPRITES: Partial<
+  Record<BossVariant, InfernalBossSpriteConfig>
+> = {
+  'infernal-executioner': {
+    animations: STAGE_FOUR_BOSS_ANIMATIONS,
+    scale: 0.86,
+    bodyWidth: 150,
+    bodyHeight: 200,
+    bodyOffsetX: 53,
+    bodyOffsetY: 49,
+    facesLeft: true,
   },
 };

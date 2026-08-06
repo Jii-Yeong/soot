@@ -21,6 +21,12 @@ import {
   STAGE_THREE_BOSS_ATLAS_PNG,
   STAGE_THREE_BOSS_LOOPING_TAGS,
   STAGE_THREE_BOSS_TAG_FRAMES,
+  STAGE_FOUR_BOSS_ANIMATIONS,
+  STAGE_FOUR_BOSS_ATLAS_JSON,
+  STAGE_FOUR_BOSS_ATLAS_KEY,
+  STAGE_FOUR_BOSS_ATLAS_PNG,
+  STAGE_FOUR_BOSS_LOOPING_TAGS,
+  STAGE_FOUR_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
@@ -64,6 +70,14 @@ const BOSS_ANIMATION_ATLASES = [
     animations: STAGE_THREE_BOSS_ANIMATIONS,
     tagFrames: STAGE_THREE_BOSS_TAG_FRAMES,
     loopingTags: STAGE_THREE_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_FOUR_BOSS_ATLAS_KEY,
+    png: STAGE_FOUR_BOSS_ATLAS_PNG,
+    json: STAGE_FOUR_BOSS_ATLAS_JSON,
+    animations: STAGE_FOUR_BOSS_ANIMATIONS,
+    tagFrames: STAGE_FOUR_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_FOUR_BOSS_LOOPING_TAGS,
   },
 ] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];
 

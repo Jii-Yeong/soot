@@ -257,6 +257,18 @@ export type PurifierBossSpriteConfig = BossSpriteGeometry & {
   };
 };
 
+/** 지옥 집행체 보스의 상태별 스프라이트 설정. */
+export type InfernalBossSpriteConfig = BossSpriteGeometry & {
+  animations: {
+    idle: string;
+    walk: string;
+    gush: string;
+    rush: string;
+    getDown: string;
+    death: string;
+  };
+};
+
 export type BossCombatConfig<
   Pattern extends BossPatternConfig = BossPatternConfig,
 > = {

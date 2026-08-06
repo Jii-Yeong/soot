@@ -181,3 +181,44 @@ export const STAGE_THREE_BOSS_LOOPING_TAGS = new Set<StageThreeBossTag>([
   'walk',
   'suction',
 ]);
+
+/** 4스테이지 보스(지옥 집행체)의 실제 스프라이트 아틀라스. */
+export const STAGE_FOUR_BOSS_ATLAS_KEY = 'stage-4-boss';
+export const STAGE_FOUR_BOSS_ATLAS_PNG = '/assets/bosses/stage-4-boss.png';
+export const STAGE_FOUR_BOSS_ATLAS_JSON = '/assets/bosses/stage-4-boss.json';
+
+export const STAGE_FOUR_BOSS_ANIMATIONS = {
+  idle: 'stage-4-boss-idle',
+  walk: 'stage-4-boss-walk',
+  gush: 'stage-4-boss-gush',
+  rush: 'stage-4-boss-rush',
+  getDown: 'stage-4-boss-get-down',
+  death: 'stage-4-boss-death',
+} as const;
+
+type StageFourBossTag = keyof typeof STAGE_FOUR_BOSS_ANIMATIONS;
+
+/** 제공된 아틀라스 JSON의 태그별 프레임과 재생 시간. */
+export const STAGE_FOUR_BOSS_TAG_FRAMES: Record<
+  StageFourBossTag,
+  readonly { frame: string; duration: number }[]
+> = {
+  idle: [0, 1].map((frame) => ({ frame: String(frame), duration: 180 })),
+  walk: [
+    { frame: '2', duration: 220 },
+    { frame: '3', duration: 280 },
+  ],
+  gush: [
+    { frame: '4', duration: 500 },
+    { frame: '5', duration: 700 },
+  ],
+  rush: [6, 7].map((frame) => ({ frame: String(frame), duration: 100 })),
+  getDown: [{ frame: '8', duration: 100 }],
+  death: [9, 10].map((frame) => ({ frame: String(frame), duration: 100 })),
+};
+
+export const STAGE_FOUR_BOSS_LOOPING_TAGS = new Set<StageFourBossTag>([
+  'idle',
+  'walk',
+  'rush',
+]);

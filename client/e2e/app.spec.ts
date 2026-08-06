@@ -1403,6 +1403,63 @@ test('shows boss health without enabling the standard enemy health HUD', async (
   expect(bossHud.height).toBeLessThan(playerStack.height);
 });
 
+test('stage four boss uses the infernal sprite atlas', async ({ page }) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page.getByRole('button', { name: '보스' }).nth(3).click();
+
+  await expect(
+    page.getByRole('meter', { name: 'Boss health' }),
+  ).toHaveAttribute('aria-valuemax', '1000');
+
+  const sprite = await page.evaluate(() => {
+    type RuntimeEnemy = {
+      anims: { currentAnim?: { key: string } };
+      body: { bottom: number };
+      beginCharge: (time: number) => void;
+      beginRupture: (time: number) => void;
+      beginShards: (time: number, target: unknown) => void;
+      constructor: { name: string };
+      displayHeight: number;
+      texture: { key: string };
+      y: number;
+    };
+    type RuntimeScene = { enemies: RuntimeEnemy[]; player: unknown };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const boss = scene.enemies.find(
+      ({ constructor }) => constructor.name === 'InfernalBossEnemy',
+    )!;
+    const idleAnimation = boss.anims.currentAnim?.key;
+    boss.beginRupture(0);
+    const gushAnimation = boss.anims.currentAnim?.key;
+    boss.beginCharge(0);
+    const rushAnimation = boss.anims.currentAnim?.key;
+    boss.beginShards(0, scene.player);
+    return {
+      bottomGap: boss.body.bottom - (boss.y + boss.displayHeight / 2),
+      displayHeight: boss.displayHeight,
+      getDownAnimation: boss.anims.currentAnim?.key,
+      gushAnimation,
+      idleAnimation,
+      rushAnimation,
+      texture: boss.texture.key,
+    };
+  });
+
+  expect(sprite.texture).toBe('stage-4-boss');
+  expect(sprite.idleAnimation).toBe('stage-4-boss-idle');
+  expect(sprite.gushAnimation).toBe('stage-4-boss-gush');
+  expect(sprite.rushAnimation).toBe('stage-4-boss-rush');
+  expect(sprite.getDownAnimation).toBe('stage-4-boss-get-down');
+  // 프레임 하단의 7px 투명 여백만 바디 아래로 내려가 발을 바닥에 맞춤.
+  expect(sprite.bottomGap).toBeGreaterThan(-7);
+  expect(sprite.bottomGap).toBeLessThan(-5);
+  expect(sprite.displayHeight).toBeGreaterThan(210);
+  expect(sprite.displayHeight).toBeLessThan(230);
+});
+
 test('player fire damages the enemy without stopping combat', async ({
   page,
 }) => {

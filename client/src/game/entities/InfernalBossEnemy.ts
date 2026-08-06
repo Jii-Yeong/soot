@@ -6,6 +6,7 @@ import {
 import type {
   InfernalBossCombatConfig,
   InfernalBossPatternConfig,
+  InfernalBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 import type { BossArenaBounds } from '@/game/config/bossArena';
 import { BossEnemy } from '@/game/entities/BossEnemy';
@@ -30,6 +31,8 @@ type PhaseChangeHandler = (phase: BossPhase) => void;
 
 const EFFECT_DEPTH = 6;
 const CORE_DEPTH = 7;
+const DEATH_POSE_HOLD_MS = 1600;
+const DEATH_FADE_MS = 600;
 const PHASE_TWO_SEQUENCE: readonly InfernalAttack[] = [
   'shards',
   'rupture',
@@ -60,6 +63,8 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
   private chargeDirection = 1;
   private chargeHit = false;
   private playerTarget?: Phaser.Physics.Arcade.Sprite;
+  private activeSpriteAnimation?: string;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -70,6 +75,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     private readonly damagePlayer: PlayerDamageHandler,
     private readonly arena: BossArenaBounds,
     private readonly onPhaseChanged: PhaseChangeHandler,
+    private readonly sprite?: InfernalBossSpriteConfig,
   ) {
     super(scene, x, y, texture, config);
 
@@ -84,6 +90,43 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       .setStrokeStyle(3, 0xffd18a, 0.65)
       .setDepth(CORE_DEPTH);
     this.onPhaseChanged(1);
+    this.applyBossSprite();
+  }
+
+  override get playsOwnDeathAnimation(): boolean {
+    return Boolean(this.sprite);
+  }
+
+  /** 실제 아틀라스 크기와 바닥 정렬용 물리 바디를 적용함. */
+  private applyBossSprite() {
+    if (!this.sprite) {
+      return;
+    }
+
+    this.setScale(this.sprite.scale);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(this.sprite.bodyWidth, this.sprite.bodyHeight);
+    if (
+      this.sprite.bodyOffsetX !== undefined &&
+      this.sprite.bodyOffsetY !== undefined
+    ) {
+      body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
+    }
+    this.playSpriteAnimation(this.sprite.animations.idle);
+  }
+
+  private playSpriteAnimation(animation: string) {
+    if (!this.sprite || this.activeSpriteAnimation === animation) {
+      return;
+    }
+
+    this.activeSpriteAnimation = animation;
+    this.play(animation, true);
+  }
+
+  /** 기본 좌향 아트 보정을 포함해 대상을 바라봄. */
+  private faceToward(faceRight: boolean) {
+    this.setFlipX(this.sprite?.facesLeft ? faceRight : !faceRight);
   }
 
   updateCombat(
@@ -94,7 +137,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.playerTarget = target;
     this.syncCore();
 
-    if (!this.active) {
+    if (!this.active || this.dying) {
       this.telegraph.clear();
       return false;
     }
@@ -105,6 +148,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     if (!targetInRange) {
       this.setVelocityX(0);
       this.telegraph.clear();
+      this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
       return false;
     }
 
@@ -190,6 +234,37 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.effectCleanups.clear();
   }
 
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+
+    if (!this.sprite) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.clearTint().setAlpha(1);
+    this.setVelocity(0);
+    this.playSpriteAnimation(this.sprite.animations.death);
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.scene.time.delayedCall(DEATH_POSE_HOLD_MS, () => {
+      if (!this.scene || !this.visible) {
+        return;
+      }
+
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        duration: DEATH_FADE_MS,
+        ease: 'Sine.easeIn',
+        onComplete: () => this.disableBody(true, true),
+      });
+    });
+  }
+
   override destroy(fromScene?: boolean) {
     this.telegraph.destroy();
     this.phaseOverlay.destroy();
@@ -200,6 +275,8 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
 
   private updateRecover(time: number, target: Phaser.Physics.Arcade.Sprite) {
     this.setVelocityX(0);
+    this.faceToward(target.x > this.x);
+    this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
     this.clearTint();
     this.telegraph.clear();
     this.coreGlow.setAlpha(this.phaseTwo ? 0.62 : 0.42);
@@ -251,6 +328,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.phaseTransitionDuration;
     this.setVelocityX(0);
+    this.playSpriteAnimation(this.sprite?.animations.gush ?? '');
     this.setTint(this.pattern.magmaColor);
     this.scene.cameras.main.flash(220, 255, 92, 35);
     this.scene.cameras.main.shake(360, 0.012);
@@ -286,6 +364,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.ruptureCount = 0;
     this.nextRuptureAt = time;
     this.setVelocityX(0);
+    this.playSpriteAnimation(this.sprite?.animations.gush ?? '');
     this.telegraph.clear();
   }
 
@@ -404,6 +483,8 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateEndsAt = time + this.pattern.charge.warnDuration;
     this.chargeDirection = Math.sign(target.x - this.x) || 1;
     this.setVelocityX(0);
+    this.faceToward(this.chargeDirection > 0);
+    this.playSpriteAnimation(this.sprite?.animations.walk ?? '');
   }
 
   private updateChargeWarn(
@@ -413,7 +494,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.setVelocityX(0);
     this.chargeDirection =
       Math.sign(target.x - this.x) || this.chargeDirection;
-    this.setFlipX(this.chargeDirection < 0);
+    this.faceToward(this.chargeDirection > 0);
     this.setTint(this.pattern.telegraphColor);
     this.drawChargeWarning(time);
 
@@ -430,6 +511,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.clearTint();
     this.telegraph.clear();
     this.phaseOverlay.clear();
+    this.playSpriteAnimation(this.sprite?.animations.rush ?? '');
     this.setVelocityX(this.chargeDirection * this.chargeSpeed);
   }
 
@@ -459,6 +541,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.charge.staggerDuration;
     this.setVelocityX(0);
+    this.playSpriteAnimation(this.sprite?.animations.getDown ?? '');
     this.scene.cameras.main.shake(220, 0.014);
     this.coreGlow.setAlpha(1).setScale(1.4);
   }
@@ -484,6 +567,8 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       time + shards.warnDuration + shards.followUpDelay;
     this.setVelocityX(0);
     this.telegraph.clear();
+    this.faceToward(target.x > this.x);
+    this.playSpriteAnimation(this.sprite?.animations.getDown ?? '');
 
     const layout = getShardPatternLayout({
       arenaLeft: this.arena.left,
@@ -613,6 +698,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.clearTint();
     this.telegraph.clear();
     this.coreGlow.setScale(1);
+    this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
   }
 
   private drawPhaseCracks(time: number) {
