@@ -109,7 +109,7 @@
 | `sfx-player-death` | `player-death_low-frequency-explosion-001.ogg` | sci-fi / `lowFrequency_explosion_001` | 1.000초 | 저역으로 무너지는 느낌 |
 | `sfx-room-locked` | `room-locked_impact-metal-004.ogg` | sci-fi / `impactMetal_004` | 0.390초 | 아래 "방 큐를 갈아엎었다" 참고 |
 | `sfx-room-cleared` | `room-cleared_impact-soft-heavy-000.ogg` | impact / `impactSoft_heavy_000` | 0.504초 | 〃 |
-| `sfx-monitor-beep` | `monitor-beep_synth.wav` | **자체 합성** (`tools/make-monitor-beep.mjs`) | 0.130초 | 아래 "모니터 비프는 합성했다" 참고 |
+| `sfx-monitor-beep` | `monitor-beep_synth.ogg` | **자체 합성** (`tools/make-monitor-beep.mjs`) | 0.130초 | 아래 "모니터 비프는 합성했다" 참고 |
 
 **규격에서 벗어난 항목과 그 이유:**
 
@@ -250,8 +250,14 @@ B가 수치상 가장 낮지만 **A를 채택했다.** 무기가 탄알 발사�
 비프는 그냥 음이므로 만드는 편이 싸다. `tools/make-monitor-beep.mjs`가 만든다.
 
 ```bash
-node tools/make-monitor-beep.mjs client/src/assets/audio/sfx/monitor-beep_synth.wav
+node tools/make-monitor-beep.mjs /tmp/monitor-beep.wav
+ffmpeg -i /tmp/monitor-beep.wav -c:a libopus -b:a 96k \
+  client/src/assets/audio/sfx/monitor-beep_synth.ogg
 ```
+
+스크립트는 WAV 마스터만 만든다. 다른 합성음과 같이 **마스터에서 다시 인코딩**하므로 세대
+손실이 없고, 스크립트가 결정적이라 마스터를 저장소에 둘 이유도 없다. 96k는 SFX 규칙인
+모노 96k / 스테레오 64k를 따른 것이다.
 
 **1000Hz, 130ms, 상승 2ms / 하강 28ms.** 실제 병실 모니터의 값이다. 순음이 아니라 3배음
 -18dB, 5배음 -26dB를 얹었다 — 그 스피커가 작고 싸서 생기는 홀수 배음이 "의료기기 소리"로
@@ -1625,7 +1631,7 @@ full level, loopable background bed, 88 BPM, D major
 `the melody never quite landing on the tonic`을 같이 넣으면 그것이 A5의 실수로 돌아가는
 길이다. 대비가 부족하면 그때 한 줄만 다시 넣는다.
 
-**A9 — 레퍼런스가 나왔다. 필요한 것은 감7화음이었다 (지금 쓸 것)**
+**A9 — 레퍼런스가 나왔다. 필요한 것은 감7화음이었다 (진단은 유지, 편성은 폐기)**
 
 A8까지 아홉 개 프롬프트로 서른 테이크를 뽑았고 전부 탈락했다. **형용사를 고쳐서 좁히는
 방식이 수렴하지 않는다는 뜻이므로 그 축을 접고 레퍼런스를 받았다.**
@@ -1698,9 +1704,46 @@ full level, loopable background bed, 116 BPM, D major
 레퍼런스의 아티스트명과 곡명은 프롬프트에 안 넣는다. 필터에 걸릴 수 있고, 필요한 것은
 이름이 아니라 편성·템포·화성인데 그것은 전부 위에 옮겼다.
 
-**볼 지점은 감7이 들어왔는가 하나다.** 밝기와 대역은 8월 4일 테이크들에서 이미 목표를
-넘겼으므로(공기감 -27.4 ~ -32.8, A 계열 -47.9에서 최대 20dB 상승) 더 볼 필요가 없다.
-**측정으로 이 큐를 고르지 않는다.**
+**A10 — 24테이크 기록을 반영한다 (지금 쓸 것)**
+
+A9의 화성 진단(감7 경과화음)은 남기고 **편성과 길이를 8월 4일 기록에 맞춰 갈아엎는다.**
+
+| | A9 | A10 |
+| --- | --- | --- |
+| 성스러운 악기 | 오르간 + 튜불러벨 + 첼레스타 + 글로켄 | **파이프오르간 하나** |
+| 리드 | 첼레스타·글로켄 아르페지오 | **고음 현악의 또렷한 선율** |
+| 길이 | 무지정 (3분이 나왔다) | **2분 명시** |
+| 템포 | 116 | **132** |
+
+**실로폰류를 전부 뺀 것이 가장 큰 변경이다.** 34·37·42번의 "경박하다 / 방정맞다"가 전부
+그 계열에서 나왔다. 밝기는 이미 충분하므로 그것들로 밝기를 더 살 이유가 없다.
+
+성스러운 악기를 파이프오르간 하나로 줄인다(41번). 오르간은 저역 페달로 **가볍다는
+지적(47번)까지 같이 갚는다.** 47번까지 반복해서 나온 "정적이다"에는 템포를 132로 올리고
+16분 오스티나토와 팀파니로 답한다.
+
+**선율을 명시한다.** 56번에서 "멜로디가 따로 없다"가 나왔고, 팀 방향인 "바탕은 밝고
+선율이 불안정하다"는 선율이 있어야 성립한다.
+
+부정문은 쓰지 않는다. 빼고 싶은 것은 적지 않는 방식으로 뺀다.
+
+```
+bright sacred orchestral in a major key, driving and explosive, relentless
+forward motion, never static, recorded in a vast white marble cathedral, high
+strings playing a clear soaring melody over a fast sixteenth note string
+ostinato, one pipe organ holding the harmony underneath with a heavy pedal in
+the low register, timpani driving the beat, bright major chords with diminished
+seventh chords slipping between them as passing tension, holy on the surface
+and wrong underneath, the sound of someone smiling while something terrible
+happens, a single one minute passage that returns to its exact starting point
+and begins again unchanged, purely instrumental, choir-free, the final section
+sits at exactly the same level as the opening, starts immediately at full
+level, loopable background bed, two minutes long, 132 BPM, D major
+```
+
+**볼 지점은 셋이다.** 터지는가, 경박하지 않은가, 감7이 들리는가. 밝기와 대역은 8월 4일
+테이크들에서 이미 목표를 넘겼으므로(공기감 -27.4 ~ -32.8, A 계열 -47.9에서 최대 20dB
+상승) 더 볼 필요가 없다. **측정으로 이 큐를 고르지 않는다.**
 
 #### 지금 쓸 프롬프트
 
@@ -1711,7 +1754,7 @@ full level, loopable background bed, 116 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A9** | A ~ A8 | 형용사로 밝음을 조절한 아홉 번이 전부 실패했다. 필요한 것은 감7 경과화음이다 |
+| `return` | **A10** | A ~ A9 | 밝음을 형용사로 조절한 아홉 번이 실패했다. 화성은 감7 경과화음, 편성은 8월 4일 24테이크 기록을 따른다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
@@ -1801,6 +1844,72 @@ private readonly handleDecoded = (key: string) => {
 | 21 | return | A2 | 175.1초 | Vigil in Concrete |
 | 22 | inferno | A3 | 182.4초 | Concrete Teeth |
 | 23 | return | A5 | 175.7초 | Smiling Through Glass |
+
+##### 8월 4일 — return 24테이크, 전량 탈락
+
+이 스물넷은 별도 세션에서 뽑혔고 **저장소에 남기지 않는다.** 원본은 로컬에만 있고
+프롬프트 원문과 대화는 Codex 스레드 `019fca69-cb06-7270-a558-2356afeb7d62`
+(`~/.codex/sessions/2026/08/04/`)에 있다. 여기 남기는 것은 **어떤 소리가 왜 탈락했는가**다.
+그 목록이 다음 프롬프트의 근거이기 때문이다.
+
+24번만 A8이고 나머지는 전부 해당 세션에서 만들어진 프롬프트다.
+
+| 순서 | 길이 | 제목 | 평가 |
+| --- | --- | --- | --- |
+| 24 | 175.0초 | Atrium at Noon | A8 결과. 정적이다 |
+| 25 | 174.1초 | Pillars of Stolen Light | 〃 |
+| 26 | 58.1초 | Hardened Sunlight | 목소리가 섞여 나왔다 |
+| 27 | 177.0초 | Late To The Arrival | 어둡다 |
+| 28 | 179.2초 | The Last Tenant | 어둡다 |
+| 29 | 58.6초 | The Long Smile | 60초는 너무 짧다 |
+| 30 | 57.8초 | Marble Hall Reflections | **이 세션에서 가장 나았다.** 길이만 부족했다 |
+| 31 | 175.4초 | Noon in the Marble Gallery | 과하게 밝고 평화롭다 |
+| 32 | 174.0초 | Symmetry of White Glass | 서로 너무 비슷해졌다 |
+| 33 | 175.9초 | Porcelain Ritual | 〃 |
+| 34 | 173.8초 | Porcelain Lattice | 정신없다 |
+| 35 | 177.8초 | Porcelain Glare | 밝기만 하고 기괴함과 광기가 없다 |
+| 36 | 174.9초 | A Calculated Smile | 길다 |
+| 37 | 114.7초 | White Porcelain Smile | **경박하다** |
+| 38 | 115.1초 | The Weightless Arch | 앞부분이 버려진다 |
+| 39 | 116.7초 | The Porcelain Ceremony | — |
+| 40 | 116.4초 | The Porcelain Smile | — |
+| 41 | 115.7초 | The Marble Sanctum | 성스러움 투입 직전 기준선 |
+| 42 | 114.3초 | Radiant Flaw | 무난히 듣기 좋다. 기괴함이 없다 |
+| 43 | 114.3초 | The Incorrect Smile | — |
+| 44 | 116.1초 | A Smile Held Too Long | 정적이다. 마라카스 같은 소리가 붙었다 |
+| 45 | 115.9초 | Porcelain Noon | 측정상 이 세션 최고 (루프 0.744 @ 60.0초) |
+| 46 | 176.9초 | Porcelain Altar | 성스럽지만 터지는 맛이 없다 |
+| 47 | 113.6초 | Porcelain Stillness | 마지막. 여전히 정적이고 소리가 가볍다 |
+
+###### 스물넷이 말해 주는 것
+
+**같은 말이 반복해서 나온다. 그것이 곧 요구사항이다.**
+
+| 반복된 지적 | 나온 횟수 | 뜻 |
+| --- | --- | --- |
+| 정적이다 / 터지는 맛이 없다 | 24 · 25 · 44 · 46 · 47 | **움직임이 최우선 요구다** |
+| 경박하다 / 방정맞다 | 34 · 37 · 42 | 밝힌다고 실로폰류를 얹으면 여기로 간다 |
+| 기괴함·광기가 없다 | 35 · 42 | 밝기만으로는 이 큐가 안 된다 |
+| 어둡다 | 27 · 28 | 반대쪽 벽. 둘 사이가 좁다 |
+| 소리가 가볍다 | 47 | 저역·무게가 더 필요하다 |
+
+**성스러움에 대해 확정된 사실이 둘 있다.** 천국 테마라 성스러움은 들어가야 하지만(38),
+성스러운 악기를 다 쓰면 웅장해져서 실패한다(41). **하나만 쓴다.**
+
+길이는 **2분**이다. 60초는 짧고(29) 3분은 길다(36).
+
+###### A9를 폐기한다
+
+A9는 이 기록을 못 본 상태에서 썼고, **위 표가 그중 셋을 정면으로 반박한다.**
+
+| A9에 쓴 것 | 이 기록이 말하는 것 |
+| --- | --- |
+| `celesta and glockenspiel arpeggio` | 실로폰류가 **경박함의 원인**이다 (34 · 37 · 42) |
+| 파이프오르간 + 튜불러벨 + 첼레스타 + 글로켄 + 현악 + 팀파니 | 성스러운 악기는 **하나만** 쓴다 (41) |
+| 116 BPM · 길이 무지정 | 2분이 맞는 길이다 (29 · 36) |
+
+**감7 경과화음이라는 진단 자체는 유지한다.** 그것은 화성의 문제였고 위 표는 편성과
+움직임의 문제다. 서로 다른 층이라 충돌하지 않는다.
 
 #### underground 측정 결과
 
@@ -2434,7 +2543,7 @@ CC0(퍼블릭 도메인) 우선. CC-BY는 크레딧 표기 부담이 있으니 �
 | `sfx-player-death` | `player-death_low-frequency-explosion-001.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-room-locked` | `room-locked_impact-metal-004.ogg` | Kenney — Sci-Fi Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
 | `sfx-room-cleared` | `room-cleared_impact-soft-heavy-000.ogg` | Kenney — Impact Sounds 1.0 | CC0 1.0 | 불필요 (권장) | 〃 |
-| `sfx-monitor-beep` | `monitor-beep_synth.wav` | 자체 제작 (`tools/make-monitor-beep.mjs`) | 해당 없음 | 불필요 | 사인파 합성이라 원본 소재가 없다 |
+| `sfx-monitor-beep` | `monitor-beep_synth.ogg` | 자체 제작 (`tools/make-monitor-beep.mjs`) | 해당 없음 | 불필요 | 사인파 합성이라 원본 소재가 없다 |
 
 **SFX는 전부 정리됐다.** 팩 3종의 `License.txt`를 직접 열어 확인했고 셋 다 CC0 1.0이며
 개인·교육·상업 이용을 명시적으로 허용한다. 표기는 의무가 아니지만 크레딧에 한 줄
