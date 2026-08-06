@@ -65,14 +65,7 @@ export abstract class HallucinatedAndroidEnemy extends Enemy {
 
   private flashAndroidReality() {
     this.setTint(0x8fffe0);
-    const silhouette = this.scene.add
-      .image(this.x, this.y, 'melee-enemy-placeholder')
-      .setDepth(this.depth + 1)
-      .setScale(0.72)
-      .setAlpha(0.7)
-      .setTint(0x8fffe0);
     this.scene.time.delayedCall(65, () => {
-      silhouette.destroy();
       if (this.active) {
         this.clearTint();
       }
