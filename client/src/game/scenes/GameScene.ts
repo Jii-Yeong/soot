@@ -126,7 +126,6 @@ export class GameScene extends Phaser.Scene {
   private victoryOverlay!: Phaser.GameObjects.Container;
   private stageEndOverlay!: Phaser.GameObjects.Container;
   private weaponEquippedText!: Phaser.GameObjects.Text;
-  private controlHintText?: Phaser.GameObjects.Text;
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
     (currentHealth, maxHealth) =>
@@ -810,19 +809,6 @@ export class GameScene extends Phaser.Scene {
       .setDepth(30)
       .setScrollFactor(0)
       .setVisible(false);
-
-    this.controlHintText = this.add
-      .text(viewportWidth - 32, GAME_HEIGHT - 96, '', {
-        color: '#d8dfdc',
-        backgroundColor: '#070a0bd9',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        padding: { x: 10, y: 6 },
-      })
-      .setOrigin(1, 0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateControlHint();
   }
 
   private bindInputHandlers() {
@@ -952,12 +938,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetRunState() {
-    // 관리자 스테이지 이동에 사용하는 장면 재시작은 이 인스턴스를 재사용하므로,
-    // 각 필드가 이미 파괴된 이전 실행의 게임 객체를 계속 가리킨다. 특히
-    // applyStageMovementMode는 createCombatSystems 안에서 실행되어 createCombatUi가
-    // 다시 만들기 전의 안내 텍스트에 접근하므로, 파괴된 Text의 setText가 없는
-    // 캔버스를 참조하지 않도록 초기화한다.
-    this.controlHintText = undefined;
     // Phaser는 재시작 시 Scene 인스턴스를 재사용하지만 이전 물리 그룹은 파괴한다.
     // createCombatSystems가 필드를 교체하기 전에 buildRoom이 실행되므로, 선택적
     // 정리 과정이 오래된 풀이나 디렉터를 참조하지 않게 비워 둔다.
@@ -1013,15 +993,6 @@ export class GameScene extends Phaser.Scene {
 
   private applyStageMovementMode() {
     this.playerController.setMovementMode(this.stage.movementMode);
-    this.updateControlHint();
-  }
-
-  private updateControlHint() {
-    this.controlHintText?.setText(
-      this.playerController.isFlightMode
-        ? 'W/SPACE  UP    S  DOWN    A/D  MOVE    SHIFT/RMB  DASH    LMB  FIRE'
-        : 'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
-    );
   }
 
   private setPhase(phase: GamePhase) {
