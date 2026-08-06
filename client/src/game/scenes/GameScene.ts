@@ -87,6 +87,8 @@ const ROOM_ENTRY_OFFSET_X = 116;
 const DESCENT_FALL_OFF_MS = 750;
 const DESCENT_LOOK_INTERVAL = 360;
 const DESCENT_POST_LOOK_PAUSE = 2000;
+/** 착지 판정이 실패해도 강하 컷신을 계속 진행할 최대 대기 시간. */
+const DESCENT_LANDING_TIMEOUT_MS = 4000;
 /** 지상 스테이지에서 플레이어가 포탈에서 나오듯 이 높이에서 떨어져 진입함. */
 const PORTAL_DROP_HEIGHT = 170;
 
@@ -451,6 +453,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (plan.event === 'ascension') {
+      this.beginAscension();
+      return;
+    }
+
     if (plan.event) {
       this.playStageEndEvent(plan.event, plan.nextStageIndex);
       return;
@@ -605,14 +612,27 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
     this.player.play(this.playerSprite.animations.idle, true);
 
+    const watchStartedAt = this.time.now;
     const landingWatcher = this.time.addEvent({
       delay: 60,
       loop: true,
       callback: () => {
-        if ((this.player.body as Phaser.Physics.Arcade.Body).blocked.down) {
-          landingWatcher.remove();
-          this.playDescentLookAround();
+        const landed = (this.player.body as Phaser.Physics.Arcade.Body).blocked
+          .down;
+        if (
+          !landed &&
+          this.time.now - watchStartedAt < DESCENT_LANDING_TIMEOUT_MS
+        ) {
+          return;
         }
+
+        landingWatcher.remove();
+        if (!landed) {
+          const landingY = FLOOR_SURFACE_Y - 40;
+          this.player.setPosition(centerX, landingY);
+          body.reset(centerX, landingY);
+        }
+        this.playDescentLookAround();
       },
     });
   }
@@ -728,7 +748,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private playStageEndEvent(
-    event: StageEndEvent,
+    event: Exclude<StageEndEvent, 'ascension'>,
     nextStageIndex: number | null,
   ) {
     this.setPhase('transitioning');
@@ -872,6 +892,7 @@ export class GameScene extends Phaser.Scene {
 
   private createCombatUi() {
     const viewportWidth = this.scale.width;
+    const viewportHeight = this.scale.height;
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.deathOverlay = this.createOverlay(
@@ -898,7 +919,7 @@ export class GameScene extends Phaser.Scene {
     this.syncWeaponUi();
 
     this.weaponEquippedText = this.add
-      .text(viewportWidth / 2, GAME_HEIGHT - 128, '', {
+      .text(viewportWidth / 2, viewportHeight - 128, '', {
         color: '#ffffff',
         backgroundColor: '#070a0be8',
         fontFamily: 'Arial, sans-serif',
@@ -1045,6 +1066,12 @@ export class GameScene extends Phaser.Scene {
     this.weaponDropDirector = undefined!;
     this.weaponSystem = undefined!;
     this.roomDirector = undefined!;
+    // Scene 인스턴스와 함께 남는 강하 컷신 상태도 매 실행마다 초기화한다.
+    // 그렇지 않으면 클리어 후 재시작이 빈 연출 방을 현재 방으로 다시 사용한다.
+    this.descentRoomConfig = undefined;
+    this.descentCutsceneStarted = false;
+    this.descentPromptText = undefined;
+    this.pendingNextStageIndex = null;
     this.startCurrentRoomImmediately = this.requestedImmediateEncounter;
     this.requestedImmediateEncounter = false;
     const requestedStageIndex = this.requestedStartingStageIndex;
@@ -1620,10 +1647,11 @@ export class GameScene extends Phaser.Scene {
     promptText: string,
   ) {
     const viewportCenterX = this.scale.width / 2;
+    const viewportCenterY = this.scale.height / 2;
     const panel = this.add
       .nineslice(
         viewportCenterX,
-        GAME_HEIGHT / 2,
+        viewportCenterY,
         panelTexture,
         undefined,
         470,
@@ -1637,7 +1665,7 @@ export class GameScene extends Phaser.Scene {
       )
       .setOrigin(0.5);
     const title = this.add
-      .text(viewportCenterX, GAME_HEIGHT / 2 - 28, titleText, {
+      .text(viewportCenterX, viewportCenterY - 28, titleText, {
         color: titleColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',
@@ -1645,7 +1673,7 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const prompt = this.add
-      .text(viewportCenterX, GAME_HEIGHT / 2 + 34, promptText, {
+      .text(viewportCenterX, viewportCenterY + 34, promptText, {
         color: '#e8ece9',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',

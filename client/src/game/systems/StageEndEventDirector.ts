@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 import type { StageEndEvent } from '@/game/config/stageConfig';
 
 /** 화면 중앙(=착지한 플레이어) 기준 양쪽으로 세우는 안드로이드 실루엣 간격. */
@@ -8,6 +8,7 @@ const SIEGE_FLANK_OFFSETS = [120, 210, 300, 390, 480, 570];
 const SIEGE_REVEAL_INTERVAL = 200;
 /** 싱킹 연출에 쓰는 검은 선/점 개수. */
 const SINK_STREAK_COUNT = 14;
+const SHATTER_SNAPSHOT_KEY = 'stage-shatter-snapshot';
 
 /**
  * 화면 파괴 안무 타이밍(파편이 화면을 덮은 시점 기준). 첫 조각이 뜸을 두고
@@ -17,20 +18,22 @@ const SHATTER_FIRST_DROP = 700;
 const SHATTER_AVALANCHE = 2900;
 
 export class StageEndEventDirector {
-  constructor(private readonly scene: Phaser.Scene) {}
+  private shatterRunId = 0;
 
-  play(event: StageEndEvent, onBlackout: () => void) {
+  constructor(private readonly scene: Phaser.Scene) {
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.shatterRunId += 1;
+      this.removeShatterSnapshot();
+    });
+  }
+
+  play(event: Exclude<StageEndEvent, 'ascension'>, onBlackout: () => void) {
     switch (event) {
       case 'siege':
         this.playSiege(onBlackout);
         return;
       case 'shatter':
         this.playShatter(onBlackout);
-        return;
-      case 'ascension':
-        // 방 교체는 GameScene이 직접 playAscension을 호출해 처리한다. 이 경로로
-        // 들어오면 방 교체 없이 포위 오버레이만 재생하는 안전한 대체 동작.
-        this.playAscension(() => {}, onBlackout);
         return;
       default: {
         const unhandledEvent: never = event;
@@ -129,8 +132,12 @@ export class StageEndEventDirector {
    * 드러낸다.
    */
   private playShatter(onBlackout: () => void) {
+    const runId = ++this.shatterRunId;
     // 현재 프레임을 캡쳐한 뒤(다음 렌더에 콜백) 그 이미지를 깨뜨린다.
     this.scene.game.renderer.snapshot((snapshot) => {
+      if (runId !== this.shatterRunId || !this.scene.sys.isActive()) {
+        return;
+      }
       if (snapshot instanceof HTMLImageElement) {
         this.runShatter(snapshot, onBlackout);
       } else {
@@ -146,15 +153,12 @@ export class StageEndEventDirector {
     const centerX = viewportWidth / 2;
     const centerY = viewportHeight / 2;
 
-    const snapshotKey = 'stage-shatter-snapshot';
-    if (this.scene.textures.exists(snapshotKey)) {
-      this.scene.textures.remove(snapshotKey);
-    }
-    this.scene.textures.addImage(snapshotKey, snapshotImage);
+    this.removeShatterSnapshot();
+    this.scene.textures.addImage(SHATTER_SNAPSHOT_KEY, snapshotImage);
 
     // 캡쳐 화면으로 현재 프레임을 고정해 덮는다(그 아래 씬은 곧 교체됨).
     const cover = this.scene.add
-      .image(0, 0, snapshotKey)
+      .image(0, 0, SHATTER_SNAPSHOT_KEY)
       .setOrigin(0, 0)
       .setDisplaySize(viewportWidth, viewportHeight)
       .setDepth(94)
@@ -264,7 +268,7 @@ export class StageEndEventDirector {
           // 캡쳐 텍스처는 위에서 아래로 저장되지만 GL UV는 아래에서 위라, flipV로
           // 상하 반전을 바로잡는다.
           const mesh = this.scene.add
-            .mesh2d(cx, cy, snapshotKey, vertices, indices, true)
+            .mesh2d(cx, cy, SHATTER_SNAPSHOT_KEY, vertices, indices, true)
             .setDepth(94)
             .setScrollFactor(0);
           meshes.push(mesh);
@@ -278,6 +282,7 @@ export class StageEndEventDirector {
       camera.shake(240, 0.006);
 
       // 한 조각이 회전하며 떨어지는 낙하 트윈.
+      let remainingShards = meshes.length;
       const dropShard = (mesh: Phaser.GameObjects.Mesh2D, delay: number) => {
         this.scene.tweens.add({
           targets: mesh,
@@ -287,7 +292,13 @@ export class StageEndEventDirector {
           duration: Phaser.Math.Between(720, 1160),
           delay,
           ease: 'Quad.easeIn',
-          onComplete: () => mesh.destroy(),
+          onComplete: () => {
+            mesh.destroy();
+            remainingShards -= 1;
+            if (remainingShards === 0) {
+              this.removeShatterSnapshot();
+            }
+          },
         });
         this.scene.tweens.add({
           targets: mesh,
@@ -445,11 +456,12 @@ export class StageEndEventDirector {
    * 표기한다. 화면 좌표 고정(scrollFactor 0)이라 카메라 하강과 무관하게 흐른다.
    */
   private spawnSinkStreaks() {
+    const { width, height } = this.scene.cameras.main;
     const streaks: Phaser.GameObjects.GameObject[] = [];
     for (let index = 0; index < SINK_STREAK_COUNT; index += 1) {
       const isDot = index % 2 === 0;
-      const x = Phaser.Math.Between(40, GAME_WIDTH - 40);
-      const y = Phaser.Math.Between(GAME_HEIGHT, GAME_HEIGHT * 2);
+      const x = Phaser.Math.Between(40, width - 40);
+      const y = Phaser.Math.Between(height, height * 2);
       const streak = isDot
         ? this.scene.add.rectangle(x, y, 4, 4, 0xffffff, 0.95)
         : this.scene.add.rectangle(x, y, 2, 46, 0xffffff, 0.85);
@@ -464,5 +476,11 @@ export class StageEndEventDirector {
       });
     }
     return streaks;
+  }
+
+  private removeShatterSnapshot() {
+    if (this.scene.textures.exists(SHATTER_SNAPSHOT_KEY)) {
+      this.scene.textures.remove(SHATTER_SNAPSHOT_KEY);
+    }
   }
 }

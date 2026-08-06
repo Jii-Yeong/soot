@@ -431,6 +431,25 @@ test('covers a wide viewport with the stage shatter snapshot', async ({
 
   expect(sizes.coverWidth).toBeCloseTo(sizes.cameraWidth);
   expect(sizes.coverHeight).toBeCloseTo(sizes.cameraHeight);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          type DebugGame = {
+            scene: {
+              getScene: (key: string) => {
+                textures: { exists: (key: string) => boolean };
+              };
+            };
+          };
+          const game = (window as unknown as { __game?: DebugGame }).__game!;
+          return game.scene
+            .getScene('game')
+            .textures.exists('stage-shatter-snapshot');
+        }),
+      { timeout: 7000 },
+    )
+    .toBe(false);
 });
 
 test('shows the title before the stage one background finishes loading', async ({
@@ -775,6 +794,9 @@ test('shows the stage guide between the location and admin button', async ({
 
   await expect(page.locator('.hud-layer .stage-location')).toHaveCount(1);
   await expect(page.locator('.admin-controls .stage-location')).toHaveCount(0);
+  await expect(
+    page.locator('.admin-controls [aria-label="조작 가이드"]'),
+  ).toHaveCount(0);
   await expect(location).toContainText('STAGE 1 | THE CITY');
   await expect(location).toContainText('ROOM #1');
 
@@ -791,9 +813,34 @@ test('shows the stage guide between the location and admin button', async ({
 
   await guideButton.click();
   const guide = page.getByRole('dialog', { name: '조작 가이드' });
-  await expect(guide).toContainText('SHIFT / RMB');
-  await page.getByRole('button', { name: '조작 가이드 닫기' }).click();
+  await expect(guide).toContainText('A / D · ← / →');
+  await expect(guide).toContainText('SPACE / W / ↑');
+  await expect(guide).toContainText('S / ↓');
+  await expect(guide).toContainText('1 – 4');
+  await expect(guide).toContainText('ESC');
+  await expect(guide).toContainText('R / ENTER');
+  await expect(guide).toHaveJSProperty('open', true);
+  expect(await guide.evaluate((dialog) => dialog.matches(':modal'))).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type DebugGame = { scene: { isPaused: (key: string) => boolean } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        return game.scene.isPaused('game');
+      }),
+    )
+    .toBe(true);
+  await page.keyboard.press('Escape');
   await expect(guide).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type DebugGame = { scene: { isPaused: (key: string) => boolean } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        return game.scene.isPaused('game');
+      }),
+    )
+    .toBe(false);
 
   await guideButton.click();
   await guide.click({ position: { x: 4, y: 4 } });

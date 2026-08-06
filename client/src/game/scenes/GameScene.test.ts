@@ -81,3 +81,24 @@ describe('GameScene admin stage restart', () => {
     );
   });
 });
+
+describe('GameScene run reset', () => {
+  it('clears descent cutscene state before a restarted run', () => {
+    const gameScene = new GameScene();
+    Object.assign(gameScene, {
+      descentRoomConfig: { id: 'stale-descent-room' },
+      descentCutsceneStarted: true,
+      descentPromptText: {},
+      pendingNextStageIndex: 4,
+    });
+
+    (gameScene as unknown as { resetRunState(): void }).resetRunState();
+
+    expect(gameScene).toMatchObject({
+      descentRoomConfig: undefined,
+      descentCutsceneStarted: false,
+      descentPromptText: undefined,
+      pendingNextStageIndex: null,
+    });
+  });
+});

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HealthMeter } from '@/app/components/HealthMeter';
 import { SettingsDialog } from '@/app/components/SettingsDialog';
 import { WeaponInventory } from '@/app/components/WeaponInventory';
@@ -12,6 +12,8 @@ import { useGameUiStore } from '@/stores/gameUiStore';
 export function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const guideDialogRef = useRef<HTMLDialogElement>(null);
+  const resumeAfterGuideRef = useRef(false);
   const [showEnemyHealth, setShowEnemyHealth] = useState(false);
   const {
     health,
@@ -52,6 +54,29 @@ export function App() {
       closeSettings();
     }
   }, [closeSettings, paused, scene, settingsOpen]);
+
+  useEffect(() => {
+    if (guideOpen && !guideDialogRef.current?.open) {
+      guideDialogRef.current?.showModal();
+    }
+  }, [guideOpen]);
+
+  const openGuide = () => {
+    resumeAfterGuideRef.current =
+      !paused && phase !== 'boot' && phase !== 'dead' && phase !== 'ending';
+    if (resumeAfterGuideRef.current) {
+      gameEvents.emit('pause-toggle-requested');
+    }
+    setGuideOpen(true);
+  };
+
+  const closeGuide = () => {
+    setGuideOpen(false);
+    if (resumeAfterGuideRef.current) {
+      resumeAfterGuideRef.current = false;
+      gameEvents.emit('pause-toggle-requested');
+    }
+  };
 
   const goToStage = (stageIndex: number) => {
     setAdminOpen(false);
@@ -160,7 +185,7 @@ export function App() {
               </div>
             )}
 
-            <div className='admin-controls'>
+            <div className='guide-controls'>
               <button
                 type='button'
                 className='admin-controls__trigger'
@@ -168,11 +193,13 @@ export function App() {
                 aria-haspopup='dialog'
                 aria-expanded={guideOpen}
                 aria-controls='control-guide'
-                onClick={() => setGuideOpen(true)}
+                onClick={openGuide}
               >
                 ?
               </button>
+            </div>
 
+            <div className='admin-controls'>
               <button
                 type='button'
                 className='admin-controls__trigger'
@@ -267,14 +294,18 @@ export function App() {
 
             {guideOpen && (
               <dialog
-                open
+                ref={guideDialogRef}
                 id='control-guide'
                 className='pause-overlay guide-overlay'
                 aria-labelledby='control-guide-title'
                 aria-modal='true'
+                onCancel={(event) => {
+                  event.preventDefault();
+                  closeGuide();
+                }}
                 onClick={(event) => {
                   if (event.target === event.currentTarget) {
-                    setGuideOpen(false);
+                    closeGuide();
                   }
                 }}
               >
@@ -283,7 +314,7 @@ export function App() {
                     type='button'
                     className='settings-panel__close guide-panel__close'
                     aria-label='조작 가이드 닫기'
-                    onClick={() => setGuideOpen(false)}
+                    onClick={closeGuide}
                     autoFocus
                   >
                     X
@@ -299,12 +330,16 @@ export function App() {
                   </h2>
                   <dl className='guide-panel__controls'>
                     <div>
-                      <dt>A / D</dt>
+                      <dt>A / D · ← / →</dt>
                       <dd>이동</dd>
                     </div>
                     <div>
-                      <dt>SPACE / W</dt>
-                      <dd>점프</dd>
+                      <dt>SPACE / W / ↑</dt>
+                      <dd>점프 · 비행 상승</dd>
+                    </div>
+                    <div>
+                      <dt>S / ↓</dt>
+                      <dd>빠른 낙하 · 비행 하강</dd>
                     </div>
                     <div>
                       <dt>SHIFT / RMB</dt>
@@ -317,6 +352,18 @@ export function App() {
                     <div>
                       <dt>E</dt>
                       <dd>장착</dd>
+                    </div>
+                    <div>
+                      <dt>1 – 4</dt>
+                      <dd>무기 슬롯 전환</dd>
+                    </div>
+                    <div>
+                      <dt>ESC</dt>
+                      <dd>일시정지 · 가이드 닫기</dd>
+                    </div>
+                    <div>
+                      <dt>R / ENTER</dt>
+                      <dd>사망 · 클리어 후 재시작</dd>
                     </div>
                   </dl>
                 </section>
