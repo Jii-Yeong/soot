@@ -519,6 +519,74 @@ input {
   outline: none;
 }
 
+.guide-overlay {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 20px;
+  border: 0;
+  color: #d8dfdc;
+}
+
+.guide-panel {
+  position: relative;
+  gap: 18px;
+  width: min(720px, 100%);
+  padding: 28px;
+}
+
+.guide-panel__eyebrow,
+.guide-panel__title {
+  margin: 0;
+}
+
+.guide-panel__title {
+  font-size: 24px;
+  letter-spacing: 0.14em;
+}
+
+.guide-panel__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.guide-panel__controls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.guide-panel__controls div {
+  display: grid;
+  gap: 8px;
+}
+
+.guide-panel__controls dt {
+  padding: 8px 6px;
+  border: 1px solid #4f5b5f;
+  color: #e8ece9;
+  background: rgba(21, 26, 28, 0.9);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.guide-panel__controls dd {
+  margin: 0;
+  color: #879197;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
 .admin-controls {
   position: absolute;
   top: clamp(64px, 8vw, 84px);
@@ -828,5 +896,9 @@ input {
 
   .admin-controls__menu {
     max-height: min(calc(100dvh - 68px), calc(100vw * 9 / 16 - 68px));
+  }
+
+  .guide-panel__controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

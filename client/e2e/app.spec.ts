@@ -700,7 +700,7 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
-test('shows the current stage and room directly above the admin button', async ({
+test('shows the stage guide between the location and admin button', async ({
   page,
 }) => {
   await enterTitle(page);
@@ -708,6 +708,7 @@ test('shows the current stage and room directly above the admin button', async (
   await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
 
   const location = page.getByLabel('Stage location');
+  const guideButton = page.getByRole('button', { name: '조작 가이드' });
   const adminButton = page.getByRole('button', { name: 'ADMIN' });
 
   await expect(page.locator('.hud-layer .stage-location')).toHaveCount(1);
@@ -715,13 +716,26 @@ test('shows the current stage and room directly above the admin button', async (
   await expect(location).toContainText('STAGE 1 | THE CITY');
   await expect(location).toContainText('ROOM #1');
 
-  const [locationBox, adminBox] = await Promise.all([
+  const [locationBox, guideBox, adminBox] = await Promise.all([
     location.boundingBox(),
+    guideButton.boundingBox(),
     adminButton.boundingBox(),
   ]);
   expect(locationBox).not.toBeNull();
+  expect(guideBox).not.toBeNull();
   expect(adminBox).not.toBeNull();
-  expect(locationBox!.y + locationBox!.height).toBeLessThanOrEqual(adminBox!.y);
+  expect(locationBox!.y + locationBox!.height).toBeLessThanOrEqual(guideBox!.y);
+  expect(guideBox!.y + guideBox!.height).toBeLessThanOrEqual(adminBox!.y);
+
+  await guideButton.click();
+  const guide = page.getByRole('dialog', { name: '조작 가이드' });
+  await expect(guide).toContainText('SHIFT / RMB');
+  await page.getByRole('button', { name: '조작 가이드 닫기' }).click();
+  await expect(guide).toHaveCount(0);
+
+  await guideButton.click();
+  await guide.click({ position: { x: 4, y: 4 } });
+  await expect(guide).toHaveCount(0);
 
   await adminButton.click();
   await page.getByRole('button', { name: '보스', exact: true }).first().click();

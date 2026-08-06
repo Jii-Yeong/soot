@@ -11,6 +11,7 @@ import { useGameUiStore } from '@/stores/gameUiStore';
 
 export function App() {
   const [adminOpen, setAdminOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [showEnemyHealth, setShowEnemyHealth] = useState(false);
   const {
     health,
@@ -163,6 +164,18 @@ export function App() {
               <button
                 type='button'
                 className='admin-controls__trigger'
+                aria-label='조작 가이드'
+                aria-haspopup='dialog'
+                aria-expanded={guideOpen}
+                aria-controls='control-guide'
+                onClick={() => setGuideOpen(true)}
+              >
+                ?
+              </button>
+
+              <button
+                type='button'
+                className='admin-controls__trigger'
                 aria-expanded={adminOpen}
                 aria-controls='admin-menu'
                 onClick={() => setAdminOpen((open) => !open)}
@@ -251,6 +264,64 @@ export function App() {
                 </div>
               )}
             </div>
+
+            {guideOpen && (
+              <dialog
+                open
+                id='control-guide'
+                className='pause-overlay guide-overlay'
+                aria-labelledby='control-guide-title'
+                aria-modal='true'
+                onClick={(event) => {
+                  if (event.target === event.currentTarget) {
+                    setGuideOpen(false);
+                  }
+                }}
+              >
+                <section className='pause-overlay__panel guide-panel'>
+                  <button
+                    type='button'
+                    className='settings-panel__close guide-panel__close'
+                    aria-label='조작 가이드 닫기'
+                    onClick={() => setGuideOpen(false)}
+                    autoFocus
+                  >
+                    X
+                  </button>
+                  <p className='pause-overlay__eyebrow guide-panel__eyebrow'>
+                    SYSTEM MANUAL
+                  </p>
+                  <h2
+                    id='control-guide-title'
+                    className='pause-overlay__title guide-panel__title'
+                  >
+                    조작 가이드
+                  </h2>
+                  <dl className='guide-panel__controls'>
+                    <div>
+                      <dt>A / D</dt>
+                      <dd>이동</dd>
+                    </div>
+                    <div>
+                      <dt>SPACE / W</dt>
+                      <dd>점프</dd>
+                    </div>
+                    <div>
+                      <dt>SHIFT / RMB</dt>
+                      <dd>대시</dd>
+                    </div>
+                    <div>
+                      <dt>LMB</dt>
+                      <dd>발사</dd>
+                    </div>
+                    <div>
+                      <dt>E</dt>
+                      <dd>장착</dd>
+                    </div>
+                  </dl>
+                </section>
+              </dialog>
+            )}
           </>
         )}
         {settingsOpen && <SettingsDialog />}
