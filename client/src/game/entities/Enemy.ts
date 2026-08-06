@@ -72,6 +72,16 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * 방 전환·재시작 등으로 적이 파괴될 때, 이 적을 대상으로 남아 있는 트윈을
+   * 함께 정리한다. 죽음 연출 트윈이 파괴 뒤 완료돼 이미 사라진 body를 만지며
+   * 터지는 것(예: `disableBody`)을 막는다.
+   */
+  destroy(fromScene?: boolean) {
+    this.scene?.tweens.killTweensOf(this);
+    super.destroy(fromScene);
+  }
+
+  /**
    * Shoves the enemy along `angle` and briefly stuns it so its own movement
    * doesn't immediately cancel the push. A grounded enemy also pops upward a
    * little so the hit reads.
