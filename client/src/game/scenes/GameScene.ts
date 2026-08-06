@@ -620,11 +620,25 @@ export class GameScene extends Phaser.Scene {
   /** Beat 3~4: 좌우 두리번 → 2초 정적 → 안드로이드 등장·암전 컷신 → 4스테이지. */
   private playDescentLookAround() {
     this.player.setVelocity(0, 0);
+
+    // 컷신 동안에도 총을 든 자세가 보이도록 무기·팔을 바라보는 방향으로 겨눠
+    // 표시한다(`updateAiming`은 transitioning 중 멈추므로 수동으로 갱신). 이후
+    // 포위·하강까지 플레이어가 정지 상태라 마지막 자세가 그대로 유지된다.
+    const holdWeaponFacing = (faceLeft: boolean) => {
+      const aim = new Phaser.Math.Vector2(
+        this.player.x + (faceLeft ? -120 : 120),
+        this.player.y,
+      );
+      this.weaponSystem.update(16, aim);
+    };
+    holdWeaponFacing(this.player.flipX);
+
     // 좌우 양쪽으로 2번씩 두리번(총 4회 전환).
     const facings = [true, false, true, false];
     facings.forEach((faceLeft, index) => {
       this.time.delayedCall(DESCENT_LOOK_INTERVAL * (index + 1), () => {
         this.player.setFlipX(faceLeft);
+        holdWeaponFacing(faceLeft);
       });
     });
 

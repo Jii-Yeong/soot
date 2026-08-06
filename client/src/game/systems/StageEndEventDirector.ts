@@ -323,7 +323,11 @@ export class StageEndEventDirector {
    * 밝혀 4스테이지를 드러낸다.
    */
   private playSiege(onBlackout: () => void) {
-    const centerX = GAME_WIDTH / 2;
+    // 안드로이드는 월드 좌표에 세워 바닥·플레이어와 같은 평면에 있게 한다. 그래야
+    // 뒤이어 카메라가 하강할 때 바닥·플레이어와 함께 위로 올라간다. 화면 중심의
+    // 월드 X(카메라가 따라가는 플레이어 위치)를 기준으로 좌우로 포위한다.
+    const camera = this.scene.cameras.main;
+    const centerX = camera.scrollX + camera.width / 2;
     const bodyY = GAME_HEIGHT - 116;
     const eyeY = GAME_HEIGHT - 150;
     const props: Phaser.GameObjects.GameObject[] = [];
@@ -338,12 +342,10 @@ export class StageEndEventDirector {
       const body = this.scene.add
         .rectangle(flankX + direction * 90, bodyY, 34, 96, 0x05070b, 0.98)
         .setDepth(60)
-        .setScrollFactor(0)
         .setAlpha(0);
       const eye = this.scene.add
         .rectangle(flankX + direction * 90, eyeY, 22, 6, 0xff4657, 1)
         .setDepth(61)
-        .setScrollFactor(0)
         .setAlpha(0);
       props.push(body, eye);
 
@@ -363,10 +365,12 @@ export class StageEndEventDirector {
     // 선·점이 위로 흘러 밑으로 꺼지는 느낌을 표기한다. 이어서 암전 → 다음 스테이지.
     const descendDelay = SIEGE_REVEAL_INTERVAL * flankXs.length + 500;
     this.scene.time.delayedCall(descendDelay, () => {
-      const camera = this.scene.cameras.main;
       camera.shake(360, 0.012);
       camera.stopFollow();
-      camera.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT * 2);
+      // 세로 하강만 허용하고 가로 스크롤은 현재 위치에 고정한다. 넓은 착지 방에서
+      // 폭을 GAME_WIDTH로 두면 카메라가 좌측으로 스냅해 포위 실루엣·플레이어가
+      // 화면 밖으로 튕겨 나간다.
+      camera.setBounds(camera.scrollX, 0, camera.width, GAME_HEIGHT * 2);
       this.scene.tweens.add({
         targets: camera,
         scrollY: GAME_HEIGHT * 0.92,
@@ -379,9 +383,9 @@ export class StageEndEventDirector {
       const voidHeight = GAME_HEIGHT * 1.5;
       const voidFill = this.scene.add
         .rectangle(
-          GAME_WIDTH / 2,
+          centerX,
           GAME_HEIGHT + voidHeight / 2,
-          GAME_WIDTH,
+          camera.width,
           voidHeight,
           0x000000,
           1,
@@ -391,7 +395,14 @@ export class StageEndEventDirector {
 
       const sinkStreaks = this.spawnSinkStreaks();
       const blackout = this.scene.add
-        .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 1)
+        .rectangle(
+          camera.width / 2,
+          camera.height / 2,
+          camera.width,
+          camera.height,
+          0x000000,
+          1,
+        )
         .setDepth(90)
         .setAlpha(0)
         .setScrollFactor(0);
