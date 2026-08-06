@@ -1316,7 +1316,7 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
   expect(result.maximumAttackers).toBeLessThanOrEqual(2);
   expect(result.sawProjectile).toBe(true);
   expect(result.playerTexture).toBe('stage-5-player');
-  expect(result.playerAnimation).toBe('stage-5-player-idle');
+  expect(result.playerAnimation).toBe('stage-5-player-fly');
 });
 
 test('stage five boss direct jump loads the ascension room floor skin', async ({

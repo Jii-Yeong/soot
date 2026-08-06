@@ -102,6 +102,22 @@
     "spriteSourceSize": { "x": 14, "y": 1, "w": 60, "h": 91 },
     "sourceSize": { "w": 96, "h": 96 },
     "duration": 200
+   },
+   "shoot-posture-hand 13.aseprite": {
+    "frame": { "x": 64, "y": 283, "w": 62, "h": 93 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 14, "y": 1, "w": 60, "h": 91 },
+    "sourceSize": { "w": 96, "h": 96 },
+    "duration": 100
+   },
+   "shoot-posture-hand 14.aseprite": {
+    "frame": { "x": 127, "y": 283, "w": 62, "h": 93 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 14, "y": 1, "w": 60, "h": 91 },
+    "sourceSize": { "w": 96, "h": 96 },
+    "duration": 100
    }
  },
  "meta": {
@@ -114,15 +130,11 @@
   "frameTags": [
    { "name": "player_idle_rifle", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
    { "name": "player_jump_down", "from": 4, "to": 6, "direction": "reverse", "color": "#000000ff" },
-   { "name": "player_run", "from": 7, "to": 12, "direction": "forward", "color": "#000000ff" }
+   { "name": "player_run", "from": 7, "to": 12, "direction": "forward", "color": "#000000ff" },
+   { "name": "fly", "from": 13, "to": 14, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
-   { "name": "Layer", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 3", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 7", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 4", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 6", "opacity": 255, "blendMode": "normal" },
-   { "name": "Layer 8", "opacity": 255, "blendMode": "normal" }
+   { "name": "Layer", "opacity": 255, "blendMode": "normal" }
   ],
   "slices": [
   ]

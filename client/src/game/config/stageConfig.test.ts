@@ -163,6 +163,9 @@ describe('stage configuration', () => {
         animations: {
           idle: 'stage-5-player-idle',
           run: 'stage-5-player-run',
+          flyIdle: 'stage-5-player-fly',
+          flyMove: 'stage-5-player-fly',
+          flyDash: 'stage-5-player-fly',
         },
       },
     });

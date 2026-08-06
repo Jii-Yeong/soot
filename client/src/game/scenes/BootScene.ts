@@ -374,6 +374,17 @@ export class BootScene extends Phaser.Scene {
         duration: 480,
         repeat: -1,
       });
+      if (sprite.flyFrames) {
+        this.anims.create({
+          key: sprite.animations.flyIdle,
+          frames: sprite.flyFrames.map((frame) => ({
+            key: sprite.texture,
+            frame,
+          })),
+          duration: 200,
+          repeat: -1,
+        });
+      }
     }
     for (const atlas of BOSS_ANIMATION_ATLASES) {
       createAtlasAnimations(this.anims, atlas);

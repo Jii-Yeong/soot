@@ -20,6 +20,7 @@ export type PlayerSpriteConfig = {
   png: string;
   json: string;
   animations: PlayerAnimationSet;
+  flyFrames?: readonly string[];
 };
 
 export const PLAYER_SPRITE_CONFIG: PlayerSpriteConfig = {
@@ -48,7 +49,11 @@ export const STAGE_FIVE_PLAYER_SPRITE: PlayerSpriteConfig = {
     ...PLAYER_ANIMATIONS,
     idle: 'stage-5-player-idle',
     run: 'stage-5-player-run',
+    flyIdle: 'stage-5-player-fly',
+    flyMove: 'stage-5-player-fly',
+    flyDash: 'stage-5-player-fly',
   },
+  flyFrames: [13, 14].map(frameName),
 };
 
 export const PLAYER_IDLE_FRAMES = [0, 1, 2, 3].map(frameName);
