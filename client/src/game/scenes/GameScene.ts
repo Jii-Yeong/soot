@@ -1149,8 +1149,7 @@ export class GameScene extends Phaser.Scene {
     this.requestedStartingStageIndex = stageIndex;
     this.requestedStartingRoomIndex = 0;
     this.requestedImmediateEncounter = false;
-    this.setPaused(false);
-    this.scene.restart();
+    this.restartToStage(stageIndex);
   };
 
   private handleAdminStageBossRequested = (stageIndex: number) => {
@@ -1161,9 +1160,28 @@ export class GameScene extends Phaser.Scene {
     this.requestedStartingStageIndex = stageIndex;
     this.requestedStartingRoomIndex = STAGES[stageIndex].rooms.length - 1;
     this.requestedImmediateEncounter = true;
-    this.setPaused(false);
-    this.scene.restart();
+    this.restartToStage(stageIndex);
   };
+
+  /**
+   * 어드민 점프는 스테이지를 건너뛰어 정상 진행의 다음 배경 preload 체인을 타지
+   * 않는다. 대상 배경 텍스처가 아직 없으면 먼저 로드한 뒤 재시작해, 첫 프레임부터
+   * 배경 이미지가 그려지고 로드 전 placeholder가 번쩍이지 않게 한다. 로드에
+   * 실패해도 재시작은 진행한다(그때는 그라디언트 placeholder로 자연스럽게 대체).
+   */
+  private restartToStage(stageIndex: number) {
+    this.setPaused(false);
+    const background = STAGES[stageIndex].background;
+    if (background && !this.textures.exists(background.key)) {
+      const restart = () => this.scene.restart();
+      this.load.once(`filecomplete-image-${background.key}`, restart);
+      this.load.once('loaderror', restart);
+      this.load.image(background.key, background.path);
+      this.load.start();
+      return;
+    }
+    this.scene.restart();
+  }
 
   /**
    * Death and the ending already hold the screen with their own prompts, and
