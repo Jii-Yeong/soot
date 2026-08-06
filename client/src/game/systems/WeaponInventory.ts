@@ -38,7 +38,14 @@ export class WeaponInventory {
     );
   }
 
-  /** 새 무기는 첫 빈칸에 넣고, 이미 가진 무기는 원래 칸을 선택함. */
+  /**
+   * 새 무기는 첫 빈칸에 넣고, 이미 가진 무기는 원래 칸을 선택함.
+   *
+   * 불변식: `weaponId`는 무기 레지스트리에 실제로 존재하는 id여야 한다. 여기서는
+   * 존재 여부를 검증하지 않으므로(호출부인 `WeaponSystem.collect`가 걸러 줌),
+   * 세이브/로드·디버그로 직접 넣을 때 없는 id를 주면 `activeWeaponId` 조회 시
+   * 예외가 난다.
+   */
   collect(weaponId: string) {
     const ownedSlotIndex = this.slots.indexOf(weaponId);
     const destinationIndex =
