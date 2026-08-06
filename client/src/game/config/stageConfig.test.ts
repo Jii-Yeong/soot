@@ -131,6 +131,13 @@ describe('stage configuration', () => {
         key: 'stage-04-bg',
         path: '/assets/backgrounds/stage-04.webp',
       },
+      playerSprite: {
+        texture: 'stage-4-player',
+        animations: {
+          idle: 'stage-4-player-idle',
+          run: 'stage-4-player-run',
+        },
+      },
     });
     expect(STAGE_FOUR_CONFIG.rooms.at(-1)?.enemySpawns[0]).toMatchObject({
       type: 'boss',

@@ -25,10 +25,10 @@ import {
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
 import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
 import {
-  PLAYER_ANIMATIONS,
-  PLAYER_ATLAS_KEY,
   PLAYER_IDLE_FRAMES,
   PLAYER_RUN_FRAMES,
+  PLAYER_SPRITE_CONFIG,
+  STAGE_FOUR_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
 import {
@@ -66,17 +66,17 @@ const BOSS_ANIMATION_ATLASES = [
   },
 ] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];
 
+const PLAYER_SPRITES = [PLAYER_SPRITE_CONFIG, STAGE_FOUR_PLAYER_SPRITE];
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('boot');
   }
 
   preload() {
-    this.load.atlas(
-      PLAYER_ATLAS_KEY,
-      '/assets/player/player.png',
-      '/assets/player/player.json',
-    );
+    for (const sprite of PLAYER_SPRITES) {
+      this.load.atlas(sprite.texture, sprite.png, sprite.json);
+    }
     for (const atlas of BOSS_ANIMATION_ATLASES) {
       this.load.atlas(atlas.texture, atlas.png, atlas.json);
     }
@@ -395,24 +395,26 @@ export class BootScene extends Phaser.Scene {
       frameRate: ROOM_PORTAL_ANIMATION.frameRate,
       repeat: -1,
     });
-    this.anims.create({
-      key: PLAYER_ANIMATIONS.idle,
-      frames: PLAYER_IDLE_FRAMES.map((frame) => ({
-        key: PLAYER_ATLAS_KEY,
-        frame,
-      })),
-      duration: 1500,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: PLAYER_ANIMATIONS.run,
-      frames: PLAYER_RUN_FRAMES.map((frame) => ({
-        key: PLAYER_ATLAS_KEY,
-        frame,
-      })),
-      duration: 480,
-      repeat: -1,
-    });
+    for (const sprite of PLAYER_SPRITES) {
+      this.anims.create({
+        key: sprite.animations.idle,
+        frames: PLAYER_IDLE_FRAMES.map((frame) => ({
+          key: sprite.texture,
+          frame,
+        })),
+        duration: 1500,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: sprite.animations.run,
+        frames: PLAYER_RUN_FRAMES.map((frame) => ({
+          key: sprite.texture,
+          frame,
+        })),
+        duration: 480,
+        repeat: -1,
+      });
+    }
     for (const atlas of BOSS_ANIMATION_ATLASES) {
       createAtlasAnimations(this.anims, atlas);
     }

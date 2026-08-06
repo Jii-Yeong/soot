@@ -17,6 +17,10 @@ import {
   type MeleeSpriteConfig,
 } from '@/game/config/meleeEnemyAnimationConfig';
 import { MovementMode } from '@/game/config/playerMovementConfig';
+import {
+  STAGE_FOUR_PLAYER_SPRITE,
+  type PlayerSpriteConfig,
+} from '@/game/config/playerAnimationConfig';
 import { STAGE_FOUR_ENEMY_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
 import {
   STAGE_ONE_RANGED_SPRITE,
@@ -99,6 +103,8 @@ export type StageConfig = {
   meleeSprite?: MeleeSpriteConfig;
   /** 스테이지 고유 잡몹이 사용하는 추가 애니메이션 아틀라스. */
   enemyAtlases?: readonly EnemyAnimationAtlasConfig<string>[];
+  /** 이 스테이지에서만 사용하는 플레이어 스프라이트. */
+  playerSprite?: PlayerSpriteConfig;
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -207,6 +213,7 @@ export const STAGE_FOUR_CONFIG: StageConfig = {
   },
   enemyAtlases:
     STAGE_FOUR_ENEMY_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
+  playerSprite: STAGE_FOUR_PLAYER_SPRITE,
   showFloor: true,
   floorSkin: STAGE_FOUR_FLOOR_SKIN,
   terrainSkin: STAGE_FOUR_STOOL_SKIN,

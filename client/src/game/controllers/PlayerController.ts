@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_JUMP_FRAMES,
+  type PlayerAnimationSet,
 } from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
@@ -62,6 +63,7 @@ export class PlayerController {
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
+  private animations: PlayerAnimationSet = PLAYER_ANIMATIONS;
   private movementMode = MovementMode.GROUND;
   private flightEntryLift?: {
     startY: number;
@@ -147,13 +149,23 @@ export class PlayerController {
     if (mode === MovementMode.FLIGHT) {
       this.clampFlightPosition();
       this.playAnimationWithFallback(
-        PLAYER_ANIMATIONS.flyIdle,
-        PLAYER_ANIMATIONS.idle,
+        this.animations.flyIdle,
+        this.animations.idle,
       );
       return;
     }
 
-    this.playAnimation(PLAYER_ANIMATIONS.idle);
+    this.playAnimation(this.animations.idle);
+  }
+
+  setAnimations(animations: PlayerAnimationSet) {
+    this.animations = animations;
+    this.currentPose = null;
+    if (this.movementMode === MovementMode.FLIGHT) {
+      this.playAnimationWithFallback(animations.flyIdle, animations.idle);
+      return;
+    }
+    this.playAnimation(animations.idle);
   }
 
   private updateGroundMovement(time: number) {
@@ -252,7 +264,7 @@ export class PlayerController {
 
     const isRunning = Math.abs(body?.velocity.x ?? 0) > 1;
     this.playAnimation(
-      isRunning ? PLAYER_ANIMATIONS.run : PLAYER_ANIMATIONS.idle,
+      isRunning ? this.animations.run : this.animations.idle,
     );
   }
 
@@ -286,12 +298,12 @@ export class PlayerController {
       Math.abs(this.movementVelocity.x) > 1 ||
       Math.abs(this.movementVelocity.y) > 1;
     const desiredAnimation = dashing
-      ? PLAYER_ANIMATIONS.flyDash
+      ? this.animations.flyDash
       : moving
-        ? PLAYER_ANIMATIONS.flyMove
-        : PLAYER_ANIMATIONS.flyIdle;
+        ? this.animations.flyMove
+        : this.animations.flyIdle;
     const fallbackAnimation =
-      dashing || moving ? PLAYER_ANIMATIONS.run : PLAYER_ANIMATIONS.idle;
+      dashing || moving ? this.animations.run : this.animations.idle;
     this.playAnimationWithFallback(desiredAnimation, fallbackAnimation);
   }
 

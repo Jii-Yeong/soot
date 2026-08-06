@@ -7,9 +7,8 @@ import {
 } from '@/game/config/combatConfig';
 import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
 import {
-  PLAYER_ANIMATIONS,
-  PLAYER_ATLAS_KEY,
   PLAYER_INITIAL_FRAME,
+  PLAYER_SPRITE_CONFIG,
 } from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
@@ -150,6 +149,10 @@ export class GameScene extends Phaser.Scene {
     return this.descentRoomConfig ?? this.stage.rooms[this.currentRoomIndex];
   }
 
+  private get playerSprite() {
+    return this.stage.playerSprite ?? PLAYER_SPRITE_CONFIG;
+  }
+
   create() {
     this.resetRunState();
     gameEvents.emit('scene-changed', 'game');
@@ -259,11 +262,11 @@ export class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(
       this.getStartingPlayerX(),
       this.getStartingPlayerY(),
-      PLAYER_ATLAS_KEY,
+      this.playerSprite.texture,
       PLAYER_INITIAL_FRAME,
     );
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(36, 76, true);
-    this.player.play(PLAYER_ANIMATIONS.idle);
+    this.player.play(this.playerSprite.animations.idle);
     this.player.setCollideWorldBounds(true);
     // Enemies default to the same depth (0) and are added to the display
     // list after the player, so without this they render on top of the
@@ -598,7 +601,7 @@ export class GameScene extends Phaser.Scene {
     this.player.setPosition(GAME_WIDTH / 2, -60);
     body.reset(GAME_WIDTH / 2, -60);
     this.player.setVelocity(0, 0);
-    this.player.play(PLAYER_ANIMATIONS.idle, true);
+    this.player.play(this.playerSprite.animations.idle, true);
 
     const landingWatcher = this.time.addEvent({
       delay: 60,
@@ -1020,6 +1023,8 @@ export class GameScene extends Phaser.Scene {
 
   private applyStageMovementMode() {
     this.playerController.setMovementMode(this.stage.movementMode);
+    this.player.setTexture(this.playerSprite.texture, PLAYER_INITIAL_FRAME);
+    this.playerController.setAnimations(this.playerSprite.animations);
   }
 
   private setPhase(phase: GamePhase) {

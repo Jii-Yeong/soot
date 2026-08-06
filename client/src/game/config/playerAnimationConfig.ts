@@ -11,6 +11,35 @@ export const PLAYER_ANIMATIONS = {
   flyDash: 'player_fly_dash',
 } as const;
 
+export type PlayerAnimationSet = {
+  [K in keyof typeof PLAYER_ANIMATIONS]: string;
+};
+
+export type PlayerSpriteConfig = {
+  texture: string;
+  png: string;
+  json: string;
+  animations: PlayerAnimationSet;
+};
+
+export const PLAYER_SPRITE_CONFIG: PlayerSpriteConfig = {
+  texture: PLAYER_ATLAS_KEY,
+  png: '/assets/player/player.png',
+  json: '/assets/player/player.json',
+  animations: PLAYER_ANIMATIONS,
+};
+
+export const STAGE_FOUR_PLAYER_SPRITE: PlayerSpriteConfig = {
+  texture: 'stage-4-player',
+  png: '/assets/player/stage-4-player.png',
+  json: '/assets/player/stage-4-player.json',
+  animations: {
+    ...PLAYER_ANIMATIONS,
+    idle: 'stage-4-player-idle',
+    run: 'stage-4-player-run',
+  },
+};
+
 export const PLAYER_IDLE_FRAMES = [0, 1, 2, 3].map(frameName);
 export const PLAYER_RUN_FRAMES = [7, 8, 9, 10, 11, 12].map(frameName);
 

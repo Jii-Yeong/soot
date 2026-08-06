@@ -830,8 +830,10 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
       y: number;
     };
     type RuntimePlayer = {
+      anims: { currentAnim?: { key: string } };
       body: { reset: (x: number, y: number) => void };
       setPosition: (x: number, y: number) => void;
+      texture: { key: string };
     };
     type RuntimeScene = {
       cameras: { main: { scrollX: number; scrollY: number } };
@@ -1059,6 +1061,8 @@ test('stage four uses three infernal patterns with at most two attackers', async
       floatingAnimation: scene.enemies.find(
         ({ texture }) => texture.key === 'stage-4-floating',
       )?.anims.currentAnim?.key,
+      playerAnimation: scene.player.anims.currentAnim?.key,
+      playerTexture: scene.player.texture.key,
       idleAnimation,
       flyAnimation,
       maximumAttackers,
@@ -1079,6 +1083,8 @@ test('stage four uses three infernal patterns with at most two attackers', async
   expect(['stage-4-floating-idle', 'stage-4-floating-attack']).toContain(
     result.floatingAnimation,
   );
+  expect(result.playerTexture).toBe('stage-4-player');
+  expect(result.playerAnimation).toBe('stage-4-player-idle');
   expect(result.idleAnimation).toBe('stage-4-takedown-idle');
   expect(result.flyAnimation).toBe('stage-4-takedown-fly');
   expect(result.sawThreeNearbyEnemies).toBe(true);
