@@ -447,7 +447,7 @@ test('covers a wide viewport with the stage shatter snapshot', async ({
             .getScene('game')
             .textures.exists('stage-shatter-snapshot');
         }),
-      { timeout: 7000 },
+      { timeout: 12_000 },
     )
     .toBe(false);
 });

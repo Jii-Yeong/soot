@@ -66,7 +66,7 @@ export const STAGE_FIVE_PLAYER_HALO = {
   frameCount: 4,
   spacing: 1,
   offsetX: 6,
-  offsetY: -30,
+  offsetY: -34,
 } as const;
 
 export const PLAYER_IDLE_FRAMES = [0, 1, 2, 3].map(frameName);
