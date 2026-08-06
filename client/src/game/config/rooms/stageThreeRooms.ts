@@ -115,14 +115,17 @@ export const UNDERGROUND_DESCENT_ROOM = defineRoom({
 });
 
 /**
- * 구멍으로 사라진 플레이어가 떨어져 착지하는 지하 착지 방. 한 화면 크기에 구멍
- * 없는 단단한 바닥이라 플레이어가 중앙에 착지한다. 착지 후 두리번 연출과 적
- * 등장 컷신이 이어진다. 강하 방과 마찬가지로 런타임에서 주입한다.
+ * 구멍으로 사라진 플레이어가 떨어져 착지하는 지하 착지 방. 구멍 없는 단단한
+ * 바닥에 플레이어가 방 중앙에 착지한다. 착지 후 두리번 연출과 적 등장 컷신이
+ * 이어진다. 강하 방과 마찬가지로 런타임에서 주입한다.
+ *
+ * 화면 스케일이 EXPAND라 넓은 화면에서는 뷰포트가 한 화면(GAME_WIDTH)보다
+ * 넓어진다. 바닥이 화면 가장자리까지 꽉 차도록 방 너비를 화면보다 넉넉하게 둔다.
  */
 export const UNDERGROUND_LANDING_ROOM = defineRoom({
   id: 'underground-landing',
   label: '지하 심부 // SUBLEVEL',
   kind: 'descent',
-  worldWidth: GAME_WIDTH,
+  worldWidth: GAME_WIDTH * 2.5,
   enemySpawns: [],
 });

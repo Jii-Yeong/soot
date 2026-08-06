@@ -599,8 +599,9 @@ export class GameScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.checkCollision.none = false;
     body.setCollideWorldBounds(true);
-    this.player.setPosition(GAME_WIDTH / 2, -60);
-    body.reset(GAME_WIDTH / 2, -60);
+    const centerX = this.roomWorldWidth / 2;
+    this.player.setPosition(centerX, -60);
+    body.reset(centerX, -60);
     this.player.setVelocity(0, 0);
     this.player.play(this.playerSprite.animations.idle, true);
 
@@ -693,8 +694,9 @@ export class GameScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.checkCollision.none = false;
     body.setCollideWorldBounds(true);
-    this.player.setPosition(GAME_WIDTH / 2, FLOOR_SURFACE_Y - 40);
-    body.reset(GAME_WIDTH / 2, FLOOR_SURFACE_Y - 40);
+    const centerX = this.roomWorldWidth / 2;
+    this.player.setPosition(centerX, FLOOR_SURFACE_Y - 40);
+    body.reset(centerX, FLOOR_SURFACE_Y - 40);
     this.player.setVelocity(0, 0);
     this.player.play(this.playerSprite.animations.idle, true);
   }
