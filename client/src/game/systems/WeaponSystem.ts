@@ -1,9 +1,13 @@
 import Phaser from 'phaser';
-import type { WeaponConfig } from '@/game/config/weaponConfig';
+import {
+  WEAPON_INVENTORY_SIZE,
+  type WeaponConfig,
+} from '@/game/config/weaponConfig';
 import { Enemy } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
 import { WeaponFeedback } from '@/game/systems/WeaponFeedback';
+import { WeaponInventory } from '@/game/systems/WeaponInventory';
 
 type WeaponRuntime = {
   config: WeaponConfig;
@@ -15,8 +19,9 @@ type EnemyHitListener = (enemy: Enemy, defeated: boolean) => void;
 
 export class WeaponSystem {
   private readonly weapons: WeaponRuntime[];
+  private readonly weaponById: Map<string, WeaponRuntime>;
+  private readonly inventory: WeaponInventory;
   private readonly feedback: WeaponFeedback;
-  private activeWeaponIndex: number;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -28,10 +33,6 @@ export class WeaponSystem {
     private readonly onEnemyHit: EnemyHitListener,
     private readonly canDamageEnemies: () => boolean = canFire,
   ) {
-    this.activeWeaponIndex = Math.max(
-      0,
-      weaponConfigs.findIndex((weapon) => weapon.id === startingWeaponId),
-    );
     this.weapons = weaponConfigs.map((config) => {
       const runtime: WeaponRuntime = {
         config,
@@ -51,6 +52,18 @@ export class WeaponSystem {
       );
       return runtime;
     });
+    this.weaponById = new Map(
+      this.weapons.map((weapon) => [weapon.config.id, weapon]),
+    );
+    const startingWeapon =
+      this.weaponById.get(startingWeaponId) ?? this.weapons[0];
+    if (!startingWeapon) {
+      throw new Error('Weapon system requires at least one weapon');
+    }
+    this.inventory = new WeaponInventory(
+      startingWeapon.config.id,
+      WEAPON_INVENTORY_SIZE,
+    );
     this.feedback = new WeaponFeedback(
       scene,
       player,
@@ -61,6 +74,14 @@ export class WeaponSystem {
 
   get activeConfig() {
     return this.activeWeapon.config;
+  }
+
+  get inventorySnapshot() {
+    return this.inventory.snapshot;
+  }
+
+  get ownedWeaponIds() {
+    return this.inventory.ownedWeaponIds;
   }
 
   update(delta: number, aimPoint: Phaser.Math.Vector2) {
@@ -115,15 +136,20 @@ export class WeaponSystem {
     weapon.nextFireAt = time + config.fireInterval;
   }
 
-  equip(weaponId: string) {
-    const index = this.weapons.findIndex(
-      (weapon) => weapon.config.id === weaponId,
-    );
-    if (index < 0) {
+  /** 새 무기를 첫 빈 슬롯에 넣고, 이미 소유했다면 기존 슬롯을 선택함. */
+  collect(weaponId: string) {
+    if (!this.weaponById.has(weaponId) || !this.inventory.collect(weaponId)) {
       return false;
     }
+    this.feedback.setWeapon(this.activeConfig);
+    return true;
+  }
 
-    this.activeWeaponIndex = index;
+  /** 숫자키에 대응하는, 이미 채워진 슬롯만 선택함. */
+  equipSlot(slotIndex: number) {
+    if (!this.inventory.select(slotIndex)) {
+      return false;
+    }
     this.feedback.setWeapon(this.activeConfig);
     return true;
   }
@@ -147,7 +173,11 @@ export class WeaponSystem {
   }
 
   private get activeWeapon() {
-    return this.weapons[this.activeWeaponIndex];
+    const weapon = this.weaponById.get(this.inventory.activeWeaponId);
+    if (!weapon) {
+      throw new Error('Active inventory weapon is not configured');
+    }
+    return weapon;
   }
 
   private fireVolley(
@@ -267,13 +297,35 @@ export class WeaponSystem {
       const { config } = weapon;
       const time = this.scene.time.now;
 
-      const defeated = enemy.takeDamage(config.damage);
-      this.feedback.playEnemyHit(enemy, config);
-      if (config.knockback) {
+      const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
+      // Overlap fires as soon as the round's rectangle touches the outer body,
+      // so its centre can still be just outside. Project it onto the body edge
+      // to obtain the actual impact point used by precision hit regions.
+      const impactX = Phaser.Math.Clamp(
+        bullet.x,
+        enemyBody.left,
+        enemyBody.right,
+      );
+      const impactY = Phaser.Math.Clamp(
+        bullet.y,
+        enemyBody.top,
+        enemyBody.bottom,
+      );
+      const result = enemy.takeProjectileDamage(
+        config.damage,
+        impactX,
+        impactY,
+      );
+      if (result.applied) {
+        this.feedback.playEnemyHit(enemy, config);
+      }
+      if (result.applied && config.knockback) {
         // A projectile flies straight, so its rotation is its heading.
         enemy.applyKnockback(bullet.rotation, config.knockback, time);
       }
-      this.onEnemyHit(enemy, defeated);
+      if (result.applied) {
+        this.onEnemyHit(enemy, result.defeated);
+      }
       weapon.pool.registerHit(bullet);
     };
   }

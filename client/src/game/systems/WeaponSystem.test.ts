@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   BURST_RIFLE_WEAPON_CONFIG,
   SHOTGUN_WEAPON_CONFIG,
+  SMG_WEAPON_CONFIG,
+  WEAPON_CONFIGS,
 } from '@/game/config/weaponConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import { WeaponSystem } from '@/game/systems/WeaponSystem';
@@ -188,5 +190,37 @@ describe('WeaponSystem bursts', () => {
     system.update(16, { x: 300, y: 200 } as Phaser.Math.Vector2);
 
     expect(mocks.clearOutsideCamera).toHaveBeenCalledExactlyOnceWith(camera);
+  });
+});
+
+describe('WeaponSystem inventory', () => {
+  const createSystem = () => {
+    const scene = {
+      physics: { add: { overlap: vi.fn() } },
+      time: { delayedCall: vi.fn() },
+    } as unknown as Phaser.Scene;
+    return new WeaponSystem(
+      scene,
+      { x: 100, y: 200 } as Phaser.Physics.Arcade.Sprite,
+      [],
+      WEAPON_CONFIGS,
+      SMG_WEAPON_CONFIG.id,
+      () => true,
+      () => {},
+    );
+  };
+
+  it('uses inventory selections to change the active weapon runtime', () => {
+    const system = createSystem();
+
+    expect(system.inventorySnapshot).toEqual({
+      slots: ['smg', null, null, null],
+      activeSlotIndex: 0,
+    });
+    expect(system.activeConfig).toBe(SMG_WEAPON_CONFIG);
+    expect(system.collect(SHOTGUN_WEAPON_CONFIG.id)).toBe(true);
+    expect(system.activeConfig).toBe(SHOTGUN_WEAPON_CONFIG);
+    expect(system.equipSlot(0)).toBe(true);
+    expect(system.activeConfig).toBe(SMG_WEAPON_CONFIG);
   });
 });

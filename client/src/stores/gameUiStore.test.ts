@@ -13,6 +13,8 @@ describe('gameUiStore', () => {
       scene: 'boot',
       phase: 'boot',
       roomState: 'idle',
+      stageLabel: 'STAGE 1 | THE CITY',
+      roomNumber: 1,
       weaponId: 'smg',
       weaponLabel: 'SMG',
       nearbyWeaponId: null,
@@ -60,6 +62,15 @@ describe('gameUiStore', () => {
     useGameUiStore.getState().setRoomState('locked');
 
     expect(useGameUiStore.getState().roomState).toBe('locked');
+  });
+
+  it('tracks the stage and room location for the HUD', () => {
+    useGameUiStore.getState().setStageLocation('STAGE 2 | THE BACK ALLEYS', 3);
+
+    expect(useGameUiStore.getState()).toMatchObject({
+      stageLabel: 'STAGE 2 | THE BACK ALLEYS',
+      roomNumber: 3,
+    });
   });
 
   it('tracks the equipped weapon for the HUD and integration tests', () => {

@@ -74,6 +74,20 @@ export const STAGE_TWO_FLOOR_SKIN: SliceSkinConfig = {
   capInset: { left: 40, right: 34 },
 };
 
+export const STAGE_THREE_FLOOR_SKIN: SliceSkinConfig = {
+  left: asset('stage-3-floor-left', 107),
+  middle: asset('stage-3-floor-middle', 184),
+  right: asset('stage-3-floor-right', 107),
+  height: 100,
+  // 불투명 표면이 원본 y=3에서 시작함.
+  surfaceInset: 3,
+  middleFit: 'tile',
+  // 중앙 양끝의 수직 테두리를 반복하지 않고 내부 판만 이어 붙임.
+  middleTrim: { left: 8, right: 8 },
+  // 원본 캡 전체를 보존하는 정규 3-slice 배치.
+  capInset: { left: 107, right: 107 },
+};
+
 export const STAGE_ONE_STOOL_SKIN: SliceSkinConfig = {
   left: asset('stage-1-stool-left', 55),
   middle: asset('stage-1-stool-middle', 68),
@@ -90,9 +104,33 @@ export const STAGE_TWO_STOOL_SKIN: SliceSkinConfig = {
   surfaceInset: 3,
 };
 
+export const STAGE_THREE_STOOL_SKIN: SliceSkinConfig = {
+  left: asset('stage-3-stool-left', 26),
+  middle: asset('stage-3-stool-middle', 41),
+  right: asset('stage-3-stool-right', 35),
+  height: 35,
+  // 불투명 발판 표면이 원본 y=1에서 시작함.
+  surfaceInset: 1,
+  capInset: { left: 26, right: 35 },
+};
+
+export const STAGE_THREE_PIPE_SKIN: SliceSkinConfig = {
+  left: asset('stage-3-pipe-left', 52),
+  middle: asset('stage-3-pipe-middle', 102),
+  right: asset('stage-3-pipe-right', 56),
+  height: 40,
+  surfaceInset: 0,
+  middleFit: 'tile',
+  // 둥근 바깥 끝과 체결부가 잘리지 않도록 캡 전체를 보존함.
+  capInset: { left: 52, right: 56 },
+};
+
 export const ALL_TERRAIN_SKINS = [
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
   STAGE_TWO_FLOOR_SKIN,
   STAGE_TWO_STOOL_SKIN,
+  STAGE_THREE_FLOOR_SKIN,
+  STAGE_THREE_STOOL_SKIN,
+  STAGE_THREE_PIPE_SKIN,
 ] as const;

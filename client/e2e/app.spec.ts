@@ -489,6 +489,61 @@ test('enters the game and shows the React HUD', async ({ page }) => {
   );
 });
 
+test('fills four weapon slots and switches them with number keys', async ({
+  page,
+}) => {
+  await enterGame(page);
+
+  const inventory = page.getByRole('list', {
+    name: 'Weapon inventory',
+  });
+  const slots = inventory.getByRole('listitem');
+  const expectSlotFrame = (
+    index: number,
+    frame: 'active' | 'empty' | 'neutral',
+  ) =>
+    expect(slots.nth(index)).toHaveCSS(
+      'border-image-source',
+      new RegExp(`slot-frame-${frame}\\.png`),
+    );
+
+  await expect(slots).toHaveCount(4);
+  await expect(slots.nth(0)).toHaveAttribute('aria-label', '1: SMG');
+  await expect(slots.nth(0)).toHaveAttribute('aria-current', 'true');
+  await expectSlotFrame(0, 'active');
+  await expect(slots.nth(1)).toHaveAttribute('aria-label', '2: Empty');
+  await expectSlotFrame(1, 'empty');
+
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+  await adminButton.click();
+  await page.getByRole('button', { name: 'SHOTGUN 지급' }).click();
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
+  await expect(slots.nth(1)).toHaveAttribute('aria-label', '2: SHOTGUN');
+  await expect(slots.nth(1)).toHaveAttribute('aria-current', 'true');
+  await expectSlotFrame(1, 'active');
+  await expectSlotFrame(0, 'neutral');
+
+  await page.getByRole('button', { name: 'BURST RIFLE 지급' }).click();
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-weapon',
+    'burst-rifle',
+  );
+  await expect(slots.nth(2)).toHaveAttribute('aria-current', 'true');
+  await adminButton.click();
+
+  await page.keyboard.press('Digit1');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'smg');
+  await expect(slots.nth(0)).toHaveAttribute('aria-current', 'true');
+
+  await page.keyboard.press('Digit2');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
+  await expect(slots.nth(1)).toHaveAttribute('aria-current', 'true');
+
+  await page.keyboard.press('Digit4');
+  await expect(page.locator('main')).toHaveAttribute('data-weapon', 'shotgun');
+  await expect(slots.nth(3)).toHaveAttribute('aria-label', '4: Empty');
+});
+
 test('accepts WASD movement and mouse fire input', async ({ page }) => {
   const runtimeErrors: Error[] = [];
   page.on('pageerror', (error) => runtimeErrors.push(error));
@@ -634,6 +689,34 @@ test('admin menu closes and jumps directly to a selected stage', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
+test('shows the current stage and room directly above the admin button', async ({
+  page,
+}) => {
+  await enterTitle(page);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toHaveAttribute('data-scene', 'game');
+
+  const location = page.getByLabel('Stage location');
+  const adminButton = page.getByRole('button', { name: 'ADMIN' });
+
+  await expect(page.locator('.hud-layer .stage-location')).toHaveCount(1);
+  await expect(page.locator('.admin-controls .stage-location')).toHaveCount(0);
+  await expect(location).toContainText('STAGE 1 | THE CITY');
+  await expect(location).toContainText('ROOM #1');
+
+  const [locationBox, adminBox] = await Promise.all([
+    location.boundingBox(),
+    adminButton.boundingBox(),
+  ]);
+  expect(locationBox).not.toBeNull();
+  expect(adminBox).not.toBeNull();
+  expect(locationBox!.y + locationBox!.height).toBeLessThanOrEqual(adminBox!.y);
+
+  await adminButton.click();
+  await page.getByRole('button', { name: '보스', exact: true }).first().click();
+  await expect(location).toContainText('ROOM #3');
+});
+
 test('stage two spawns each standard enemy with its supplied atlas', async ({
   page,
 }) => {
@@ -664,6 +747,354 @@ test('stage two spawns each standard enemy with its supplied atlas', async ({
   expect(new Set(textures)).toEqual(
     new Set(['stage-2-neared', 'stage-2-ranged', 'stage-2-flying']),
   );
+});
+
+test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '3스테이지', exact: true })
+    .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '130');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+    { timeout: 10_000 },
+  );
+  // 콜드 점프 후 스테이지 3 아틀라스가 도착하며 방이 다시 지어질 때까지 기다려,
+  // 천장 정비병의 스프라이트/애니메이션이 준비된 뒤에 상태를 읽는다.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          type RuntimeScene = {
+            enemies: Array<{
+              anims: { currentAnim?: { key: string } };
+              texture: { key: string };
+            }>;
+          };
+          type DebugGame = { scene: { getScene: (key: string) => unknown } };
+          const game = (window as unknown as { __game?: DebugGame }).__game!;
+          const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+          return enemies.find(({ texture }) => texture.key === 'stage-3-flying')
+            ?.anims.currentAnim?.key;
+        }),
+      { timeout: 10_000 },
+    )
+    .toBe('stage-3-flying-pipe-idle');
+
+  const result = await page.evaluate(() => {
+    type DamageResult = { applied: boolean; defeated: boolean };
+    type RuntimeEnemy = {
+      anims: { currentAnim?: { key: string } };
+      body: { reset: (x: number, y: number) => void };
+      currentHealth: number;
+      setPosition: (x: number, y: number) => void;
+      setVelocity: (x: number, y: number) => void;
+      takeProjectileDamage: (
+        damage: number,
+        x: number,
+        y: number,
+      ) => DamageResult;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimePlayer = {
+      body: { reset: (x: number, y: number) => void };
+      setPosition: (x: number, y: number) => void;
+    };
+    type RuntimeScene = {
+      cameras: { main: { scrollX: number; scrollY: number } };
+      enemies: RuntimeEnemy[];
+      player: RuntimePlayer;
+      terrainBuilder: {
+        pipeObjects: Array<{ texture?: { key: string } }>;
+      };
+    };
+    type DebugGame = {
+      scene: { getScene: (key: string) => unknown };
+    };
+
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const enemies = scene.enemies;
+    const blocker = enemies.find(
+      ({ texture }) => texture.key === 'stage-3-neared',
+    );
+    if (!blocker) {
+      throw new Error('Missing stage 3 blocker');
+    }
+
+    const healthBefore = blocker.currentHealth;
+    const blocked = blocker.takeProjectileDamage(
+      10,
+      blocker.x,
+      blocker.y,
+    );
+    const healthAfterShield = blocker.currentHealth;
+
+    scene.player.setPosition(330, 600);
+    scene.player.body.reset(330, 600);
+    blocker.setPosition(650, blocker.y);
+    blocker.body.reset(650, blocker.y);
+    blocker.setVelocity(0, 0);
+    const crawler = enemies.find(
+      ({ texture }) => texture.key === 'stage-3-flying',
+    );
+
+    return {
+      blocked,
+      healthBefore,
+      healthAfterShield,
+      textures: enemies.map(({ texture }) => texture.key),
+      pipeTextures: scene.terrainBuilder.pipeObjects.flatMap(({ texture }) =>
+        texture ? [texture.key] : [],
+      ),
+      crawlerAnimation: crawler?.anims.currentAnim?.key,
+      crawlerY: crawler?.y,
+    };
+  });
+
+  expect(new Set(result.textures)).toEqual(
+    new Set([
+      'stage-3-flying',
+      'stage-3-ranged',
+      'stage-3-neared',
+    ]),
+  );
+  expect(result.crawlerY).toBeLessThan(180);
+  expect(result.crawlerAnimation).toBe('stage-3-flying-pipe-idle');
+  expect(new Set(result.pipeTextures)).toEqual(
+    new Set([
+      'stage-3-pipe-left',
+      'stage-3-pipe-middle',
+      'stage-3-pipe-right',
+    ]),
+  );
+  expect(result.blocked.applied).toBe(false);
+  expect(result.healthAfterShield).toBe(result.healthBefore);
+
+  // 재배치한 방어형은 원래 발판을 벗어나 바닥으로 낙하하므로, 정착한 뒤에
+  // 노출 바이저 좌표를 다시 읽는다(발 정렬 바디 상단, 스프라이트 중심 위 약 41px).
+  await page.waitForTimeout(500);
+  const faceTarget = await page.evaluate(() => {
+    type RuntimeScene = {
+      cameras: { main: { scrollX: number; scrollY: number } };
+      enemies: Array<{
+        texture: { key: string };
+        x: number;
+        y: number;
+        setVelocity: (x: number, y: number) => void;
+      }>;
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+    const blocker = scene.enemies.find(
+      ({ texture }) => texture.key === 'stage-3-neared',
+    )!;
+    blocker.setVelocity(0, 0);
+    return {
+      x: blocker.x - scene.cameras.main.scrollX,
+      y: blocker.y - 41 - scene.cameras.main.scrollY,
+    };
+  });
+
+  const bounds = await getCanvasBounds(page);
+  await fireShotsAt(page, bounds, faceTarget.x, faceTarget.y, 3);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeScene = {
+          enemies: Array<{
+            currentHealth: number;
+            texture: { key: string };
+          }>;
+        };
+        type DebugGame = {
+          scene: { getScene: (key: string) => unknown };
+        };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+        return enemies.find(
+          ({ texture }) => texture.key === 'stage-3-neared',
+        )?.currentHealth;
+      }),
+    )
+    .toBeLessThan(result.healthAfterShield);
+});
+
+test('stage four uses three infernal patterns with at most two attackers', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '4스테이지', exact: true })
+    .click();
+  await expect(
+    page.getByRole('meter', { name: 'Player health' }),
+  ).toHaveAttribute('aria-valuemax', '150');
+  await expect(page.locator('main')).toHaveAttribute(
+    'data-room-state',
+    'locked',
+    { timeout: 10_000 },
+  );
+
+  const result = await page.evaluate(async () => {
+    type RuntimeEnemy = {
+      active: boolean;
+      getData: (key: string) => unknown;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimePlayer = {
+      body: { reset: (x: number, y: number) => void };
+      setPosition: (x: number, y: number) => void;
+    };
+    type RuntimeScene = {
+      enemies: RuntimeEnemy[];
+      player: RuntimePlayer;
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const scene = game.scene.getScene('game') as RuntimeScene;
+
+    scene.player.setPosition(2_500, 600);
+    scene.player.body.reset(2_500, 600);
+    let maximumAttackers = 0;
+    let sawThreeNearbyEnemies = false;
+    for (let sample = 0; sample < 30; sample += 1) {
+      const active = scene.enemies.filter(({ active }) => active);
+      maximumAttackers = Math.max(
+        maximumAttackers,
+        active.filter((enemy) => enemy.getData('stage-four-attacking')).length,
+      );
+      sawThreeNearbyEnemies ||=
+        active.filter(
+          ({ x, y }) => Math.hypot(x - 2_500, y - 600) <= 760,
+        ).length >= 3;
+      await new Promise((resolve) => window.setTimeout(resolve, 100));
+    }
+
+    return {
+      textures: scene.enemies.map(({ texture }) => texture.key),
+      maximumAttackers,
+      sawThreeNearbyEnemies,
+    };
+  });
+
+  expect(new Set(result.textures)).toEqual(
+    new Set([
+      'infernal-hound-placeholder',
+      'executioner-doll-placeholder',
+      'judgment-eye-placeholder',
+    ]),
+  );
+  expect(result.sawThreeNearbyEnemies).toBe(true);
+  expect(result.maximumAttackers).toBe(2);
+});
+
+test('stage three pipe crawler stays aligned above its floor segment', async ({
+  page,
+}) => {
+  await enterGame(page);
+  await page.getByRole('button', { name: 'ADMIN' }).click();
+  await page
+    .getByRole('button', { name: '3스테이지', exact: true })
+    .click();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeEnemy = {
+          anims: { currentAnim?: { key: string } };
+          texture: { key: string };
+        };
+        type RuntimeScene = { enemies: RuntimeEnemy[] };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+        return enemies.find(({ texture }) => texture.key === 'stage-3-flying')
+          ?.anims.currentAnim?.key;
+      }),
+    )
+    .toBe('stage-3-flying-pipe-idle');
+
+  await page.evaluate(() => {
+    type RuntimeEnemy = {
+      takeProjectileDamage: (damage: number, x: number, y: number) => unknown;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+    const crawler = enemies.find(
+      ({ texture }) => texture.key === 'stage-3-flying',
+    )!;
+    crawler.takeProjectileDamage(50, crawler.x, crawler.y);
+  });
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeEnemy = {
+          anims: { currentAnim?: { key: string } };
+          texture: { key: string };
+        };
+        type RuntimeScene = { enemies: RuntimeEnemy[] };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+        return enemies.find(({ texture }) => texture.key === 'stage-3-flying')
+          ?.anims.currentAnim?.key;
+      }),
+      { timeout: 5_000 },
+    )
+    .toBe('stage-3-flying-floor-idle');
+
+  const groundPose = await page.evaluate(() => {
+    type RuntimeEnemy = {
+      body: { allowGravity: boolean; bottom: number; offset: { y: number } };
+      displayOriginY: number;
+      texture: { key: string };
+      x: number;
+      y: number;
+    };
+    type RuntimeScene = { enemies: RuntimeEnemy[] };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const enemies = (game.scene.getScene('game') as RuntimeScene).enemies;
+    const crawler = enemies.find(
+      ({ texture }) => texture.key === 'stage-3-flying',
+    )!;
+    return {
+      allowGravity: crawler.body.allowGravity,
+      bodyBottom: crawler.body.bottom,
+      bodyOffsetY: crawler.body.offset.y,
+      opaqueBottom: crawler.y - crawler.displayOriginY + 87,
+      x: crawler.x,
+      y: crawler.y,
+    };
+  });
+
+  expect(groundPose.allowGravity).toBe(true);
+  expect(groundPose.bodyOffsetY).toBe(1);
+  expect(groundPose.opaqueBottom).toBeCloseTo(groundPose.bodyBottom, 1);
+  expect(groundPose.x).toBeGreaterThan(2_000);
 });
 
 test('stage two ground enemies stop at pit edges instead of falling', async ({
@@ -782,6 +1213,21 @@ test('shows boss health without enabling the standard enemy health HUD', async (
   await expect(
     page.getByRole('meter', { name: 'Boss health' }),
   ).toHaveAttribute('aria-valuemax', '500');
+
+  const [playerHud, bossHud, playerStack] = await Promise.all(
+    ['.hud--player', '.hud--enemy', '.hud-player-stack'].map(
+      async (selector) => {
+        const bounds = await page.locator(selector).boundingBox();
+        if (!bounds) {
+          throw new Error(`HUD bounds are unavailable: ${selector}`);
+        }
+        return bounds;
+      },
+    ),
+  );
+
+  expect(bossHud.height).toBe(playerHud.height);
+  expect(bossHud.height).toBeLessThan(playerStack.height);
 });
 
 test('player fire damages the enemy without stopping combat', async ({
@@ -979,6 +1425,34 @@ test('enters the clear portal and starts combat in the next room', async ({
     'room-cleared',
     { timeout: 5000 },
   );
+  const portalState = await page.evaluate(() => {
+    type RuntimePortal = {
+      view: {
+        anims: { currentAnim?: { key: string } };
+        texture: { key: string };
+        visible: boolean;
+      };
+    };
+    type RuntimeScene = { roomDirector: { portal: RuntimePortal } };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game;
+    if (!game) {
+      throw new Error('Missing development game handle');
+    }
+
+    const portal = (game.scene.getScene('game') as RuntimeScene).roomDirector
+      .portal.view;
+    return {
+      animation: portal.anims.currentAnim?.key,
+      texture: portal.texture.key,
+      visible: portal.visible,
+    };
+  });
+  expect(portalState).toEqual({
+    animation: 'room-portal-idle',
+    texture: 'room-portal',
+    visible: true,
+  });
 
   await enterExitPortal(page);
 

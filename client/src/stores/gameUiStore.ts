@@ -3,6 +3,17 @@ import type { BossPhase } from '@/game/state/bossPhase';
 import type { GamePhase } from '@/game/state/gamePhase';
 import type { GameSceneKey } from '@/game/state/gameSceneKey';
 import type { RoomState } from '@/game/state/roomState';
+import { STAGE_ONE_CONFIG } from '@/game/config/stageConfig';
+import { formatStageLabel } from '@/game/config/stageLabel';
+import {
+  STARTING_WEAPON_ID,
+  WEAPON_CONFIGS,
+  WEAPON_INVENTORY_SIZE,
+} from '@/game/config/weaponConfig';
+
+const startingWeapon = WEAPON_CONFIGS.find(
+  ({ id }) => id === STARTING_WEAPON_ID,
+)!;
 
 type GameUiState = {
   health: number;
@@ -14,8 +25,12 @@ type GameUiState = {
   scene: GameSceneKey;
   phase: GamePhase;
   roomState: RoomState;
+  stageLabel: string;
+  roomNumber: number;
   weaponId: string;
   weaponLabel: string;
+  weaponSlots: readonly (string | null)[];
+  activeWeaponSlot: number;
   nearbyWeaponId: string | null;
   paused: boolean;
   setHealth: (health: number, maxHealth: number) => void;
@@ -24,7 +39,12 @@ type GameUiState = {
   setScene: (scene: GameSceneKey) => void;
   setPhase: (phase: GamePhase) => void;
   setRoomState: (roomState: RoomState) => void;
+  setStageLocation: (stageLabel: string, roomNumber: number) => void;
   setWeapon: (weaponId: string, weaponLabel: string) => void;
+  setWeaponInventory: (
+    weaponSlots: readonly (string | null)[],
+    activeWeaponSlot: number,
+  ) => void;
   setNearbyWeapon: (nearbyWeaponId: string | null) => void;
   setPaused: (paused: boolean) => void;
 };
@@ -39,8 +59,15 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   scene: 'boot',
   phase: 'boot',
   roomState: 'idle',
-  weaponId: 'smg',
-  weaponLabel: 'SMG',
+  stageLabel: formatStageLabel(STAGE_ONE_CONFIG.label),
+  roomNumber: 1,
+  weaponId: startingWeapon.id,
+  weaponLabel: startingWeapon.label,
+  weaponSlots: Array.from(
+    { length: WEAPON_INVENTORY_SIZE },
+    (_, index) => (index === 0 ? STARTING_WEAPON_ID : null),
+  ),
+  activeWeaponSlot: 0,
   nearbyWeaponId: null,
   paused: false,
   setHealth: (health, maxHealth) => set({ health, maxHealth }),
@@ -50,7 +77,10 @@ export const useGameUiStore = create<GameUiState>((set) => ({
   setScene: (scene) => set({ scene }),
   setPhase: (phase) => set({ phase }),
   setRoomState: (roomState) => set({ roomState }),
+  setStageLocation: (stageLabel, roomNumber) => set({ stageLabel, roomNumber }),
   setWeapon: (weaponId, weaponLabel) => set({ weaponId, weaponLabel }),
+  setWeaponInventory: (weaponSlots, activeWeaponSlot) =>
+    set({ weaponSlots: [...weaponSlots], activeWeaponSlot }),
   setNearbyWeapon: (nearbyWeaponId) => set({ nearbyWeaponId }),
   setPaused: (paused) => set({ paused }),
 }));

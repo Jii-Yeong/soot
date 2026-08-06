@@ -1,23 +1,31 @@
 import Phaser from 'phaser';
+import {
+  ROOM_PORTAL_ANIMATION,
+  ROOM_PORTAL_DEFAULT_TINT,
+  ROOM_PORTAL_HEIGHT,
+  ROOM_PORTAL_TEXTURE,
+  ROOM_PORTAL_WIDTH,
+} from '@/game/config/portalConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import type { RoomState } from '@/game/state/roomState';
 
 type RoomPortal = {
-  view: Phaser.GameObjects.Graphics;
+  view: Phaser.GameObjects.Sprite;
   zone: Phaser.GameObjects.Zone;
   body: Phaser.Physics.Arcade.StaticBody;
+  restScaleX: number;
+  restScaleY: number;
 };
 
 type RoomDirectorOptions = {
   scene: Phaser.Scene;
   player: Phaser.Physics.Arcade.Sprite;
   config: RoomConfig;
+  portalTint?: number;
   onStateChanged: (state: RoomState) => void;
   onExitRequested: () => void;
 };
 
-const PORTAL_WIDTH = 64;
-const PORTAL_HEIGHT = 128;
 const PORTAL_OVERLAP_PADDING = 28;
 /** 포탈이 나타나기 전, 정지 위치보다 얼마나 아래에서 올라오기 시작하는지. */
 const PORTAL_RISE = 96;
@@ -26,11 +34,11 @@ export class RoomDirector {
   private readonly scene: Phaser.Scene;
   private readonly player: Phaser.Physics.Arcade.Sprite;
   private readonly config: RoomConfig;
+  private readonly portalTint: number;
   private readonly onStateChanged: (state: RoomState) => void;
   private readonly onExitRequested: () => void;
   private readonly portal: RoomPortal;
   private readonly portalPrompt: Phaser.GameObjects.Text;
-  private readonly statusText: Phaser.GameObjects.Text;
   private state: RoomState = 'idle';
   private exitRequested = false;
 
@@ -38,13 +46,14 @@ export class RoomDirector {
     this.scene = options.scene;
     this.player = options.player;
     this.config = options.config;
+    this.portalTint = options.portalTint ?? ROOM_PORTAL_DEFAULT_TINT;
     this.onStateChanged = options.onStateChanged;
     this.onExitRequested = options.onExitRequested;
     this.portal = this.createPortal(this.config.exitX);
     this.portalPrompt = this.scene.add
       .text(
         this.config.exitX,
-        this.config.portal.y - PORTAL_HEIGHT / 2 - 24,
+        this.config.portal.y - ROOM_PORTAL_HEIGHT / 2 - 24,
         '[W] ENTER',
         {
           color: '#ffffff',
@@ -58,16 +67,6 @@ export class RoomDirector {
       .setOrigin(0.5)
       .setDepth(12)
       .setVisible(false);
-    this.statusText = this.scene.add
-      .text(this.scene.scale.width / 2, 154, '', {
-        color: '#ff7180',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '17px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
   }
 
   destroy() {
@@ -75,7 +74,6 @@ export class RoomDirector {
     this.scene.tweens.killTweensOf(this.portal.view);
     this.portal.view.destroy();
     this.portalPrompt.destroy();
-    this.statusText.destroy();
   }
 
   update() {
@@ -111,35 +109,38 @@ export class RoomDirector {
       this.clearRoom();
       return;
     }
-
-    this.updateStatusText();
   }
 
   private createPortal(x: number): RoomPortal {
-    const height = Math.min(PORTAL_HEIGHT, this.config.portal.height - 16);
+    const height = Math.min(
+      ROOM_PORTAL_HEIGHT,
+      this.config.portal.height - 16,
+    );
     const view = this.scene.add
-      .graphics()
-      .setPosition(x, this.config.portal.y)
+      .sprite(x, this.config.portal.y, ROOM_PORTAL_TEXTURE.key, 0)
       .setDepth(7)
       .setVisible(false)
-      .setAlpha(0);
-    view.fillStyle(0x163d35, 0.7).fillEllipse(0, 0, PORTAL_WIDTH, height);
-    view.lineStyle(4, 0xb6ffe4, 0.92).strokeEllipse(0, 0, PORTAL_WIDTH, height);
-    view
-      .lineStyle(1, 0xffffff, 0.75)
-      .strokeEllipse(0, 0, PORTAL_WIDTH - 18, height - 22);
+      .setAlpha(0)
+      .setDisplaySize(ROOM_PORTAL_WIDTH, height)
+      .setTint(this.portalTint);
 
     const zone = this.scene.add.zone(
       x,
       this.config.portal.y,
-      PORTAL_WIDTH + PORTAL_OVERLAP_PADDING,
+      ROOM_PORTAL_WIDTH + PORTAL_OVERLAP_PADDING,
       height + PORTAL_OVERLAP_PADDING,
     );
     this.scene.physics.add.existing(zone, true);
     const body = zone.body as Phaser.Physics.Arcade.StaticBody;
     body.enable = false;
 
-    return { view, zone, body };
+    return {
+      view,
+      zone,
+      body,
+      restScaleX: ROOM_PORTAL_WIDTH / ROOM_PORTAL_TEXTURE.frameWidth,
+      restScaleY: height / ROOM_PORTAL_TEXTURE.frameHeight,
+    };
   }
 
   /**
@@ -167,16 +168,20 @@ export class RoomDirector {
     const restY = this.config.portal.y;
     this.portal.body.enable = true;
     this.portal.view
+      .play(ROOM_PORTAL_ANIMATION.key)
       .setVisible(true)
       .setAlpha(0)
-      .setScale(0.9, 0.7)
+      .setScale(
+        this.portal.restScaleX * 0.9,
+        this.portal.restScaleY * 0.7,
+      )
       .setPosition(this.config.exitX, restY + PORTAL_RISE);
     this.scene.tweens.add({
       targets: this.portal.view,
       y: restY,
       alpha: 1,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: this.portal.restScaleX,
+      scaleY: this.portal.restScaleY,
       duration: 360,
       ease: 'Back.easeOut',
       onComplete: () => {
@@ -201,30 +206,5 @@ export class RoomDirector {
 
     this.state = state;
     this.onStateChanged(state);
-    this.updateStatusText();
-  }
-
-  private updateStatusText() {
-    if (this.state === 'locked') {
-      if (this.config.kind === 'boss') {
-        this.statusText.setText(`${this.config.label}  //  BOSS ENGAGED`);
-        return;
-      }
-
-      const suffix = this.enemies.size === 1 ? 'HOSTILE' : 'HOSTILES';
-      this.statusText.setText(
-        `${this.config.label}  //  LOCKDOWN  //  ${this.enemies.size} ${suffix}`,
-      );
-      return;
-    }
-
-    if (this.state === 'cleared') {
-      const result = this.config.kind === 'boss' ? 'BOSS DEFEATED' : 'CLEAR';
-      this.statusText
-        .setText(
-          `${this.config.label}  //  ${result}  //  ↑ / W TO ENTER PORTAL`,
-        )
-        .setColor('#b6ffe4');
-    }
   }
 }

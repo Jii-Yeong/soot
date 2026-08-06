@@ -31,8 +31,22 @@ export function useGameUiEvents() {
     const handleRoomStateChanged = (roomState: RoomState) => {
       useGameUiStore.getState().setRoomState(roomState);
     };
+    const handleStageLocationChanged = (
+      stageLabel: string,
+      roomNumber: number,
+    ) => {
+      useGameUiStore.getState().setStageLocation(stageLabel, roomNumber);
+    };
     const handleWeaponChanged = (id: string, label: string) => {
       useGameUiStore.getState().setWeapon(id, label);
+    };
+    const handleWeaponInventoryChanged = (
+      slots: readonly (string | null)[],
+      activeSlotIndex: number,
+    ) => {
+      useGameUiStore
+        .getState()
+        .setWeaponInventory(slots, activeSlotIndex);
     };
     const handleNearbyWeaponChanged = (id: string | null) => {
       useGameUiStore.getState().setNearbyWeapon(id);
@@ -66,8 +80,10 @@ export function useGameUiEvents() {
     gameEvents.on('boss-phase-changed', handleBossPhaseChanged);
     gameEvents.on('phase-changed', handlePhaseChanged);
     gameEvents.on('room-state-changed', handleRoomStateChanged);
+    gameEvents.on('stage-location-changed', handleStageLocationChanged);
     gameEvents.on('scene-changed', handleSceneChanged);
     gameEvents.on('weapon-changed', handleWeaponChanged);
+    gameEvents.on('weapon-inventory-changed', handleWeaponInventoryChanged);
     gameEvents.on('nearby-weapon-changed', handleNearbyWeaponChanged);
     gameEvents.on('pause-changed', handlePauseChanged);
 
@@ -79,8 +95,13 @@ export function useGameUiEvents() {
       gameEvents.off('boss-phase-changed', handleBossPhaseChanged);
       gameEvents.off('phase-changed', handlePhaseChanged);
       gameEvents.off('room-state-changed', handleRoomStateChanged);
+      gameEvents.off('stage-location-changed', handleStageLocationChanged);
       gameEvents.off('scene-changed', handleSceneChanged);
       gameEvents.off('weapon-changed', handleWeaponChanged);
+      gameEvents.off(
+        'weapon-inventory-changed',
+        handleWeaponInventoryChanged,
+      );
       gameEvents.off('nearby-weapon-changed', handleNearbyWeaponChanged);
     };
   }, []);

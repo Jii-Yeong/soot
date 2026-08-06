@@ -42,9 +42,7 @@ describe('boss combat configuration', () => {
       throw new Error('Underground boss must use the purifier pattern');
     }
 
-    // A grab, a targeted leap, and a full-arena vacuum that can be resisted.
-    expect(pattern.grab.reach).toBeGreaterThan(0);
-    expect(pattern.grab.damage).toBeGreaterThan(0);
+    // A targeted leap and a full-arena vacuum that can be resisted.
     expect(pattern.slam.launchSpeedY).toBeGreaterThan(0);
     expect(pattern.slam.maxTravelSpeedX).toBeGreaterThan(
       pattern.enragedMoveSpeed,

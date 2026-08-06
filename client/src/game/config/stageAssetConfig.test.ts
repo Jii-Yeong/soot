@@ -31,10 +31,24 @@ describe('stage asset manifests', () => {
     ]);
   });
 
-  it('returns no optional gameplay art for a placeholder-only stage', () => {
+  it('includes the stage-specific ceiling crawler and captor atlases', () => {
     expect(getStageAssetManifest(STAGE_THREE_CONFIG)).toEqual({
-      enemyAtlases: [],
-      terrainImages: [],
+      enemyAtlases: [
+        expect.objectContaining({ texture: 'stage-3-flying' }),
+        expect.objectContaining({ texture: 'stage-3-ranged' }),
+        expect.objectContaining({ texture: 'stage-3-neared' }),
+      ],
+      terrainImages: [
+        expect.objectContaining({ key: 'stage-3-floor-left' }),
+        expect.objectContaining({ key: 'stage-3-floor-middle' }),
+        expect.objectContaining({ key: 'stage-3-floor-right' }),
+        expect.objectContaining({ key: 'stage-3-stool-left' }),
+        expect.objectContaining({ key: 'stage-3-stool-middle' }),
+        expect.objectContaining({ key: 'stage-3-stool-right' }),
+        expect.objectContaining({ key: 'stage-3-pipe-left' }),
+        expect.objectContaining({ key: 'stage-3-pipe-middle' }),
+        expect.objectContaining({ key: 'stage-3-pipe-right' }),
+      ],
     });
   });
 

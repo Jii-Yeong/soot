@@ -1,5 +1,4 @@
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
-import { GROUND_STAGE_FLYING_PATROL } from '@/game/config/aerialMovementConfig';
 import {
   defineBossRoom,
   defineRoom,
@@ -19,38 +18,17 @@ export const INFERNO_ROOM_ONE = defineRoom({
   worldWidth: 6000,
   intensity: 1.55,
   enemySpawns: [
-    // 첫 비행 적의 탄환을 낮은 섬 아래에서 끊고 가장자리로 나와 반격함.
-    {
-      type: 'flying',
-      x: 1050,
-      y: GAME_HEIGHT - 310,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'ranged', x: 1400, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 1900, y: GAME_HEIGHT - 120 },
-    {
-      type: 'flying',
-      x: 2450,
-      y: GAME_HEIGHT - 300,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'ranged', x: 2700, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 3000, y: GAME_HEIGHT - 120 },
-    {
-      type: 'flying',
-      x: 3600,
-      y: GAME_HEIGHT - 300,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'melee', x: 3900, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 4550, y: GAME_HEIGHT - 120 },
-    {
-      type: 'flying',
-      x: 4800,
-      y: GAME_HEIGHT - 290,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'melee', x: 5350, y: GAME_HEIGHT - 120 },
+    // 초반: 크게 예고된 돌진과 상단 내려찍기를 함께 익힘.
+    { type: 'infernal-hound', x: 1_150, y: GAME_HEIGHT - 120 },
+    { type: 'executioner-doll', x: 1_450, y: GAME_HEIGHT - 330 },
+    // 중반: 방사 구체를 구석으로 유도하면서 두 돌진을 피함.
+    { type: 'infernal-hound', x: 2_150, y: GAME_HEIGHT - 120 },
+    { type: 'infernal-hound', x: 2_450, y: GAME_HEIGHT - 120 },
+    { type: 'judgment-eye', x: 2_750, y: GAME_HEIGHT - 330 },
+    // 후반: 세 패턴을 섞되 공격 조정기가 동시 공격을 두 기로 제한함.
+    { type: 'executioner-doll', x: 3_900, y: GAME_HEIGHT - 340 },
+    { type: 'judgment-eye', x: 4_550, y: GAME_HEIGHT - 320 },
+    { type: 'infernal-hound', x: 4_800, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
     { type: 'platform', x: 900, y: LOW_LEDGE_Y, width: 220, height: 22 },
@@ -74,45 +52,14 @@ export const INFERNO_ROOM_TWO = defineRoom({
   worldWidth: 6000,
   intensity: 1.7,
   enemySpawns: [
-    {
-      type: 'flying',
-      x: 1050,
-      y: GAME_HEIGHT - 320,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'ranged', x: 1400, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 1850, y: GAME_HEIGHT - 120 },
-    // 중앙 균열에서는 높이 셋을 빠르게 바꾸며 위·아래 탄환 차단을 선택함.
-    {
-      type: 'flying',
-      x: 2300,
-      y: GAME_HEIGHT - 480,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'ranged', x: 2600, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 2800, y: GAME_HEIGHT - 120 },
-    {
-      type: 'flying',
-      x: 3350,
-      y: GAME_HEIGHT - 300,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'ranged', x: 3600, y: GAME_HEIGHT - 120 },
-    { type: 'melee', x: 3900, y: GAME_HEIGHT - 120 },
-    {
-      type: 'flying',
-      x: 4450,
-      y: GAME_HEIGHT - 300,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
-    { type: 'melee', x: 4700, y: GAME_HEIGHT - 120 },
-    { type: 'ranged', x: 4950, y: GAME_HEIGHT - 120 },
-    {
-      type: 'flying',
-      x: 5400,
-      y: GAME_HEIGHT - 280,
-      movement: GROUND_STAGE_FLYING_PATROL,
-    },
+    { type: 'infernal-hound', x: 1_150, y: GAME_HEIGHT - 120 },
+    { type: 'executioner-doll', x: 1_460, y: GAME_HEIGHT - 340 },
+    { type: 'infernal-hound', x: 2_150, y: GAME_HEIGHT - 120 },
+    { type: 'infernal-hound', x: 2_450, y: GAME_HEIGHT - 120 },
+    { type: 'judgment-eye', x: 2_750, y: GAME_HEIGHT - 350 },
+    { type: 'executioner-doll', x: 3_850, y: GAME_HEIGHT - 350 },
+    { type: 'judgment-eye', x: 4_500, y: GAME_HEIGHT - 330 },
+    { type: 'infernal-hound', x: 4_800, y: GAME_HEIGHT - 120 },
   ],
   terrain: [
     { type: 'platform', x: 1000, y: LOW_LEDGE_Y, width: 220, height: 22 },

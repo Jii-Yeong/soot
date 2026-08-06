@@ -12,17 +12,60 @@ export class TitleScene extends Phaser.Scene {
     super('title');
   }
 
+  preload() {
+    this.load.image('title-player', '/assets/title-player.png');
+  }
+
   create() {
     gameEvents.emit('scene-changed', 'title');
 
-    this.add
+    // 1스테이지 배경을 cover로 채움(비율 유지, 다른 해상도 지원). 맨 뒤.
+    // 콜드 로드에서도 타이틀 진입은 막지 않고, 도착 즉시 배경만 붙인다.
+    const bg = STAGES[STARTING_STAGE_INDEX]?.background;
+    let backgroundImage: Phaser.GameObjects.Image | undefined;
+    const showBackground = () => {
+      if (!bg || backgroundImage || !this.textures.exists(bg.key)) {
+        return;
+      }
+
+      const image = this.add
+        .image(GAME_WIDTH / 2, GAME_HEIGHT / 2, bg.key)
+        .setDepth(-2);
+      image.setScale(
+        Math.max(GAME_WIDTH / image.width, GAME_HEIGHT / image.height),
+      );
+      backgroundImage = image;
+    };
+
+    if (bg && this.textures.exists(bg.key)) {
+      showBackground();
+    } else if (bg) {
+      this.load.once(`filecomplete-image-${bg.key}`, showBackground);
+    }
+
+    // 우하단 정렬, 높이는 화면의 80%(비율 유지). 배경 앞, 텍스트 뒤.
+    const player = this.add
+      .image(GAME_WIDTH, GAME_HEIGHT, 'title-player')
+      .setOrigin(1, 1)
+      .setDepth(-1);
+    player.setScale((GAME_HEIGHT * 0.8) / player.height);
+
+    // SOOT: 검은 글자로 잠시 표시 후 페이드아웃.
+    const title = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 32, 'SOOT', {
-        color: '#e8ece9',
+        color: '#0b0b0b',
         fontFamily: 'Arial, sans-serif',
         fontSize: '84px',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
+    this.tweens.add({
+      targets: title,
+      alpha: 0,
+      delay: 1200,
+      duration: 600,
+      onComplete: () => title.destroy(),
+    });
 
     const prompt = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 68, 'PRESS ENTER', {

@@ -24,6 +24,7 @@ type GameEventMap = {
   'room-state-changed': [state: RoomState];
   'scene-changed': [scene: GameSceneKey];
   'stage-changed': [stageId: string];
+  'stage-location-changed': [stageLabel: string, roomNumber: number];
   'admin-stage-requested': [stageIndex: number];
   'admin-stage-boss-requested': [stageIndex: number];
   'admin-weapon-requested': [weaponId: string];
@@ -41,6 +42,10 @@ type GameEventMap = {
   'enemy-damaged': [x: number, y: number];
   'enemy-defeated': [x: number, y: number];
   'weapon-changed': [id: string, label: string];
+  'weapon-inventory-changed': [
+    slots: readonly (string | null)[],
+    activeSlotIndex: number,
+  ];
   'nearby-weapon-changed': [id: string | null];
 };
 

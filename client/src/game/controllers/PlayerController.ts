@@ -8,6 +8,7 @@ import {
   PLAYER_FLIGHT_BOUNDS,
   writeNormalizedVelocity,
 } from '@/game/config/playerMovementConfig';
+import { getTetheredVelocityX } from '@/game/combat/stageThreeEnemyCombat';
 import { getVacuumVelocityX } from '@/game/combat/vacuumPull';
 import { gameEvents } from '@/game/events/gameEvents';
 import {
@@ -41,13 +42,6 @@ const COYOTE_TIME = 90;
 const JUMP_BUFFER_TIME = 110;
 /** 포탈 진입 후 점프 입력을 무시하는 시간(위/W 키를 공유하므로). */
 const JUMP_SUPPRESS_AFTER_PORTAL = 200;
-/** How fast a boss grab drags the player toward it. */
-const GRAB_PULL_SPEED = 700;
-/**
- * Safety cap on the grab drag + i-frames; normally the pull ends earlier, the
- * moment the player overlaps the boss. A dash within it breaks free.
- */
-const GRAB_DURATION = 800;
 /** 중앙 착지 후 비행 조작을 열기 전의 착지 자세 시간. */
 const FLIGHT_ENTRY_LANDING_DURATION = 180;
 /** 비행 밴드 중앙보다 높게 잡는 포탈 진입 점프의 정점. */
@@ -68,11 +62,6 @@ export class PlayerController {
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
-  private grabbed = false;
-  private grabEndsAt = 0;
-  private grabVelocityX = 0;
-  private grabTargetX = 0;
-  private grabStopDistance = 0;
   private movementMode = MovementMode.GROUND;
   private flightEntryLift?: {
     startY: number;
@@ -103,28 +92,6 @@ export class PlayerController {
   }
 
   update(time: number) {
-    if (this.grabbed) {
-      // A dash within the window breaks free; otherwise the drag stops once the
-      // player overlaps the boss (or the window runs out). All cases fall
-      // through to normal control below.
-      const reachedBoss =
-        Math.abs(this.player.x - this.grabTargetX) <= this.grabStopDistance;
-      if (
-        Phaser.Input.Keyboard.JustDown(this.movementKeys.dash) &&
-        this.tryDash(time)
-      ) {
-        this.grabbed = false;
-      } else if (reachedBoss || time >= this.grabEndsAt) {
-        this.grabbed = false;
-        this.invulnerable = false;
-        this.player.setVelocityX(0);
-      } else {
-        this.player.setVelocityX(this.grabVelocityX);
-        this.updateAnimation(time);
-        return;
-      }
-    }
-
     if (this.updateFlightEntryLift(time)) {
       return;
     }
@@ -164,7 +131,6 @@ export class PlayerController {
 
     this.finishDash();
     this.movementMode = mode;
-    this.grabbed = false;
     this.invulnerable = false;
     this.lastGroundedAt = 0;
     this.jumpBufferedUntil = 0;
@@ -391,27 +357,12 @@ export class PlayerController {
     return this.invulnerable;
   }
 
-  get isFlightMode() {
-    return this.movementMode === MovementMode.FLIGHT;
+  get isDashing() {
+    return this.dashing;
   }
 
-  /**
-   * A boss claw yanks the player toward the boss at (`bossX`), stopping once
-   * the two overlap (`bossHalfWidth` + the player's own half). The pull locks
-   * input and grants brief invulnerability, but a dash within the window breaks
-   * free — so it displaces without becoming an unescapable stunlock.
-   */
-  applyGrab(bossX: number, bossHalfWidth: number) {
-    if (this.dashing) {
-      return;
-    }
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    this.grabbed = true;
-    this.invulnerable = true;
-    this.grabEndsAt = this.scene.time.now + GRAB_DURATION;
-    this.grabVelocityX = (bossX >= this.player.x ? 1 : -1) * GRAB_PULL_SPEED;
-    this.grabTargetX = bossX;
-    this.grabStopDistance = bossHalfWidth + body.width / 2;
+  get isFlightMode() {
+    return this.movementMode === MovementMode.FLIGHT;
   }
 
   /**
@@ -428,6 +379,24 @@ export class PlayerController {
         currentVelocityX: body.velocity.x,
         pullSpeed,
       }),
+    );
+  }
+
+  /** 포획 케이블이 입력 속도를 낮추고 포획기 쪽으로 조금씩 끌어당김. */
+  applyTether(sourceX: number, slowFactor: number, pullSpeed: number) {
+    if (this.dashing) {
+      return;
+    }
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    this.player.setVelocityX(
+      getTetheredVelocityX(
+        this.player.x,
+        sourceX,
+        body.velocity.x,
+        slowFactor,
+        pullSpeed,
+      ),
     );
   }
 
@@ -517,6 +486,16 @@ export class PlayerController {
       if (horizontal !== 0 || vertical !== 0) {
         return;
       }
+    }
+
+    // 지상 대시 방향: 좌/우 방향키를 누르고 있으면 그 방향으로 대시한다. 좌우를
+    // 동시에 눌러 서로 상쇄되면(horizontal === 0) 방향키 미입력과 똑같이 취급해
+    // 쳐다보는 방향(flipX)으로 대시한다.
+    const horizontal = Number(this.isMovingRight()) - Number(this.isMovingLeft());
+    if (horizontal !== 0) {
+      this.dashVelocity.x = horizontal;
+      this.dashVelocity.y = 0;
+      return;
     }
 
     this.dashVelocity.x = this.player.flipX ? -1 : 1;

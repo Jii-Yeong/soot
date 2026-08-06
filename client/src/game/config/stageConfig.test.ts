@@ -136,6 +136,11 @@ describe('stage configuration', () => {
       type: 'boss',
       variant: 'infernal-executioner',
     });
+    for (const room of STAGE_FOUR_CONFIG.rooms.slice(0, 2)) {
+      expect(new Set(room.enemySpawns.map(({ type }) => type))).toEqual(
+        new Set(['infernal-hound', 'executioner-doll', 'judgment-eye']),
+      );
+    }
   });
 
   it('ends with a three-room return stage and final boss', () => {

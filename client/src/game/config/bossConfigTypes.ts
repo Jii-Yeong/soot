@@ -47,6 +47,8 @@ export type HoundBossPatternConfig = {
     halfAngleDegrees: number;
     tiltDegrees: number;
     apexOffsetY: number;
+    /** 부채꼴 꼭짓점을 정면(머리) 쪽으로 미는 수평 오프셋. 바라보는 방향으로 적용. */
+    apexOffsetX?: number;
   };
   orb: {
     lockDuration: number;
@@ -58,7 +60,7 @@ export type HoundBossPatternConfig = {
   };
 };
 
-/** Stage-3 capture, targeted slam, and full-arena vacuum patterns. */
+/** Stage-3 targeted slam and full-arena vacuum patterns. */
 export type PurifierBossPatternConfig = {
   type: 'purifier';
   moveSpeed: number;
@@ -70,13 +72,6 @@ export type PurifierBossPatternConfig = {
   recoveryDuration: number;
   enragedRecoveryDuration: number;
   telegraphColor: number;
-  grab: {
-    warnDuration: number;
-    strikeDuration: number;
-    reach: number;
-    damage: number;
-    holdDuration: number;
-  };
   slam: {
     warnDuration: number;
     strikeDuration: number;
@@ -213,7 +208,20 @@ export type BossPatternConfig =
   | InfernalBossPatternConfig
   | ArchitectBossPatternConfig;
 
-export type BossSpriteConfig = {
+/** 실제 아틀라스 보스가 공유하는 배치/크기 필드. */
+export type BossSpriteGeometry = {
+  scale: number;
+  bodyWidth: number;
+  bodyHeight: number;
+  /** 지정 시 setSize를 중앙 정렬 대신 이 오프셋으로 배치(발을 바닥에 맞춤). */
+  bodyOffsetX?: number;
+  bodyOffsetY?: number;
+  /** 아트가 기본적으로 왼쪽을 향할 때 true(flipX 방향을 반전). 기본값은 오른쪽. */
+  facesLeft?: boolean;
+};
+
+/** 레이저포 보스(city-warden)의 스프라이트 설정. */
+export type BossSpriteConfig = BossSpriteGeometry & {
   animations: {
     idle: string;
     walk: string;
@@ -222,9 +230,31 @@ export type BossSpriteConfig = {
     recoil: string;
     death: string;
   };
-  scale: number;
-  bodyWidth: number;
-  bodyHeight: number;
+};
+
+/** 사냥개 보스(alley-hunter)의 스프라이트 설정. */
+export type HoundBossSpriteConfig = BossSpriteGeometry & {
+  animations: {
+    idle: string;
+    walk: string;
+    quest: string;
+    attack: string;
+    death: string;
+  };
+};
+
+/** 정화 집행기 보스(underground-guardian)의 스프라이트 설정. */
+export type PurifierBossSpriteConfig = BossSpriteGeometry & {
+  animations: {
+    idle: string;
+    walk: string;
+    takeDown: string;
+    slamWindup: string;
+    slamAir: string;
+    slamStrike: string;
+    suction: string;
+    death: string;
+  };
 };
 
 export type BossCombatConfig<

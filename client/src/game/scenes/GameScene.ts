@@ -21,12 +21,18 @@ import {
   STAGES,
   type StageEndEvent,
 } from '@/game/config/stageConfig';
+import { formatStageLabel } from '@/game/config/stageLabel';
 import { getStageExitPlan } from '@/game/config/stageProgression';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
+  UI_PANEL_SLICE,
+  UI_PANEL_TEXTURES,
+} from '@/game/config/uiAssetConfig';
+import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
+  WEAPON_INVENTORY_SIZE,
   type WeaponConfig,
 } from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
@@ -102,9 +108,7 @@ export class GameScene extends Phaser.Scene {
   private deathOverlay!: Phaser.GameObjects.Container;
   private victoryOverlay!: Phaser.GameObjects.Container;
   private stageEndOverlay!: Phaser.GameObjects.Container;
-  private weaponLabelText!: Phaser.GameObjects.Text;
   private weaponEquippedText!: Phaser.GameObjects.Text;
-  private stageLabelText!: Phaser.GameObjects.Text;
   private controlHintText?: Phaser.GameObjects.Text;
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
@@ -290,6 +294,7 @@ export class GameScene extends Phaser.Scene {
       scene: this,
       player: this.player,
       config: roomConfig,
+      portalTint: this.stage.palette.accentSecondary,
       onStateChanged: (state) => this.handleRoomStateChanged(state),
       onExitRequested: () => {
         this.roomExitRequested = true;
@@ -304,7 +309,12 @@ export class GameScene extends Phaser.Scene {
     gameEvents.emit('room-state-changed', this.roomState);
     this.emitEnemyHealth();
 
-    this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
+    this.terrainBuilder.build(
+      roomConfig.terrain,
+      this.stage.terrainSkin,
+      roomConfig.ceilingPipes,
+      this.stage.pipeSkin,
+    );
 
     // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
     // 스테이지 진입 후 보이지 않는 전투 트리거가 따로 생기지 않는다.
@@ -315,22 +325,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnRoomEnemies() {
-    const enemyFactory = new EnemyFactory(
-      this,
-      this.floorBuilder.group,
-      this.terrainBuilder.group,
-      this.floorBuilder.enemyPitBarriers,
-      this.activeRoomConfig.intensity,
-      (damage) => this.applyPlayerDamage(damage),
-      (bossX, bossHalfWidth) =>
-        this.playerController.applyGrab(bossX, bossHalfWidth),
-      (bossX, pullSpeed) => this.playerController.applyVacuum(bossX, pullSpeed),
-      {
+    const enemyFactory = new EnemyFactory({
+      scene: this,
+      floor: this.floorBuilder.group,
+      terrain: this.terrainBuilder.group,
+      enemyPitBarriers: this.floorBuilder.enemyPitBarriers,
+      intensity: this.activeRoomConfig.intensity,
+      damagePlayer: (damage) => this.applyPlayerDamage(damage),
+      tetherPlayer: (sourceX, slowFactor, pullSpeed) =>
+        this.playerController.applyTether(sourceX, slowFactor, pullSpeed),
+      isPlayerDashing: () => this.playerController.isDashing,
+      pullPlayer: (bossX, pullSpeed) =>
+        this.playerController.applyVacuum(bossX, pullSpeed),
+      ceilingPipes: this.activeRoomConfig.ceilingPipes ?? [],
+      bossArena: {
         left: this.activeRoomConfig.entranceX,
         right: this.activeRoomConfig.exitX,
       },
-      (phase) => gameEvents.emit('boss-phase-changed', phase),
-      (spawnX) =>
+      onBossPhaseChanged: (phase) =>
+        gameEvents.emit('boss-phase-changed', phase),
+      patrolBoundsFor: (spawnX) =>
         patrolSpan({
           spawnX,
           range: MELEE_ENEMY_COMBAT_CONFIG.patrolRange,
@@ -340,11 +354,11 @@ export class GameScene extends Phaser.Scene {
           edgeMargin: MELEE_ENEMY_COMBAT_CONFIG.patrolEdgeMargin,
           minimumSpan: MELEE_ENEMY_COMBAT_CONFIG.patrolMinimumSpan,
         }),
-      this.stage.flyingSprite,
-      this.stage.meleeSwing,
-      this.stage.rangedSprite,
-      this.stage.meleeSprite,
-    );
+      flyingSprite: this.stage.flyingSprite,
+      meleeSwing: this.stage.meleeSwing,
+      rangedSprite: this.stage.rangedSprite,
+      meleeSprite: this.stage.meleeSprite,
+    });
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
@@ -448,7 +462,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.buildRoom(this.currentRoomConfig);
-    this.updateStageLabel();
+    this.emitStageLocation();
     this.setPhase('playing');
   }
 
@@ -485,11 +499,11 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private updateStageLabel() {
-    this.stageLabelText.setText(
-      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${
-        this.stage.rooms.length
-      }`,
+  private emitStageLocation() {
+    gameEvents.emit(
+      'stage-location-changed',
+      formatStageLabel(this.stage.label),
+      this.currentRoomIndex + 1,
     );
   }
 
@@ -512,7 +526,12 @@ export class GameScene extends Phaser.Scene {
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
   }
 
-  /** 콜드 스테이지의 픽셀 스킨 로드가 끝나면 바닥과 지형을 다시 그림. */
+  /**
+   * 콜드 스테이지의 아트 로드가 끝나면 바닥·지형을 다시 그리고, 아틀라스보다
+   * 먼저 스폰돼 __MISSING이던 적 스프라이트를 제자리에서 갱신한다(적을 파괴/
+   * 재스폰하지 않아 전투 상태를 유지함). 워밍된 스테이지에서는 onReady가
+   * 호출되지 않아 no-op.
+   */
   private reskinCurrentRoom() {
     if (!this.floorBuilder || !this.terrainBuilder) {
       return;
@@ -522,7 +541,12 @@ export class GameScene extends Phaser.Scene {
     this.terrainBuilder.build(
       this.activeRoomConfig.terrain,
       this.stage.terrainSkin,
+      this.activeRoomConfig.ceilingPipes,
+      this.stage.pipeSkin,
     );
+    for (const enemy of this.enemies) {
+      enemy.refreshAtlasSprite();
+    }
   }
 
   private createCombatSystems() {
@@ -599,50 +623,27 @@ export class GameScene extends Phaser.Scene {
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.deathOverlay = this.createOverlay(
-      0xe45d68,
+      UI_PANEL_TEXTURES.danger.key,
       '#ff7180',
       'SYSTEM FAILURE',
       'PRESS R OR ENTER TO RESTART',
     );
     this.victoryOverlay = this.createOverlay(
-      0xffe1a8,
+      UI_PANEL_TEXTURES.victory.key,
       '#ffe9c4',
       'RETURN COMPLETE',
       'YOU\'RE AWAKE  //  PRESS R OR ENTER TO REPLAY',
     );
     this.stageEndOverlay = this.createOverlay(
-      0xe45d68,
+      UI_PANEL_TEXTURES.danger.key,
       '#ff7180',
       'SURROUNDED',
       'SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY',
     );
 
-    this.stageLabelText = this.add
-      .text(GAME_WIDTH / 2, 96, '', {
-        color: '#d8dfdc',
-        backgroundColor: '#070a0bbd',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        padding: { x: 10, y: 5 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateStageLabel();
+    this.emitStageLocation();
 
-    this.weaponLabelText = this.add
-      .text(32, GAME_HEIGHT - 96, '', {
-        color: '#d8ffec',
-        backgroundColor: '#070a0bd9',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        fontStyle: 'bold',
-        padding: { x: 10, y: 6 },
-      })
-      .setOrigin(0, 0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
 
     this.weaponEquippedText = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, '', {
@@ -685,6 +686,7 @@ export class GameScene extends Phaser.Scene {
     keyboard.on('keydown-ENTER', this.handleRestartInput, this);
     keyboard.on('keydown-UP', this.handlePortalEnter, this);
     keyboard.on('keydown-W', this.handlePortalEnter, this);
+    keyboard.on('keydown', this.handleWeaponSlotInput, this);
     gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
     gameEvents.on(
       'admin-stage-boss-requested',
@@ -708,6 +710,7 @@ export class GameScene extends Phaser.Scene {
       keyboard.off('keydown-ENTER', this.handleRestartInput, this);
       keyboard.off('keydown-UP', this.handlePortalEnter, this);
       keyboard.off('keydown-W', this.handlePortalEnter, this);
+      keyboard.off('keydown', this.handleWeaponSlotInput, this);
       this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
       gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
       gameEvents.off(
@@ -729,20 +732,54 @@ export class GameScene extends Phaser.Scene {
 
     const weapon = this.weaponDropDirector.takeNearest(
       this.player,
-      this.weaponSystem.activeConfig,
+      ({ id }) => this.weaponSystem.collect(id),
     );
-    if (!weapon || !this.weaponSystem.equip(weapon.id)) {
+    if (!weapon) {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
     this.showWeaponEquipped(weapon);
   }
 
-  private updateWeaponLabel() {
+  private syncWeaponUi() {
     const weapon = this.weaponSystem.activeConfig;
-    this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
+    const inventory = this.weaponSystem.inventorySnapshot;
     gameEvents.emit('weapon-changed', weapon.id, weapon.label);
+    gameEvents.emit(
+      'weapon-inventory-changed',
+      inventory.slots,
+      inventory.activeSlotIndex,
+    );
+  }
+
+  private handleWeaponSlotInput(event: KeyboardEvent) {
+    if (
+      event.repeat ||
+      (this.phase !== 'playing' && this.phase !== 'room-cleared')
+    ) {
+      return;
+    }
+
+    const slotIndex = Number(event.key) - 1;
+    if (
+      !Number.isInteger(slotIndex) ||
+      slotIndex < 0 ||
+      slotIndex >= WEAPON_INVENTORY_SIZE
+    ) {
+      return;
+    }
+    event.preventDefault();
+    const { activeSlotIndex } = this.weaponSystem.inventorySnapshot;
+    if (
+      slotIndex === activeSlotIndex ||
+      !this.weaponSystem.equipSlot(slotIndex)
+    ) {
+      return;
+    }
+
+    this.syncWeaponUi();
+    this.showWeaponEquipped(this.weaponSystem.activeConfig);
   }
 
   private showWeaponEquipped(weapon: WeaponConfig) {
@@ -941,11 +978,11 @@ export class GameScene extends Phaser.Scene {
    * the alternative, and the drop tables do not guarantee it appears at all.
    */
   private handleAdminWeaponRequested = (weaponId: string) => {
-    if (!this.weaponSystem.equip(weaponId)) {
+    if (!this.weaponSystem.collect(weaponId)) {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
 
     // The equip flourish is a camera flash and two tweens, and neither advances
     // while the scene is paused — asked for from the pause menu they would sit
@@ -1062,7 +1099,7 @@ export class GameScene extends Phaser.Scene {
       this.weaponDropDirector.dropBossReward(
         enemy.x,
         enemy.y,
-        this.weaponSystem.activeConfig.id,
+        this.weaponSystem.ownedWeaponIds,
       );
     } else {
       if (!enemy.playsOwnDeathAnimation) {
@@ -1290,14 +1327,27 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createOverlay(
-    strokeColor: number,
+    panelTexture: string,
     titleColor: string,
     titleText: string,
     promptText: string,
   ) {
     const panel = this.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 470, 150, 0x070a0b, 0.92)
-      .setStrokeStyle(2, strokeColor);
+      .nineslice(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        panelTexture,
+        undefined,
+        470,
+        150,
+        UI_PANEL_SLICE,
+        UI_PANEL_SLICE,
+        UI_PANEL_SLICE,
+        UI_PANEL_SLICE,
+        true,
+        true,
+      )
+      .setOrigin(0.5);
     const title = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, titleText, {
         color: titleColor,

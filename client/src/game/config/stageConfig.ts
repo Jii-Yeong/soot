@@ -1,4 +1,7 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import { BLOCKER_ANIMATION_ATLASES } from '@/game/config/blockerAnimationConfig';
+import { CAPTOR_ANIMATION_ATLASES } from '@/game/config/captorAnimationConfig';
+import { CEILING_MAINTAINER_ANIMATION_ATLASES } from '@/game/config/ceilingMaintainerAnimationConfig';
 import {
   MELEE_SWING_CONFIG,
   type MeleeSwingConfig,
@@ -22,11 +25,15 @@ import {
 import {
   STAGE_ONE_FLOOR_SKIN,
   STAGE_ONE_STOOL_SKIN,
+  STAGE_THREE_FLOOR_SKIN,
+  STAGE_THREE_PIPE_SKIN,
+  STAGE_THREE_STOOL_SKIN,
   STAGE_TWO_FLOOR_SKIN,
   STAGE_TWO_STOOL_SKIN,
   type SliceSkinConfig,
 } from '@/game/config/terrainSkinConfig';
 import type { StageRooms } from '@/game/config/roomConfig';
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
 import { CITY_ROOMS } from '@/game/config/rooms/stageOneRooms';
 import { ALLEY_ROOMS } from '@/game/config/rooms/stageTwoRooms';
 import { UNDERGROUND_ROOMS } from '@/game/config/rooms/stageThreeRooms';
@@ -75,6 +82,8 @@ export type StageConfig = {
   floorSkin?: SliceSkinConfig;
   /** 2·3층 발판(stool)용 픽셀 3-slice 스킨. */
   terrainSkin?: SliceSkinConfig;
+  /** 천장형 적이 이동하는 파이프용 픽셀 3-slice 스킨. */
+  pipeSkin?: SliceSkinConfig;
   /** 실제 아틀라스 비행 적 아트. 없는 스테이지는 placeholder 사용. */
   flyingSprite?: FlyingSpriteConfig;
   /** 실제 아틀라스 원거리 적 아트. 없는 스테이지는 placeholder 사용. */
@@ -83,6 +92,8 @@ export type StageConfig = {
   meleeSwing?: MeleeSwingConfig;
   /** 실제 아틀라스 근접 적 아트(휘두르기는 attack 애니메이션 + 슬래시 VFX로 표현). */
   meleeSprite?: MeleeSpriteConfig;
+  /** 스테이지 고유 잡몹이 사용하는 추가 애니메이션 아틀라스. */
+  enemyAtlases?: readonly EnemyAnimationAtlasConfig<string>[];
 };
 
 export const STAGE_ONE_CONFIG: StageConfig = {
@@ -158,6 +169,15 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     key: 'stage-03-bg',
     path: '/assets/backgrounds/stage-03.webp',
   },
+  enemyAtlases: [
+    ...CEILING_MAINTAINER_ANIMATION_ATLASES,
+    ...CAPTOR_ANIMATION_ATLASES,
+    ...BLOCKER_ANIMATION_ATLASES,
+  ] as readonly EnemyAnimationAtlasConfig<string>[],
+  showFloor: true,
+  floorSkin: STAGE_THREE_FLOOR_SKIN,
+  terrainSkin: STAGE_THREE_STOOL_SKIN,
+  pipeSkin: STAGE_THREE_PIPE_SKIN,
   rooms: UNDERGROUND_ROOMS,
   endEvent: 'siege',
 };

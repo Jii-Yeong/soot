@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HealthMeter } from '@/app/components/HealthMeter';
 import { SettingsDialog } from '@/app/components/SettingsDialog';
+import { WeaponInventory } from '@/app/components/WeaponInventory';
 import { useGameUiEvents } from '@/app/hooks/useGameUiEvents';
 import { PhaserGame } from '@/game/PhaserGame';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
@@ -21,7 +22,11 @@ export function App() {
     scene,
     phase,
     roomState,
+    stageLabel,
+    roomNumber,
     weaponId,
+    weaponSlots,
+    activeWeaponSlot,
     nearbyWeaponId,
     paused,
   } = useGameUiStore();
@@ -66,6 +71,7 @@ export function App() {
   return (
     <main
       className='game-shell'
+      onDragStart={(event) => event.preventDefault()}
       data-phase={phase}
       data-room-state={roomState}
       data-scene={scene}
@@ -89,12 +95,18 @@ export function App() {
         {scene === 'game' && (
           <>
             <div className='hud-layer'>
-              <HealthMeter
-                label='PLAYER'
-                value={health}
-                maxValue={maxHealth}
-                variant='player'
-              />
+              <div className='hud-player-stack'>
+                <HealthMeter
+                  label='PLAYER'
+                  value={health}
+                  maxValue={maxHealth}
+                  variant='player'
+                />
+                <WeaponInventory
+                  slots={weaponSlots}
+                  activeSlotIndex={activeWeaponSlot}
+                />
+              </div>
               {(enemyIsBoss || showEnemyHealth) && (
                 <HealthMeter
                   label={enemyIsBoss ? 'BOSS' : 'ENEMY'}
@@ -104,6 +116,12 @@ export function App() {
                   bossPhase={enemyIsBoss ? bossPhase : null}
                 />
               )}
+              <div className='stage-location' aria-label='Stage location'>
+                <span className='stage-location__stage'>{stageLabel}</span>
+                <strong className='stage-location__room'>
+                  ROOM #{roomNumber}
+                </strong>
+              </div>
               {bossPhase === 2 && (
                 <div
                   className='boss-phase-alert'

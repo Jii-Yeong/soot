@@ -18,6 +18,11 @@ export type EnemyProjectileProfile = {
   muzzleOffset: number;
 };
 
+export type ProjectileDamageResult = {
+  applied: boolean;
+  defeated: boolean;
+};
+
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
   abstract readonly aggroIndicatorColor: number;
@@ -32,6 +37,12 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   get playsOwnDeathAnimation(): boolean {
     return false;
   }
+
+  /**
+   * 스테이지 아트가 스폰보다 늦게 로드된(콜드) 경우, 로드 완료 후 스프라이트를
+   * 다시 적용하도록 GameScene이 호출한다. 실제 아틀라스를 쓰는 적만 재정의한다.
+   */
+  refreshAtlasSprite(): void {}
   readonly maxHealth: number;
   /** Set by ranged-style subclasses so GameScene can route fire without an instanceof check. */
   readonly projectile: EnemyProjectileProfile | null = null;
@@ -136,6 +147,15 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.health = Math.max(0, this.health - amount);
     return this.health === 0;
+  }
+
+  /** 투사체 충돌 좌표를 쓰지 않는 적의 기본 피격 처리. */
+  takeProjectileDamage(
+    amount: number,
+    _hitX: number,
+    _hitY: number,
+  ): ProjectileDamageResult {
+    return { applied: true, defeated: this.takeDamage(amount) };
   }
 
   get currentHealth() {

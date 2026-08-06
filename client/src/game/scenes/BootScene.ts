@@ -9,8 +9,21 @@ import {
   STAGE_ONE_BOSS_LOOPING_TAGS,
   STAGE_ONE_BOSS_LASER_ASSETS,
   STAGE_ONE_BOSS_TAG_FRAMES,
+  STAGE_TWO_BOSS_ANIMATIONS,
+  STAGE_TWO_BOSS_ATLAS_JSON,
+  STAGE_TWO_BOSS_ATLAS_KEY,
+  STAGE_TWO_BOSS_ATLAS_PNG,
+  STAGE_TWO_BOSS_LOOPING_TAGS,
+  STAGE_TWO_BOSS_TAG_FRAMES,
+  STAGE_THREE_BOSS_ANIMATIONS,
+  STAGE_THREE_BOSS_ATLAS_JSON,
+  STAGE_THREE_BOSS_ATLAS_KEY,
+  STAGE_THREE_BOSS_ATLAS_PNG,
+  STAGE_THREE_BOSS_LOOPING_TAGS,
+  STAGE_THREE_BOSS_TAG_FRAMES,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
+import type { EnemyAnimationAtlasConfig } from '@/game/config/enemyAnimationAtlasConfig';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_ATLAS_KEY,
@@ -18,7 +31,40 @@ import {
   PLAYER_RUN_FRAMES,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
+import {
+  ROOM_PORTAL_ANIMATION,
+  ROOM_PORTAL_TEXTURE,
+} from '@/game/config/portalConfig';
+import { UI_PANEL_TEXTURES } from '@/game/config/uiAssetConfig';
 import { WEAPON_CONFIGS } from '@/game/config/weaponConfig';
+import { createAtlasAnimations } from '@/game/systems/createAtlasAnimations';
+
+const BOSS_ANIMATION_ATLASES = [
+  {
+    texture: STAGE_ONE_BOSS_ATLAS_KEY,
+    png: STAGE_ONE_BOSS_ATLAS_PNG,
+    json: STAGE_ONE_BOSS_ATLAS_JSON,
+    animations: STAGE_ONE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_ONE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_ONE_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_TWO_BOSS_ATLAS_KEY,
+    png: STAGE_TWO_BOSS_ATLAS_PNG,
+    json: STAGE_TWO_BOSS_ATLAS_JSON,
+    animations: STAGE_TWO_BOSS_ANIMATIONS,
+    tagFrames: STAGE_TWO_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_TWO_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_THREE_BOSS_ATLAS_KEY,
+    png: STAGE_THREE_BOSS_ATLAS_PNG,
+    json: STAGE_THREE_BOSS_ATLAS_JSON,
+    animations: STAGE_THREE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_THREE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_THREE_BOSS_LOOPING_TAGS,
+  },
+] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -31,11 +77,9 @@ export class BootScene extends Phaser.Scene {
       '/assets/player/player.png',
       '/assets/player/player.json',
     );
-    this.load.atlas(
-      STAGE_ONE_BOSS_ATLAS_KEY,
-      STAGE_ONE_BOSS_ATLAS_PNG,
-      STAGE_ONE_BOSS_ATLAS_JSON,
-    );
+    for (const atlas of BOSS_ANIMATION_ATLASES) {
+      this.load.atlas(atlas.texture, atlas.png, atlas.json);
+    }
     for (const asset of Object.values(STAGE_ONE_BOSS_LASER_ASSETS)) {
       this.load.image(asset.key, asset.url);
     }
@@ -45,6 +89,13 @@ export class BootScene extends Phaser.Scene {
     for (const weapon of WEAPON_CONFIGS) {
       this.load.image(weapon.displayTexture, `/assets/weapons/${weapon.id}.png`);
     }
+    for (const panel of Object.values(UI_PANEL_TEXTURES)) {
+      this.load.image(panel.key, panel.path);
+    }
+    this.load.spritesheet(ROOM_PORTAL_TEXTURE.key, ROOM_PORTAL_TEXTURE.path, {
+      frameWidth: ROOM_PORTAL_TEXTURE.frameWidth,
+      frameHeight: ROOM_PORTAL_TEXTURE.frameHeight,
+    });
     this.load.image(BACK_ARM.texture, BACK_ARM.url);
     this.load.image(FRONT_ARM.texture, FRONT_ARM.url);
 
@@ -161,6 +212,63 @@ export class BootScene extends Phaser.Scene {
     graphics.fillRect(4, 18, 40, 4);
     graphics.generateTexture('flying-enemy-placeholder', 48, 40);
 
+    // 4스테이지 사냥개: 악마의 붉은 균열 사이로 민트색 회로가 노출됨.
+    graphics.clear();
+    graphics.fillStyle(0x160d10);
+    graphics.fillEllipse(42, 27, 70, 34);
+    graphics.fillTriangle(10, 25, 2, 42, 24, 34);
+    graphics.fillTriangle(65, 20, 82, 9, 76, 33);
+    graphics.fillStyle(0xd12632);
+    graphics.fillRect(24, 22, 34, 4);
+    graphics.fillStyle(0x8fffe0);
+    graphics.fillRect(36, 21, 12, 2);
+    graphics.fillCircle(68, 20, 3);
+    graphics.fillStyle(0x312027);
+    graphics.fillRect(14, 35, 10, 13);
+    graphics.fillRect(58, 35, 10, 13);
+    graphics.generateTexture('infernal-hound-placeholder', 84, 48);
+
+    // 처형인형: 찢어진 금속 날개와 뿔 아래 산업용 관절이 남아 있음.
+    graphics.clear();
+    graphics.fillStyle(0x191116);
+    graphics.fillTriangle(20, 34, 0, 52, 22, 70);
+    graphics.fillTriangle(52, 34, 72, 52, 50, 70);
+    graphics.fillRoundedRect(20, 20, 32, 68, 8);
+    graphics.fillTriangle(22, 23, 18, 3, 30, 20);
+    graphics.fillTriangle(50, 23, 54, 3, 42, 20);
+    graphics.fillStyle(0xc72b36);
+    graphics.fillRect(27, 30, 18, 34);
+    graphics.fillStyle(0x8fffe0);
+    graphics.fillRect(33, 33, 6, 22);
+    graphics.fillCircle(36, 26, 3);
+    graphics.fillStyle(0x34383b);
+    graphics.fillRect(22, 82, 11, 14);
+    graphics.fillRect(41, 82, 11, 14);
+    graphics.generateTexture('executioner-doll-placeholder', 72, 96);
+
+    // 심판의 눈: 검붉은 후광 안쪽에 카메라 렌즈와 정비 회로가 보임.
+    graphics.clear();
+    graphics.lineStyle(7, 0x53131b, 0.95);
+    graphics.strokeCircle(36, 36, 27);
+    graphics.fillStyle(0x171116);
+    graphics.fillCircle(36, 36, 23);
+    graphics.fillStyle(0xc92b39);
+    graphics.fillEllipse(36, 36, 34, 16);
+    graphics.fillStyle(0x07090a);
+    graphics.fillCircle(36, 36, 8);
+    graphics.fillStyle(0x8fffe0);
+    graphics.fillCircle(36, 36, 3);
+    graphics.fillRect(14, 15, 12, 2);
+    graphics.fillRect(47, 55, 11, 2);
+    graphics.generateTexture('judgment-eye-placeholder', 72, 72);
+
+    graphics.clear();
+    graphics.fillStyle(0x6f0713);
+    graphics.fillCircle(5, 5, 5);
+    graphics.fillStyle(0xff5b65);
+    graphics.fillCircle(5, 5, 2);
+    graphics.generateTexture('judgment-eye-bullet-placeholder', 10, 10);
+
     graphics.clear();
     graphics.fillStyle(0xb884ff);
     graphics.fillCircle(5, 5, 5);
@@ -222,6 +330,15 @@ export class BootScene extends Phaser.Scene {
 
   private createAnimations() {
     this.anims.create({
+      key: ROOM_PORTAL_ANIMATION.key,
+      frames: this.anims.generateFrameNumbers(ROOM_PORTAL_TEXTURE.key, {
+        start: 0,
+        end: ROOM_PORTAL_TEXTURE.frameCount - 1,
+      }),
+      frameRate: ROOM_PORTAL_ANIMATION.frameRate,
+      repeat: -1,
+    });
+    this.anims.create({
       key: PLAYER_ANIMATIONS.idle,
       frames: PLAYER_IDLE_FRAMES.map((frame) => ({
         key: PLAYER_ATLAS_KEY,
@@ -239,19 +356,8 @@ export class BootScene extends Phaser.Scene {
       duration: 480,
       repeat: -1,
     });
-    for (const [tag, frames] of Object.entries(STAGE_ONE_BOSS_TAG_FRAMES) as [
-      keyof typeof STAGE_ONE_BOSS_TAG_FRAMES,
-      (typeof STAGE_ONE_BOSS_TAG_FRAMES)[keyof typeof STAGE_ONE_BOSS_TAG_FRAMES],
-    ][]) {
-      this.anims.create({
-        key: STAGE_ONE_BOSS_ANIMATIONS[tag],
-        frames: frames.map(({ frame, duration }) => ({
-          key: STAGE_ONE_BOSS_ATLAS_KEY,
-          frame,
-          duration,
-        })),
-        repeat: STAGE_ONE_BOSS_LOOPING_TAGS.has(tag) ? -1 : 0,
-      });
+    for (const atlas of BOSS_ANIMATION_ATLASES) {
+      createAtlasAnimations(this.anims, atlas);
     }
   }
 }

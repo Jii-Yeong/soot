@@ -1,0 +1,21 @@
+{
+  "frames": {
+    "0": { "frame": { "x": 0, "y": 0, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 160 },
+    "1": { "frame": { "x": 146, "y": 0, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 160 },
+    "2": { "frame": { "x": 292, "y": 0, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 160 },
+    "3": { "frame": { "x": 439, "y": 0, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 160 },
+    "4": { "frame": { "x": 0, "y": 102, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 180 },
+    "5": { "frame": { "x": 146, "y": 102, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 120 },
+    "6": { "frame": { "x": 292, "y": 102, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 180 },
+    "7": { "frame": { "x": 439, "y": 102, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 120 },
+    "8": { "frame": { "x": 0, "y": 203, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 100 },
+    "9": { "frame": { "x": 146, "y": 203, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 100 },
+    "10": { "frame": { "x": 292, "y": 203, "w": 146, "h": 101 }, "rotated": false, "trimmed": false, "spriteSourceSize": { "x": 0, "y": 0, "w": 146, "h": 101 }, "sourceSize": { "w": 146, "h": 101 }, "duration": 140 }
+  },
+  "meta": {
+    "image": "stage-3-flying.png",
+    "format": "RGBA8888",
+    "size": { "w": 585, "h": 304 },
+    "scale": "1"
+  }
+}
