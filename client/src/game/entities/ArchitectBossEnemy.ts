@@ -62,6 +62,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   private phaseTwo = false;
   private phaseOneAttackIndex = 0;
   private phaseTwoAttackIndex = 0;
+  private chorusActive = false;
 
   private haloRingsToFire = 0;
   private haloRingsFired = 0;
@@ -157,7 +158,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
         this.updateRecover(time, target);
         break;
       case 'phase-transition':
-        this.updatePhaseTransition(time);
+        this.updatePhaseTransition(time, target);
         break;
       case 'halo-warning':
         this.updateHaloWarning(time);
@@ -201,6 +202,16 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   override takeDamage(amount: number) {
+    if (!this.phaseTwo) {
+      const allowedDamage = damageBeforeThreshold(
+        this.currentHealth,
+        this.maxHealth,
+        this.pattern.enrageHealthRatio,
+        amount,
+      );
+      return allowedDamage > 0 ? super.takeDamage(allowedDamage) : false;
+    }
+
     if (this.salvationStarted && this.attackState !== 'core-exposed') {
       return false;
     }
@@ -225,6 +236,15 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
 
     return super.takeDamage(
       amount * this.pattern.salvation.coreDamageMultiplier,
+    );
+  }
+
+  protected override get isInvulnerable() {
+    return (
+      (!this.phaseTwo && this.isEnraged) ||
+      this.attackState === 'phase-transition' ||
+      this.chorusActive ||
+      (this.salvationStarted && this.attackState !== 'core-exposed')
     );
   }
 
@@ -306,14 +326,17 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     this.scene.cameras.main.shake(420, 0.009);
   }
 
-  private updatePhaseTransition(time: number) {
+  private updatePhaseTransition(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
     this.setVelocity(0, 0);
     this.view.drawPhaseTransition(time);
 
     if (time >= this.stateEndsAt) {
       this.view.endPhaseTransition();
       this.clearTint();
-      this.beginRecover(time);
+      this.beginHalo(time, target, true);
     }
   }
 
@@ -332,6 +355,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
         : this.pattern.halo.phaseOneRings;
     this.haloRingsFired = 0;
     this.haloFollowUpWings = followWithWings;
+    this.chorusActive = followWithWings;
     this.haloGapAngle = Phaser.Math.Angle.Between(
       this.x,
       this.y - 64,
@@ -728,6 +752,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
 
   private beginRecover(time: number) {
     this.attackState = 'recover';
+    this.chorusActive = false;
     this.stateStartedAt = time;
     this.stateEndsAt =
       time +

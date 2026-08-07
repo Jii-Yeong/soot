@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { damageBeforeThreshold } from '@/game/combat/architectPattern';
 import {
   getInfernalBossDamage,
   getShardPatternLayout,
@@ -185,12 +186,27 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
   }
 
   override takeDamage(amount: number) {
-    return super.takeDamage(
-      getInfernalBossDamage(
-        amount,
-        this.pattern.charge.coreDamageMultiplier,
-        this.attackState === 'charge-stagger',
-      ),
+    const damage = getInfernalBossDamage(
+      amount,
+      this.pattern.charge.coreDamageMultiplier,
+      this.attackState === 'charge-stagger',
+    );
+    const allowedDamage = this.phaseTwo
+      ? damage
+      : damageBeforeThreshold(
+          this.currentHealth,
+          this.maxHealth,
+          this.pattern.enrageHealthRatio,
+          damage,
+        );
+    return allowedDamage > 0 ? super.takeDamage(allowedDamage) : false;
+  }
+
+  protected override get isInvulnerable() {
+    return (
+      (!this.phaseTwo && this.isEnraged) ||
+      this.attackState === 'phase-transition' ||
+      this.attackState === 'shards'
     );
   }
 
@@ -322,7 +338,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
   private beginPhaseTransition(time: number) {
     this.phaseTwo = true;
     this.onPhaseChanged(2);
-    // The transition itself introduces shards, so continue with rupture next.
+    // 전환에서 파편 패턴을 먼저 보여주므로 다음 순서는 지면 분출로 넘김.
     this.phaseTwoAttackIndex = 1;
     this.attackState = 'phase-transition';
     this.stateStartedAt = time;
