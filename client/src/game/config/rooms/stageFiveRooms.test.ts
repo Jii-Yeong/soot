@@ -89,5 +89,8 @@ describe('stage five bullet formations', () => {
     expect(SANCTUM_ENFORCER_CONFIG.maxHealth).toBeLessThan(
       CELESTIAL_ORACLE_CONFIG.maxHealth,
     );
+    expect(CHOIR_SUPPORTER_CONFIG.deathLandOffsetY).toBeCloseTo(16.62, 2);
+    expect(SANCTUM_ENFORCER_CONFIG.deathLandOffsetY).toBeCloseTo(1.74, 2);
+    expect(CELESTIAL_ORACLE_CONFIG.deathLandOffsetY).toBe(8);
   });
 });

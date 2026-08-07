@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { BOSS_ANIMATION_ATLASES } from '@/game/config/bossAnimationConfig';
 import {
   STAGE_ONE_CONFIG,
+  STAGE_FIVE_CONFIG,
   STAGE_FOUR_CONFIG,
   STAGE_THREE_CONFIG,
   STAGE_TWO_CONFIG,
@@ -59,6 +61,22 @@ describe('stage asset manifests', () => {
       expect.objectContaining({ texture: 'stage-4-takedown' }),
       expect.objectContaining({ texture: 'stage-4-floating' }),
     ]);
+  });
+
+  it('loads the stage five boss with its stage instead of during boot', () => {
+    expect(
+      getStageAssetManifest(STAGE_FIVE_CONFIG).enemyAtlases.map(
+        ({ texture }) => texture,
+      ),
+    ).toEqual([
+      'stage-5-supporter',
+      'stage-5-executor',
+      'stage-5-oracle',
+      'stage-5-boss',
+    ]);
+    expect(BOSS_ANIMATION_ATLASES.map(({ texture }) => texture)).not.toContain(
+      'stage-5-boss',
+    );
   });
 
   it('reuses the resolved manifest for repeated room transitions', () => {

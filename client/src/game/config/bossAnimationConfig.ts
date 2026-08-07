@@ -275,7 +275,17 @@ export const STAGE_FIVE_BOSS_LOOPING_TAGS = new Set<StageFiveBossTag>([
   'idle',
 ]);
 
-/** 부팅 단계에서 불러오고 애니메이션을 생성할 모든 보스 아틀라스. */
+/** 4스테이지 진입 시 미리 불러오는 5스테이지 보스 아틀라스. */
+export const STAGE_FIVE_BOSS_ANIMATION_ATLAS = {
+  texture: STAGE_FIVE_BOSS_ATLAS_KEY,
+  png: STAGE_FIVE_BOSS_ATLAS_PNG,
+  json: STAGE_FIVE_BOSS_ATLAS_JSON,
+  animations: STAGE_FIVE_BOSS_ANIMATIONS,
+  tagFrames: STAGE_FIVE_BOSS_TAG_FRAMES,
+  loopingTags: STAGE_FIVE_BOSS_LOOPING_TAGS,
+} as const satisfies EnemyAnimationAtlasConfig<StageFiveBossTag>;
+
+/** 초기 부팅에서 불러오는 1~4스테이지 보스 아틀라스. */
 export const BOSS_ANIMATION_ATLASES = [
   {
     texture: STAGE_ONE_BOSS_ATLAS_KEY,
@@ -308,13 +318,5 @@ export const BOSS_ANIMATION_ATLASES = [
     animations: STAGE_FOUR_BOSS_ANIMATIONS,
     tagFrames: STAGE_FOUR_BOSS_TAG_FRAMES,
     loopingTags: STAGE_FOUR_BOSS_LOOPING_TAGS,
-  },
-  {
-    texture: STAGE_FIVE_BOSS_ATLAS_KEY,
-    png: STAGE_FIVE_BOSS_ATLAS_PNG,
-    json: STAGE_FIVE_BOSS_ATLAS_JSON,
-    animations: STAGE_FIVE_BOSS_ANIMATIONS,
-    tagFrames: STAGE_FIVE_BOSS_TAG_FRAMES,
-    loopingTags: STAGE_FIVE_BOSS_LOOPING_TAGS,
   },
 ] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];

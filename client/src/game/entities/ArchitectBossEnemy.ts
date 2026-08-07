@@ -134,18 +134,25 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     return Boolean(this.sprite);
   }
 
-  private applyBossSprite() {
+  override refreshAtlasSprite() {
+    const animation =
+      this.activeSpriteAnimation ?? this.sprite?.animations.idle ?? '';
+    this.activeSpriteAnimation = undefined;
+    this.applyBossSprite(animation);
+  }
+
+  private applyBossSprite(animation = this.sprite?.animations.idle ?? '') {
     if (!this.sprite) {
       return;
     }
 
     this.setScale(this.sprite.scale);
+    this.playSpriteAnimation(animation);
     (this.body as Phaser.Physics.Arcade.Body).setSize(
       this.sprite.bodyWidth,
       this.sprite.bodyHeight,
       true,
     );
-    this.playSpriteAnimation(this.sprite.animations.idle);
   }
 
   private playSpriteAnimation(animation: string) {
@@ -154,7 +161,9 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     }
 
     this.activeSpriteAnimation = animation;
-    this.play(animation, true);
+    if (this.scene.anims.exists(animation)) {
+      this.play(animation, true);
+    }
   }
 
   updateCombat(

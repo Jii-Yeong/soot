@@ -134,6 +134,8 @@ export const STAGE_FIVE_ENEMY_ANIMATION_ATLASES = [
 
 export const CHOIR_SUPPORTER_CONFIG = {
   ...CHOIR_SUPPORTER_ATLAS_SET.sprites[5],
+  // death 프레임의 불투명 영역은 sourceSize 하단보다 18px 위에서 끝남.
+  deathLandOffsetY: (120 - 102) * CHOIR_SUPPORTER_SCALE,
   bulletTexture: 'celestial-bullet-placeholder',
   maxHealth: 55,
   aggroRadius: 900,
@@ -148,6 +150,8 @@ export const CHOIR_SUPPORTER_CONFIG = {
 
 export const SANCTUM_ENFORCER_CONFIG = {
   ...SANCTUM_ENFORCER_ATLAS_SET.sprites[5],
+  // death 프레임의 불투명 영역은 sourceSize 하단보다 2px 위에서 끝남.
+  deathLandOffsetY: (140 - 138) * SANCTUM_ENFORCER_SCALE,
   spearTexture: 'celestial-spear-placeholder',
   maxHealth: 115,
   aggroRadius: 940,
@@ -161,6 +165,8 @@ export const SANCTUM_ENFORCER_CONFIG = {
 
 export const CELESTIAL_ORACLE_CONFIG = {
   ...CELESTIAL_ORACLE_ATLAS_SET.sprites[5],
+  // death 프레임의 불투명 영역은 sourceSize 하단보다 13px 위에서 끝남.
+  deathLandOffsetY: (220 - 207) * CELESTIAL_ORACLE_SCALE,
   bulletTexture: 'celestial-bullet-placeholder',
   maxHealth: 230,
   aggroRadius: 1_100,

@@ -3,6 +3,7 @@ import { resolveAudioAssets } from '@/game/config/audioAssets';
 import { MUSIC_CONFIG } from '@/game/config/audioConfig';
 import {
   BOSS_ANIMATION_ATLASES,
+  STAGE_FIVE_BOSS_ATLAS_KEY,
   STAGE_ONE_BOSS_LASER_ASSETS,
 } from '@/game/config/bossAnimationConfig';
 import { BOSS_COMBAT_CONFIGS } from '@/game/config/bossConfig';
@@ -337,9 +338,12 @@ export class BootScene extends Phaser.Scene {
     };
 
     for (const config of Object.values(BOSS_COMBAT_CONFIGS)) {
-      // Bosses with a real atlas (loaded in preload) keep it; only the rest
-      // fall back to a generated placeholder.
-      if (this.textures.exists(config.texture)) {
+      // 실제 아틀라스 키에는 placeholder를 만들지 않아 지연 로더가 캐시로
+      // 오인하지 않게 함. 아직 없는 텍스처는 로드 완료 후 현재 보스가 갱신함.
+      if (
+        this.textures.exists(config.texture) ||
+        config.texture === STAGE_FIVE_BOSS_ATLAS_KEY
+      ) {
         continue;
       }
       createBossPlaceholder(

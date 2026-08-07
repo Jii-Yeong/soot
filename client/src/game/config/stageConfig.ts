@@ -1,4 +1,5 @@
 import type { MusicKey } from '@/game/config/audioConfig';
+import { STAGE_FIVE_BOSS_ANIMATION_ATLAS } from '@/game/config/bossAnimationConfig';
 import { BLOCKER_ANIMATION_ATLASES } from '@/game/config/blockerAnimationConfig';
 import { CAPTOR_ANIMATION_ATLASES } from '@/game/config/captorAnimationConfig';
 import { CEILING_MAINTAINER_ANIMATION_ATLASES } from '@/game/config/ceilingMaintainerAnimationConfig';
@@ -246,8 +247,10 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
     key: 'stage-05-bg',
     path: '/assets/backgrounds/stage-05.webp',
   },
-  enemyAtlases:
-    STAGE_FIVE_ENEMY_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
+  enemyAtlases: [
+    ...STAGE_FIVE_ENEMY_ANIMATION_ATLASES,
+    STAGE_FIVE_BOSS_ANIMATION_ATLAS,
+  ] as readonly EnemyAnimationAtlasConfig<string>[],
   playerSprite: STAGE_FIVE_PLAYER_SPRITE,
   rooms: RETURN_ROOMS,
   endEvent: 'ascension',

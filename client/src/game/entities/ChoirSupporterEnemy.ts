@@ -88,7 +88,9 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     this.playAerialDeath(
       POSE.deathFall,
       POSE.deathLand,
-      FLOOR_SURFACE_Y - this.displayHeight / 2,
+      FLOOR_SURFACE_Y -
+        this.displayHeight / 2 +
+        CHOIR_SUPPORTER_CONFIG.deathLandOffsetY,
     );
   }
 

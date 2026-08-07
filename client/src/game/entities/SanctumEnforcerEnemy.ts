@@ -86,7 +86,9 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     this.playAerialDeath(
       POSE.deathFall,
       POSE.deathLand,
-      FLOOR_SURFACE_Y - this.displayHeight / 2,
+      FLOOR_SURFACE_Y -
+        this.displayHeight / 2 +
+        SANCTUM_ENFORCER_CONFIG.deathLandOffsetY,
     );
   }
 

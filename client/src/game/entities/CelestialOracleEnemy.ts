@@ -83,7 +83,9 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     this.playAerialDeath(
       POSE.deathFall,
       POSE.deathLand,
-      FLOOR_SURFACE_Y - this.displayHeight / 2,
+      FLOOR_SURFACE_Y -
+        this.displayHeight / 2 +
+        CELESTIAL_ORACLE_CONFIG.deathLandOffsetY,
     );
   }
 
