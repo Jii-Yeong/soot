@@ -534,8 +534,10 @@ export class PlayerController {
     this.player.setPosition(
       Phaser.Math.Clamp(
         this.player.x,
-        viewportLeft + PLAYER_FLIGHT_BOUNDS.minScreenX,
-        viewportLeft + PLAYER_FLIGHT_BOUNDS.maxScreenX,
+        viewportLeft + PLAYER_FLIGHT_BOUNDS.horizontalScreenInset,
+        viewportLeft +
+          camera.width -
+          PLAYER_FLIGHT_BOUNDS.horizontalScreenInset,
       ),
       Phaser.Math.Clamp(
         this.player.y,
