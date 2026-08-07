@@ -14,8 +14,7 @@ vi.hoisted(() => {
 });
 
 describe('CeilingMaintainerEnemy health phases', () => {
-  it('lowers its floor sprite and hitbox by fourteen pixels', () => {
-    const setSize = vi.fn();
+  it('aligns its opaque floor pixels with the body bottom', () => {
     const setOffset = vi.fn();
     const updateFromGameObject = vi.fn();
     const setY = vi.fn();
@@ -24,7 +23,6 @@ describe('CeilingMaintainerEnemy health phases', () => {
       {
         body: {
           offset: { x: 18, y: 5 },
-          setSize,
           setOffset,
           updateFromGameObject,
         },
@@ -36,8 +34,7 @@ describe('CeilingMaintainerEnemy health phases', () => {
 
     enemy.alignFloorSprite();
 
-    expect(setY).toHaveBeenCalledWith(618);
-    expect(setSize).toHaveBeenCalledWith(60, 72, false);
+    expect(setY).toHaveBeenCalledWith(604);
     expect(setOffset).toHaveBeenCalledWith(18, 1);
     expect(updateFromGameObject).toHaveBeenCalledOnce();
   });

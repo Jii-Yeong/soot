@@ -1580,7 +1580,7 @@ test('stage three pipe crawler stays aligned above its floor segment', async ({
       }),
       { timeout: 5_000 },
     )
-    .toBe('stage-3-flying-ground-dash');
+    .toBe('stage-3-flying-floor-idle');
 
   const groundPose = await page.evaluate(() => {
     type RuntimeEnemy = {
