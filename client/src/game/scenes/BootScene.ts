@@ -14,6 +14,7 @@ import {
   STAGE_FIVE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
   STAGE_ONE_TWO_PLAYER_SPRITE,
+  STAGE_THREE_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
 import { BACK_ARM, FRONT_ARM } from '@/game/config/playerRigConfig';
 import {
@@ -27,6 +28,7 @@ import { createAtlasAnimations } from '@/game/systems/createAtlasAnimations';
 const PLAYER_SPRITES = [
   PLAYER_SPRITE_CONFIG,
   STAGE_ONE_TWO_PLAYER_SPRITE,
+  STAGE_THREE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
   STAGE_FIVE_PLAYER_SPRITE,
 ];

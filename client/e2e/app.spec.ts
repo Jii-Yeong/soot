@@ -894,6 +894,13 @@ test('stage three uses pipe crawlers, captors, and face-only blockers', async ({
   await expect(
     page.getByRole('meter', { name: 'Player health' }),
   ).toHaveAttribute('aria-valuemax', '130');
+  const playerTexture = await page.evaluate(() => {
+    type RuntimeScene = { player: { texture: { key: string } } };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    return (game.scene.getScene('game') as RuntimeScene).player.texture.key;
+  });
+  expect(playerTexture).toBe('stage-3-player');
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',

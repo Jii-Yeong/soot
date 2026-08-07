@@ -45,6 +45,19 @@ export const STAGE_ONE_TWO_PLAYER_SPRITE: PlayerSpriteConfig = {
   deathFrames: [13, 14].map(frameName),
 };
 
+export const STAGE_THREE_PLAYER_SPRITE: PlayerSpriteConfig = {
+  texture: 'stage-3-player',
+  png: '/assets/player/stage-3-player.png',
+  json: '/assets/player/stage-3-player.json',
+  animations: {
+    ...PLAYER_ANIMATIONS,
+    idle: 'stage-3-player-idle',
+    run: 'stage-3-player-run',
+    death: 'stage-3-player-death',
+  },
+  deathFrames: [13, 14].map(frameName),
+};
+
 export const STAGE_FOUR_PLAYER_SPRITE: PlayerSpriteConfig = {
   texture: 'stage-4-player',
   png: '/assets/player/stage-4-player.png',

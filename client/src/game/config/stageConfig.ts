@@ -21,6 +21,7 @@ import {
   STAGE_FIVE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
   STAGE_ONE_TWO_PLAYER_SPRITE,
+  STAGE_THREE_PLAYER_SPRITE,
   type PlayerSpriteConfig,
 } from '@/game/config/playerAnimationConfig';
 import { STAGE_FOUR_ENEMY_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
@@ -190,6 +191,7 @@ export const STAGE_THREE_CONFIG: StageConfig = {
     ...CAPTOR_ANIMATION_ATLASES,
     ...BLOCKER_ANIMATION_ATLASES,
   ] as readonly EnemyAnimationAtlasConfig<string>[],
+  playerSprite: STAGE_THREE_PLAYER_SPRITE,
   showFloor: true,
   floorSkin: STAGE_THREE_FLOOR_SKIN,
   terrainSkin: STAGE_THREE_STOOL_SKIN,
