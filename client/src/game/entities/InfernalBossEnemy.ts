@@ -34,6 +34,8 @@ const EFFECT_DEPTH = 6;
 const CORE_DEPTH = 7;
 const DEATH_POSE_HOLD_MS = 1600;
 const DEATH_FADE_MS = 600;
+/** 돌진 중 점프로 넘을 수 있는 낮은 타격 높이. */
+const CHARGE_BODY_HEIGHT = 110;
 const PHASE_TWO_SEQUENCE: readonly InfernalAttack[] = [
   'shards',
   'rupture',
@@ -116,6 +118,26 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
     }
     this.playSpriteAnimation(this.sprite.animations.idle);
+  }
+
+  /** 돌진 중에만 바닥 기준을 유지하며 타격 높이를 낮춤. */
+  private setChargeHitbox(active: boolean) {
+    if (!this.sprite) {
+      return;
+    }
+
+    const height = active ? CHARGE_BODY_HEIGHT : this.sprite.bodyHeight;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(this.sprite.bodyWidth, height);
+    if (
+      this.sprite.bodyOffsetX !== undefined &&
+      this.sprite.bodyOffsetY !== undefined
+    ) {
+      body.setOffset(
+        this.sprite.bodyOffsetX,
+        this.sprite.bodyOffsetY + this.sprite.bodyHeight - height,
+      );
+    }
   }
 
   private playSpriteAnimation(animation: string) {
@@ -525,6 +547,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.telegraph.clear();
     this.phaseOverlay.clear();
     this.playSpriteAnimation(this.sprite?.animations.rush ?? '');
+    this.setChargeHitbox(true);
     this.setVelocityX(this.chargeDirection * this.chargeSpeed);
   }
 
@@ -554,6 +577,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.charge.staggerDuration;
     this.setVelocityX(0);
+    this.setChargeHitbox(false);
     this.playSpriteAnimation(this.sprite?.animations.getDown ?? '');
     this.scene.cameras.main.shake(220, 0.014);
     this.coreGlow.setAlpha(1).setScale(1.4);

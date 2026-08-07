@@ -52,6 +52,30 @@ function createArchitectBoss(overrides: Record<string, unknown> = {}) {
 }
 
 describe('phase boss introductions', () => {
+  it('lowers only the infernal boss charge hitbox', () => {
+    const setSize = vi.fn();
+    const setOffset = vi.fn();
+    const infernal = createInfernalBoss({
+      body: { setSize, setOffset },
+      sprite: {
+        bodyWidth: 150,
+        bodyHeight: 200,
+        bodyOffsetX: 53,
+        bodyOffsetY: 49,
+      },
+    }) as unknown as {
+      setChargeHitbox: (active: boolean) => void;
+    };
+
+    infernal.setChargeHitbox(true);
+    expect(setSize).toHaveBeenLastCalledWith(150, 110);
+    expect(setOffset).toHaveBeenLastCalledWith(53, 139);
+
+    infernal.setChargeHitbox(false);
+    expect(setSize).toHaveBeenLastCalledWith(150, 200);
+    expect(setOffset).toHaveBeenLastCalledWith(53, 49);
+  });
+
   it('prevents burst damage from skipping phase two', () => {
     const infernal = createInfernalBoss();
     const architect = createArchitectBoss();
