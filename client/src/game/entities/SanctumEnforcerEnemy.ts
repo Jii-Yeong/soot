@@ -1,14 +1,16 @@
 import Phaser from 'phaser';
 import { PLAYER_FLIGHT_BOUNDS } from '@/game/config/playerMovementConfig';
-import { SANCTUM_ENFORCER_CONFIG } from '@/game/config/stageFiveEnemyConfig';
+import {
+  CELESTIAL_PROJECTILE_BOUNDS,
+  SANCTUM_ENFORCER_CONFIG,
+} from '@/game/config/stageFiveEnemyConfig';
 import { CoordinatedAerialEnemy } from '@/game/entities/CoordinatedAerialEnemy';
 import { ENEMY_DEPTH, type EnemyProjectileAttack } from '@/game/entities/Enemy';
 import { CelestialProjectileField } from '@/game/systems/CelestialProjectileField';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
 
-type EnforcerPattern = 'triple' | 'fan' | 'dash';
-type EnforcerState =
-  'ready' | 'warning' | 'firing' | 'retreating' | 'charging' | 'returning';
+type EnforcerPattern = 'triple' | 'fan' | 'cross';
+type EnforcerState = 'ready' | 'warning' | 'firing';
 
 export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
   readonly aggroRadius = SANCTUM_ENFORCER_CONFIG.aggroRadius;
@@ -21,10 +23,8 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
   private patternIndex = 0;
   private stateEndsAt = 0;
   private nextAttackAt = 0;
+  private lockedX = 0;
   private lockedY = 0;
-  private chargeEndX = 0;
-  private chargeDamageReady = false;
-  private nextFragmentAt = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -70,12 +70,6 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
       this.beginFiring(time);
     } else if (this.enforcerState === 'firing' && time >= this.stateEndsAt) {
       this.finishPattern(time);
-    } else if (this.enforcerState === 'retreating') {
-      this.updateRetreat(time);
-    } else if (this.enforcerState === 'charging') {
-      this.updateCharge(time);
-    } else if (this.enforcerState === 'returning') {
-      this.updateReturn();
     } else if (this.enforcerState === 'ready') {
       if (targetInRange) {
         this.hoverNearTarget(target);
@@ -88,18 +82,10 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
         time >= this.nextAttackAt &&
         this.tryBeginAttack()
       ) {
-        this.beginNextPattern(time, target.y);
+        this.beginNextPattern(time, target);
       }
     }
     return targetInRange;
-  }
-
-  override tryContactAttack(_time: number) {
-    if (this.enforcerState !== 'charging' || !this.chargeDamageReady) {
-      return null;
-    }
-    this.chargeDamageReady = false;
-    return SANCTUM_ENFORCER_CONFIG.chargeDamage;
   }
 
   protected override onDefeated() {
@@ -113,39 +99,33 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     super.destroy(fromScene);
   }
 
-  private beginNextPattern(time: number, targetY: number) {
-    const patterns = ['triple', 'fan', 'dash'] as const;
+  private beginNextPattern(
+    time: number,
+    target: Phaser.Physics.Arcade.Sprite,
+  ) {
+    const patterns = ['triple', 'fan', 'cross'] as const;
     this.activePattern = patterns[this.patternIndex % patterns.length];
     this.patternIndex += 1;
+    const view = this.scene.cameras.main.worldView;
+    this.lockedX = Phaser.Math.Clamp(
+      target.x,
+      view.left + 96,
+      this.x - 96,
+    );
     this.lockedY = Phaser.Math.Clamp(
-      targetY,
+      target.y,
       PLAYER_FLIGHT_BOUNDS.minY,
       PLAYER_FLIGHT_BOUNDS.maxY,
     );
 
-    if (this.activePattern === 'dash') {
-      this.enforcerState = 'retreating';
-      this.stateEndsAt = time + 420;
-      return;
-    }
-
     this.enforcerState = 'warning';
     this.stateEndsAt = time + SANCTUM_ENFORCER_CONFIG.warningDuration;
-    this.drawWarningLine(this.lockedY);
+    this.drawWarning();
     this.setVelocity(0);
   }
 
   private beginFiring(time: number) {
     this.warningLine.clear();
-    if (this.activePattern === 'dash') {
-      this.enforcerState = 'charging';
-      this.stateEndsAt = time + 1_200;
-      this.chargeDamageReady = true;
-      this.nextFragmentAt = time;
-      this.setPosition(this.x, this.lockedY);
-      return;
-    }
-
     this.enforcerState = 'firing';
     if (this.activePattern === 'triple') {
       for (const offsetY of [-112, 0, 112]) {
@@ -160,68 +140,79 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
       return;
     }
 
-    const angles = [-35, -17.5, 0, 17.5, 35];
-    for (let volley = 0; volley < 2; volley += 1) {
-      const orderedAngles = volley === 0 ? angles : [...angles].reverse();
-      orderedAngles.forEach((degrees, index) => {
-        this.projectileField.spawn({
-          x: this.x,
-          y: this.y,
-          angle: Math.PI + Phaser.Math.DegToRad(degrees),
-          speed: SANCTUM_ENFORCER_CONFIG.spearSpeed * 0.82,
-          delay: volley * 430 + index * 55,
+    if (this.activePattern === 'fan') {
+      const angles = [-35, -17.5, 0, 17.5, 35];
+      for (let volley = 0; volley < 2; volley += 1) {
+        const orderedAngles = volley === 0 ? angles : [...angles].reverse();
+        orderedAngles.forEach((degrees, index) => {
+          this.projectileField.spawn({
+            x: this.x,
+            y: this.y,
+            angle: Math.PI + Phaser.Math.DegToRad(degrees),
+            speed: SANCTUM_ENFORCER_CONFIG.spearSpeed * 0.82,
+            delay: volley * 430 + index * 55,
+          });
         });
+      }
+      this.stateEndsAt = time + 1_650;
+      return;
+    }
+
+    for (const startY of this.crossShotStartYs()) {
+      this.projectileField.spawn({
+        x: this.x,
+        y: startY,
+        angle: Phaser.Math.Angle.Between(
+          this.x,
+          startY,
+          this.lockedX,
+          this.lockedY,
+        ),
+        speed: SANCTUM_ENFORCER_CONFIG.spearSpeed,
       });
     }
-    this.stateEndsAt = time + 1_650;
+    this.stateEndsAt = time + 1_200;
   }
 
-  private updateRetreat(time: number) {
-    const retreatX = Math.min(
-      this.scene.physics.world.bounds.right - 32,
-      this.scene.cameras.main.worldView.right - 32,
+  private crossShotStartYs() {
+    return [-1, 1].map((direction) =>
+      Phaser.Math.Clamp(
+        this.lockedY + direction * SANCTUM_ENFORCER_CONFIG.crossSpread,
+        CELESTIAL_PROJECTILE_BOUNDS.top,
+        CELESTIAL_PROJECTILE_BOUNDS.bottom,
+      ),
     );
-    this.moveToward(
-      retreatX,
-      this.lockedY,
-      SANCTUM_ENFORCER_CONFIG.moveSpeed * 1.3,
-    );
-    if (time < this.stateEndsAt && Math.abs(this.x - retreatX) > 12) {
-      return;
-    }
-    this.enforcerState = 'warning';
-    this.stateEndsAt = time + SANCTUM_ENFORCER_CONFIG.warningDuration;
-    this.chargeEndX = this.scene.cameras.main.worldView.left + 36;
-    this.drawWarningLine(this.lockedY);
-    this.setVelocity(0);
   }
 
-  private updateCharge(time: number) {
-    this.setVelocity(-SANCTUM_ENFORCER_CONFIG.chargeSpeed, 0);
-    if (time >= this.nextFragmentAt) {
-      this.leaveLightFragment();
-      this.nextFragmentAt = time + 70;
-    }
-    if (this.x > this.chargeEndX && time < this.stateEndsAt) {
+  private drawWarning() {
+    const view = this.scene.cameras.main.worldView;
+    this.warningLine.clear();
+    this.warningLine.lineStyle(3, 0xffe98b, 0.78);
+    if (this.activePattern !== 'cross') {
+      this.warningLine.lineBetween(
+        view.left,
+        this.lockedY,
+        view.right,
+        this.lockedY,
+      );
       return;
     }
-    this.enforcerState = 'returning';
-    this.chargeDamageReady = false;
-    this.finishAttack();
-    this.nextAttackAt = time + SANCTUM_ENFORCER_CONFIG.attackCooldown;
-  }
 
-  private updateReturn() {
-    const returnX = Math.min(
-      this.scene.physics.world.bounds.right - 100,
-      this.scene.cameras.main.worldView.right - 150,
-    );
-    if (Math.abs(this.x - returnX) < 14) {
-      this.enforcerState = 'ready';
-      this.setVelocity(0);
-      return;
+    for (const startY of this.crossShotStartYs()) {
+      const angle = Phaser.Math.Angle.Between(
+        this.x,
+        startY,
+        this.lockedX,
+        this.lockedY,
+      );
+      const length = view.width + SANCTUM_ENFORCER_CONFIG.crossSpread;
+      this.warningLine.lineBetween(
+        this.x,
+        startY,
+        this.x + Math.cos(angle) * length,
+        startY + Math.sin(angle) * length,
+      );
     }
-    this.moveToward(returnX, this.lockedY, SANCTUM_ENFORCER_CONFIG.returnSpeed);
   }
 
   private finishPattern(time: number) {
@@ -241,26 +232,6 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
       PLAYER_FLIGHT_BOUNDS.maxY - 35,
     );
     this.moveToward(desiredX, desiredY, SANCTUM_ENFORCER_CONFIG.moveSpeed);
-  }
-
-  private drawWarningLine(y: number) {
-    const view = this.scene.cameras.main.worldView;
-    this.warningLine.clear();
-    this.warningLine.lineStyle(3, 0xffe98b, 0.78);
-    this.warningLine.lineBetween(view.left, y, view.right, y);
-  }
-
-  private leaveLightFragment() {
-    const fragment = this.scene.add
-      .rectangle(this.x + 24, this.y, 18, 4, 0xffe79a, 0.72)
-      .setDepth(7);
-    this.scene.tweens.add({
-      targets: fragment,
-      x: fragment.x + 32,
-      alpha: 0,
-      duration: 320,
-      onComplete: () => fragment.destroy(),
-    });
   }
 
   private clearAttackObjects() {

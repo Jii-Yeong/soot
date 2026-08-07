@@ -72,9 +72,7 @@ export const SANCTUM_ENFORCER_CONFIG = {
   attackCooldown: 1_500,
   spearSpeed: 620,
   spearDamage: 12,
-  chargeSpeed: 1_050,
-  returnSpeed: 340,
-  chargeDamage: 18,
+  crossSpread: 130,
 } as const;
 
 export const CELESTIAL_ORACLE_CONFIG = {
