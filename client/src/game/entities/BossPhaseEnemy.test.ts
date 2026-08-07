@@ -96,10 +96,6 @@ describe('phase boss introductions', () => {
       stateEndsAt: 0,
       setVelocityX: vi.fn(),
       drawPhaseCracks: vi.fn(),
-      coreGlow: {
-        setAlpha: vi.fn().mockReturnValue({ setScale: vi.fn() }),
-        setScale: vi.fn(),
-      },
       phaseOverlay: { clear: vi.fn() },
       clearTint: vi.fn(),
       beginShards,

@@ -31,7 +31,6 @@ type PlayerDamageHandler = (damage: number) => void;
 type PhaseChangeHandler = (phase: BossPhase) => void;
 
 const EFFECT_DEPTH = 6;
-const CORE_DEPTH = 7;
 const DEATH_POSE_HOLD_MS = 1600;
 const DEATH_FADE_MS = 600;
 /** 돌진 중 점프로 넘을 수 있는 낮은 타격 높이. */
@@ -55,7 +54,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
 
   private readonly telegraph: Phaser.GameObjects.Graphics;
   private readonly phaseOverlay: Phaser.GameObjects.Graphics;
-  private readonly coreGlow: Phaser.GameObjects.Arc;
   private readonly effectCleanups = new CleanupRegistry();
   private attackState: InfernalState = 'recover';
   private stateStartedAt = 0;
@@ -90,10 +88,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
       .graphics()
       .setDepth(20)
       .setScrollFactor(0);
-    this.coreGlow = scene.add
-      .circle(x, y - 10, 22, config.pattern.magmaColor, 0.42)
-      .setStrokeStyle(3, 0xffd18a, 0.65)
-      .setDepth(CORE_DEPTH);
     this.onPhaseChanged(1);
     this.applyBossSprite();
   }
@@ -160,8 +154,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     _fireProjectile: EnemyProjectileAttack,
   ) {
     this.playerTarget = target;
-    this.syncCore();
-
     if (!this.active || this.dying) {
       this.telegraph.clear();
       return false;
@@ -205,7 +197,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
         break;
     }
 
-    this.syncCore();
     return true;
   }
 
@@ -270,7 +261,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.clearTint();
     this.telegraph.clear();
     this.phaseOverlay.clear();
-    this.coreGlow.setVisible(false);
     this.effectCleanups.clear();
   }
 
@@ -308,7 +298,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
   override destroy(fromScene?: boolean) {
     this.telegraph.destroy();
     this.phaseOverlay.destroy();
-    this.coreGlow.destroy();
     this.effectCleanups.clear();
     super.destroy(fromScene);
   }
@@ -318,7 +307,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.faceToward(target.x > this.x);
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
     this.telegraph.clear();
-    this.coreGlow.setAlpha(this.phaseTwo ? 0.62 : 0.42);
 
     if (time < this.stateEndsAt) {
       return;
@@ -378,12 +366,8 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
   ) {
     this.setVelocityX(0);
     this.drawPhaseCracks(time);
-    this.coreGlow
-      .setAlpha(0.75 + Math.sin(time * 0.03) * 0.2)
-      .setScale(1.25);
 
     if (time >= this.stateEndsAt) {
-      this.coreGlow.setScale(1);
       this.phaseOverlay.clear();
       this.beginShards(time, target);
     }
@@ -410,7 +394,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
-    this.coreGlow.setAlpha(0.7 + Math.sin(time * 0.025) * 0.18);
 
     if (
       this.ruptureCount < this.pattern.rupture.count &&
@@ -580,7 +563,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.setChargeHitbox(false);
     this.playSpriteAnimation(this.sprite?.animations.getDown ?? '');
     this.scene.cameras.main.shake(220, 0.014);
-    this.coreGlow.setAlpha(1).setScale(1.4);
   }
 
   private updateChargeStagger(time: number) {
@@ -588,7 +570,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.drawExposedCore(time);
 
     if (time >= this.stateEndsAt) {
-      this.coreGlow.setScale(1);
       this.beginRecover(time);
     }
   }
@@ -603,6 +584,7 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateEndsAt =
       time + shards.warnDuration + shards.followUpDelay;
     this.setVelocityX(0);
+    this.setChargeHitbox(false);
     this.telegraph.clear();
     this.faceToward(target.x > this.x);
     this.playSpriteAnimation(this.sprite?.animations.getDown ?? '');
@@ -620,7 +602,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
 
   private updateShards(time: number) {
     this.setVelocityX(0);
-    this.coreGlow.setAlpha(0.72 + Math.sin(time * 0.02) * 0.16);
 
     if (time >= this.stateEndsAt) {
       this.beginRecover(time);
@@ -733,7 +714,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
         : this.pattern.recoveryDuration);
     this.setVelocityX(0);
     this.telegraph.clear();
-    this.coreGlow.setScale(1);
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
   }
 
@@ -769,29 +749,30 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     const boundary =
       this.chargeDirection < 0 ? this.arena.left : this.arena.right;
     const pulse = 0.35 + this.stateProgress(time) * 0.55;
+    const markerSize = 12 + Math.sin(time * 0.03) * 4;
     this.telegraph
       .clear()
       .lineStyle(5, this.pattern.telegraphColor, pulse)
       .lineBetween(this.x, FLOOR_SURFACE_Y - 28, boundary, FLOOR_SURFACE_Y - 28)
       .fillStyle(this.pattern.magmaColor, pulse)
-      .fillCircle(
-        this.x - this.chargeDirection * 68,
-        FLOOR_SURFACE_Y - 14,
-        8 + Math.sin(time * 0.03) * 3,
+      .fillRect(
+        this.x - this.chargeDirection * 68 - markerSize / 2,
+        FLOOR_SURFACE_Y - 14 - markerSize / 2,
+        markerSize,
+        markerSize,
       );
   }
 
   private drawExposedCore(time: number) {
     const pulse = 0.7 + Math.sin(time * 0.035) * 0.25;
+    const radius = 40 + pulse * 8;
     this.telegraph
       .clear()
       .lineStyle(4, 0xffd18a, pulse)
-      .strokeCircle(this.x, this.y - 10, 40 + pulse * 8);
-    this.coreGlow.setAlpha(pulse);
-  }
-
-  private syncCore() {
-    this.coreGlow.setPosition(this.x, this.y - 10);
+      .lineBetween(this.x, this.y - 10 - radius, this.x + radius, this.y - 10)
+      .lineBetween(this.x + radius, this.y - 10, this.x, this.y - 10 + radius)
+      .lineBetween(this.x, this.y - 10 + radius, this.x - radius, this.y - 10)
+      .lineBetween(this.x - radius, this.y - 10, this.x, this.y - 10 - radius);
   }
 
   private stateProgress(time: number) {

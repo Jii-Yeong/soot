@@ -15,7 +15,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
   readonly aggroIndicatorColor = 0xfff0a8;
 
   private readonly projectileField: CelestialProjectileField;
-  private readonly halo: Phaser.GameObjects.Arc;
   private readonly bookMarkers: Phaser.GameObjects.Rectangle[] = [];
   private activePattern?: OraclePattern;
   private patternIndex = 0;
@@ -40,11 +39,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     );
     this.applySprite(POSE.idle);
     this.setDepth(ENEMY_DEPTH).setFlipX(true);
-    this.halo = scene.add
-      .circle(x, y, 55)
-      .setStrokeStyle(5, 0xffec9c, 0.85)
-      .setDepth(ENEMY_DEPTH - 1)
-      .setVisible(false);
     this.projectileField = new CelestialProjectileField(scene, {
       texture: CELESTIAL_ORACLE_CONFIG.bulletTexture,
       damage: CELESTIAL_ORACLE_CONFIG.bulletDamage,
@@ -99,7 +93,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     }
 
     this.projectileField.update(time, target);
-    this.halo.setPosition(this.x, this.y);
     const targetInRange =
       Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
       this.aggroRadius;
@@ -142,14 +135,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     this.activePattern = patterns[this.patternIndex % patterns.length];
     this.patternIndex += 1;
     this.playPose(this.patternPose(this.activePattern));
-    this.halo.setVisible(true).setAlpha(0.35).setScale(1);
-    this.scene.tweens.add({
-      targets: this.halo,
-      angle: this.halo.angle + 180,
-      alpha: 1,
-      scale: 1.16,
-      duration: CELESTIAL_ORACLE_CONFIG.warningDuration,
-    });
 
     switch (this.activePattern) {
       case 'semicircle':
@@ -289,7 +274,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     this.activePattern = undefined;
     this.playPose(POSE.idle);
     this.clearBookMarkers();
-    this.halo.setVisible(false).setScale(1);
     this.finishAttack();
     this.nextAttackAt = time + CELESTIAL_ORACLE_CONFIG.attackCooldown;
   }
@@ -305,10 +289,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     this.activePattern = undefined;
     this.projectileField.clear();
     this.clearBookMarkers();
-    this.scene.tweens.killTweensOf(this.halo);
-    if (this.halo.active) {
-      this.halo.destroy();
-    }
   }
 
   private applySprite(pose: string) {

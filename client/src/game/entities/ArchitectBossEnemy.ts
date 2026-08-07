@@ -125,7 +125,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
       },
       damageTarget: damagePlayer,
     });
-    this.view = new ArchitectBossView(scene, config.pattern, x, y);
+    this.view = new ArchitectBossView(scene, config.pattern);
 
     this.onPhaseChanged(1);
   }
@@ -173,7 +173,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   ) {
     this.projectiles.syncTarget(target);
     this.projectiles.update(time);
-    this.view.sync(this.x, this.y, time, this.phaseTwo);
     this.view.clearTelegraph();
 
     if (!this.active || this.dying) {
@@ -352,7 +351,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
 
   private updateRecover(time: number, target: Phaser.Physics.Arcade.Sprite) {
     this.moveTowardArenaCenter();
-    this.view.showRecovery(this.phaseTwo);
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
 
     if (time < this.stateEndsAt) {
@@ -395,7 +393,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     this.stateEndsAt = time + this.pattern.phaseTransitionDuration;
     this.setVelocity(0, 0);
     this.playSpriteAnimation(this.sprite?.animations.phaseTransition ?? '');
-    this.view.beginPhaseTwo();
     this.scene.cameras.main.flash(260, 210, 224, 255);
     this.scene.cameras.main.shake(420, 0.009);
   }
@@ -450,7 +447,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
       this.x,
       this.y,
       this.haloGapAngle,
-      time,
       progress,
     );
 
@@ -481,7 +477,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
       this.haloRingsFired >= this.haloRingsToFire &&
       time >= this.nextHaloRingAt
     ) {
-      this.view.endHalo();
       if (this.haloFollowUpWings) {
         this.beginWings(time, 2, 2);
       } else {
@@ -642,6 +637,8 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     this.setVelocity(0, 0);
     this.updateLockedTarget(target);
     this.view.drawEyeTracking(
+      this.x,
+      this.y,
       this.lockedTargetX,
       this.lockedTargetY,
       time,
@@ -723,8 +720,9 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   }
 
   private spawnJudgmentOrb(x: number, y: number) {
-    let orb: Phaser.GameObjects.Arc | undefined = this.scene.add
-      .circle(x, y, this.pattern.eye.orbRadius, this.pattern.skyColor, 0.24)
+    const size = this.pattern.eye.orbRadius * 2;
+    let orb: Phaser.GameObjects.Rectangle | undefined = this.scene.add
+      .rectangle(x, y, size, size, this.pattern.skyColor, 0.24)
       .setStrokeStyle(4, this.pattern.goldColor, 0.85)
       .setDepth(JUDGMENT_ORB_DEPTH);
     let cleaned = false;
@@ -830,7 +828,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   private exposeCore() {
     this.attackState = 'core-exposed';
     this.projectiles.clear();
-    this.view.exposeCore();
     this.playSpriteAnimation(this.sprite?.animations.coreExposed ?? '');
     this.scene.cameras.main.flash(260, 255, 255, 255);
   }
@@ -849,7 +846,7 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
         ? this.pattern.enragedRecoveryDuration
         : this.pattern.recoveryDuration);
     this.setVelocity(0, 0);
-    this.view.showRecovery(this.phaseTwo);
+    this.view.clearTelegraph();
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
   }
 

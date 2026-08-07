@@ -15,7 +15,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
   readonly aggroIndicatorColor = 0xffef9d;
 
   private readonly projectileField: CelestialProjectileField;
-  private readonly halo: Phaser.GameObjects.Arc;
   private readonly homeAbove: boolean;
   private patternIndex = 0;
   private activePattern?: SupporterPattern;
@@ -45,11 +44,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     this.setDepth(ENEMY_DEPTH);
     this.homeAbove =
       y < (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2;
-    this.halo = scene.add
-      .circle(x, y, 31)
-      .setStrokeStyle(3, 0xffef9d, 0.9)
-      .setDepth(ENEMY_DEPTH - 1)
-      .setVisible(false);
     this.projectileField = new CelestialProjectileField(scene, {
       texture: CHOIR_SUPPORTER_CONFIG.bulletTexture,
       damage: CHOIR_SUPPORTER_CONFIG.bulletDamage,
@@ -104,7 +98,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     }
 
     this.projectileField.update(time, target);
-    this.halo.setPosition(this.x, this.y);
     const targetInRange =
       Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
       this.aggroRadius;
@@ -153,14 +146,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     this.activePattern = patterns[this.patternIndex % patterns.length];
     this.patternIndex += 1;
     this.playPose(this.patternPose(this.activePattern));
-    this.halo.setVisible(true).setAlpha(0.35);
-    this.scene.tweens.add({
-      targets: this.halo,
-      alpha: 1,
-      scale: 1.2,
-      duration: CHOIR_SUPPORTER_CONFIG.warningDuration,
-      yoyo: true,
-    });
 
     if (this.activePattern === 'cross') {
       this.fireCross();
@@ -258,7 +243,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     this.activePattern = undefined;
     this.setVelocity(0);
     this.playPose(POSE.idle);
-    this.halo.setVisible(false).setScale(1);
     this.finishAttack();
     this.nextAttackAt = time + CHOIR_SUPPORTER_CONFIG.attackCooldown;
   }
@@ -266,10 +250,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
   private clearAttackObjects() {
     this.activePattern = undefined;
     this.projectileField.clear();
-    this.scene.tweens.killTweensOf(this.halo);
-    if (this.halo.active) {
-      this.halo.destroy();
-    }
   }
 
   private applySprite(pose: string) {
