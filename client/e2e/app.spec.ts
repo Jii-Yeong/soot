@@ -792,11 +792,11 @@ test('shows the stage guide between the location and admin button', async ({
   const guideButton = page.getByRole('button', { name: '조작 가이드' });
   const adminButton = page.getByRole('button', { name: 'ADMIN' });
 
-  await expect(page.locator('.hud-layer .stage-location')).toHaveCount(1);
-  await expect(page.locator('.admin-controls .stage-location')).toHaveCount(0);
+  await expect(page.locator('.hud-layer .stage-location')).toHaveCount(0);
+  await expect(page.locator('.admin-controls .stage-location')).toHaveCount(1);
   await expect(
     page.locator('.admin-controls [aria-label="조작 가이드"]'),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   await expect(location).toContainText('STAGE 1 | THE CITY');
   await expect(location).toContainText('ROOM #1');
 
@@ -1691,18 +1691,29 @@ test('shows boss health without enabling the standard enemy health HUD', async (
     page.getByRole('meter', { name: 'Boss health' }),
   ).toHaveAttribute('aria-valuemax', '500');
 
-  const [playerHud, bossHud, playerStack] = await Promise.all(
-    ['.hud--player', '.hud--enemy', '.hud-player-stack'].map(
-      async (selector) => {
+  const [hudLayer, playerHud, bossHud, playerStack, location] =
+    await Promise.all(
+      [
+        '.hud-layer',
+        '.hud--player',
+        '.hud--enemy',
+        '.hud-player-stack',
+        '.stage-location',
+      ].map(async (selector) => {
         const bounds = await page.locator(selector).boundingBox();
         if (!bounds) {
           throw new Error(`HUD bounds are unavailable: ${selector}`);
         }
         return bounds;
-      },
-    ),
-  );
+      }),
+    );
 
+  expect(playerHud.x).toBeCloseTo(hudLayer.x);
+  expect(bossHud.x + bossHud.width).toBeCloseTo(
+    hudLayer.x + hudLayer.width,
+  );
+  expect(bossHud.width).toBe(playerHud.width);
+  expect(location.y).toBeGreaterThanOrEqual(bossHud.y + bossHud.height);
   expect(bossHud.height).toBe(playerHud.height);
   expect(bossHud.height).toBeLessThan(playerStack.height);
 });

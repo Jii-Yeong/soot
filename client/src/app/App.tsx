@@ -142,12 +142,6 @@ export function App() {
                   bossPhase={enemyIsBoss ? bossPhase : null}
                 />
               )}
-              <div className='stage-location' aria-label='Stage location'>
-                <span className='stage-location__stage'>{stageLabel}</span>
-                <strong className='stage-location__room'>
-                  ROOM #{roomNumber}
-                </strong>
-              </div>
               {bossPhase === 2 && (
                 <div
                   className='boss-phase-alert'
@@ -185,7 +179,14 @@ export function App() {
               </div>
             )}
 
-            <div className='guide-controls'>
+            <div className='admin-controls'>
+              <div className='stage-location' aria-label='Stage location'>
+                <span className='stage-location__stage'>{stageLabel}</span>
+                <strong className='stage-location__room'>
+                  ROOM #{roomNumber}
+                </strong>
+              </div>
+
               <button
                 type='button'
                 className='admin-controls__trigger'
@@ -197,9 +198,6 @@ export function App() {
               >
                 ?
               </button>
-            </div>
-
-            <div className='admin-controls'>
               <button
                 type='button'
                 className='admin-controls__trigger'

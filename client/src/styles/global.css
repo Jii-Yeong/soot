@@ -587,20 +587,12 @@ input {
   letter-spacing: 0.08em;
 }
 
-.guide-controls,
 .admin-controls {
   position: absolute;
+  top: clamp(64px, 8vw, 84px);
   right: max(clamp(12px, 2vw, 32px), env(safe-area-inset-right));
   z-index: 60;
   pointer-events: auto;
-}
-
-.guide-controls {
-  top: clamp(64px, 8vw, 84px);
-}
-
-.admin-controls {
-  top: calc(clamp(64px, 8vw, 84px) + 36px);
   bottom: max(clamp(12px, 2vw, 32px), env(safe-area-inset-bottom));
   display: flex;
   min-height: 0;
@@ -900,12 +892,6 @@ input {
     top: auto;
     right: max(12px, env(safe-area-inset-right));
     bottom: 12px;
-  }
-
-  .guide-controls {
-    top: auto;
-    right: max(12px, env(safe-area-inset-right));
-    bottom: 52px;
   }
 
   .admin-controls__menu {
