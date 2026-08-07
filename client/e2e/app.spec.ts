@@ -1426,6 +1426,27 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
     'STAGE 5 | THE RETURN',
   );
   await expect(page.getByRole('meter', { name: 'Boss health' })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type RuntimeEnemy = {
+          anims: { currentAnim?: { key: string } };
+          texture: { key: string };
+        };
+        type RuntimeScene = { enemies: RuntimeEnemy[] };
+        type DebugGame = { scene: { getScene: (key: string) => unknown } };
+        const game = (window as unknown as { __game?: DebugGame }).__game!;
+        const boss = (game.scene.getScene('game') as RuntimeScene).enemies[0];
+        return {
+          animation: boss?.anims.currentAnim?.key,
+          texture: boss?.texture.key,
+        };
+      }),
+    )
+    .toEqual({
+      animation: expect.stringMatching(/^stage-5-boss-/),
+      texture: 'stage-5-boss',
+    });
   await expect(page.locator('main')).toHaveAttribute(
     'data-room-state',
     'locked',

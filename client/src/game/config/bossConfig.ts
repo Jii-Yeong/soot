@@ -7,8 +7,11 @@ import {
   STAGE_THREE_BOSS_ATLAS_KEY,
   STAGE_FOUR_BOSS_ANIMATIONS,
   STAGE_FOUR_BOSS_ATLAS_KEY,
+  STAGE_FIVE_BOSS_ANIMATIONS,
+  STAGE_FIVE_BOSS_ATLAS_KEY,
 } from '@/game/config/bossAnimationConfig';
 import type {
+  ArchitectBossSpriteConfig,
   BossCombatConfig,
   BossPatternConfig,
   BossSpriteConfig,
@@ -202,7 +205,7 @@ export const BOSS_COMBAT_CONFIGS = {
     },
   },
   'returning-architect': {
-    texture: 'returning-architect-placeholder',
+    texture: STAGE_FIVE_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x46306f,
       accentColor: 0xf0c8ff,
@@ -342,5 +345,17 @@ export const INFERNAL_BOSS_SPRITES: Partial<
     bodyOffsetX: 53,
     bodyOffsetY: 49,
     facesLeft: true,
+  },
+};
+
+export const ARCHITECT_BOSS_SPRITES: Partial<
+  Record<BossVariant, ArchitectBossSpriteConfig>
+> = {
+  'returning-architect': {
+    animations: STAGE_FIVE_BOSS_ANIMATIONS,
+    // 원본 불투명 높이 267px를 게임 내 보스 높이 220px로 표시함.
+    scale: 220 / 267,
+    bodyWidth: 110,
+    bodyHeight: 190,
   },
 };

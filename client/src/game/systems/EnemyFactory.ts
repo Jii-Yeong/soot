@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import {
+  ARCHITECT_BOSS_SPRITES,
   BOSS_COMBAT_CONFIGS,
   HOUND_BOSS_SPRITES,
   INFERNAL_BOSS_SPRITES,
@@ -416,6 +417,7 @@ export class EnemyFactory {
           this.damagePlayer,
           this.bossArena,
           this.onBossPhaseChanged,
+          ARCHITECT_BOSS_SPRITES[spawn.variant],
         ),
         { collidesWithFloor: false },
       );

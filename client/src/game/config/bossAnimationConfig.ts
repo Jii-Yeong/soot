@@ -228,6 +228,53 @@ export const STAGE_FOUR_BOSS_LOOPING_TAGS = new Set<StageFourBossTag>([
   'rush',
 ]);
 
+/** 5스테이지 보스(귀환한 설계자)의 실제 스프라이트 아틀라스. */
+export const STAGE_FIVE_BOSS_ATLAS_KEY = 'stage-5-boss';
+export const STAGE_FIVE_BOSS_ATLAS_PNG = '/assets/bosses/stage-5-boss.png';
+export const STAGE_FIVE_BOSS_ATLAS_JSON = '/assets/bosses/stage-5-boss.json';
+
+export const STAGE_FIVE_BOSS_ANIMATIONS = {
+  idle: 'stage-5-boss-idle',
+  eyeTrack: 'stage-5-boss-eye-track',
+  eyeFire: 'stage-5-boss-eye-fire',
+  haloCharge: 'stage-5-boss-halo-charge',
+  haloFire: 'stage-5-boss-halo-fire',
+  wingsLeft: 'stage-5-boss-wings-left',
+  wingsRight: 'stage-5-boss-wings-right',
+  wingsBoth: 'stage-5-boss-wings-both',
+  falseSalvation: 'stage-5-boss-false-salvation',
+  phaseTransition: 'stage-5-boss-phase-transition',
+  coreExposed: 'stage-5-boss-core-exposed',
+  chorus: 'stage-5-boss-chorus',
+  death: 'stage-5-boss-death',
+} as const;
+
+type StageFiveBossTag = keyof typeof STAGE_FIVE_BOSS_ANIMATIONS;
+
+/** 중복된 원본 `eye_track` 태그를 추적(2)과 발사(8) 자세로 분리함. */
+export const STAGE_FIVE_BOSS_TAG_FRAMES: Record<
+  StageFiveBossTag,
+  readonly { frame: string; duration: number }[]
+> = {
+  idle: [0, 1].map((frame) => ({ frame: String(frame), duration: 100 })),
+  eyeTrack: [{ frame: '2', duration: 100 }],
+  eyeFire: [{ frame: '8', duration: 100 }],
+  haloCharge: [{ frame: '3', duration: 100 }],
+  haloFire: [{ frame: '12', duration: 100 }],
+  wingsLeft: [{ frame: '4', duration: 100 }],
+  wingsRight: [{ frame: '5', duration: 100 }],
+  wingsBoth: [{ frame: '6', duration: 100 }],
+  falseSalvation: [{ frame: '7', duration: 100 }],
+  phaseTransition: [{ frame: '9', duration: 100 }],
+  coreExposed: [{ frame: '10', duration: 100 }],
+  chorus: [{ frame: '11', duration: 100 }],
+  death: [{ frame: '13', duration: 100 }],
+};
+
+export const STAGE_FIVE_BOSS_LOOPING_TAGS = new Set<StageFiveBossTag>([
+  'idle',
+]);
+
 /** 부팅 단계에서 불러오고 애니메이션을 생성할 모든 보스 아틀라스. */
 export const BOSS_ANIMATION_ATLASES = [
   {
@@ -261,5 +308,13 @@ export const BOSS_ANIMATION_ATLASES = [
     animations: STAGE_FOUR_BOSS_ANIMATIONS,
     tagFrames: STAGE_FOUR_BOSS_TAG_FRAMES,
     loopingTags: STAGE_FOUR_BOSS_LOOPING_TAGS,
+  },
+  {
+    texture: STAGE_FIVE_BOSS_ATLAS_KEY,
+    png: STAGE_FIVE_BOSS_ATLAS_PNG,
+    json: STAGE_FIVE_BOSS_ATLAS_JSON,
+    animations: STAGE_FIVE_BOSS_ANIMATIONS,
+    tagFrames: STAGE_FIVE_BOSS_TAG_FRAMES,
+    loopingTags: STAGE_FIVE_BOSS_LOOPING_TAGS,
   },
 ] as const satisfies readonly EnemyAnimationAtlasConfig<string>[];

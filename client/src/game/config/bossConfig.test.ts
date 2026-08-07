@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ARCHITECT_BOSS_SPRITES,
   BOSS_COMBAT_CONFIGS,
   INFERNAL_BOSS_SPRITES,
 } from '@/game/config/bossConfig';
-import { STAGE_FOUR_BOSS_TAG_FRAMES } from '@/game/config/bossAnimationConfig';
+import {
+  STAGE_FIVE_BOSS_TAG_FRAMES,
+  STAGE_FOUR_BOSS_TAG_FRAMES,
+} from '@/game/config/bossAnimationConfig';
 import { PLAYER_COMBAT_CONFIG } from '@/game/config/combatConfig';
 
 describe('boss combat configuration', () => {
@@ -127,5 +131,31 @@ describe('boss combat configuration', () => {
     expect(pattern.wings.bulletCount).toBeGreaterThanOrEqual(7);
     expect(pattern.eye.splitBulletCount).toBe(8);
     expect(pattern.salvation.coreDamageMultiplier).toBeGreaterThan(1);
+    expect(BOSS_COMBAT_CONFIGS['returning-architect'].texture).toBe(
+      'stage-5-boss',
+    );
+    expect(ARCHITECT_BOSS_SPRITES['returning-architect']).toMatchObject({
+      animations: {
+        idle: 'stage-5-boss-idle',
+        eyeTrack: 'stage-5-boss-eye-track',
+        eyeFire: 'stage-5-boss-eye-fire',
+        haloCharge: 'stage-5-boss-halo-charge',
+        wingsBoth: 'stage-5-boss-wings-both',
+        falseSalvation: 'stage-5-boss-false-salvation',
+        phaseTransition: 'stage-5-boss-phase-transition',
+        coreExposed: 'stage-5-boss-core-exposed',
+        death: 'stage-5-boss-death',
+      },
+    });
+    expect(
+      ARCHITECT_BOSS_SPRITES['returning-architect']!.scale * 267,
+    ).toBe(220);
+    expect(STAGE_FIVE_BOSS_TAG_FRAMES).toMatchObject({
+      eyeTrack: [{ frame: '2' }],
+      eyeFire: [{ frame: '8' }],
+      falseSalvation: [{ frame: '7' }],
+      coreExposed: [{ frame: '10' }],
+      death: [{ frame: '13' }],
+    });
   });
 });
