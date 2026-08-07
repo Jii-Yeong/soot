@@ -55,6 +55,8 @@ const DEATH_FADE_MS = 600;
  * At 10% health damage is clamped until False Salvation exposes the eye.
  */
 export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
+  override readonly usesHitFlash = true;
+
   private readonly projectiles: BossProjectileField;
   private readonly view: ArchitectBossView;
   private readonly effectCleanups = new CleanupRegistry();
@@ -341,7 +343,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
 
   private updateRecover(time: number, target: Phaser.Physics.Arcade.Sprite) {
     this.moveTowardArenaCenter();
-    this.clearTint();
     this.view.showRecovery(this.phaseTwo);
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
 
@@ -384,7 +385,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.phaseTransitionDuration;
     this.setVelocity(0, 0);
-    this.setTint(0xd4c6e8);
     this.playSpriteAnimation(this.sprite?.animations.phaseTransition ?? '');
     this.view.beginPhaseTwo();
     this.scene.cameras.main.flash(260, 210, 224, 255);
@@ -400,7 +400,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
 
     if (time >= this.stateEndsAt) {
       this.view.endPhaseTransition();
-      this.clearTint();
       this.beginHalo(time, target, true);
     }
   }
@@ -759,7 +758,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
     this.salvationCenterY = center.y;
     this.salvationGapAngle =
       center.x < (this.arena.left + this.arena.right) / 2 ? Math.PI : 0;
-    this.setTint(this.pattern.goldColor);
     this.playSpriteAnimation(this.sprite?.animations.falseSalvation ?? '');
     this.scene.cameras.main.flash(600, 255, 224, 135);
     this.scene.cameras.main.shake(500, 0.01);
@@ -823,7 +821,6 @@ export class ArchitectBossEnemy extends BossEnemy<ArchitectBossPatternConfig> {
   private exposeCore() {
     this.attackState = 'core-exposed';
     this.projectiles.clear();
-    this.clearTint();
     this.view.exposeCore();
     this.playSpriteAnimation(this.sprite?.animations.coreExposed ?? '');
     this.scene.cameras.main.flash(260, 255, 255, 255);

@@ -49,6 +49,8 @@ const PHASE_TWO_SEQUENCE: readonly InfernalAttack[] = [
  * reduce space without ever removing every safe lane.
  */
 export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
+  override readonly usesHitFlash = true;
+
   private readonly telegraph: Phaser.GameObjects.Graphics;
   private readonly phaseOverlay: Phaser.GameObjects.Graphics;
   private readonly coreGlow: Phaser.GameObjects.Arc;
@@ -293,7 +295,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.setVelocityX(0);
     this.faceToward(target.x > this.x);
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
-    this.clearTint();
     this.telegraph.clear();
     this.coreGlow.setAlpha(this.phaseTwo ? 0.62 : 0.42);
 
@@ -345,7 +346,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateEndsAt = time + this.pattern.phaseTransitionDuration;
     this.setVelocityX(0);
     this.playSpriteAnimation(this.sprite?.animations.gush ?? '');
-    this.setTint(this.pattern.magmaColor);
     this.scene.cameras.main.flash(220, 255, 92, 35);
     this.scene.cameras.main.shake(360, 0.012);
   }
@@ -363,7 +363,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     if (time >= this.stateEndsAt) {
       this.coreGlow.setScale(1);
       this.phaseOverlay.clear();
-      this.clearTint();
       this.beginShards(time, target);
     }
   }
@@ -511,7 +510,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.chargeDirection =
       Math.sign(target.x - this.x) || this.chargeDirection;
     this.faceToward(this.chargeDirection > 0);
-    this.setTint(this.pattern.telegraphColor);
     this.drawChargeWarning(time);
 
     if (time >= this.stateEndsAt) {
@@ -524,7 +522,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.charge.duration;
     this.chargeHit = false;
-    this.clearTint();
     this.telegraph.clear();
     this.phaseOverlay.clear();
     this.playSpriteAnimation(this.sprite?.animations.rush ?? '');
@@ -711,7 +708,6 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
         ? this.pattern.enragedRecoveryDuration
         : this.pattern.recoveryDuration);
     this.setVelocityX(0);
-    this.clearTint();
     this.telegraph.clear();
     this.coreGlow.setScale(1);
     this.playSpriteAnimation(this.sprite?.animations.idle ?? '');
