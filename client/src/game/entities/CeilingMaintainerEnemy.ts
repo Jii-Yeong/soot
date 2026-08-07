@@ -382,9 +382,16 @@ export class CeilingMaintainerEnemy extends Enemy {
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     const lift = CEILING_MAINTAINER_CONFIG.floorBodyOffsetY - body.offset.y;
-    // 바디의 월드 위치는 유지하고 바닥용 납작한 그림만 위로 올림. 바디가
-    // 그림 전체와 바닥 사이를 덮으므로 투사체/접촉 판정도 끊기지 않음.
-    this.setY(this.y - lift);
+    const drop =
+      CEILING_MAINTAINER_CONFIG.bodyHeight -
+      CEILING_MAINTAINER_CONFIG.floorBodyHeight;
+    // 바디 하단은 바닥에 유지하고 그림과 충돌 판정 상단을 함께 14px 내림.
+    this.setY(this.y - lift + drop);
+    body.setSize(
+      CEILING_MAINTAINER_CONFIG.bodyWidth,
+      CEILING_MAINTAINER_CONFIG.floorBodyHeight,
+      false,
+    );
     body.setOffset(body.offset.x, CEILING_MAINTAINER_CONFIG.floorBodyOffsetY);
     body.updateFromGameObject();
     this.floorSpriteAligned = true;

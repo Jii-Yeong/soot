@@ -14,6 +14,34 @@ vi.hoisted(() => {
 });
 
 describe('CeilingMaintainerEnemy health phases', () => {
+  it('lowers its floor sprite and hitbox by fourteen pixels', () => {
+    const setSize = vi.fn();
+    const setOffset = vi.fn();
+    const updateFromGameObject = vi.fn();
+    const setY = vi.fn();
+    const enemy = Object.assign(
+      Object.create(CeilingMaintainerEnemy.prototype),
+      {
+        body: {
+          offset: { x: 18, y: 5 },
+          setSize,
+          setOffset,
+          updateFromGameObject,
+        },
+        floorSpriteAligned: false,
+        setY,
+        y: 600,
+      },
+    ) as unknown as { alignFloorSprite: () => void };
+
+    enemy.alignFloorSprite();
+
+    expect(setY).toHaveBeenCalledWith(618);
+    expect(setSize).toHaveBeenCalledWith(60, 72, false);
+    expect(setOffset).toHaveBeenCalledWith(18, 1);
+    expect(updateFromGameObject).toHaveBeenCalledOnce();
+  });
+
   it('drops with refilled health before the second lethal hit defeats it', () => {
     const dropFromPipe = vi.fn();
     const enemy = Object.assign(
