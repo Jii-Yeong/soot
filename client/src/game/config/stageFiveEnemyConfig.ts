@@ -1,9 +1,56 @@
+import {
+  defineEnemyAtlasSet,
+  type EnemyAnimationFrame,
+} from '@/game/config/enemyAnimationAtlasConfig';
+
+type ChoirSupporterTag =
+  | 'idle'
+  | 'fly'
+  | 'crossShot'
+  | 'homingPair'
+  | 'noteWave'
+  | 'deathFall'
+  | 'deathLand';
+
+const CHOIR_SUPPORTER_TAG_FRAMES: Record<
+  ChoirSupporterTag,
+  readonly EnemyAnimationFrame[]
+> = {
+  idle: [0, 1].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+  fly: [2, 3].map((frame) => ({ frame: `${frame}`, duration: 180 })),
+  crossShot: [{ frame: '4', duration: 100 }],
+  homingPair: [{ frame: '5', duration: 100 }],
+  noteWave: [{ frame: '6', duration: 100 }],
+  deathFall: [{ frame: '7', duration: 500 }],
+  deathLand: [{ frame: '8', duration: 180 }],
+};
+
+const CHOIR_SUPPORTER_SCALE = 72 / 78;
+const CHOIR_SUPPORTER_SOURCE_SIZE = 120;
+const CHOIR_SUPPORTER_BODY_SIZE = 42 / CHOIR_SUPPORTER_SCALE;
+
+const CHOIR_SUPPORTER_ATLAS_SET = defineEnemyAtlasSet({
+  slug: 'supporter',
+  stages: [5],
+  tagFrames: CHOIR_SUPPORTER_TAG_FRAMES,
+  loopingTags: new Set<ChoirSupporterTag>(['idle', 'fly']),
+  sprite: {
+    // 원본 불투명 높이 78px를 게임 내 권장 높이 72px로 표시함.
+    scale: CHOIR_SUPPORTER_SCALE,
+    bodyWidth: CHOIR_SUPPORTER_BODY_SIZE,
+    bodyHeight: CHOIR_SUPPORTER_BODY_SIZE,
+    bodyOffset: (CHOIR_SUPPORTER_SOURCE_SIZE - CHOIR_SUPPORTER_BODY_SIZE) / 2,
+  },
+});
+
+export const CHOIR_SUPPORTER_ANIMATION_ATLASES =
+  CHOIR_SUPPORTER_ATLAS_SET.atlases;
+
 export const CHOIR_SUPPORTER_CONFIG = {
-  texture: 'choir-supporter-placeholder',
+  ...CHOIR_SUPPORTER_ATLAS_SET.sprites[5],
   bulletTexture: 'celestial-bullet-placeholder',
   maxHealth: 55,
   aggroRadius: 900,
-  bodySize: 42,
   moveSpeed: 190,
   warningDuration: 500,
   attackCooldown: 1_250,

@@ -1392,7 +1392,7 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
 
   expect(new Set(result.textures)).toEqual(
     new Set([
-      'choir-supporter-placeholder',
+      'stage-5-supporter',
       'sanctum-enforcer-placeholder',
       'celestial-oracle-placeholder',
     ]),

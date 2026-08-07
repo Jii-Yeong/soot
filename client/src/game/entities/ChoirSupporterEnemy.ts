@@ -5,8 +5,10 @@ import { CoordinatedAerialEnemy } from '@/game/entities/CoordinatedAerialEnemy';
 import { ENEMY_DEPTH, type EnemyProjectileAttack } from '@/game/entities/Enemy';
 import { CelestialProjectileField } from '@/game/systems/CelestialProjectileField';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type SupporterPattern = 'cross' | 'notes' | 'homing';
+const POSE = CHOIR_SUPPORTER_CONFIG.animations;
 
 export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
   readonly aggroRadius = CHOIR_SUPPORTER_CONFIG.aggroRadius;
@@ -22,6 +24,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
   private nextNoteAt = 0;
   private noteEndsAt = 0;
   private noteDirection = 1;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -38,9 +41,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
       CHOIR_SUPPORTER_CONFIG.maxHealth,
       attackCoordinator,
     );
-    (this.body as Phaser.Physics.Arcade.Body).setCircle(
-      CHOIR_SUPPORTER_CONFIG.bodySize / 2,
-    );
+    this.applySprite(POSE.idle);
     this.setDepth(ENEMY_DEPTH);
     this.homeAbove =
       y < (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2;
@@ -57,25 +58,66 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     });
   }
 
+  override get playsOwnDeathAnimation() {
+    return true;
+  }
+
+  override refreshAtlasSprite() {
+    const pose = this.activePattern
+      ? this.patternPose(this.activePattern)
+      : (this.body as Phaser.Physics.Arcade.Body).speed > 0
+        ? POSE.fly
+        : POSE.idle;
+    this.applySprite(pose);
+  }
+
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+    if (
+      !this.scene.anims.exists(POSE.deathFall) ||
+      !this.scene.anims.exists(POSE.deathLand)
+    ) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.playAerialDeath(
+      POSE.deathFall,
+      POSE.deathLand,
+      FLOOR_SURFACE_Y - this.displayHeight / 2,
+    );
+  }
+
   updateCombat(
     time: number,
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
+    if (!this.active || this.dying) {
+      return false;
+    }
+
     this.projectileField.update(time, target);
     this.halo.setPosition(this.x, this.y);
     const targetInRange =
       Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
       this.aggroRadius;
-    this.setFlipX(true);
+    this.setFlipX(false);
 
     if (this.activePattern === 'notes') {
+      this.playPose(POSE.noteWave);
       this.updateNotePattern(time);
     } else if (this.activePattern) {
       this.setVelocity(0);
     } else if (targetInRange) {
+      this.playPose(POSE.fly);
       this.hoverAtScreenEdge();
     } else {
+      this.playPose(POSE.idle);
       this.setVelocity(0);
     }
 
@@ -108,6 +150,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     const patterns = ['cross', 'notes', 'homing'] as const;
     this.activePattern = patterns[this.patternIndex % patterns.length];
     this.patternIndex += 1;
+    this.playPose(this.patternPose(this.activePattern));
     this.halo.setVisible(true).setAlpha(0.35);
     this.scene.tweens.add({
       targets: this.halo,
@@ -212,6 +255,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
   private endAttack(time: number) {
     this.activePattern = undefined;
     this.setVelocity(0);
+    this.playPose(POSE.idle);
     this.halo.setVisible(false).setScale(1);
     this.finishAttack();
     this.nextAttackAt = time + CHOIR_SUPPORTER_CONFIG.attackCooldown;
@@ -223,6 +267,29 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     this.scene.tweens.killTweensOf(this.halo);
     if (this.halo.active) {
       this.halo.destroy();
+    }
+  }
+
+  private applySprite(pose: string) {
+    this.setScale(CHOIR_SUPPORTER_CONFIG.scale);
+    (this.body as Phaser.Physics.Arcade.Body).setCircle(
+      CHOIR_SUPPORTER_CONFIG.bodyWidth / 2,
+      CHOIR_SUPPORTER_CONFIG.bodyOffset,
+      CHOIR_SUPPORTER_CONFIG.bodyOffset,
+    );
+    this.playPose(pose);
+  }
+
+  private patternPose(pattern: SupporterPattern) {
+    if (pattern === 'cross') {
+      return POSE.crossShot;
+    }
+    return pattern === 'notes' ? POSE.noteWave : POSE.homingPair;
+  }
+
+  private playPose(pose: string) {
+    if (this.scene.anims.exists(pose)) {
+      this.play(pose, true);
     }
   }
 }
