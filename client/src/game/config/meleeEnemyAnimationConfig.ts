@@ -33,7 +33,8 @@ const MELEE_ATLAS_SET = defineEnemyAtlasSet({
   loopingTags: new Set<MeleeTag>(['idle', 'walk']),
   // 트림된 sourceSize는 160x160. 발은 y=146 부근, 중심은 x=89 부근.
   sprite: {
-    scale: 1,
+    // 실제 캐릭터 영역 122px을 94px로 표시함.
+    scale: 94 / 122,
     bodyWidth: 46,
     bodyHeight: 96,
     bodyOffsetX: 66,
