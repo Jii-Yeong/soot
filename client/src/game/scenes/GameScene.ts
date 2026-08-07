@@ -9,6 +9,7 @@ import {
   PLAYER_SPRITE_CONFIG,
   STAGE_FIVE_PLAYER_HALO,
   STAGE_FIVE_PLAYER_SPRITE,
+  STAGE_THREE_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
@@ -81,6 +82,16 @@ const PLAYER_START_Y = GAME_HEIGHT - 120;
 const ROOM_ENTRY_OFFSET_X = 116;
 /** 지상 스테이지에서 플레이어가 포탈에서 나오듯 이 높이에서 떨어져 진입함. */
 const PORTAL_DROP_HEIGHT = 170;
+const UNDERGROUND_LANDING_BACKDROP = {
+  ...STAGE_THREE_CONFIG,
+  id: 'stage-03-underground-landing',
+  background: {
+    key: 'stage-03-underground-landing-bg',
+    path: '/assets/backgrounds/stage-03-underground-landing.webp',
+  },
+};
+const STAGE_THREE_ENDING_FRAME =
+  STAGE_THREE_PLAYER_SPRITE.deathFrames?.at(-1) ?? PLAYER_INITIAL_FRAME;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -163,6 +174,7 @@ export class GameScene extends Phaser.Scene {
       prepare: () => this.prepareStageTransition(),
       enterCurrentRoom: () => this.enterCurrentRoom(),
       enterLandingRoom: (mode) => this.enterTransitionLandingRoom(mode),
+      setAscensionPose: () => this.showAscensionPlayerPose(),
       completeStageExit: (nextStageIndex) =>
         this.completeStageExit(nextStageIndex),
       finish: (outcome) => {
@@ -552,7 +564,7 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     if (mode === 'descent') {
       this.rebuildFloorForRoom();
-      this.showStageBackdrop();
+      this.showUndergroundLandingBackdrop();
       this.resetCameraToRoomEntrance();
       return;
     }
@@ -578,11 +590,24 @@ export class GameScene extends Phaser.Scene {
       STAGE_THREE_CONFIG.showFloor,
       STAGE_THREE_CONFIG.floorSkin,
     );
+    this.showUndergroundLandingBackdrop();
+  }
+
+  private showUndergroundLandingBackdrop() {
     this.backdropDirector.show(
-      STAGE_THREE_CONFIG,
+      UNDERGROUND_LANDING_BACKDROP,
       this.roomWorldWidth,
       undefined,
     );
+  }
+
+  private showAscensionPlayerPose() {
+    this.player.anims.stop();
+    this.player.setTexture(
+      STAGE_THREE_PLAYER_SPRITE.texture,
+      STAGE_THREE_ENDING_FRAME,
+    );
+    this.playerHalo.setVisible(false);
   }
 
   private emitStageLocation() {

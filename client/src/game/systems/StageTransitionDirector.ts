@@ -21,6 +21,7 @@ type StageTransitionDirectorOptions = {
   prepare: () => void;
   enterCurrentRoom: () => void;
   enterLandingRoom: (mode: 'descent' | 'ascension') => void;
+  setAscensionPose: () => void;
   completeStageExit: (nextStageIndex: number | null) => void;
   finish: (outcome: 'victory' | 'stage-end') => void;
   idleAnimation: () => string;
@@ -110,6 +111,7 @@ export class StageTransitionDirector {
           this.roomConfig = UNDERGROUND_LANDING_ROOM;
           this.options.enterLandingRoom('ascension');
           this.placePlayer(FLOOR_SURFACE_Y - 40);
+          this.options.setAscensionPose();
         },
         () => this.options.finish('victory'),
       );
