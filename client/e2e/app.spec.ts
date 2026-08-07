@@ -394,8 +394,8 @@ test('covers a wide viewport with the stage shatter snapshot', async ({
         type RuntimeScene = {
           cameras: { main: { height: number; width: number } };
           children: { list: RuntimeImage[] };
-          stageEndEventDirector: {
-            play: (event: 'shatter', onBlackout: () => void) => void;
+          stageTransitionDirector: {
+            playEffect: (event: 'shatter', onBlackout: () => void) => void;
           };
         };
         type DebugGame = { scene: { getScene: (key: string) => unknown } };
@@ -424,7 +424,7 @@ test('covers a wide viewport with the stage shatter snapshot', async ({
             coverWidth: cover.displayWidth,
           });
         };
-        scene.stageEndEventDirector.play('shatter', () => {});
+        scene.stageTransitionDirector.playEffect('shatter', () => {});
         inspect();
       }),
   );

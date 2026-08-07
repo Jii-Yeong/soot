@@ -53,6 +53,14 @@ export class StageTransitionDirector {
     this.pendingNextStageIndex = null;
   }
 
+  /** 게임 진행 없이 화면 전환 연출 자체만 실행한다. */
+  playEffect(
+    event: Exclude<NonNullable<StageExitPlan['event']>, 'ascension'>,
+    onBlackout: () => void,
+  ) {
+    this.options.eventDirector.play(event, onBlackout);
+  }
+
   advance(plan: StageExitPlan, viewportWidth: number) {
     if (plan.event === 'siege') {
       this.enterDescentRoom(plan.nextStageIndex, viewportWidth);
@@ -209,7 +217,7 @@ export class StageTransitionDirector {
     this.options.scene.time.delayedCall(
       lookDoneAt + DESCENT_POST_LOOK_PAUSE,
       () => {
-        this.options.eventDirector.play('siege', () =>
+        this.playEffect('siege', () =>
           this.complete(this.pendingNextStageIndex),
         );
       },
@@ -221,7 +229,7 @@ export class StageTransitionDirector {
     nextStageIndex: number | null,
   ) {
     this.options.prepare();
-    this.options.eventDirector.play(event, () => {
+    this.playEffect(event, () => {
       if (nextStageIndex === null) {
         this.options.finish('stage-end');
         return;
