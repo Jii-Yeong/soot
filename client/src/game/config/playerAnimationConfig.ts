@@ -66,7 +66,9 @@ export const STAGE_FOUR_PLAYER_SPRITE: PlayerSpriteConfig = {
     ...PLAYER_ANIMATIONS,
     idle: 'stage-4-player-idle',
     run: 'stage-4-player-run',
+    death: 'stage-4-player-death',
   },
+  deathFrames: [13, 14].map(frameName),
 };
 
 export const STAGE_FIVE_PLAYER_SPRITE: PlayerSpriteConfig = {
@@ -80,8 +82,10 @@ export const STAGE_FIVE_PLAYER_SPRITE: PlayerSpriteConfig = {
     flyIdle: 'stage-5-player-fly',
     flyMove: 'stage-5-player-fly',
     flyDash: 'stage-5-player-fly',
+    death: 'stage-5-player-death',
   },
   flyFrames: [13, 14].map(frameName),
+  deathFrames: [15, 16].map(frameName),
 };
 
 /** 5스테이지 플레이어 뒤에서 회전하는 헤일로. */

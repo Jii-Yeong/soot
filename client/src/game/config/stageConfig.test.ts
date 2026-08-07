@@ -150,6 +150,7 @@ describe('stage configuration', () => {
         animations: {
           idle: 'stage-4-player-idle',
           run: 'stage-4-player-run',
+          death: 'stage-4-player-death',
         },
       },
     });
@@ -180,6 +181,7 @@ describe('stage configuration', () => {
           flyIdle: 'stage-5-player-fly',
           flyMove: 'stage-5-player-fly',
           flyDash: 'stage-5-player-fly',
+          death: 'stage-5-player-death',
         },
       },
     });
