@@ -35,10 +35,12 @@ export function App() {
   } = useGameUiStore();
   const {
     invincible,
+    showEnemyRanges,
     audioMix,
     graphics,
     settingsOpen,
     toggleInvincible,
+    toggleEnemyRanges,
     openSettings,
     closeSettings,
   } = useGameSettingsStore();
@@ -104,6 +106,7 @@ export function App() {
       data-weapon={weaponId}
       data-nearby-weapon={nearbyWeaponId ?? ''}
       data-invincible={invincible}
+      data-enemy-ranges-visible={showEnemyRanges}
       data-display-resolution={graphics.displayResolution}
       data-enemy-health-visible={enemyIsBoss || showEnemyHealth}
     >
@@ -237,6 +240,18 @@ export function App() {
                     onClick={() => setShowEnemyHealth((visible) => !visible)}
                   >
                     일반 몬스터 체력 // {showEnemyHealth ? 'ON' : 'OFF'}
+                  </button>
+
+                  <button
+                    type='button'
+                    className={`admin-controls__button${
+                      showEnemyRanges ? ' admin-controls__button--active' : ''
+                    }`}
+                    aria-label='Enemy range display'
+                    aria-pressed={showEnemyRanges}
+                    onClick={toggleEnemyRanges}
+                  >
+                    몬스터 접근 범위 // {showEnemyRanges ? 'ON' : 'OFF'}
                   </button>
 
                   <p className='admin-controls__group'>무기</p>

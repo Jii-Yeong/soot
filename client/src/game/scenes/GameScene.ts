@@ -658,8 +658,11 @@ export class GameScene extends Phaser.Scene {
           this.weaponSystem.ownedWeaponIds,
         ),
       clearEnemyRanges: () => this.combatUi?.clearEnemyRanges(),
-      drawEnemyRange: (enemy, targetInRange) =>
-        this.combatUi?.drawEnemyRange(enemy, targetInRange),
+      drawEnemyRange: (enemy, targetInRange) => {
+        if (useGameSettingsStore.getState().showEnemyRanges) {
+          this.combatUi?.drawEnemyRange(enemy, targetInRange);
+        }
+      },
     });
     this.weaponSystem = new WeaponSystem(
       this,
