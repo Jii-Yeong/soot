@@ -57,4 +57,23 @@ describe('CeilingMaintainerEnemy health phases', () => {
     ).toEqual({ applied: true, defeated: true });
     expect(enemy.currentHealth).toBe(0);
   });
+
+  it('keeps projectile knockback from lifting it off its surface', () => {
+    const setVelocity = vi.fn();
+    const setVelocityY = vi.fn();
+    const enemy = Object.assign(
+      Object.create(CeilingMaintainerEnemy.prototype),
+      {
+        active: true,
+        maintainerState: 'crawl',
+        setVelocity,
+        setVelocityY,
+      },
+    ) as CeilingMaintainerEnemy;
+
+    enemy.applyKnockback(-Math.PI / 4, 300, 100);
+
+    expect(setVelocity).toHaveBeenCalledOnce();
+    expect(setVelocityY).toHaveBeenCalledWith(0);
+  });
 });

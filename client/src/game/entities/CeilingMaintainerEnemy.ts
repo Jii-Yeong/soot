@@ -188,6 +188,7 @@ export class CeilingMaintainerEnemy extends Enemy {
   ) {
     if (this.maintainerState !== 'falling') {
       super.applyKnockback(angle, force, time, durationMs);
+      this.setVelocityY(0);
     }
   }
 
