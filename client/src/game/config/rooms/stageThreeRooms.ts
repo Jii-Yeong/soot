@@ -100,19 +100,23 @@ export const UNDERGROUND_ROOMS = [
 ] as const satisfies StageRooms;
 
 /**
- * 보스 처치 후 포탈로 진입하는 연출용 빈 방. 한 화면 크기에 중앙에 넓은 구멍이
- * 있고, 그 위에 낙하 유도 문구가 뜬다. 플레이어가 구멍에 떨어지면 강하 컷신이
- * 시작된다. `StageRooms` 튜플(3방·보스 마지막) 불변식을 지키기 위해 방 배열이
- * 아니라 런타임에서 주입한다.
+ * 보스 처치 후 포탈로 진입하는 연출용 빈 방. `Scale.EXPAND`가 넓힌 실제
+ * 뷰포트 폭만큼 바닥을 만들고 구멍을 중앙에 둔다. 플레이어가 구멍에 떨어지면
+ * 강하 컷신이 시작된다. 방 배열의 3방·보스 마지막 불변식을 지키기 위해
+ * 런타임에서만 생성한다.
  */
-export const UNDERGROUND_DESCENT_ROOM = defineRoom({
-  id: 'underground-descent',
-  label: '지하 강하 // DESCENT',
-  kind: 'descent',
-  worldWidth: GAME_WIDTH,
-  enemySpawns: [],
-  pits: [{ x: 440, width: 400 }],
-});
+export function createUndergroundDescentRoom(viewportWidth: number) {
+  const worldWidth = Math.max(GAME_WIDTH, viewportWidth);
+  const pitWidth = 400;
+  return defineRoom({
+    id: 'underground-descent',
+    label: '지하 강하 // DESCENT',
+    kind: 'descent',
+    worldWidth,
+    enemySpawns: [],
+    pits: [{ x: (worldWidth - pitWidth) / 2, width: pitWidth }],
+  });
+}
 
 /**
  * 구멍으로 사라진 플레이어가 떨어져 착지하는 지하 착지 방. 구멍 없는 단단한

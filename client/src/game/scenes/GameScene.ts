@@ -18,7 +18,7 @@ import {
 } from '@/game/config/playerMovementConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
 import {
-  UNDERGROUND_DESCENT_ROOM,
+  createUndergroundDescentRoom,
   UNDERGROUND_LANDING_ROOM,
 } from '@/game/config/rooms/stageThreeRooms';
 import {
@@ -421,10 +421,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Mutates `this.enemies` in place instead of reassigning it: the physics
-   * overlaps set up in createCombatSystems() were registered against this
-   * exact array reference, so reassigning it here would silently stop
-   * player bullets and contact damage from hitting the next room's enemies.
+   * `createCombatSystems()`의 물리 overlap이 참조한 배열을 유지하면서 적을 교체함.
+   * 배열을 재할당하면 다음 방부터 투사체와 접촉 판정이 적을 찾지 못함.
    */
   private replaceEnemies(spawned: Enemy[]) {
     this.fallingEnemies.clear();
@@ -493,7 +491,7 @@ export class GameScene extends Phaser.Scene {
   private enterDescentRoom(nextStageIndex: number | null) {
     this.pendingNextStageIndex = nextStageIndex;
     this.descentCutsceneStarted = false;
-    this.descentRoomConfig = UNDERGROUND_DESCENT_ROOM;
+    this.descentRoomConfig = createUndergroundDescentRoom(this.scale.width);
     this.enterCurrentRoom();
     this.showDescentPrompt();
   }
@@ -914,8 +912,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createCombatUi() {
-    const viewportWidth = this.scale.width;
-    const viewportHeight = this.scale.height;
     this.aimGraphics = this.add.graphics().setDepth(10);
     this.enemyRangeGraphics = this.add.graphics().setDepth(2);
     this.deathOverlay = this.createOverlay(
@@ -942,7 +938,7 @@ export class GameScene extends Phaser.Scene {
     this.syncWeaponUi();
 
     this.weaponEquippedText = this.add
-      .text(viewportWidth / 2, viewportHeight - 128, '', {
+      .text(0, 0, '', {
         color: '#ffffff',
         backgroundColor: '#070a0be8',
         fontFamily: 'Arial, sans-serif',
@@ -954,6 +950,17 @@ export class GameScene extends Phaser.Scene {
       .setDepth(30)
       .setScrollFactor(0)
       .setVisible(false);
+    this.layoutCombatUi();
+  }
+
+  /** `Scale.EXPAND` 리사이즈 뒤에도 고정 UI를 새 뷰포트에 맞춰 배치함. */
+  private layoutCombatUi() {
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+    this.deathOverlay.setPosition(centerX, centerY);
+    this.victoryOverlay.setPosition(centerX, centerY);
+    this.stageEndOverlay.setPosition(centerX, centerY);
+    this.weaponEquippedText.setPosition(centerX, this.scale.height - 128);
   }
 
   private bindInputHandlers() {
@@ -977,6 +984,7 @@ export class GameScene extends Phaser.Scene {
     );
     gameEvents.on('admin-weapon-requested', this.handleAdminWeaponRequested);
     gameEvents.on('pause-toggle-requested', this.handlePauseToggleRequested);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.layoutCombatUi, this);
 
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.updateAiming, this);
 
@@ -1002,6 +1010,7 @@ export class GameScene extends Phaser.Scene {
       );
       gameEvents.off('admin-weapon-requested', this.handleAdminWeaponRequested);
       gameEvents.off('pause-toggle-requested', this.handlePauseToggleRequested);
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.layoutCombatUi, this);
       // A scene that shuts down while paused would leave the overlay up over
       // whatever replaces it.
       this.setPaused(false);
@@ -1089,6 +1098,7 @@ export class GameScene extends Phaser.Scene {
     this.weaponDropDirector = undefined!;
     this.weaponSystem = undefined!;
     this.roomDirector = undefined!;
+    this.replaceEnemies([]);
     // Scene 인스턴스와 함께 남는 강하 컷신 상태도 매 실행마다 초기화한다.
     // 그렇지 않으면 클리어 후 재시작이 빈 연출 방을 현재 방으로 다시 사용한다.
     this.descentRoomConfig = undefined;
@@ -1672,12 +1682,10 @@ export class GameScene extends Phaser.Scene {
     titleText: string,
     promptText: string,
   ) {
-    const viewportCenterX = this.scale.width / 2;
-    const viewportCenterY = this.scale.height / 2;
     const panel = this.add
       .nineslice(
-        viewportCenterX,
-        viewportCenterY,
+        0,
+        0,
         panelTexture,
         undefined,
         470,
@@ -1691,7 +1699,7 @@ export class GameScene extends Phaser.Scene {
       )
       .setOrigin(0.5);
     const title = this.add
-      .text(viewportCenterX, viewportCenterY - 28, titleText, {
+      .text(0, -28, titleText, {
         color: titleColor,
         fontFamily: 'Arial, sans-serif',
         fontSize: '32px',
@@ -1699,7 +1707,7 @@ export class GameScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const prompt = this.add
-      .text(viewportCenterX, viewportCenterY + 34, promptText, {
+      .text(0, 34, promptText, {
         color: '#e8ece9',
         fontFamily: 'Arial, sans-serif',
         fontSize: '16px',

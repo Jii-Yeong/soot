@@ -107,8 +107,8 @@ describe('boss combat configuration', () => {
       ],
       getDown: [{ frame: '8', duration: 100 }],
       death: [
-        { frame: '9', duration: 100 },
-        { frame: '10', duration: 100 },
+        { frame: '9', duration: 450 },
+        { frame: '10', duration: 900 },
       ],
     });
   });

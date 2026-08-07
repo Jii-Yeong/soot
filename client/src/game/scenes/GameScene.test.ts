@@ -83,8 +83,15 @@ describe('GameScene admin stage restart', () => {
 });
 
 describe('GameScene run reset', () => {
-  it('clears descent cutscene state before a restarted run', () => {
+  it('clears enemies and descent cutscene state before a restarted run', () => {
     const gameScene = new GameScene();
+    const staleEnemy = {} as Enemy;
+    const runState = gameScene as unknown as {
+      enemies: Enemy[];
+      fallingEnemies: Set<Enemy>;
+    };
+    runState.enemies.push(staleEnemy);
+    runState.fallingEnemies.add(staleEnemy);
     Object.assign(gameScene, {
       descentRoomConfig: { id: 'stale-descent-room' },
       descentCutsceneStarted: true,
@@ -95,10 +102,38 @@ describe('GameScene run reset', () => {
     (gameScene as unknown as { resetRunState(): void }).resetRunState();
 
     expect(gameScene).toMatchObject({
+      enemies: [],
       descentRoomConfig: undefined,
       descentCutsceneStarted: false,
       descentPromptText: undefined,
       pendingNextStageIndex: null,
     });
+    expect(runState.fallingEnemies.size).toBe(0);
+  });
+});
+
+describe('GameScene combat UI layout', () => {
+  it('recentres fixed UI after the viewport resizes', () => {
+    const gameScene = new GameScene();
+    const overlays = Array.from({ length: 3 }, () => ({
+      setPosition: vi.fn(),
+    }));
+    const weaponEquippedText = { setPosition: vi.fn() };
+    Object.defineProperty(gameScene, 'scale', {
+      value: { width: 1600, height: 900 },
+    });
+    Object.assign(gameScene, {
+      deathOverlay: overlays[0],
+      victoryOverlay: overlays[1],
+      stageEndOverlay: overlays[2],
+      weaponEquippedText,
+    });
+
+    (gameScene as unknown as { layoutCombatUi(): void }).layoutCombatUi();
+
+    for (const overlay of overlays) {
+      expect(overlay.setPosition).toHaveBeenCalledWith(800, 450);
+    }
+    expect(weaponEquippedText.setPosition).toHaveBeenCalledWith(800, 772);
   });
 });

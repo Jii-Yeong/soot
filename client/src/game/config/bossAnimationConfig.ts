@@ -216,7 +216,10 @@ export const STAGE_FOUR_BOSS_TAG_FRAMES: Record<
   ],
   rush: [6, 7].map((frame) => ({ frame: String(frame), duration: 100 })),
   getDown: [{ frame: '8', duration: 100 }],
-  death: [9, 10].map((frame) => ({ frame: String(frame), duration: 100 })),
+  death: [
+    { frame: '9', duration: 450 },
+    { frame: '10', duration: 900 },
+  ],
 };
 
 export const STAGE_FOUR_BOSS_LOOPING_TAGS = new Set<StageFourBossTag>([

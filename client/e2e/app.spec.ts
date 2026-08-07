@@ -1735,6 +1735,7 @@ test('stage four boss uses the infernal sprite atlas', async ({ page }) => {
       beginRupture: (time: number) => void;
       beginShards: (time: number, target: unknown) => void;
       constructor: { name: string };
+      defeat: () => void;
       displayHeight: number;
       texture: { key: string };
       y: number;
@@ -1752,10 +1753,13 @@ test('stage four boss uses the infernal sprite atlas', async ({ page }) => {
     boss.beginCharge(0);
     const rushAnimation = boss.anims.currentAnim?.key;
     boss.beginShards(0, scene.player);
+    const getDownAnimation = boss.anims.currentAnim?.key;
+    boss.defeat();
     return {
       bottomGap: boss.body.bottom - (boss.y + boss.displayHeight / 2),
+      deathAnimation: boss.anims.currentAnim?.key,
       displayHeight: boss.displayHeight,
-      getDownAnimation: boss.anims.currentAnim?.key,
+      getDownAnimation,
       gushAnimation,
       idleAnimation,
       rushAnimation,
@@ -1768,6 +1772,7 @@ test('stage four boss uses the infernal sprite atlas', async ({ page }) => {
   expect(sprite.gushAnimation).toBe('stage-4-boss-gush');
   expect(sprite.rushAnimation).toBe('stage-4-boss-rush');
   expect(sprite.getDownAnimation).toBe('stage-4-boss-get-down');
+  expect(sprite.deathAnimation).toBe('stage-4-boss-death');
   // 프레임 하단의 7px 투명 여백만 바디 아래로 내려가 발을 바닥에 맞춤.
   expect(sprite.bottomGap).toBeGreaterThan(-7);
   expect(sprite.bottomGap).toBeLessThan(-5);
