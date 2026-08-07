@@ -20,6 +20,7 @@ import { MovementMode } from '@/game/config/playerMovementConfig';
 import {
   STAGE_FIVE_PLAYER_SPRITE,
   STAGE_FOUR_PLAYER_SPRITE,
+  STAGE_ONE_TWO_PLAYER_SPRITE,
   type PlayerSpriteConfig,
 } from '@/game/config/playerAnimationConfig';
 import { STAGE_FOUR_ENEMY_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
@@ -130,6 +131,7 @@ export const STAGE_ONE_CONFIG: StageConfig = {
   rangedSprite: STAGE_ONE_RANGED_SPRITE,
   meleeSwing: MELEE_SWING_CONFIG,
   meleeSprite: STAGE_ONE_MELEE_SPRITE,
+  playerSprite: STAGE_ONE_TWO_PLAYER_SPRITE,
   showFloor: true,
   floorSkin: STAGE_ONE_FLOOR_SKIN,
   terrainSkin: STAGE_ONE_STOOL_SKIN,
@@ -158,6 +160,7 @@ export const STAGE_TWO_CONFIG: StageConfig = {
   rangedSprite: STAGE_TWO_RANGED_SPRITE,
   meleeSwing: MELEE_SWING_CONFIG,
   meleeSprite: STAGE_TWO_MELEE_SPRITE,
+  playerSprite: STAGE_ONE_TWO_PLAYER_SPRITE,
   showFloor: true,
   floorSkin: STAGE_TWO_FLOOR_SKIN,
   terrainSkin: STAGE_TWO_STOOL_SKIN,

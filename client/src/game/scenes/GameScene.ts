@@ -66,6 +66,7 @@ import { WeaponSystem } from '@/game/systems/WeaponSystem';
 import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
+const PLAYER_DEATH_PROMPT_DELAY = 1000;
 
 /**
  * 구덩이 추락 판정 깊이. 발이 이만큼 바닥선 아래로 내려가야 추락으로 친다.
@@ -112,6 +113,7 @@ export class GameScene extends Phaser.Scene {
   private roomState: RoomState = 'idle';
   private paused = false;
   private roomExitRequested = false;
+  private restartEnabled = false;
 
   constructor() {
     super('game');
@@ -773,6 +775,7 @@ export class GameScene extends Phaser.Scene {
       requestedStageIndex !== undefined &&
       this.stage.movementMode === MovementMode.FLIGHT;
     this.restorePlayerHealthForStage();
+    this.restartEnabled = false;
     this.roomState = 'idle';
     gameEvents.emit('room-state-changed', this.roomState);
   }
@@ -856,7 +859,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleRestartInput() {
-    if (this.phase === 'dead' || this.phase === 'ending') {
+    if (
+      this.phase === 'ending' ||
+      (this.phase === 'dead' && this.restartEnabled)
+    ) {
       this.scene.restart();
     }
   }
@@ -1037,14 +1043,27 @@ export class GameScene extends Phaser.Scene {
     this.playerController.stop();
     this.enemyCombatDirector.stopEnemies();
     this.setPhase('dead');
-    this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
+    this.restartEnabled = false;
+    this.player.setVelocity(0).clearTint().setAlpha(1);
+    const deathAnimation = this.playerSprite.animations.death;
+    if (this.anims.exists(deathAnimation)) {
+      this.player.play(deathAnimation, true);
+    } else {
+      this.player.anims.stop();
+    }
     this.weaponSystem.hide();
     this.weaponDropDirector.clear();
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.weaponSystem.clearProjectiles();
     this.enemyCombatDirector.clearProjectiles();
     this.combatUi.clearGuides();
-    this.combatUi.showDeath();
+    this.time.delayedCall(PLAYER_DEATH_PROMPT_DELAY, () => {
+      if (this.phase !== 'dead') {
+        return;
+      }
+      this.restartEnabled = true;
+      this.combatUi.showDeath();
+    });
     this.cameras.main.shake(180, 0.008);
   }
 

@@ -7,6 +7,7 @@ import {
   STAGES,
   STAGE_FIVE_CONFIG,
   STAGE_FOUR_CONFIG,
+  STAGE_ONE_CONFIG,
   STAGE_THREE_CONFIG,
   STAGE_TWO_CONFIG,
 } from '@/game/config/stageConfig';
@@ -60,6 +61,19 @@ describe('stage configuration', () => {
       key: 'stage-02-bg',
       path: '/assets/backgrounds/stage-02.webp',
     });
+  });
+
+  it('uses one player atlas with a death pose in stages one and two', () => {
+    for (const stage of [STAGE_ONE_CONFIG, STAGE_TWO_CONFIG]) {
+      expect(stage.playerSprite).toMatchObject({
+        texture: 'stage-1-2-player',
+        animations: {
+          idle: 'stage-1-2-player-idle',
+          run: 'stage-1-2-player-run',
+          death: 'stage-1-2-player-death',
+        },
+      });
+    }
   });
 
   it('skins the stage 2 upper platforms with the supplied 3-slice art', () => {

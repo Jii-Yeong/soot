@@ -1956,7 +1956,7 @@ test('locks the room until every spawned enemy is defeated', async ({
   expect(runtimeErrors).toEqual([]);
 });
 
-test('player death stops combat and supports a fast restart', async ({
+test('player death shows its animation before enabling restart', async ({
   page,
 }) => {
   test.setTimeout(45_000);
@@ -1972,8 +1972,49 @@ test('player death stops combat and supports a fast restart', async ({
   });
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '0');
 
-  await page.keyboard.press('KeyR');
+  const deathVisual = await page.evaluate(() => {
+    type RuntimeScene = {
+      player: {
+        alpha: number;
+        anims: { currentAnim?: { key: string } };
+        texture: { key: string };
+      };
+    };
+    type DebugGame = { scene: { getScene: (key: string) => unknown } };
+    const game = (window as unknown as { __game?: DebugGame }).__game!;
+    const { player } = game.scene.getScene('game') as RuntimeScene;
+    return {
+      alpha: player.alpha,
+      animation: player.anims.currentAnim?.key,
+      texture: player.texture.key,
+    };
+  });
+  expect(deathVisual).toEqual({
+    alpha: 1,
+    animation: 'stage-1-2-player-death',
+    texture: 'stage-1-2-player',
+  });
 
+  // 사망 자세가 보이는 1초 동안 재시작 입력을 잠금.
+  await page.keyboard.press('KeyR');
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'dead');
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          type RuntimeScene = { restartEnabled: boolean };
+          type DebugGame = {
+            scene: { getScene: (key: string) => unknown };
+          };
+          const game = (window as unknown as { __game?: DebugGame }).__game!;
+          return (game.scene.getScene('game') as RuntimeScene).restartEnabled;
+        }),
+      { timeout: 2000 },
+    )
+    .toBe(true);
+
+  await page.keyboard.press('KeyR');
   await expect(page.locator('main')).toHaveAttribute('data-phase', 'playing');
   await expect(healthMeter).toHaveAttribute('aria-valuenow', '100');
   await expect(
