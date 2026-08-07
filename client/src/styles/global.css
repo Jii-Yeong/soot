@@ -647,6 +647,23 @@ input {
   image-rendering: pixelated;
 }
 
+.admin-controls > .admin-controls__trigger {
+  flex-shrink: 0;
+}
+
+.admin-controls__trigger[aria-label='조작 가이드'] {
+  box-sizing: border-box;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-image: none;
+  background: url('/assets/ui/controls/guide-button-circle-neutral.png') center /
+    27px 27px no-repeat;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
 .admin-controls__trigger:hover,
 .admin-controls__trigger:focus-visible,
 .admin-controls__button:hover,
@@ -654,6 +671,11 @@ input {
   border-image-source: url('/assets/ui/controls/button-frame-active.png');
   color: #b6ffe4;
   outline: none;
+}
+
+.admin-controls__trigger[aria-label='조작 가이드']:hover,
+.admin-controls__trigger[aria-label='조작 가이드']:focus-visible {
+  background-image: url('/assets/ui/controls/guide-button-circle-active.png');
 }
 
 .admin-controls__menu {
