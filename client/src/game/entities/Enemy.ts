@@ -204,6 +204,11 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     return this.health === 0;
   }
 
+  /** 다음 체력 페이즈를 시작할 때 체력을 최대치로 복구함. */
+  protected restoreHealth() {
+    this.health = this.maxHealth;
+  }
+
   /** 투사체 충돌 좌표를 쓰지 않는 적의 기본 피격 처리. */
   takeProjectileDamage(
     amount: number,

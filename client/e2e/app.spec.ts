@@ -1496,9 +1496,16 @@ test('stage three pipe crawler stays aligned above its floor segment', async ({
     )
     .toBe('stage-3-flying-pipe-idle');
 
-  await page.evaluate(() => {
+  const phaseTransition = await page.evaluate(() => {
+    type DamageResult = { applied: boolean; defeated: boolean };
     type RuntimeEnemy = {
-      takeProjectileDamage: (damage: number, x: number, y: number) => unknown;
+      currentHealth: number;
+      phase: number;
+      takeProjectileDamage: (
+        damage: number,
+        x: number,
+        y: number,
+      ) => DamageResult;
       texture: { key: string };
       x: number;
       y: number;
@@ -1510,8 +1517,24 @@ test('stage three pipe crawler stays aligned above its floor segment', async ({
     const crawler = enemies.find(
       ({ texture }) => texture.key === 'stage-3-flying',
     )!;
-    crawler.takeProjectileDamage(50, crawler.x, crawler.y);
+    const damageResult = crawler.takeProjectileDamage(
+      70,
+      crawler.x,
+      crawler.y,
+    );
+    return {
+      currentHealth: crawler.currentHealth,
+      damageResult,
+      phase: crawler.phase,
+    };
   });
+
+  expect(phaseTransition.damageResult).toEqual({
+    applied: true,
+    defeated: false,
+  });
+  expect(phaseTransition.currentHealth).toBe(70);
+  expect(phaseTransition.phase).toBe(2);
 
   await expect
     .poll(() =>
@@ -1529,7 +1552,7 @@ test('stage three pipe crawler stays aligned above its floor segment', async ({
       }),
       { timeout: 5_000 },
     )
-    .toBe('stage-3-flying-floor-idle');
+    .toBe('stage-3-flying-ground-dash');
 
   const groundPose = await page.evaluate(() => {
     type RuntimeEnemy = {

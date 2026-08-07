@@ -38,7 +38,9 @@ export class CeilingMaintainerEnemy extends Enemy {
   private contactReadyAt = 0;
   private lockedGroundTargetX = 0;
   private groundDashDirection = 1;
+  private groundDashStarted = false;
   private floorSpriteAligned = false;
+  private healthPhase: 1 | 2 = 1;
 
   constructor(
     scene: Phaser.Scene,
@@ -69,6 +71,10 @@ export class CeilingMaintainerEnemy extends Enemy {
 
   private readonly pipe: CeilingPipe;
 
+  get phase() {
+    return this.healthPhase;
+  }
+
   override refreshAtlasSprite() {
     this.setScale(CEILING_MAINTAINER_CONFIG.scale);
     const anims = CEILING_MAINTAINER_CONFIG.animations;
@@ -94,12 +100,11 @@ export class CeilingMaintainerEnemy extends Enemy {
       this.aggroRadius;
 
     if (
+      this.healthPhase === 2 &&
       this.maintainerState !== 'falling' &&
       this.maintainerState !== 'ground-mark' &&
       this.maintainerState !== 'ground-dash' &&
-      this.maintainerState !== 'floor-idle' &&
-      this.currentHealth / this.maxHealth <=
-        CEILING_MAINTAINER_CONFIG.lowHealthRatio
+      this.maintainerState !== 'floor-idle'
     ) {
       this.dropFromPipe();
     }
@@ -163,12 +168,38 @@ export class CeilingMaintainerEnemy extends Enemy {
     return CEILING_MAINTAINER_CONFIG.groundDashDamage;
   }
 
+  override takeDamage(amount: number) {
+    const defeated = super.takeDamage(amount);
+    if (!defeated || this.healthPhase === 2) {
+      return defeated;
+    }
+
+    this.healthPhase = 2;
+    this.restoreHealth();
+    this.dropFromPipe();
+    return false;
+  }
+
+  override applyKnockback(
+    angle: number,
+    force: number,
+    time: number,
+    durationMs?: number,
+  ) {
+    if (this.maintainerState !== 'falling') {
+      super.applyKnockback(angle, force, time, durationMs);
+    }
+  }
+
   override takeProjectileDamage(
     amount: number,
     hitX: number,
     hitY: number,
   ): ProjectileDamageResult {
-    if (!canDamageCeilingMaintainer(this.maintainerState)) {
+    if (
+      !canDamageCeilingMaintainer(this.maintainerState) ||
+      (this.healthPhase === 2 && !this.groundDashStarted)
+    ) {
       return { applied: false, defeated: false };
     }
     return super.takeProjectileDamage(amount, hitX, hitY);
@@ -248,10 +279,9 @@ export class CeilingMaintainerEnemy extends Enemy {
   }
 
   private dropFromPipe() {
+    this.clearAttackObjects();
     this.maintainerState = 'falling';
     this.play(CEILING_MAINTAINER_CONFIG.animations.falling, true);
-    this.warningMarker?.destroy();
-    this.warningMarker = undefined;
     this.setVelocity(0, 80);
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(true);
   }
@@ -361,6 +391,7 @@ export class CeilingMaintainerEnemy extends Enemy {
 
   private beginGroundDash(time: number) {
     this.maintainerState = 'ground-dash';
+    this.groundDashStarted = true;
     const distance = Math.abs(this.lockedGroundTargetX - this.x);
     this.stateEndsAt =
       time +
