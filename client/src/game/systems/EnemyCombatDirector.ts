@@ -198,6 +198,12 @@ export class EnemyCombatDirector {
       this.clearProjectilesFrom(enemy);
     }
     enemy.defeat();
+    if (enemy.deathAnimationDuration > 0) {
+      this.options.scene.time.delayedCall(enemy.deathAnimationDuration, () =>
+        this.options.notifyEnemyDefeated(enemy),
+      );
+      return;
+    }
     this.options.notifyEnemyDefeated(enemy);
   }
 

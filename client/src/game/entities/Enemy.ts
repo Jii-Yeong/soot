@@ -45,6 +45,11 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     return false;
   }
 
+  /** 방 클리어를 알리기 전에 죽음 연출이 끝나길 기다리는 시간. */
+  get deathAnimationDuration(): number {
+    return 0;
+  }
+
   /**
    * 스테이지 아트가 스폰보다 늦게 로드된(콜드) 경우, 로드 완료 후 스프라이트를
    * 다시 적용하도록 GameScene이 호출한다. 실제 아틀라스를 쓰는 적만 재정의한다.

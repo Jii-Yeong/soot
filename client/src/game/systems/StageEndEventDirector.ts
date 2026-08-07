@@ -189,52 +189,21 @@ export class StageEndEventDirector {
       };
     };
 
-    // 균열선(파편 경계 그물)이 점차 번지는 연출.
+    // 실제 파편과 같은 경계를 독립된 직선으로 그려 각진 유리 균열을 만든다.
     const cracks = this.scene.add
       .graphics()
       .setDepth(95)
       .setScrollFactor(0)
       .setAlpha(0);
-    // 얇고 거친 균열선. 두 점 사이를 곧게 잇지 않고, 수직 방향으로 흔든 여러
-    // 짧은 마디로 지그재그를 그려 불규칙하게 갈라진 유리처럼 보이게 한다.
     cracks.lineStyle(1, 0xffffff, 0.9);
-    const jaggedTo = (from: { x: number; y: number }, to: { x: number; y: number }) => {
-      const deltaX = to.x - from.x;
-      const deltaY = to.y - from.y;
-      const length = Math.hypot(deltaX, deltaY) || 1;
-      const normalX = -deltaY / length;
-      const normalY = deltaX / length;
-      const steps = Phaser.Math.Between(2, 4);
-      for (let step = 1; step <= steps; step += 1) {
-        const t = step / steps;
-        const offset = step === steps ? 0 : Phaser.Math.Between(-9, 9);
-        cracks.lineTo(
-          from.x + deltaX * t + normalX * offset,
-          from.y + deltaY * t + normalY * offset,
-        );
+    for (let ring = 0; ring < rings.length - 1; ring += 1) {
+      for (let spoke = 0; spoke < spokes; spoke += 1) {
+        const inner = web(ring, spoke);
+        const outer = web(ring + 1, spoke);
+        const next = web(ring + 1, spoke + 1);
+        cracks.lineBetween(inner.x, inner.y, outer.x, outer.y);
+        cracks.lineBetween(outer.x, outer.y, next.x, next.y);
       }
-    };
-    for (let spoke = 0; spoke < spokes; spoke += 1) {
-      cracks.beginPath();
-      cracks.moveTo(centerX, centerY);
-      let previous = { x: centerX, y: centerY };
-      for (let ring = 1; ring < rings.length; ring += 1) {
-        const point = web(ring, spoke);
-        jaggedTo(previous, point);
-        previous = point;
-      }
-      cracks.strokePath();
-    }
-    for (let ring = 1; ring < rings.length; ring += 1) {
-      cracks.beginPath();
-      let previous = web(ring, 0);
-      cracks.moveTo(previous.x, previous.y);
-      for (let spoke = 1; spoke <= spokes; spoke += 1) {
-        const point = web(ring, spoke);
-        jaggedTo(previous, point);
-        previous = point;
-      }
-      cracks.strokePath();
     }
     this.scene.tweens.add({ targets: cracks, alpha: 1, duration: 460 });
     camera.shake(600, 0.012);

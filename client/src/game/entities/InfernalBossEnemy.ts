@@ -96,6 +96,10 @@ export class InfernalBossEnemy extends BossEnemy<InfernalBossPatternConfig> {
     return Boolean(this.sprite);
   }
 
+  override get deathAnimationDuration(): number {
+    return this.sprite ? DEATH_POSE_HOLD_MS + DEATH_FADE_MS : 0;
+  }
+
   /** 실제 아틀라스 크기와 바닥 정렬용 물리 바디를 적용함. */
   private applyBossSprite() {
     if (!this.sprite) {
