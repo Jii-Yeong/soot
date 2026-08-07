@@ -23,7 +23,7 @@ import {
   type PlayerSpriteConfig,
 } from '@/game/config/playerAnimationConfig';
 import { STAGE_FOUR_ENEMY_ANIMATION_ATLASES } from '@/game/config/stageFourEnemyConfig';
-import { CHOIR_SUPPORTER_ANIMATION_ATLASES } from '@/game/config/stageFiveEnemyConfig';
+import { STAGE_FIVE_ENEMY_ANIMATION_ATLASES } from '@/game/config/stageFiveEnemyConfig';
 import {
   STAGE_ONE_RANGED_SPRITE,
   STAGE_TWO_RANGED_SPRITE,
@@ -242,7 +242,7 @@ export const STAGE_FIVE_CONFIG: StageConfig = {
     path: '/assets/backgrounds/stage-05.webp',
   },
   enemyAtlases:
-    CHOIR_SUPPORTER_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
+    STAGE_FIVE_ENEMY_ANIMATION_ATLASES as readonly EnemyAnimationAtlasConfig<string>[],
   playerSprite: STAGE_FIVE_PLAYER_SPRITE,
   rooms: RETURN_ROOMS,
   endEvent: 'ascension',

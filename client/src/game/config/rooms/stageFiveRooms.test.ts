@@ -4,9 +4,11 @@ import {
   RETURN_ROOM_TWO,
 } from '@/game/config/rooms/stageFiveRooms';
 import {
+  CELESTIAL_ORACLE_ANIMATION_ATLASES,
   CHOIR_SUPPORTER_ANIMATION_ATLASES,
   CELESTIAL_ORACLE_CONFIG,
   CHOIR_SUPPORTER_CONFIG,
+  SANCTUM_ENFORCER_ANIMATION_ATLASES,
   SANCTUM_ENFORCER_CONFIG,
 } from '@/game/config/stageFiveEnemyConfig';
 
@@ -29,6 +31,38 @@ describe('stage five bullet formations', () => {
       crossShot: [{ frame: '4' }],
       homingPair: [{ frame: '5' }],
       noteWave: [{ frame: '6' }],
+    });
+  });
+
+  it('maps the enforcer and oracle atlas tags to their combat poses', () => {
+    expect(SANCTUM_ENFORCER_CONFIG).toMatchObject({
+      texture: 'stage-5-executor',
+      animations: {
+        fanShot: 'stage-5-executor-fan-shot',
+        crossShot: 'stage-5-executor-cross-shot',
+        spearThrow: 'stage-5-executor-spear-throw',
+      },
+    });
+    expect(SANCTUM_ENFORCER_CONFIG.scale * 115).toBe(100);
+    expect(SANCTUM_ENFORCER_ANIMATION_ATLASES[0]?.tagFrames).toMatchObject({
+      fanShot: [{ frame: '4' }],
+      crossShot: [{ frame: '5' }],
+      spearThrow: [{ frame: '6' }],
+    });
+
+    expect(CELESTIAL_ORACLE_CONFIG).toMatchObject({
+      texture: 'stage-5-oracle',
+      animations: {
+        spiral: 'stage-5-oracle-spiral',
+        walls: 'stage-5-oracle-walls',
+        books: 'stage-5-oracle-books',
+      },
+    });
+    expect(CELESTIAL_ORACLE_CONFIG.scale * 195).toBe(120);
+    expect(CELESTIAL_ORACLE_ANIMATION_ATLASES[0]?.tagFrames).toMatchObject({
+      spiral: [{ frame: '4' }],
+      walls: [{ frame: '5' }],
+      books: [{ frame: '6' }],
     });
   });
 

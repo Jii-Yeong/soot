@@ -5,8 +5,10 @@ import { CoordinatedAerialEnemy } from '@/game/entities/CoordinatedAerialEnemy';
 import { ENEMY_DEPTH, type EnemyProjectileAttack } from '@/game/entities/Enemy';
 import { CelestialProjectileField } from '@/game/systems/CelestialProjectileField';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
+import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type OraclePattern = 'semicircle' | 'walls' | 'spiral' | 'books';
+const POSE = CELESTIAL_ORACLE_CONFIG.animations;
 
 export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
   readonly aggroRadius = CELESTIAL_ORACLE_CONFIG.aggroRadius;
@@ -19,6 +21,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
   private patternIndex = 0;
   private attackEndsAt = 0;
   private nextAttackAt = 0;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -35,9 +38,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
       CELESTIAL_ORACLE_CONFIG.maxHealth,
       attackCoordinator,
     );
-    (this.body as Phaser.Physics.Arcade.Body).setCircle(
-      CELESTIAL_ORACLE_CONFIG.bodySize / 2,
-    );
+    this.applySprite(POSE.idle);
     this.setDepth(ENEMY_DEPTH).setFlipX(true);
     this.halo = scene.add
       .circle(x, y, 55)
@@ -52,11 +53,49 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     });
   }
 
+  override get playsOwnDeathAnimation() {
+    return true;
+  }
+
+  override refreshAtlasSprite() {
+    const pose = this.activePattern
+      ? this.patternPose(this.activePattern)
+      : (this.body as Phaser.Physics.Arcade.Body).speed > 0
+        ? POSE.fly
+        : POSE.idle;
+    this.applySprite(pose);
+  }
+
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+    if (
+      !this.scene.anims.exists(POSE.deathFall) ||
+      !this.scene.anims.exists(POSE.deathLand)
+    ) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.playAerialDeath(
+      POSE.deathFall,
+      POSE.deathLand,
+      FLOOR_SURFACE_Y - this.displayHeight / 2,
+    );
+  }
+
   updateCombat(
     time: number,
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
+    if (!this.active || this.dying) {
+      return false;
+    }
+
     this.projectileField.update(time, target);
     this.halo.setPosition(this.x, this.y);
     const targetInRange =
@@ -69,6 +108,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
         this.endAttack(time);
       }
     } else if (targetInRange) {
+      this.playPose(POSE.fly);
       this.hoverAtScreenEdge();
       if (
         this.isInsideAttackEdge(110) &&
@@ -78,6 +118,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
         this.beginNextPattern(time);
       }
     } else {
+      this.playPose(POSE.idle);
       this.setVelocity(0);
     }
     return targetInRange;
@@ -98,6 +139,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     const patterns = ['semicircle', 'walls', 'spiral', 'books'] as const;
     this.activePattern = patterns[this.patternIndex % patterns.length];
     this.patternIndex += 1;
+    this.playPose(this.patternPose(this.activePattern));
     this.halo.setVisible(true).setAlpha(0.35).setScale(1);
     this.scene.tweens.add({
       targets: this.halo,
@@ -243,6 +285,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
 
   private endAttack(time: number) {
     this.activePattern = undefined;
+    this.playPose(POSE.idle);
     this.clearBookMarkers();
     this.halo.setVisible(false).setScale(1);
     this.finishAttack();
@@ -263,6 +306,32 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     this.scene.tweens.killTweensOf(this.halo);
     if (this.halo.active) {
       this.halo.destroy();
+    }
+  }
+
+  private applySprite(pose: string) {
+    this.setScale(CELESTIAL_ORACLE_CONFIG.scale);
+    (this.body as Phaser.Physics.Arcade.Body).setCircle(
+      CELESTIAL_ORACLE_CONFIG.bodyWidth / 2,
+      CELESTIAL_ORACLE_CONFIG.bodyOffset,
+      CELESTIAL_ORACLE_CONFIG.bodyOffset,
+    );
+    this.playPose(pose);
+  }
+
+  private patternPose(pattern: OraclePattern) {
+    if (pattern === 'walls') {
+      return POSE.walls;
+    }
+    if (pattern === 'books') {
+      return POSE.books;
+    }
+    return POSE.spiral;
+  }
+
+  private playPose(pose: string) {
+    if (this.scene.anims.exists(pose)) {
+      this.play(pose, true);
     }
   }
 }

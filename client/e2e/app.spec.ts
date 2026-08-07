@@ -1393,8 +1393,8 @@ test('stage five uses three celestial bullet enemies with at most two attackers'
   expect(new Set(result.textures)).toEqual(
     new Set([
       'stage-5-supporter',
-      'sanctum-enforcer-placeholder',
-      'celestial-oracle-placeholder',
+      'stage-5-executor',
+      'stage-5-oracle',
     ]),
   );
   expect(result.maximumAttackers).toBeLessThanOrEqual(2);
