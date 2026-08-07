@@ -36,7 +36,7 @@ const MELEE_ATLAS_SET = defineEnemyAtlasSet({
     // 실제 캐릭터 영역 122px을 94px로 표시함.
     scale: 94 / 122,
     bodyWidth: 46,
-    bodyHeight: 96,
+    bodyHeight: 89,
     bodyOffsetX: 66,
     bodyOffsetY: 50,
   },

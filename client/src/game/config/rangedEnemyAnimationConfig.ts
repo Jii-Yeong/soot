@@ -33,7 +33,7 @@ const RANGED_ATLAS_SET = defineEnemyAtlasSet({
     // 실제 캐릭터 영역 101px을 91px로 표시해 근접 적보다 3px 작게 맞춤.
     scale: 91 / 101,
     bodyWidth: 44,
-    bodyHeight: 86,
+    bodyHeight: 79,
     bodyOffsetX: 44,
     bodyOffsetY: 26,
   },
