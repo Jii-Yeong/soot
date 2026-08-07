@@ -558,7 +558,7 @@ input {
 
 .guide-panel__controls {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -896,9 +896,5 @@ input {
 
   .admin-controls__menu {
     max-height: min(calc(100dvh - 68px), calc(100vw * 9 / 16 - 68px));
-  }
-
-  .guide-panel__controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
