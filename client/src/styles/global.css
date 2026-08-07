@@ -565,14 +565,17 @@ input {
 
 .guide-panel__controls div {
   display: grid;
-  gap: 8px;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 8px solid transparent;
+  border-image: url('/assets/ui/controls/button-frame-neutral.png') 8 fill /
+    8px / 0 round;
+  image-rendering: pixelated;
 }
 
 .guide-panel__controls dt {
-  padding: 8px 6px;
-  border: 1px solid #4f5b5f;
+  padding: 0;
   color: #e8ece9;
-  background: rgba(21, 26, 28, 0.9);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
