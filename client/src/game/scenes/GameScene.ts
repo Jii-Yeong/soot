@@ -556,7 +556,10 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
     this.player.setVelocity(0);
-    this.weaponSystem.hide();
+    // 5스테이지 엔딩은 흰 화면이 방 교체를 가릴 때까지 무기를 든 자세를 유지한다.
+    if (this.stage.endEvent !== 'ascension') {
+      this.weaponSystem.hide();
+    }
     this.weaponDropDirector.clear();
     this.combatUi.clearGuides();
   }
@@ -578,6 +581,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.weaponSystem.hide();
     this.enemyCombatDirector.destroyEnemies();
     // 어드민으로 5스테이지 보스에 직행하면 3스테이지 지형은 아직 캐시에 없다.
     // 도착 뒤 다시 그려 콜드 로드에서도 바닥 스킨이 placeholder로 굳지 않게 한다.

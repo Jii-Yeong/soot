@@ -1465,6 +1465,17 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
     'data-room-state',
     'cleared',
   );
+  expect(
+    await page.evaluate(() => {
+      type RuntimeScene = {
+        weaponSystem: { feedback: { display: { visible: boolean } } };
+      };
+      type DebugGame = { scene: { getScene: (key: string) => unknown } };
+      const game = (window as unknown as { __game?: DebugGame }).__game!;
+      return (game.scene.getScene('game') as RuntimeScene).weaponSystem
+        .feedback.display.visible;
+    }),
+  ).toBe(true);
 
   await expect
     .poll(
@@ -1485,6 +1496,9 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
               skinObjects: Array<{ texture?: { key: string } }>;
             };
             player: { x: number };
+            weaponSystem: {
+              feedback: { display: { visible: boolean } };
+            };
           };
           type DebugGame = { scene: { getScene: (key: string) => unknown } };
           const game = (window as unknown as { __game?: DebugGame }).__game!;
@@ -1510,6 +1524,7 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
               texture ? [texture.key] : [],
             ),
             victoryVisible: scene.combatUi.victoryOverlay.visible,
+            weaponVisible: scene.weaponSystem.feedback.display.visible,
           };
         }),
       { timeout: 10_000 },
@@ -1529,6 +1544,7 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
         'stage-3-floor-right',
       ]),
       victoryVisible: false,
+      weaponVisible: false,
     });
 
   await expect
