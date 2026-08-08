@@ -266,8 +266,7 @@ export class AudioDirector {
       FOOTSTEP_SFX_BY_STAGE[
         this.currentStageId as keyof typeof FOOTSTEP_SFX_BY_STAGE
       ];
-    const key = footsteps[Math.floor(Math.random() * footsteps.length)];
-    this.playSfx(key, 0.9 + Math.random() * 0.1);
+    this.playSfx(this.pickRandom(footsteps), 0.9 + Math.random() * 0.1);
   };
 
   private readonly handleEnemyDamaged = () => {
@@ -277,9 +276,7 @@ export class AudioDirector {
   private readonly handleProjectileBlocked = (
     kind: keyof typeof PROJECTILE_BLOCK_SFX_BY_KIND,
   ) => {
-    const sounds = PROJECTILE_BLOCK_SFX_BY_KIND[kind];
-    const key = sounds[Math.floor(Math.random() * sounds.length)];
-    this.playSfx(key, 1, kind);
+    this.playSfx(this.pickRandom(PROJECTILE_BLOCK_SFX_BY_KIND[kind]), 1, kind);
   };
 
   private readonly handleEnemyDefeated = () => {
@@ -293,8 +290,7 @@ export class AudioDirector {
   };
 
   private readonly handleBossOrbFired = () => {
-    const index = Math.floor(Math.random() * STAGE_TWO_BOSS_ORB_SHOT_SFX.length);
-    this.playSfx(STAGE_TWO_BOSS_ORB_SHOT_SFX[index]);
+    this.playSfx(this.pickRandom(STAGE_TWO_BOSS_ORB_SHOT_SFX));
   };
 
   private readonly handleBossScanCue = (
@@ -453,5 +449,10 @@ export class AudioDirector {
 
   private jitteredRate(rateJitter = 0) {
     return rateJitter === 0 ? 1 : 1 + (Math.random() * 2 - 1) * rateJitter;
+  }
+
+  /** 여러 변형 중 하나를 무작위로 골라 같은 효과음이 반복되지 않게 한다. */
+  private pickRandom<T>(items: readonly T[]): T {
+    return items[Math.floor(Math.random() * items.length)]!;
   }
 }
