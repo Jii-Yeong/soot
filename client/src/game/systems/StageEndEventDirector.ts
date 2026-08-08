@@ -18,6 +18,8 @@ const SIEGE_REVEAL_INTERVAL = 200;
 const ASCENSION_FORMATION_HOLD_MS = 2200;
 /** 포위 잡몹이 플레이어 반대편으로 떠나는 시간. */
 const ASCENSION_DEPARTURE_MS = 1200;
+/** 지하 엔딩 방에서 플레이어를 강조하는 최종 카메라 배율. */
+const ASCENSION_PLAYER_ZOOM = 1.35;
 /** 싱킹 연출에 쓰는 검은 선/점 개수. */
 const SINK_STREAK_COUNT = 14;
 const SHATTER_SNAPSHOT_KEY = 'stage-shatter-snapshot';
@@ -87,19 +89,17 @@ export class StageEndEventDirector {
       onComplete: () => {
         // 완전히 하얀 순간 3스테이지 지하 착지 방으로 교체(교체를 흰빛으로 감춤).
         onEnterRoom();
+        camera.setZoom(ASCENSION_PLAYER_ZOOM);
 
         const worldCenterX = this.scene.physics.world.bounds.centerX;
-        const enemies = this.spawnUndergroundSiege(worldCenterX);
+        const enemies = this.spawnUndergroundSiege(worldCenterX, true);
 
         // 흰빛을 옅게 내려 지하 포위 방과 잡몹 대형을 드러낸다.
         this.scene.tweens.add({ targets: white, alpha: 0.2, duration: 700 });
 
         // 대형을 잠시 보여준 뒤 모두 플레이어 반대 방향인 화면 바깥으로 떠난다.
-        const formationReadyAt =
-          SIEGE_REVEAL_INTERVAL * (DESCENT_SIEGE_FLANK_OFFSETS.length * 2 - 1) +
-          420;
         this.scene.time.delayedCall(
-          formationReadyAt + ASCENSION_FORMATION_HOLD_MS,
+          ASCENSION_FORMATION_HOLD_MS,
           () => {
             let remainingDepartures = enemies.length;
             enemies.forEach(({ moveAnimation, sprite }) => {
@@ -312,8 +312,11 @@ export class StageEndEventDirector {
     });
   }
 
-  /** 방패형·포박형·파이프형이 좌우에서 들어오는 지하 포위 대형을 생성함. */
-  private spawnUndergroundSiege(centerX: number): SiegeEnemyView[] {
+  /** 방패형·포박형·파이프형 지하 포위 대형을 등장시키거나 즉시 배치함. */
+  private spawnUndergroundSiege(
+    centerX: number,
+    revealImmediately = false,
+  ): SiegeEnemyView[] {
     const enemies: SiegeEnemyView[] = [];
     const reveal = (
       enemy: Phaser.GameObjects.Sprite,
@@ -323,6 +326,10 @@ export class StageEndEventDirector {
       idleAnimation: string,
     ) => {
       enemies.push({ sprite: enemy, moveAnimation });
+      if (revealImmediately) {
+        enemy.setX(targetX).setAlpha(1).play(idleAnimation);
+        return;
+      }
       this.scene.time.delayedCall(delay, () => {
         enemy.setAlpha(1).play(moveAnimation);
         this.scene.tweens.add({

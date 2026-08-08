@@ -353,7 +353,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shakeEffect.reset();
     this.cameras.main.resetFX();
     this.cameras.main.stopFollow();
-    this.cameras.main.setScroll(0, 0);
+    this.cameras.main.setScroll(0, 0).setZoom(1);
     this.configureCamera();
   }
 
