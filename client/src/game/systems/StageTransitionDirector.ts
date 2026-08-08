@@ -190,6 +190,7 @@ export class StageTransitionDirector {
     body.reset(centerX, y);
     this.options.player.setVelocity(0, 0);
     this.options.player.play(this.options.idleAnimation(), true);
+    this.options.scene.cameras.main.centerOnX(centerX);
   }
 
   private playDescentLookAround() {

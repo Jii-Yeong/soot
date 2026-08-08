@@ -1472,7 +1472,7 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
         page.evaluate(() => {
           type RuntimeScene = {
             activeRoomConfig: { id: string };
-            cameras: { main: { zoom: number } };
+            cameras: { main: { midPoint: { x: number }; zoom: number } };
             children: {
               list: Array<{
                 active: boolean;
@@ -1484,11 +1484,15 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
             floorBuilder: {
               skinObjects: Array<{ texture?: { key: string } }>;
             };
+            player: { x: number };
           };
           type DebugGame = { scene: { getScene: (key: string) => unknown } };
           const game = (window as unknown as { __game?: DebugGame }).__game!;
           const scene = game.scene.getScene('game') as RuntimeScene;
           return {
+            cameraCenterOffset: Math.abs(
+              scene.cameras.main.midPoint.x - scene.player.x,
+            ),
             cameraZoom: scene.cameras.main.zoom,
             roomId: scene.activeRoomConfig.id,
             siegeTextureKeys: scene.children.list.flatMap(
@@ -1511,6 +1515,7 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
       { timeout: 10_000 },
     )
     .toEqual({
+      cameraCenterOffset: 0,
       cameraZoom: 1.35,
       roomId: 'underground-landing',
       siegeTextureKeys: expect.arrayContaining([
