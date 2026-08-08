@@ -1,9 +1,19 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '@/game/config/gameDimensions';
+import { UNDERGROUND_LANDING_ROOM } from '@/game/config/rooms/stageThreeRooms';
 import type { StageEndEvent } from '@/game/config/stageConfig';
+import {
+  BLOCKER_CONFIG,
+  CAPTOR_CONFIG,
+  CEILING_MAINTAINER_CONFIG,
+} from '@/game/config/stageThreeEnemyConfig';
 
 /** 화면 중앙(=착지한 플레이어) 기준 양쪽으로 세우는 안드로이드 실루엣 간격. */
 const SIEGE_FLANK_OFFSETS = [120, 210, 300, 390, 480, 570];
+/** 강하 착지 후 실제 적이 좌우에서 걸어 들어올 위치. */
+const DESCENT_SIEGE_FLANK_OFFSETS = [150, 290, 430, 560];
+/** 착지 방 상단 파이프에서 포위하는 파이프형 위치. */
+const DESCENT_SIEGE_PIPE_OFFSETS = [220, 480];
 /** 안드로이드가 하나씩 나타나는 간격. */
 const SIEGE_REVEAL_INTERVAL = 200;
 /** 싱킹 연출에 쓰는 검은 선/점 개수. */
@@ -302,7 +312,7 @@ export class StageEndEventDirector {
   }
 
   /**
-   * 3스테이지 강하 컷신 후반: 착지한 플레이어 양쪽으로 안드로이드가 하나씩
+   * 3스테이지 강하 컷신 후반: 착지한 플레이어 양쪽으로 방패형·포박형이 하나씩
    * 나타나 포위 → 화면이 점점 암전되며 검은 선·점이 위로 흘러 아래로 꺼지는
    * 느낌을 준 뒤, 완전 암전에서 `onBlackout`(다음 스테이지 구성)을 호출하고 다시
    * 밝혀 4스테이지를 드러낸다.
@@ -313,37 +323,84 @@ export class StageEndEventDirector {
     // 월드 X(카메라가 따라가는 플레이어 위치)를 기준으로 좌우로 포위한다.
     const camera = this.scene.cameras.main;
     const centerX = camera.scrollX + camera.width / 2;
-    const bodyY = GAME_HEIGHT - 116;
-    const eyeY = GAME_HEIGHT - 150;
     const props: Phaser.GameObjects.GameObject[] = [];
 
     // 중앙 기준 안쪽부터 바깥으로, 좌우 번갈아 한 기씩 나타나며 포위한다.
-    const flankXs = SIEGE_FLANK_OFFSETS.flatMap((offset) => [
+    const flankXs = DESCENT_SIEGE_FLANK_OFFSETS.flatMap((offset) => [
       centerX - offset,
       centerX + offset,
     ]);
     flankXs.forEach((flankX, index) => {
       const direction = flankX < centerX ? -1 : 1;
-      const body = this.scene.add
-        .rectangle(flankX + direction * 90, bodyY, 34, 96, 0x05070b, 0.98)
+      const pairIndex = Math.floor(index / 2);
+      const config =
+        (pairIndex + (index % 2)) % 2 === 0
+          ? BLOCKER_CONFIG
+          : CAPTOR_CONFIG;
+      const enemy = this.scene.add
+        .sprite(
+          flankX + direction * 180,
+          config === BLOCKER_CONFIG
+            ? GAME_HEIGHT - 130
+            : GAME_HEIGHT - 120,
+          config.texture,
+        )
+        .setScale(config.scale)
+        .setFlipX(flankX < centerX)
         .setDepth(60)
         .setAlpha(0);
-      const eye = this.scene.add
-        .rectangle(flankX + direction * 90, eyeY, 22, 6, 0xff4657, 1)
-        .setDepth(61)
-        .setAlpha(0);
-      props.push(body, eye);
+      props.push(enemy);
 
       this.scene.time.delayedCall(SIEGE_REVEAL_INTERVAL * index, () => {
+        enemy.setAlpha(1).play(config.animations.walk);
         this.scene.tweens.add({
-          targets: [body, eye],
+          targets: enemy,
           x: flankX,
-          alpha: 1,
-          duration: 220,
+          duration: 420,
           ease: 'Quad.easeOut',
+          onComplete: () => enemy.play(config.animations.idle),
         });
         this.scene.cameras.main.shake(80, 0.0025);
       });
+    });
+
+    const pipeY =
+      (UNDERGROUND_LANDING_ROOM.ceilingPipes?.[0]?.y ?? 72) + 50;
+    const pipeEnemyXs = DESCENT_SIEGE_PIPE_OFFSETS.flatMap((offset) => [
+      centerX - offset,
+      centerX + offset,
+    ]);
+    pipeEnemyXs.forEach((flankX, index) => {
+      const direction = flankX < centerX ? -1 : 1;
+      const enemy = this.scene.add
+        .sprite(
+          flankX + direction * 180,
+          pipeY,
+          CEILING_MAINTAINER_CONFIG.texture,
+        )
+        .setScale(CEILING_MAINTAINER_CONFIG.scale)
+        .setFlipX(flankX > centerX)
+        .setDepth(60)
+        .setAlpha(0);
+      props.push(enemy);
+
+      this.scene.time.delayedCall(
+        SIEGE_REVEAL_INTERVAL * (index * 2 + 1),
+        () => {
+          enemy
+            .setAlpha(1)
+            .play(CEILING_MAINTAINER_CONFIG.animations.pipeMove);
+          this.scene.tweens.add({
+            targets: enemy,
+            x: flankX,
+            duration: 420,
+            ease: 'Quad.easeOut',
+            onComplete: () =>
+              enemy.play(CEILING_MAINTAINER_CONFIG.animations.pipeIdle),
+          });
+          this.scene.cameras.main.shake(80, 0.0025);
+        },
+      );
     });
 
     // 적이 다 나타난 뒤: 카메라가 아래로 내려가며 하강감을 주고, 그때 흰색

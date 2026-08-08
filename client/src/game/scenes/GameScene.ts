@@ -564,6 +564,12 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     if (mode === 'descent') {
       this.rebuildFloorForRoom();
+      this.terrainBuilder.build(
+        this.activeRoomConfig.terrain,
+        this.stage.terrainSkin,
+        this.activeRoomConfig.ceilingPipes,
+        this.stage.pipeSkin,
+      );
       this.showUndergroundLandingBackdrop();
       this.resetCameraToRoomEntrance();
       return;
