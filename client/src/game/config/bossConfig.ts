@@ -223,7 +223,7 @@ export const BOSS_COMBAT_CONFIGS = {
       recoveryDuration: 900,
       enragedRecoveryDuration: 700,
       phaseTransitionDuration: 1000,
-      goldColor: 0xffd86b,
+      goldColor: 0xffff66,
       skyColor: 0x9eeeff,
       corruptionColor: 0x17131f,
       aerial: {

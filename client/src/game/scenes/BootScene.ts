@@ -41,6 +41,12 @@ const CELESTIAL_PROJECTILE_COLORS = {
   orbHighlight: 0xffe38a,
 } as const;
 
+const BOSS_PROJECTILE_TONES = {
+  shadow: 0x999999,
+  midtone: 0xeeeeee,
+  highlight: 0xffffff,
+} as const;
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('boot');
@@ -320,10 +326,12 @@ export class BootScene extends Phaser.Scene {
     graphics.generateTexture('flying-enemy-bullet-placeholder', 10, 10);
 
     graphics.clear();
-    graphics.fillStyle(0xffffff);
+    graphics.fillStyle(BOSS_PROJECTILE_TONES.shadow);
     graphics.fillCircle(7, 7, 7);
-    graphics.fillStyle(0xfff4c7);
-    graphics.fillCircle(7, 7, 3);
+    graphics.fillStyle(BOSS_PROJECTILE_TONES.midtone);
+    graphics.fillCircle(7, 7, 6);
+    graphics.fillStyle(BOSS_PROJECTILE_TONES.highlight);
+    graphics.fillCircle(6, 5, 2);
     graphics.generateTexture('architect-bullet-placeholder', 14, 14);
 
     const createBossPlaceholder = (
