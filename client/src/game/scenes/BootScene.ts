@@ -34,6 +34,13 @@ const PLAYER_SPRITES = [
   STAGE_FIVE_PLAYER_SPRITE,
 ];
 
+const CELESTIAL_PROJECTILE_COLORS = {
+  shadow: 0x123f3a,
+  midtone: 0x58d6b3,
+  highlight: 0xd8fff4,
+  orbHighlight: 0xffe38a,
+} as const;
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('boot');
@@ -281,16 +288,20 @@ export class BootScene extends Phaser.Scene {
     graphics.generateTexture('celestial-oracle-placeholder', 96, 96);
 
     graphics.clear();
-    graphics.fillStyle(0xffe9a6);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.shadow);
     graphics.fillCircle(6, 6, 6);
-    graphics.fillStyle(0xffffff);
-    graphics.fillCircle(6, 6, 2);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.midtone);
+    graphics.fillCircle(6, 6, 4);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.orbHighlight);
+    graphics.fillCircle(5, 5, 2);
     graphics.generateTexture('celestial-bullet-placeholder', 12, 12);
 
     graphics.clear();
-    graphics.fillStyle(0xffe79a);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.shadow);
     graphics.fillTriangle(0, 4, 25, 0, 25, 8);
-    graphics.fillStyle(0xffffff);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.midtone);
+    graphics.fillTriangle(3, 4, 24, 1, 24, 7);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.highlight);
     graphics.fillRect(8, 3, 22, 2);
     graphics.generateTexture('celestial-spear-placeholder', 30, 8);
 
