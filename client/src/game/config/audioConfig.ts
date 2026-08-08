@@ -23,6 +23,14 @@ export type SfxKey =
   | 'sfx-player-death'
   | 'sfx-room-locked'
   | 'sfx-room-cleared'
+  | 'sfx-shield-block-01'
+  | 'sfx-shield-block-02'
+  | 'sfx-shield-block-03'
+  | 'sfx-shield-block-04'
+  | 'sfx-boss-invulnerable-01'
+  | 'sfx-boss-invulnerable-02'
+  | 'sfx-boss-invulnerable-03'
+  | 'sfx-boss-invulnerable-04'
   | 'sfx-stage1-footstep-01'
   | 'sfx-stage1-footstep-02'
   | 'sfx-stage1-footstep-03'
@@ -45,6 +53,8 @@ export type AudioAssetKey = MusicKey | SfxKey;
 export type SfxConfig = {
   /** Trim relative to the sfx bus. Cues that repeat fastest sit lowest. */
   volume: number;
+  /** 원본보다 높고 짧게 들려줄 기준 재생률. */
+  rate?: number;
   /** Playback rate is randomised by +/- this much so repeats do not phase. */
   rateJitter?: number;
   /** Drops repeats fired inside this window, e.g. shotgun pellets landing together. */
@@ -83,6 +93,13 @@ export const MUSIC_CONFIG: Record<MusicKey, MusicConfig> = {
   'bgm-return': { volume: 0.6 },
 };
 
+const PROJECTILE_BLOCK_SFX_CONFIG: SfxConfig = {
+  volume: 0.45,
+  rate: 1.1,
+  rateJitter: 0.02,
+  minInterval: 45,
+};
+
 export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-smg-fire': { volume: 0.35, rateJitter: 0.08 },
   'sfx-shotgun-fire': { volume: 0.6, rateJitter: 0.04 },
@@ -99,6 +116,14 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   // sound heard on every transition wears out faster than one heard mid-fight.
   'sfx-room-locked': { volume: 0.6 },
   'sfx-room-cleared': { volume: 0.45 },
+  'sfx-shield-block-01': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-shield-block-02': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-shield-block-03': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-shield-block-04': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-01': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-02': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-03': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-04': PROJECTILE_BLOCK_SFX_CONFIG,
   'sfx-stage1-footstep-01': { volume: 1, rateJitter: 0.03 },
   'sfx-stage1-footstep-02': { volume: 1, rateJitter: 0.03 },
   'sfx-stage1-footstep-03': { volume: 1, rateJitter: 0.03 },
@@ -116,6 +141,21 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-stage4-footstep-03': { volume: 1, rateJitter: 0.03 },
   'sfx-stage4-footstep-04': { volume: 1, rateJitter: 0.03 },
 };
+
+export const PROJECTILE_BLOCK_SFX_BY_KIND = {
+  shield: [
+    'sfx-shield-block-01',
+    'sfx-shield-block-02',
+    'sfx-shield-block-03',
+    'sfx-shield-block-04',
+  ],
+  boss: [
+    'sfx-boss-invulnerable-01',
+    'sfx-boss-invulnerable-02',
+    'sfx-boss-invulnerable-03',
+    'sfx-boss-invulnerable-04',
+  ],
+} as const satisfies Record<'shield' | 'boss', readonly SfxKey[]>;
 
 export type FootstepStageId =
   | 'stage-01'

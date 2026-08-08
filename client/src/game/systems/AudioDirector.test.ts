@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AUDIO_MIX_CONFIG,
   FOOTSTEP_SFX_BY_STAGE,
+  PROJECTILE_BLOCK_SFX_BY_KIND,
   type AudioAssetKey,
 } from '@/game/config/audioConfig';
 import { STAGES } from '@/game/config/stageConfig';
@@ -249,6 +250,28 @@ describe('AudioDirector', () => {
     }
 
     expect(played).toHaveLength(1);
+  });
+
+  it('randomises shield and boss block cues above the damage hit rate', () => {
+    const loaded = [
+      'sfx-enemy-hit',
+      ...Object.values(PROJECTILE_BLOCK_SFX_BY_KIND).flat(),
+    ] as AudioAssetKey[];
+    const { game, played } = createFakeGame({ loaded });
+    director = new AudioDirector(game);
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    gameEvents.emit('enemy-damaged', 0, 0);
+    gameEvents.emit('enemy-projectile-blocked', 'shield');
+    gameEvents.emit('enemy-projectile-blocked', 'boss');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-enemy-hit',
+      'sfx-shield-block-03',
+      'sfx-boss-invulnerable-03',
+    ]);
+    expect(played[1].config.rate).toBeGreaterThan(played[0].config.rate!);
+    expect(played[2].config.rate).toBeGreaterThan(played[0].config.rate!);
   });
 
   it('loops stage music once and keeps it across repeated stage events', () => {

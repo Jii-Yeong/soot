@@ -10,6 +10,7 @@ import {
   type EnemyProjectileAttack,
   type ProjectileDamageResult,
 } from '@/game/entities/Enemy';
+import { gameEvents } from '@/game/events/gameEvents';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { GroundedEnemySprite } from '@/game/systems/GroundedEnemySprite';
 
@@ -120,6 +121,7 @@ export class BlockerEnemy extends Enemy {
       )
     ) {
       this.showProjectileBlockedImpact(hitX, hitY);
+      gameEvents.emit('enemy-projectile-blocked', 'shield');
       return { applied: false, defeated: false };
     }
     return super.takeProjectileDamage(amount, hitX, hitY);

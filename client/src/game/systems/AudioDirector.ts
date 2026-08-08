@@ -5,6 +5,7 @@ import {
   clampAudioMixValue,
   FOOTSTEP_SFX_BY_STAGE,
   MUSIC_CONFIG,
+  PROJECTILE_BLOCK_SFX_BY_KIND,
   SFX_CONFIG,
   WEAPON_FIRE_SFX,
   type AudioAssetKey,
@@ -48,7 +49,7 @@ function canDecode(
  */
 export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
-  private readonly playedAt = new Map<SfxKey, number>();
+  private readonly playedAt = new Map<string, number>();
   private music?: VolumeControlledSound;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
@@ -69,6 +70,7 @@ export class AudioDirector {
     gameEvents.on('player-dashed', this.handlePlayerDashed);
     gameEvents.on('player-stepped', this.handlePlayerStepped);
     gameEvents.on('enemy-damaged', this.handleEnemyDamaged);
+    gameEvents.on('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.on('enemy-defeated', this.handleEnemyDefeated);
   }
 
@@ -83,6 +85,7 @@ export class AudioDirector {
     gameEvents.off('player-dashed', this.handlePlayerDashed);
     gameEvents.off('player-stepped', this.handlePlayerStepped);
     gameEvents.off('enemy-damaged', this.handleEnemyDamaged);
+    gameEvents.off('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
     this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
     this.stopMusic();
@@ -249,14 +252,22 @@ export class AudioDirector {
     this.playSfx('sfx-enemy-hit');
   };
 
+  private readonly handleProjectileBlocked = (
+    kind: keyof typeof PROJECTILE_BLOCK_SFX_BY_KIND,
+  ) => {
+    const sounds = PROJECTILE_BLOCK_SFX_BY_KIND[kind];
+    const key = sounds[Math.floor(Math.random() * sounds.length)];
+    this.playSfx(key, 1, kind);
+  };
+
   private readonly handleEnemyDefeated = () => {
     this.playSfx('sfx-enemy-down');
   };
 
-  private playSfx(key: SfxKey, volumeScale = 1) {
+  private playSfx(key: SfxKey, volumeScale = 1, intervalKey: string = key) {
     const config = SFX_CONFIG[key];
     const now = Date.now();
-    const playedAt = this.playedAt.get(key);
+    const playedAt = this.playedAt.get(intervalKey);
 
     if (
       config.minInterval !== undefined &&
@@ -272,10 +283,10 @@ export class AudioDirector {
       return;
     }
 
-    this.playedAt.set(key, now);
+    this.playedAt.set(intervalKey, now);
     this.game.sound.play(key, {
       volume: config.volume * volumeScale * this.mix.sfx * this.mix.master,
-      rate: this.jitteredRate(config.rateJitter),
+      rate: (config.rate ?? 1) * this.jitteredRate(config.rateJitter),
     });
   }
 

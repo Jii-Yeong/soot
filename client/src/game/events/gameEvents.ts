@@ -41,6 +41,7 @@ type GameEventMap = {
   'player-dashed': [x: number, y: number];
   'player-stepped': [];
   'enemy-damaged': [x: number, y: number];
+  'enemy-projectile-blocked': [kind: 'shield' | 'boss'];
   'enemy-defeated': [x: number, y: number];
   'weapon-changed': [id: string, label: string];
   'weapon-inventory-changed': [
