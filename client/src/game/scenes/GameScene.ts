@@ -68,6 +68,8 @@ import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 const PLAYER_DEATH_PROMPT_DELAY = 1000;
+/** 공중 사망 시 1층 바닥으로 떨어지는 속도(px/s). */
+const PLAYER_DEATH_FALL_SPEED = 720;
 
 /**
  * 구덩이 추락 판정 깊이. 발이 이만큼 바닥선 아래로 내려가야 추락으로 친다.
@@ -1101,12 +1103,7 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('dead');
     this.restartEnabled = false;
     this.player.setVelocity(0).clearTint().setAlpha(1);
-    const deathAnimation = this.playerSprite.animations.death;
-    if (this.anims.exists(deathAnimation)) {
-      this.player.play(deathAnimation, true);
-    } else {
-      this.player.anims.stop();
-    }
+    this.playPlayerDeathAnimation();
     this.weaponSystem.hide();
     this.weaponDropDirector.clear();
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
@@ -1121,6 +1118,38 @@ export class GameScene extends Phaser.Scene {
       this.combatUi.showDeath();
     });
     this.cameras.main.shake(180, 0.008);
+  }
+
+  /** 공중에서는 첫 death 자세로 1층까지 추락한 뒤 두 번째 자세로 전환한다. */
+  private playPlayerDeathAnimation() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const [fallFrame, landFrame] = this.playerSprite.deathFrames ?? [];
+    const fallDistance = Math.max(0, FLOOR_SURFACE_Y - body.bottom);
+
+    if (!body.blocked.down && fallDistance > 1 && fallFrame && landFrame) {
+      body.enable = false;
+      this.player.anims.stop();
+      this.player.setFrame(fallFrame);
+      this.tweens.add({
+        targets: this.player,
+        y: this.player.y + fallDistance,
+        duration: Phaser.Math.Clamp(
+          (fallDistance / PLAYER_DEATH_FALL_SPEED) * 1000,
+          120,
+          900,
+        ),
+        ease: 'Quad.easeIn',
+        onComplete: () => this.player.setFrame(landFrame),
+      });
+      return;
+    }
+
+    const deathAnimation = this.playerSprite.animations.death;
+    if (this.anims.exists(deathAnimation)) {
+      this.player.play(deathAnimation, true);
+    } else {
+      this.player.anims.stop();
+    }
   }
 
 }
