@@ -22,7 +22,23 @@ export type SfxKey =
   | 'sfx-player-dash'
   | 'sfx-player-death'
   | 'sfx-room-locked'
-  | 'sfx-room-cleared';
+  | 'sfx-room-cleared'
+  | 'sfx-stage1-footstep-01'
+  | 'sfx-stage1-footstep-02'
+  | 'sfx-stage1-footstep-03'
+  | 'sfx-stage1-footstep-04'
+  | 'sfx-stage2-footstep-01'
+  | 'sfx-stage2-footstep-02'
+  | 'sfx-stage2-footstep-03'
+  | 'sfx-stage2-footstep-04'
+  | 'sfx-stage3-footstep-01'
+  | 'sfx-stage3-footstep-02'
+  | 'sfx-stage3-footstep-03'
+  | 'sfx-stage3-footstep-04'
+  | 'sfx-stage4-footstep-01'
+  | 'sfx-stage4-footstep-02'
+  | 'sfx-stage4-footstep-03'
+  | 'sfx-stage4-footstep-04';
 
 export type AudioAssetKey = MusicKey | SfxKey;
 
@@ -83,6 +99,57 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   // sound heard on every transition wears out faster than one heard mid-fight.
   'sfx-room-locked': { volume: 0.6 },
   'sfx-room-cleared': { volume: 0.45 },
+  'sfx-stage1-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage1-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage1-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage1-footstep-04': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-04': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-04': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-04': { volume: 1, rateJitter: 0.03 },
+};
+
+export type FootstepStageId =
+  | 'stage-01'
+  | 'stage-02'
+  | 'stage-03'
+  | 'stage-04';
+
+export const FOOTSTEP_SFX_BY_STAGE: Readonly<
+  Record<FootstepStageId, readonly SfxKey[]>
+> = {
+  'stage-01': [
+    'sfx-stage1-footstep-01',
+    'sfx-stage1-footstep-02',
+    'sfx-stage1-footstep-03',
+    'sfx-stage1-footstep-04',
+  ],
+  'stage-02': [
+    'sfx-stage2-footstep-01',
+    'sfx-stage2-footstep-02',
+    'sfx-stage2-footstep-03',
+    'sfx-stage2-footstep-04',
+  ],
+  'stage-03': [
+    'sfx-stage3-footstep-01',
+    'sfx-stage3-footstep-02',
+    'sfx-stage3-footstep-03',
+    'sfx-stage3-footstep-04',
+  ],
+  'stage-04': [
+    'sfx-stage4-footstep-01',
+    'sfx-stage4-footstep-02',
+    'sfx-stage4-footstep-03',
+    'sfx-stage4-footstep-04',
+  ],
 };
 
 /**

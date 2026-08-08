@@ -3,6 +3,7 @@ import { resolveAudioAssets } from '@/game/config/audioAssets';
 import {
   AUDIO_MIX_CONFIG,
   clampAudioMixValue,
+  FOOTSTEP_SFX_BY_STAGE,
   MUSIC_CONFIG,
   SFX_CONFIG,
   WEAPON_FIRE_SFX,
@@ -51,6 +52,7 @@ export class AudioDirector {
   private music?: VolumeControlledSound;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
+  private currentStageId?: string;
   /** Tracks already fetched, so a revisited stage does not download twice. */
   private readonly requested = new Set<MusicKey>();
 
@@ -65,6 +67,7 @@ export class AudioDirector {
     gameEvents.on('weapon-fired', this.handleWeaponFired);
     gameEvents.on('player-damaged', this.handlePlayerDamaged);
     gameEvents.on('player-dashed', this.handlePlayerDashed);
+    gameEvents.on('player-stepped', this.handlePlayerStepped);
     gameEvents.on('enemy-damaged', this.handleEnemyDamaged);
     gameEvents.on('enemy-defeated', this.handleEnemyDefeated);
   }
@@ -78,6 +81,7 @@ export class AudioDirector {
     gameEvents.off('weapon-fired', this.handleWeaponFired);
     gameEvents.off('player-damaged', this.handlePlayerDamaged);
     gameEvents.off('player-dashed', this.handlePlayerDashed);
+    gameEvents.off('player-stepped', this.handlePlayerStepped);
     gameEvents.off('enemy-damaged', this.handleEnemyDamaged);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
     this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
@@ -103,7 +107,7 @@ export class AudioDirector {
   /**
    * 스테이지 음악은 부팅 중이 아니라 이후에 가져온다. 타이틀 곡은 예외로,
    * BootScene에서 미리 불러와 플레이어가 브라우저 시작 안내를 통과하는 즉시
-   * 재생을 시도할 수 있게 한다. 효과음 전체는 113KB지만 음악 한 곡은 1MB가 넘는다.
+   * 재생을 시도할 수 있게 한다. 작은 효과음 묶음과 달리 음악 한 곡은 1MB가 넘는다.
    *
    * Only the track that is about to be needed is fetched, plus the one for the
    * stage after it. Fetching every track up front would mean a player who
@@ -171,6 +175,8 @@ export class AudioDirector {
       return;
     }
 
+    this.currentStageId = stageId;
+
     this.requestMusic(STAGES[index].music);
     this.requestMusic(STAGES[index + 1]?.music);
     this.playMusic(STAGES[index].music);
@@ -223,6 +229,22 @@ export class AudioDirector {
     this.playSfx('sfx-player-dash');
   };
 
+  private readonly handlePlayerStepped = () => {
+    if (
+      !this.currentStageId ||
+      !Object.hasOwn(FOOTSTEP_SFX_BY_STAGE, this.currentStageId)
+    ) {
+      return;
+    }
+
+    const footsteps =
+      FOOTSTEP_SFX_BY_STAGE[
+        this.currentStageId as keyof typeof FOOTSTEP_SFX_BY_STAGE
+      ];
+    const key = footsteps[Math.floor(Math.random() * footsteps.length)];
+    this.playSfx(key, 0.9 + Math.random() * 0.1);
+  };
+
   private readonly handleEnemyDamaged = () => {
     this.playSfx('sfx-enemy-hit');
   };
@@ -231,7 +253,7 @@ export class AudioDirector {
     this.playSfx('sfx-enemy-down');
   };
 
-  private playSfx(key: SfxKey) {
+  private playSfx(key: SfxKey, volumeScale = 1) {
     const config = SFX_CONFIG[key];
     const now = Date.now();
     const playedAt = this.playedAt.get(key);
@@ -252,7 +274,7 @@ export class AudioDirector {
 
     this.playedAt.set(key, now);
     this.game.sound.play(key, {
-      volume: config.volume * this.mix.sfx * this.mix.master,
+      volume: config.volume * volumeScale * this.mix.sfx * this.mix.master,
       rate: this.jitteredRate(config.rateJitter),
     });
   }

@@ -39,6 +39,7 @@ type GameEventMap = {
   'weapon-fired': [weaponId: string, x: number, y: number];
   'player-damaged': [x: number, y: number];
   'player-dashed': [x: number, y: number];
+  'player-stepped': [];
   'enemy-damaged': [x: number, y: number];
   'enemy-defeated': [x: number, y: number];
   'weapon-changed': [id: string, label: string];

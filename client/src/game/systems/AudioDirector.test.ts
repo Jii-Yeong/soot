@@ -2,7 +2,11 @@
 // Phaser touches `window` on import, so only this file pays for a DOM.
 import type Phaser from 'phaser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AudioAssetKey } from '@/game/config/audioConfig';
+import {
+  AUDIO_MIX_CONFIG,
+  FOOTSTEP_SFX_BY_STAGE,
+  type AudioAssetKey,
+} from '@/game/config/audioConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import { AudioDirector } from '@/game/systems/AudioDirector';
@@ -198,6 +202,42 @@ describe('AudioDirector', () => {
     expect(played.every((cue) => cue.key === 'sfx-burst-rifle-fire')).toBe(
       true,
     );
+  });
+
+  it('randomises footsteps inside each ground stage sound set', () => {
+    const loaded = Object.values(FOOTSTEP_SFX_BY_STAGE).flat();
+    const { game, played } = createFakeGame({ loaded });
+    director = new AudioDirector(game);
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+
+    for (const stageId of [
+      'stage-01',
+      'stage-02',
+      'stage-03',
+      'stage-04',
+    ]) {
+      gameEvents.emit('stage-changed', stageId);
+      gameEvents.emit('player-stepped');
+    }
+    gameEvents.emit('stage-changed', 'stage-05');
+    gameEvents.emit('player-stepped');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage1-footstep-04',
+      'sfx-stage2-footstep-04',
+      'sfx-stage3-footstep-04',
+      'sfx-stage4-footstep-04',
+    ]);
+    expect(
+      played.every(
+        ({ config }) =>
+          config.volume! >=
+            0.9 * AUDIO_MIX_CONFIG.sfx * AUDIO_MIX_CONFIG.master &&
+          config.volume! <= AUDIO_MIX_CONFIG.sfx * AUDIO_MIX_CONFIG.master &&
+          config.rate! >= 0.97 &&
+          config.rate! <= 1.03,
+      ),
+    ).toBe(true);
   });
 
   it('drops repeated hit cues that land inside the same throttle window', () => {
