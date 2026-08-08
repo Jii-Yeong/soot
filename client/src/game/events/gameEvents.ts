@@ -43,6 +43,9 @@ type GameEventMap = {
   'enemy-damaged': [x: number, y: number];
   'enemy-projectile-blocked': [kind: 'shield' | 'boss'];
   'enemy-defeated': [x: number, y: number];
+  'boss-laser-fired': [
+    cue: 'single' | 'double-first' | 'double-second',
+  ];
   'weapon-changed': [id: string, label: string];
   'weapon-inventory-changed': [
     slots: readonly (string | null)[],

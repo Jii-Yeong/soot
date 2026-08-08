@@ -9,6 +9,7 @@ import { LaserAttackCycle } from '@/game/combat/LaserAttackCycle';
 import { getLaserPatternTuning } from '@/game/combat/laserPattern';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { gameEvents } from '@/game/events/gameEvents';
 import { BeamEffects } from '@/game/systems/BeamEffects';
 
 type PlayerDamageHandler = (damage: number) => void;
@@ -27,6 +28,8 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
   private activeSpriteAnimation?: string;
   private recoilUntil = 0;
   private dying = false;
+  private laserSoundCue: 'single' | 'double-first' | 'double-second' =
+    'single';
 
   constructor(
     scene: Phaser.Scene,
@@ -169,6 +172,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
 
     if (this.attackCycle.isComplete(time)) {
       this.attackCycle.beginVolley(time, this.isEnraged);
+      this.laserSoundCue = this.isEnraged ? 'double-first' : 'single';
       this.lockAimOn(target);
     }
   }
@@ -217,6 +221,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     this.recoilUntil = time + 280;
     this.playSpriteAnimation(this.sprite?.animations.recoil ?? '');
     if (this.attackCycle.finishFiring(time, this.isEnraged)) {
+      this.laserSoundCue = 'double-second';
       this.lockAimOn(target);
     }
   }
@@ -225,6 +230,7 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
     this.attackCycle.beginFiring(time);
     this.laserHit = false;
     this.effects.showBeam(this.getMuzzlePosition(), this.aimAngle);
+    gameEvents.emit('boss-laser-fired', this.laserSoundCue);
   }
 
   private moveToPreferredDistance(

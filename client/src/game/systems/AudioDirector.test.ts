@@ -6,6 +6,7 @@ import {
   AUDIO_MIX_CONFIG,
   FOOTSTEP_SFX_BY_STAGE,
   PROJECTILE_BLOCK_SFX_BY_KIND,
+  STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
   type AudioAssetKey,
 } from '@/game/config/audioConfig';
 import { STAGES } from '@/game/config/stageConfig';
@@ -272,6 +273,23 @@ describe('AudioDirector', () => {
     ]);
     expect(played[1].config.rate).toBeGreaterThan(played[0].config.rate!);
     expect(played[2].config.rate).toBeGreaterThan(played[0].config.rate!);
+  });
+
+  it('plays the matching stage one boss laser cue for each shot', () => {
+    const { game, played } = createFakeGame({
+      loaded: Object.values(STAGE_ONE_BOSS_LASER_SFX_BY_CUE),
+    });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('boss-laser-fired', 'single');
+    gameEvents.emit('boss-laser-fired', 'double-first');
+    gameEvents.emit('boss-laser-fired', 'double-second');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage1-boss-laser-single',
+      'sfx-stage1-boss-laser-double-first',
+      'sfx-stage1-boss-laser-double-second',
+    ]);
   });
 
   it('loops stage music once and keeps it across repeated stage events', () => {

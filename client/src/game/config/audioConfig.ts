@@ -31,6 +31,9 @@ export type SfxKey =
   | 'sfx-boss-invulnerable-02'
   | 'sfx-boss-invulnerable-03'
   | 'sfx-boss-invulnerable-04'
+  | 'sfx-stage1-boss-laser-single'
+  | 'sfx-stage1-boss-laser-double-first'
+  | 'sfx-stage1-boss-laser-double-second'
   | 'sfx-stage1-footstep-01'
   | 'sfx-stage1-footstep-02'
   | 'sfx-stage1-footstep-03'
@@ -100,6 +103,10 @@ const PROJECTILE_BLOCK_SFX_CONFIG: SfxConfig = {
   minInterval: 45,
 };
 
+const STAGE_ONE_BOSS_LASER_SFX_CONFIG: SfxConfig = {
+  volume: 0.7,
+};
+
 export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-smg-fire': { volume: 0.35, rateJitter: 0.08 },
   'sfx-shotgun-fire': { volume: 0.6, rateJitter: 0.04 },
@@ -124,6 +131,9 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-boss-invulnerable-02': PROJECTILE_BLOCK_SFX_CONFIG,
   'sfx-boss-invulnerable-03': PROJECTILE_BLOCK_SFX_CONFIG,
   'sfx-boss-invulnerable-04': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-stage1-boss-laser-single': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
+  'sfx-stage1-boss-laser-double-first': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
+  'sfx-stage1-boss-laser-double-second': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
   'sfx-stage1-footstep-01': { volume: 1, rateJitter: 0.03 },
   'sfx-stage1-footstep-02': { volume: 1, rateJitter: 0.03 },
   'sfx-stage1-footstep-03': { volume: 1, rateJitter: 0.03 },
@@ -156,6 +166,15 @@ export const PROJECTILE_BLOCK_SFX_BY_KIND = {
     'sfx-boss-invulnerable-04',
   ],
 } as const satisfies Record<'shield' | 'boss', readonly SfxKey[]>;
+
+export const STAGE_ONE_BOSS_LASER_SFX_BY_CUE = {
+  single: 'sfx-stage1-boss-laser-single',
+  'double-first': 'sfx-stage1-boss-laser-double-first',
+  'double-second': 'sfx-stage1-boss-laser-double-second',
+} as const satisfies Record<
+  'single' | 'double-first' | 'double-second',
+  SfxKey
+>;
 
 export type FootstepStageId =
   | 'stage-01'

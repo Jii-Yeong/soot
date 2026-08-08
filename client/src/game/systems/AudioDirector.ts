@@ -7,6 +7,7 @@ import {
   MUSIC_CONFIG,
   PROJECTILE_BLOCK_SFX_BY_KIND,
   SFX_CONFIG,
+  STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
   WEAPON_FIRE_SFX,
   type AudioAssetKey,
   type AudioMix,
@@ -72,6 +73,7 @@ export class AudioDirector {
     gameEvents.on('enemy-damaged', this.handleEnemyDamaged);
     gameEvents.on('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.on('enemy-defeated', this.handleEnemyDefeated);
+    gameEvents.on('boss-laser-fired', this.handleBossLaserFired);
   }
 
   destroy() {
@@ -87,6 +89,7 @@ export class AudioDirector {
     gameEvents.off('enemy-damaged', this.handleEnemyDamaged);
     gameEvents.off('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
+    gameEvents.off('boss-laser-fired', this.handleBossLaserFired);
     this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
     this.stopMusic();
     this.playedAt.clear();
@@ -262,6 +265,12 @@ export class AudioDirector {
 
   private readonly handleEnemyDefeated = () => {
     this.playSfx('sfx-enemy-down');
+  };
+
+  private readonly handleBossLaserFired = (
+    cue: keyof typeof STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
+  ) => {
+    this.playSfx(STAGE_ONE_BOSS_LASER_SFX_BY_CUE[cue]);
   };
 
   private playSfx(key: SfxKey, volumeScale = 1, intervalKey: string = key) {
