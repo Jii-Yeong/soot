@@ -3,6 +3,16 @@ type Point = {
   y: number;
 };
 
+export const getLaserMuzzlePosition = (
+  origin: Point,
+  facingLeft: boolean,
+  forwardOffset: number,
+  verticalOffset: number,
+): Point => ({
+  x: origin.x + (facingLeft ? -forwardOffset : forwardOffset),
+  y: origin.y + verticalOffset,
+});
+
 export const isPointInsideLaser = (
   start: Point,
   angle: number,

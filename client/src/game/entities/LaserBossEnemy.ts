@@ -4,7 +4,10 @@ import type {
   LaserCannonPatternConfig,
   LaserBossCombatConfig,
 } from '@/game/config/bossConfigTypes';
-import { isPointInsideLaser } from '@/game/combat/laserGeometry';
+import {
+  getLaserMuzzlePosition,
+  isPointInsideLaser,
+} from '@/game/combat/laserGeometry';
 import { LaserAttackCycle } from '@/game/combat/LaserAttackCycle';
 import { getLaserPatternTuning } from '@/game/combat/laserPattern';
 import { BossEnemy } from '@/game/entities/BossEnemy';
@@ -265,22 +268,23 @@ export class LaserBossEnemy extends BossEnemy<LaserCannonPatternConfig> {
   }
 
   private lockAimOn(target: Phaser.Physics.Arcade.Sprite) {
+    this.setFlipX(target.x < this.x);
+    const muzzle = this.getMuzzlePosition();
     this.aimAngle = Phaser.Math.Angle.Between(
-      this.x,
-      this.y + this.pattern.muzzleOffsetY,
+      muzzle.x,
+      muzzle.y,
       target.x,
       target.y,
     );
   }
 
   private getMuzzlePosition() {
-    return {
-      x: this.x + Math.cos(this.aimAngle) * this.pattern.muzzleOffset,
-      y:
-        this.y +
-        this.pattern.muzzleOffsetY +
-        Math.sin(this.aimAngle) * this.pattern.muzzleOffset,
-    };
+    return getLaserMuzzlePosition(
+      this,
+      this.flipX,
+      this.pattern.muzzleOffset,
+      this.pattern.muzzleOffsetY,
+    );
   }
 
   private isTargetInsideBeam(
