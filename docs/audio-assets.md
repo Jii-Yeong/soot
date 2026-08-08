@@ -964,7 +964,7 @@ alley — 목표는 city와 같은 88 BPM, 왜곡, 평평한 빌드
 | --- | --- | --- | --- |
 | 3 지하도시 | 답답함 · 형광등 험 | 답답함, **상실감**, **너무 늦게 도착했다는 감각** | 상실감. 아래 참고 |
 | 4 지옥 | 분노 · 폭주 | 공포보다 분노가 앞서는 폭주. **도시와 지하도시의 기억이 악마적 형태로 뒤틀린 공간** | 파생 관계. 아래 참고 |
-| 5 천국 | 과노출된 불편한 아름다움 | 아름답지만 불편한 광기. **피해와 죽음조차 즐겁게 보인다** | 쾌감. 아래 참고 |
+| 5 천국 | 과노출된 불편한 아름다움 | 잔혹한 제거가 정화와 구원으로 포장된 **인공적 낙원**. 아름답지만 불편한 광기. **피해와 죽음조차 즐겁게 보인다** | 쾌감과 **인공성**. 아래 참고 |
 
 배경 실물도 확인했다. 3은 초록 안개 낀 지하 판자촌에 좌판 · 널린 빨래 · 화분이 남아 있고,
 4는 용암 폭포와 붉은 하늘, 5는 흰빛으로 날아간 하늘과 금빛 신전이다. **4와 5는 기획서와
@@ -1745,6 +1745,748 @@ level, loopable background bed, two minutes long, 132 BPM, D major
 테이크들에서 이미 목표를 넘겼으므로(공기감 -27.4 ~ -32.8, A 계열 -47.9에서 최대 20dB
 상승) 더 볼 필요가 없다. **측정으로 이 큐를 고르지 않는다.**
 
+#### 5스테이지 천국은 진짜 천국이 아니다 — 기획서 원문을 다시 읽었다
+
+A10까지 열 번 프롬프트를 고쳤는데 "밝은데 밝지 않다"가 끝내 안 나왔다. 원인이 프롬프트가
+아니라 **기획서를 요약할 때 흘린 단어**에 있었다.
+
+기획서 5스테이지 항목의 핵심 정서 원문은 이것이다.
+
+> 잔혹한 제거가 "정화"와 "구원"으로 포장된 **인공적 낙원**
+
+적 항목은 **"얼굴 없는 천사형 기계, 빛 덩어리"**이고 최종 보스 대사는 **"저항하지
+마십시오." / "대상의 생체 반응이 불안정합니다." / "구조 절차를 시작합니다."**다.
+
+이 문서에는 그 정서가 "과노출된 불편한 아름다움"으로만 적혀 있었다. **인공적이라는 단어가
+통째로 빠져 있었다.** 3스테이지에서 "상실감"을 흘렸다고 반성해 놓고 같은 일을 5스테이지에서
+반복했다.
+
+**이 천국은 기계가 운영하는 시설이다.** 보스 대사가 전부 안내방송 톤이고, 적은 천사가 아니라
+천사를 흉내내는 기계다. 그러니 밝음의 출처가 햇빛이 아니라 꺼지지 않는 시설 조명이고,
+과노출은 아름다워서가 아니라 정보가 타서 없어진 상태다.
+
+**그런데 A부터 A10까지 모든 프롬프트가 `vast cathedral of white marble and glass`로 진짜
+대성당을 짓고 있었다.** 밝기를 형용사로 조절한 아홉 번이 실패한 진짜 이유가 여기 있을 수
+있다 — 조명이 아니라 건물이 틀렸다.
+
+**그리고 이 진단이 루프 요구와 같은 방향이다.** 지금까지 변화를 막는 것과 정서를 만드는
+것이 서로 싸웠는데(밀도를 빼면 정적이고 넣으면 곡이 된다), 기계적 무표정은 그 둘을 동시에
+만족시킨다. **기계는 브레이크다운을 하지 않는다.**
+
+#### A11 ~ A16 생성 기록 (테이크 48~53)
+
+A10 이후 여섯 테이크를 뽑았다. 프롬프트는 매 테이크마다 한두 군데씩 고쳤고, 아래는 무엇을
+바꿔서 무엇이 나왔는지다. 원본은 작업자 로컬에만 있다.
+
+| 순서 | 프롬프트 | 바꾼 것 | 제목 | 저 | 중 | 공기감 | 박 | 빌드 | 루프 | 평가 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 48 | A11 | 오르간을 `distant thin`으로 약화, 스피카토 | A House of Glass | **-1.6** | -11.6 | -30.1 | 0.530 @79 | -0.1 | **0.684** | 평범하고 활기찬 RPG. 천국이 없다 |
+| 49 | A12 | 오르간 제거, 극단적 잔향, 잔향에 녹이기 | Gold Glass Ritual | -4.2 | -9.4 | **-27.0** | 0.477 @159 | +2.2 | 0.164 | 느리다. 박진감 없음 |
+| 50 | A13 | 어택 복구, 저역 현악 마르카토, 132 BPM | A Gold Cathedral Misaligned | -6.8 | -7.5 | -28.8 | **0.760** @66 | +0.9 | 0.153 | 퀄리티는 좋은데 불협이 안 들린다 |
+| 51 | A14 | 3음을 단3도로, 감7에서 오스티나토 컷아웃 | Stained Glass Geometry | -6.8 | **-6.7** | -27.8 | 0.714 @66 | +0.3 | 0.090 | 여전히 밝다. 안 터진다 |
+| 52 | A15 | `top two octaves` 제거, 첼로·콘트라베이스, ♭VI | The Smiling Cathedral | **-2.7** | -11.2 | -31.4 | **0.794** @66 | +3.4 | 0.242 | 전개 구성이 나쁘다 |
+| 53 | A16 | 기계화, 흰 시설, 연속성 명시, 컷아웃→액센트 | Held For Too Long | -6.4 | -8.6 | -29.9 | 0.682 @66 | +0.6 | 0.208 | 적당히 웅장하다. 기괴함 부족 |
+| 54 | A17 | 불협을 조율로, 밝기 문장 제거, 고역 롤오프 | Surgical Hymn | -7.1 | -8.0 | -31.9 | **0.812** @65 | -2.7 | **0.419** | 느낌은 잡혔다. 바이올린이 너무 앞이고 전개가 부자연스럽다 |
+| 55 | A18 | 리드를 기타로, 맥놀이를 배경으로, 이음매 정의 제거 | Offering of Stone and Glass | -4.8 | -8.9 | -27.5 | 0.774 @64 | **+0.1** | **0.727** | 불협은 들린다. 너무 활기차다 |
+| 56 | A19 | 화성 동결, 마르카토→저역 지속음, 무심함 어휘 | Golden Cathedral Rites | -3.6 | -9.5 | -27.6 | 0.807 @79 | +1.2 | 0.054 | 너무 밝다. 악기가 마음에 안 든다 |
+| 57 | A20 | 현악 중심을 비올라·첼로로, 115단어로 경량화 | Surgical Devotion | -5.8 | -10.2 | **-39.0** | 0.500 @**131** | +2.6 | 0.151 | 어두워졌다 |
+| 58 | A21 | 오스티나토를 하프로, 기타→글라스 하모니카, `dark and low` 제거 | The Clinical Nave | -4.8 | **-18.6** | -27.6 | 0.712 @128 | +0.3 | 0.419 | 하프 선율은 좋다. 가볍고 부피가 부족하다 |
+| 59 | A22 | 분할 비올라 블록으로 중역 보강, 첼로를 저역 옥타브에 겹침 | A Terrible Salvation | -4.6 | -17.5 | **-41.0** | 0.735 @66 | **+0.1** | 0.322 | **나쁘지 않다** — 이 라운드에서 처음 나온 긍정 평가 |
+| 60 | A22 | 〃 (같은 프롬프트 재시도) | The Sterile Nave | -4.6 | **-12.2** | -33.6 | 0.709 @66 | +1.4 | 0.305 | **구조 지표 최고.** 대역이 30번에 가장 가깝다 |
+| 61 | A22 | 〃 | Surgical Liturgy | -6.0 | **-8.2** | **-26.0** | 0.581 @65 | +0.3 | 0.160 | 너무 밝고 웅장하다 |
+| 62 | A22 | 〃 | White Marble Liturgy | -6.0 | **-8.5** | -33.0 | 0.613 @64 | +0.5 | 0.314 | 조금 별로. **하프가 사라지고 비올라가 메인이 됐다** |
+| 63 | A23 | 하프를 앞으로, 비올라를 뒤로 강등, 균일 지시 제거 | The Unchanging Noon | -6.0 | **-11.9** | -37.0 | 0.651 @**131** | +0.5 | 0.244 @38s | **40초대부터 괜찮다.** 중역이 목표 창에 들어왔다 |
+| 64 | A23 | 〃 (같은 프롬프트 재시도) | Marble Ritual | -4.2 | -15.1 | -29.2 | 0.584 @**87** | **-0.4** | **0.409 @16s** | **좀 괜찮다.** 플래토 88초로 최장, 이음매 최상위 |
+| 65 | A23 | 〃 | Surgical Alignment | -3.4 | -12.0 | -34.5 | **0.838** @128 | **+7.8** | 0.020 | 대역은 목표에 가장 가까우나 **빌드 실격** |
+| 66 | A23 | 〃 | Precision in Marble | -6.3 | -12.7 | -39.5 | 0.763 @66 | +0.2 | 0.345 @18s | 이음매 레벨차 +0.03dB로 최상 |
+| 67 | A23 | 〃 | Surgical Meridian | -5.6 | -15.3 | -28.4 | 0.819 @66 | +0.5 | 0.300 @23.9s | 주기 87.3초 |
+| 68 | A23 | 〃 | Calculated Grace | -5.3 | **-11.9** | -37.3 | 0.657 @128 | **+0.1** | **0.437 @23.9s** | **이음매 return 전체 최고.** 중역도 목표 창 |
+| 69 | A23 | 〃 | The Surgeon's Cathedral | -5.9 | -13.0 | -32.0 | 0.707 @66 | +2.0 | 0.276 @24s | 전체 빌드는 초과이나 인트로 12초 제외 시 평탄 |
+
+##### 이번 여섯에서 확인된 것
+
+**하나. 오르간은 저역과 장엄함을 같이 데려온다.** 48번이 저역 -1.6인데 오르간을 뺀 50·51번은
+-6.8이다. `distant thin`, `barely audible`이라고 적어도 페달은 그대로 저역을 깐다. 그리고
+그 저역이 곧 무게감이라 "장엄하다"는 평가와 붙어 다닌다.
+
+**둘. `everything played in the top two octaves`가 저역을 막고 있었다.** A5부터 밝기를
+얻으려고 끌고 온 문장인데 저역을 쓰지 말라는 지시로 그대로 작동한다. 이 문장을 뺀 52번에서
+저역이 -6.8 → -2.7로 돌아왔다. **밝기가 이미 넘치는 시점에는 순손실이다.**
+
+**셋. `the ostinato cutting out for a full beat`가 브레이크다운을 만든다.** 감7을 노출시키려고
+넣은 문장인데, 52번은 48초 지점에 **-33.2dB짜리 구멍**이 뚫렸다. 한 박을 빼라고 적으면 모델은
+곡의 한 구간을 비운다. **레벨을 빼는 지시 대신 액센트로 더하는 지시를 쓴다.**
+
+**넷. 화성 지시가 네 번 연속 들리지 않았다.** 감7 경과화음(A13), 3음을 단3도로 배치(A14),
+장조 반주 위 단조 선율과 ♭VI(A15), 그리고 A16까지 전부 "불협이 안 느껴진다"가 나왔다.
+네 번이면 우연이 아니다. **Lyria는 코드 진행 지시를 따르지 않는 것으로 본다.**
+
+**다섯. 밝기 대역은 이미 과하다.** 51번이 중 -6.7 / 고 -19.0 / 공기감 -27.8로 return 계열
+역대 최고인데 평가가 "여전히 밝다"였다. **밝기를 더 올리는 문장은 전부 순손실이므로 뺀다.**
+
+##### 참고 테이크 — 30번 `Marble Hall Reflections`
+
+8월 4일 세션에서 사람이 "그나마 가장 나았다"고 한 테이크다. 이번 여섯과 나란히 재봤다.
+
+| | 30 (좋아한 것) | 53 (A16) |
+| --- | --- | --- |
+| 길이 | **57.8초** | 118.1초 |
+| 템포 | 79 | 132 |
+| 고 4~8k | **-25.4** | -23.2 |
+| 공기감 8~16k | **-35.4** | -29.9 |
+| 중 1~4k | -7.4 | -8.6 |
+
+**대역 프로파일이 거의 같고 고역만 2~5dB 어둡다.** 좋아한 이유가 밝기나 대역이 아니라는
+뜻이다. 눈에 띄는 차이는 길이 하나다 — 57.8초짜리는 모델이 곡 구조를 만들 시간이 없어
+**한 가지 생각만 진술하고 끝난다.** 60초 생성이 정적인 베드에 유리할 가능성이 있으나,
+길이 규격(60초~3분) 미달이라 그대로는 못 쓴다.
+
+#### A17 — 불협을 화성이 아니라 조율로 적는다 (지금 쓸 것)
+
+화성 지시가 네 번 실패했으므로 그 축을 접는다. **불협을 음색과 조율의 물리적 사실로 적는다.**
+맥놀이는 두 음이 어긋나면 반드시 생기는 현상이라 모델이 화성을 이해하지 않아도 따를 수 있다.
+
+| | A16까지 | A17 |
+| --- | --- | --- |
+| 불협 장치 | 코드 진행 명시 (감7, ♭VI) | **맥놀이 · 반음 모티프 · 음정 처짐 · 전자 잡음** |
+| 웅장함 | `explosive and overwhelming`, `the full orchestra striking together` | **둘 다 제거.** 임팩트는 저역 마르카토로만 |
+| 고역 | 밝기 문장 다수 | **`soft and rolled off`** — 30번 쪽으로 당긴다 |
+
+```
+fast driving orchestral, mechanical and unvarying, like a machine that runs
+without ever stopping or changing, recorded in an enormous white facility of
+marble and glass, the high end soft and rolled off, the brightness coming from
+the room rather than from the instruments, strings playing with no vibrato and
+no expression, perfectly even and inhumanly precise, a fast sixteenth note
+string ostinato high above running without pause, two violins playing the same
+line very slightly out of tune with each other, close enough that they beat and
+grind audibly the whole time, cellos and double basses in octaves underneath
+with hard marcato attacks, a short high melodic figure circling the same three
+notes over and over, the three notes only a semitone apart so the figure sours
+every time it turns, obsessive and never developing, the harmony underneath
+radiant and major while everything above it is out of tune with it, the whole
+ensemble sagging slightly flat and correcting itself, a faint high electronic
+whine running under the music the entire time, a hymn performed by machines
+that do not understand it, a terrible thing presented as salvation, every
+instrument playing continuously from the first second to the last without
+interruption, a single one minute passage that returns to its exact starting
+point and begins again unchanged, every minute sounds like every other minute,
+the first second is already as full as the middle, the final section sits at
+exactly the same level as the opening, purely instrumental, choir-free,
+organ-free, two minutes long, 132 BPM, D major
+```
+
+**볼 지점은 기괴하게 들리는가 하나다.** 대역은 여섯 테이크 연속 목표를 넘겼으므로 측정으로
+볼 것이 없다. 맥놀이와 반음 모티프가 들리면 성공이고, 그래도 매끈하게 나오면 조율 어긋남의
+폭을 키우는 대신 **`sul ponticello`처럼 음색 자체가 거친 주법**으로 옮긴다 — A8에서 "서늘한
+밝음"이라고 뺐던 카드지만, 지금은 바탕이 충분히 밝으므로 그때와 조건이 다르다.
+
+**루프는 이번 라운드에서 계속 나빴다**(0.090 ~ 0.242). 132 BPM에 사건이 많은 편성이라
+구조적이고, 80~90 BPM대에서 0.6~0.96이 나오던 것과 대조된다. **성격이 확정된 뒤 같은
+프롬프트로 테이크를 서너 개 더 뽑아 이음매로 고르는 수밖에 없다.** 이 큐는 드럼이 없어
+크로스페이드를 2~4초로 길게 걸 수 있으므로 낮은 상관을 상당 부분 덮는다.
+
+#### A18 — 이음매를 정의하지 않는다, 불협을 배경으로 내린다 (지금 쓸 것)
+
+54번에서 **박 0.812와 루프 0.419**가 나왔다. 둘 다 이번 라운드 최고이고 루프는 A13~A16
+구간(0.090 ~ 0.242)의 두 배다. **기계화 프레이밍이 작동했다는 뜻이므로 그 축은 유지한다.**
+
+남은 지적 둘은 프롬프트에 원인이 그대로 있다.
+
+**하나. 바이올린이 앞으로 나온 것은 내가 나오라고 적었기 때문이다.** `two violins ... beat
+and grind audibly the whole time`은 전면 배치 지시다. 게다가 3음 모티프도 고음 현악이라
+**앞자리를 둘이 다투고 있었다.** 불협을 배경 지속음으로 내리고 모티프는 **클린 일렉기타**에
+넘긴다 — 편성 합의 안에 있고, city에서 쓰던 악기이며, 웅장해지지 않으면서 어택을 준다.
+
+**둘. 골짜기가 1분 경계 바로 앞에 앉았다.** 윤곽에서 48~56초가 10dB 내려앉고 96초 이후가
+다시 하락한다.
+
+```
+ 24~44s   -10.8 ~ -9.0    플래토 A
+ 48~56s   -20.0 ~ -18.3   골짜기
+ 60~92s   -14.8 → -8.9    회복 후 플래토 B
+ 96~112s  -17.2 ~ -14.7   후반 하락
+```
+
+범인은 `a single one minute passage that returns to its exact starting point`으로 본다.
+프롬프트에서 **경계를 가진 단위를 정의하는 유일한 문장**이고, 모델이 그 단위의 끝에 전환구를
+만들었다. A2에서 루프 상관을 0.42 → 0.85로 올린 공신이라 여섯 프롬프트째 끌고 왔는데,
+**이음매를 만들라고 하면 이음매가 들린다.** 반복은 요구하되 단위는 정의하지 않는 문장으로
+바꾼다.
+
+`the whole ensemble sagging slightly flat and correcting itself`도 뺀다. 시간에 걸친 과정을
+서술하는 문장이라 같은 방식으로 구조를 부를 수 있다.
+
+```
+fast driving orchestral, mechanical and unvarying, like a machine that runs
+without ever stopping or changing, recorded in an enormous white facility of
+marble and glass, the high end soft and rolled off, the brightness coming from
+the room rather than from the instruments, a clean electric guitar in front
+playing a short figure that circles the same three notes over and over, the
+three notes only a semitone apart so the figure sours every time it turns,
+obsessive and never developing, a fast sixteenth note string ostinato in the
+middle register running without pause, even and low behind the guitar,
+sustained high strings far in the background very slightly out of tune with
+themselves, beating quietly among each other and staying back there, cellos and
+double basses in octaves underneath with hard marcato attacks, strings playing
+with no vibrato and no expression, perfectly even and inhumanly precise, a
+faint high electronic whine running under everything the entire time, a hymn
+performed by machines that do not understand it, a terrible thing presented as
+salvation, the same short pattern repeating continuously for the whole two
+minutes, each repetition identical to the last and running straight into the
+next, every ten seconds sounds like every other ten seconds, the level is
+identical at the start, in the middle and at the end, every instrument sounding
+from the first second to the last without interruption, purely instrumental,
+choir-free, organ-free, two minutes long, 132 BPM, D major
+```
+
+**볼 지점은 윤곽이 평탄한가와 기타가 앞에 있는가 둘이다.** 루프 상관은 이음매 정의를
+뺐으므로 54번의 0.419보다 내려갈 수 있는데, **전개가 자연스러워지는 대가라면 받는다** —
+이음매는 크로스페이드로 덮을 수 있고 곡 전체의 기복은 덮을 수 없다.
+
+#### A19 — 과노출은 밝기가 아니라 화성 동결이다 (지금 쓸 것)
+
+55번에서 **루프 0.727 / 빌드 +0.1**이 나왔다. 지금까지 잰 return 테이크 중 최고이고,
+**반음 3음 모티프로 불협이 처음으로 들렸다.** 리드를 기타로 옮긴 것도 바이올린 존재감
+문제를 해결했다. 이 셋은 유지한다.
+
+**남은 지적은 "너무 활기차다"이고 원인은 화성이 움직이는 것이다.**
+
+밝은 장조 화성이 진행하고 저역이 마르카토로 때리고 132 BPM에 16분이 돌면, 그 움직임은
+반드시 활기로 읽힌다. **활기는 도착지가 있을 때 생긴다.**
+
+**그리고 여기서 "과노출"의 음악적 정의가 나온다.** 기획서의 5스테이지 밝음은 아름다운 밝음이
+아니라 **빛이 너무 강해 정보가 타서 없어진 상태**다. 음악에서 정보가 없어진 상태는 밝기가
+높은 상태가 아니라 **변화가 없는 상태**다.
+
+| 시도 | 방법 | 결과 |
+| --- | --- | --- |
+| A ~ A9 | 밝기를 형용사로 조절 | 아홉 번 실패 |
+| A13 ~ A16 | 불협을 화성으로 삽입 | 네 번 실패 |
+| A17 ~ A18 | 불협을 조율·음정으로 | **성공** (55번) |
+| **A19** | **과노출을 화성 동결로** | — |
+
+**D major 한 화음으로 2분 내내 간다.** 그 위에서 16분이 돌고 반음 모티프가 계속 상하게
+하면 모든 움직임이 어디로도 가지 못한다. 화음이 안 바뀌면 같은 속도가 활기가 아니라 강박이
+되고, 그것이 기계가 도는 소리다.
+
+부수 효과가 하나 더 있다. 55번은 48초와 96초에 6~7dB 골짜기가 남아 있고 루프도 48.0초로
+잡혔다 — **`one minute passage`를 뺐더니 모델이 48초짜리 섹션을 대신 만들었다.** 48초는 길이
+규격 60초 미달이라 그대로 쓸 수 없는데, **화성이 안 움직이면 섹션을 나눌 근거도 사라진다.**
+
+A8에서 뽑아 두었던 `serene and impersonal`, `vast and indifferent`, `washed out to white`를
+여기서 되살린다. 그때는 정적인 텍스처 위에 얹혀 "정적이다"로 죽었지만, **지금은 밑에서
+기계가 돌고 있으므로 무심함이 얹힐 자리가 있다.**
+
+```
+fast driving orchestral, mechanical and unvarying, like a machine that runs
+without ever stopping or changing, serene and impersonal, indifferent, nothing
+in it enjoying itself, recorded in an enormous white facility of marble and
+glass, washed out to white, the high end soft and rolled off, the brightness
+coming from the room rather than from the instruments, the harmony frozen on a
+single D major chord held for the entire two minutes, the same one chord from
+the first second to the last, a fast sixteenth note string ostinato in the
+middle register turning over it without pause, every note struck at exactly the
+same weight as every other, a clean electric guitar repeating one short figure
+that circles the same three notes over and over, the three notes only a
+semitone apart so the figure sours against the chord every time it turns,
+obsessive and never developing, sustained high strings far in the background
+very slightly out of tune with themselves, beating quietly among each other and
+staying back there, cellos and double basses holding one low D underneath,
+heavy and unmoving, strings playing with no vibrato and no expression,
+perfectly even and inhumanly precise, a faint high electronic whine running
+under everything the entire time, a hymn performed by machines that do not
+understand it, a terrible thing presented as salvation, the same short pattern
+repeating continuously for the whole two minutes, each repetition identical to
+the last and running straight into the next, every ten seconds sounds like
+every other ten seconds, the level is identical at the start, in the middle and
+at the end, every instrument sounding from the first second to the last without
+interruption, purely instrumental, choir-free, organ-free, two minutes long,
+132 BPM, D major
+```
+
+마르카토를 저역 지속음으로 바꾼 것도 같은 이유다. **무게는 남기고 타격은 뺀다** — 타격은
+그루브를 만들고 그루브가 곧 활기다.
+
+**볼 지점은 움직이는데 활기차지 않은가 하나다.** 화성이 얼었는데도 활기차면 남은 원인은
+템포이므로 그때 132를 내린다. 다만 88에서는 "너무 느리다"가 나왔으므로 110 언저리부터
+본다.
+
+#### A20 — 편성 합의를 어기고 있었다, 그리고 프롬프트를 반으로 줄인다 (지금 쓸 것)
+
+56번에서도 "너무 밝다"가 나왔다. **열한 번째다.** 밝기 형용사를 빼고, 공간을 바꾸고, 고역을
+롤오프하고, 화성을 얼려도 안 잡혔으면 원인이 그 층에 없다는 뜻이다.
+
+**이 문서 맨 앞에 답이 있었다.**
+
+> **편성: 오케스트라(첼로·비올라 중심 현악) + 일렉기타.** 팀 합의 사항이므로 개별 곡에서
+> 임의로 벗어나지 않는다.
+
+**첼로·비올라 중심이다.** 그런데 A5 이후 return 프롬프트는 계속 반대로 갔다.
+
+| 프롬프트 | 현악 지시 |
+| --- | --- |
+| A5 ~ A8 | `everything played in the top two octaves` |
+| A10 ~ A16 | `high strings playing a clear soaring melody`, `high register violins` |
+| A17 ~ A19 | `two violins`, `sustained high strings`, `ostinato high above` |
+
+**열 개 넘는 프롬프트가 편성 합의를 어기고 있었고, 아무도 그것을 밝기의 원인으로 세지
+않았다.** 밝기를 형용사로 깎으려 했지 악기 음역을 내리지는 않았다. 현악 중심을 비올라·첼로로
+되돌린다.
+
+##### 프롬프트를 115단어로 줄인다
+
+A19는 300단어를 넘었다. **태그가 많을수록 서로 상쇄된다는 것은 이 문서가 city에서부터
+반복해서 확인한 성질인데, 라운드마다 문장을 더하기만 하고 빼지 않았다.**
+
+부정형도 전부 걷어낸다. `choir-free` / `organ-free`까지 뺐다 — **부르지 않으려면 언급 자체를
+안 하는 것이 맞고**, 지금 프롬프트에는 그것들을 부를 문장이 남아 있지 않다.
+
+| 뺀 것 | 이유 |
+| --- | --- |
+| `serene and impersonal`, `washed out to white`, `nothing in it enjoying itself` | 분위기 형용사는 세 큐에 걸쳐 번역되지 않는 것이 확인됐다 |
+| `sustained high strings ... beating quietly` | 밝기의 원인이자 편성 합의 위반. 불협은 반음 figure가 이미 만든다 |
+| `no vibrato and no expression, perfectly even and inhumanly precise` | `flat dead tone throughout` 한 구로 압축 |
+| `choir-free`, `organ-free` | 부정형. 언급이 곧 호출이다 |
+
+```
+mechanical orchestral, driving and indifferent, a machine that runs the same
+way forever, recorded in an enormous white facility of marble and glass with
+hard bright reflections, the brightness coming from the room and the
+instruments themselves dark, low and warm, a fast sixteenth note harp ostinato
+turning continuously over a single D major chord held for the whole two
+minutes, cellos sustaining underneath in their low register, round and soft
+toned, double basses holding one low D beneath them, a glass armonica above
+repeating a short figure of three notes a semitone apart, souring against the
+chord each time it turns, every note the same weight as every other, a faint
+high electronic whine under everything, a hymn as a machine would play it,
+continuous from the first second to the last, every ten seconds the same as
+every other ten seconds, purely instrumental, two minutes long, 132 BPM, D major
+```
+
+##### `flat dead tone`이 쨍함을 만들고 있었다
+
+"너무 현악이고 소리가 쨍하다"는 지적이 나왔다. **원인이 둘 다 프롬프트에 있다.**
+
+**하나. 비브라토를 죽이면 음색이 얇아진다.** `flat dead tone throughout`과 그 전신인
+`no vibrato and no expression`은 기계처럼 만들려고 넣은 문장인데, 비브라토는 음색을 따뜻하게
+하는 장치이므로 그것을 없애면 물리적으로 날이 선 소리가 된다. **`muted`가 약음기를 뜻해
+고역을 깎았던 것과 같은 종류의 부작용이다** — 연주 상태를 지시하는 단어는 분위기가 아니라
+물리로 작동한다.
+
+**둘. 16분 오스티나토를 활로 켜면 활 어택이 초당 여덟 번 난다.** 중고역이 계속 긁히므로
+같은 음역이라도 훨씬 쨍하게 들린다.
+
+그래서 **오스티나토를 하프로 옮긴다.** 활 소음이 사라지고, 현악 층이 셋(비올라·첼로·베이스)에서
+둘(첼로·베이스)로 줄며, 천국 쪽 악기라 컨셉에서도 벗어나지 않는다. 뜯는 소리이므로
+**첼레스타·글로켄이 탈락한 이유였던 금속성 타격과도 갈린다.**
+
+기계적인 성격은 `mechanical and unvarying, like a machine that runs the same way forever`와
+`every note the same weight as every other`가 이미 붙들고 있으므로, **음색을 얇게 만드는
+문장은 빼도 된다.** 남은 현악 둘은 `dark, low and warm`, `round and soft toned`로 못박았다.
+
+**하프가 너무 예쁘게 나오면 `harp`를 `pizzicato cellos`로 바꾼다.** 같은 뜯는 소리인데 어둡다.
+
+**밝기의 출처를 공간에만 남긴 것이 이 프롬프트의 요지다.** 방은 흰 대리석에 반사가 강하고
+악기는 어둡고 낮다. 기획서의 밝음이 음악의 밝음이 아니라 **공간의 밝음**이라는 것이 열한 번
+만에 정리된 셈이다.
+
+##### 기타를 뺀다 — 편성 합의를 처음으로 벗어난다
+
+"기타도 별로다, 천국 테마에 나오는 악기가 아니다"는 판단이 나왔다. **편성 합의를 실제로
+바꾸는 첫 사례이므로 근거를 남긴다.**
+
+합의는 다섯 곡을 한 작품으로 묶으려고 만든 것이고 `title`·`city`·`alley`·`inferno`·
+`underground` 전부 기타가 들어가 있다. **return만 빼면 클라이맥스 곡이 유일하게 팔레트에서
+벗어난다.** 그 비용을 알고 뺀다.
+
+대체 악기는 지금까지 탈락한 목록이 좁혀 준다.
+
+| 악기 | 결과 |
+| --- | --- |
+| 파이프오르간 | 저역 페달이 장엄함을 데려온다 (48번, 56번) |
+| 합창 | 크레셴도를 데려온다 (16번, 빌드 +4.3) |
+| 첼레스타 · 글로켄 · 튜불러벨 | 경박하다 (34 · 37 · 42번) |
+| **글라스 하모니카** | **아래** |
+
+글라스 하모니카를 택한 이유는 넷이다. **지속음이라 타격이 없어 경박해질 수 없고**, 순음에
+가까워 인공적으로 들리며, 흰 대리석과 유리로 된 시설이라는 공간 설정과 재질이 같고,
+역사적으로 **연주자를 미치게 한다는 소문이 붙었던 악기**라 "아름답지만 불편한 광기"와 정면으로
+맞는다.
+
+기타 자리 한 구절만 바뀌므로 길이는 115단어 그대로다. **이것도 아니면 `a glass armonica
+above it`을 `a solo viola`로 바꿔 편성을 현악만으로 남긴다.**
+
+#### A21 — 현악 음역이 밝기의 주 레버다, 그리고 목표값이 생겼다 (지금 쓸 것)
+
+57번에서 **공기감이 -39.0으로 떨어졌다.** 직전 세 테이크가 -27.5 ~ -31.9였으므로 **한 번에
+8~11dB가 움직였다.**
+
+| 프롬프트 | 현악 중심 | 공기감 | 평가 |
+| --- | --- | --- | --- |
+| A17 ~ A19 | 고음 현악 · 바이올린 | -27.5 ~ -31.9 | 너무 밝다 |
+| **A20** | **비올라 · 첼로** | **-39.0** | **어두워졌다** |
+| 참고: 30번 `Marble Hall Reflections` | — | **-35.4** | 사람이 그나마 좋다고 한 테이크 |
+
+**이 라운드에서 밝기를 움직인 가장 큰 레버가 현악 음역이었다.** 형용사를 바꿔서 얻은 것은
+매번 2~3dB인데 악기 음역을 내리니 11dB가 움직였다. A~A9의 아홉 번이 실패한 이유가 여기서
+한 번 더 확인된다 — **밝기는 형용사의 층에 있는 값이 아니다.**
+
+**다만 A20은 브레이크를 두 번 밟았다.** 현악 중심을 내리면서 `the instruments themselves
+dark and low`까지 같이 넣었다. A21에서는 그 지시를 빼고 **밝기를 공간과 하프·글라스
+하모니카에만 맡긴다.** 둘 다 상단에 배음을 내는 악기라 첼로를 낮게 둔 채로도 위가 채워진다.
+
+##### 목표값이 생겼다 — 공기감 -35 언저리
+
+30번이 -35.4이고 사람이 그것을 좋다고 했다. **A17~A19(-27.5 ~ -31.9)와 A20(-39.0)의 정확히
+사이다.** 이제 이 큐의 밝기는 감으로 맞추지 않고 **-35 근처를 목표로 조준한다.**
+
+측정으로 곡을 고르지 않는다는 원칙은 그대로다. 다만 **밝기 하나만은 사람이 좋다고 한 값이
+있으므로 후보를 좁히는 데 쓴다.**
+
+> **이 절의 조준값은 58번에서 반증됐다.** 공기감 하나로는 체감 밝기가 정해지지 않는다.
+> 아래 A22 참고.
+
+```
+mechanical orchestral, driving and indifferent, a machine that runs the same
+way forever, recorded in an enormous white facility of marble and glass with
+hard bright reflections, a fast sixteenth note harp ostinato turning
+continuously over a single D major chord held for the whole two minutes, cellos
+sustaining underneath, round and warm toned, double basses holding one low D
+beneath them, a glass armonica above repeating a short figure of three notes a
+semitone apart, souring against the chord each time it turns, every note the
+same weight as every other, a faint high electronic whine under everything, a
+hymn as a machine would play it, continuous from the first second to the last,
+every ten seconds the same as every other ten seconds, purely instrumental, two
+minutes long, 132 BPM, D major
+```
+
+##### 템포 지시가 처음으로 정확히 붙었다
+
+57번의 박이 **131.00 BPM**이다. 지시값 132에 사실상 일치한다. 그동안 88 → 79, 132 → 66(배수
+검출)으로 흔들렸는데 이번에 붙었으므로 **템포는 더 건드리지 않는다.**
+
+#### A22 — 밝기와 부피는 다른 대역이다 (지금 쓸 것)
+
+58번에서 **중역(1~4kHz)이 -18.6까지 파였다.** 직전 테이크들이 -8 ~ -10이었으므로 8~10dB짜리
+구멍이다. 평가는 "가볍다, 부피가 부족하다"였다.
+
+**원인은 편성에서 중음역 악기를 전부 뺀 것이다.** 하프는 배음이 위로 가고, 글라스 하모니카는
+순음이라 높은 자리에 앉고, 첼로·콘트라베이스는 아래를 잡는다. **1~4kHz를 채울 악기가 하나도
+남아 있지 않았다.**
+
+##### 공기감 하나로 밝기를 조준한 것은 틀렸다
+
+A21에서 "공기감 -35를 목표로 한다"고 적었는데 **58번이 그것을 반증한다.**
+
+| | 중 1~4k | 고 4~8k | 공기감 8~16k | 평가 |
+| --- | --- | --- | --- | --- |
+| 30 `Marble Hall Reflections` | **-7.4** | **-25.4** | **-35.4** | 사람이 좋다고 함 |
+| 56 `Golden Cathedral Rites` | -9.5 | -22.4 | **-27.6** | 너무 밝다 |
+| 57 `Surgical Devotion` | -10.2 | -25.9 | -39.0 | 어둡다 |
+| 58 `The Clinical Nave` | **-18.6** | -29.8 | **-27.6** | 가볍다 |
+
+**56번과 58번은 공기감이 -27.6으로 같은데 판정이 정반대다.** 그러므로 공기감은 체감 밝기의
+단독 지표가 아니다. 둘을 나눠서 본다.
+
+| 축 | 대역 | 근거 |
+| --- | --- | --- |
+| **체감 밝기** | 고 4~8k + 공기감 8~16k | 56번이 -22.4 / -27.6으로 가장 높고 "너무 밝다", 57번이 -39.0으로 "어둡다" |
+| **부피 · 몸통** | **중 1~4k** | 58번만 -18.6이고 58번만 "가볍다" |
+
+**목표 프로파일은 30번이다 — 중 -7 근처, 고 -25 근처, 공기감 -35 근처.** 30번은 56번보다
+중역이 더 높은데도(-7.4 대 -9.5) 밝다는 말이 안 나왔다. **중역은 올려도 밝아지지 않는다.**
+
+##### 비올라를 되돌린다
+
+A20에서 비올라가 쨍했던 것은 **16분 오스티나토를 활로 켰기 때문**이고 그 역할은 이제 하프가
+가져갔다. 화음을 받치는 지속음이면 활 어택이 초당 여덟 번 날 일이 없다. **분할 비올라
+블록으로 중역을 채우고, 저역도 첼로를 콘트라베이스에 겹쳐 두껍게 한다.**
+
+```
+mechanical orchestral, driving and indifferent, a machine that runs the same
+way forever, recorded in an enormous white facility of marble and glass with
+hard bright reflections, a fast sixteenth note harp ostinato turning
+continuously over a single D major chord held for the whole two minutes, a
+thick block of divided violas sustaining that chord in their middle register,
+full bodied and warm, cellos and double basses in octaves holding one low D
+beneath them, a glass armonica above repeating a short figure of three notes a
+semitone apart, souring against the chord each time it turns, every note the
+same weight as every other, a faint high electronic whine under everything, a
+hymn as a machine would play it, continuous from the first second to the last,
+every ten seconds the same as every other ten seconds, purely instrumental, two
+minutes long, 132 BPM, D major
+```
+
+**하프 선율은 좋다는 평가가 나왔으므로 그대로 둔다.** 58번은 빌드 +0.3, 루프 0.419, 이음매
+레벨차 -0.07dB로 구조도 이미 좋다. **손댈 곳은 중역 하나다.**
+
+#### 59번에서 프롬프트 수정을 멈춘다
+
+59번이 이 라운드에서 **처음으로 긍정 평가를 받았다**("나쁘지 않다"). 두 가지가 같이 나왔다.
+
+##### 전개 문제가 풀렸다
+
+```
+윤곽 범위  -11.0 ~ -14.7   골짜기 없음
+빌드       +0.1
+이음매     58.2초, 레벨차 -0.18dB
+```
+
+54~58번은 48초·96초에 6~10dB 구멍이 있었는데 **59번은 2분 내내 평탄하다. 지금까지 잰 모든
+테이크 중 윤곽이 가장 고르다.** 화성 동결(A19)이 섹션을 나눌 근거를 없앤 것이 원인으로 보인다.
+"전개가 부자연스럽다"는 지적은 여기서 해소된 것으로 본다.
+
+##### 대역 조준은 폐기한다
+
+A21에서 공기감 -35를 조준했고 A22에서 그것을 "중 -7 / 고 -25 / 공기감 -35"로 고쳤다.
+**59번이 그 둘을 모두 반박한다.**
+
+| | 중 1~4k | 고 4~8k | 공기감 8~16k | 평가 |
+| --- | --- | --- | --- | --- |
+| 30 `Marble Hall` (조준 목표) | -7.4 | -25.4 | -35.4 | 좋다고 함 |
+| 57 `Surgical Devotion` | -10.2 | -25.9 | -39.0 | **어두워졌다** |
+| **59 `A Terrible Salvation`** | **-17.5** | **-36.1** | **-41.0** | **나쁘지 않다** |
+
+**57번보다 고역이 10dB 더 죽었는데 판정은 반대로 나왔다.** 부피 지표로 삼았던 중역도 -17.5로
+목표에서 10dB 벗어나 있다. **두 라운드에 걸쳐 세운 대역 목표가 사람의 판단을 예측하지 못한다.**
+
+이 문서가 이미 두 번 같은 결론에 도달했었다 — city 채택본은 측정상 다이내믹 최하위였고,
+A7 이후로 "측정으로 이 큐를 고르지 않는다"고 적어 두었다. **세 번째다. 대역으로 return을
+좁히려는 시도는 여기서 끝낸다.**
+
+##### 남은 방법은 테이크를 늘리는 것이다
+
+프롬프트는 분포의 중심을 옮기고 개별 테이크는 그 분포에서 뽑힌다. 같은 A2 프롬프트로 뽑은
+17번과 21번이 밝기에서 10dB 벌어진 것이 그 근거다.
+
+**A22를 고정하고 테이크를 서너 개 더 뽑아 귀로 고른다.** 이 시점에서 문장을 더 만지는 것은
+노이즈를 쫓는 일이다. city v3에서 내린 것과 같은 판단이다.
+
+##### 60번 — 같은 프롬프트 재시도가 구조 지표 최고를 냈다
+
+A22를 그대로 다시 돌려 나온 테이크다. **테이크를 늘리라는 판단이 한 번에 근거를 얻었다.**
+
+| | 59 (A22) | **60 (A22)** | 참고: 30 Marble Hall |
+| --- | --- | --- | --- |
+| 중 1~4k | -17.5 | **-12.2** | -7.4 |
+| 고 4~8k | -36.1 | **-26.0** | -25.4 |
+| 공기감 8~16k | -41.0 | **-33.6** | -35.4 |
+| 윤곽 범위 | -11.0 ~ -14.7 | **-11.3 ~ -14.5** | — |
+| 이음매 | 58.2초 / -0.18dB | **60.0초 / -0.36dB** | — |
+| 루프 상관 | 0.322 | 0.305 | — |
+
+**글자 하나 다르지 않은 프롬프트에서 고역이 10dB, 공기감이 7dB 움직였다.** 17번과 21번에서
+확인한 테이크 편차가 세 번째로 재확인됐다.
+
+60번은 **고역과 공기감이 30번과 각각 0.6dB / 1.8dB 차**이고, 중역도 -18.6 → -17.5 → -12.2로
+올라와 "부피 부족"이 실제로 메워졌다. 분할 비올라 블록이 의도대로 작동했다.
+
+###### 이음매는 기본값이 최선이다
+
+시작점을 12·18·24·30·36·42·48초로 훑었으나 전부 기본값보다 나쁘다.
+
+| 시작점 | 주기 | 상관 | 레벨차 |
+| --- | --- | --- | --- |
+| **22.78s (기본)** | **60.0초** | **0.305** | **-0.36dB** |
+| 18s | 60.0초 | 0.254 | -0.83dB |
+| 36s | 58.2초 | 0.253 | -0.13dB |
+| 24s | 70.0초 | 0.267 | +1.30dB |
+
+**22.78s → 82.78s로 잡는다.** 주기가 60.0초로 길이 규격 하한에 정확히 걸리고 레벨차도 작다.
+
+###### 가공 시 크로스페이드 곡선을 다시 재야 한다
+
+city에서는 리니어를 택했다. 근거는 **잘 고른 루프 지점은 두 소재가 닮아 진폭이 코히런트하게
+더해지므로 등파워가 최대 3dB를 얹는다**는 실측이었다.
+
+**60번은 상관이 0.305로 낮다.** 두 끝이 상대적으로 독립적이면 진폭이 아니라 파워가 더해지므로
+**등파워가 맞고 리니어는 이음매에서 오히려 꺼진다.** city의 결론을 그대로 가져오지 말고
+이 곡에서 다시 재서 정한다.
+
+###### 61번이 밝은 쪽 경계를 복구했다 — "웅장"과 "가볍다"는 같은 축이다
+
+대역으로 이 큐를 좁히는 것은 폐기했는데, 61번이 **밝은 쪽 경계 하나는 일관된다**는 것을
+보여준다.
+
+| take | 중 1~4k | 평가 |
+| --- | --- | --- |
+| 61 `Surgical Liturgy` | **-8.2** | 너무 밝고 **웅장** |
+| 53 `Held For Too Long` | -8.6 | 적당히 **웅장** |
+| 56 `Golden Cathedral Rites` | -9.5 | 너무 밝다 |
+| **60 `The Sterile Nave`** | **-12.2** | **불만 없음** |
+| 59 `A Terrible Salvation` | -17.5 | 나쁘지 않다 |
+| 58 `The Clinical Nave` | -18.6 | **가볍다** |
+
+**중역이 -10 위인 셋은 전부 "밝다" 또는 "웅장하다"가 나왔고, -17 아래인 둘에서는 "가볍다"가
+나왔다.** 즉 **"웅장하다"와 "가볍다"는 반대말이 아니라 같은 축의 양 끝이며 그 축이 중역이다.**
+A22에서 부피를 메우려고 비올라를 넣은 것과 A19에서 웅장함을 빼려고 마르카토를 뺀 것이
+사실은 같은 손잡이를 반대로 돌린 일이었다.
+
+**목표 창은 중 -12 ~ -14다.** 60번의 -12.2가 두 실패 구간의 정확히 가운데에 있다.
+
+어두운 쪽 하한은 여전히 안 잡힌다 — 57번(공기감 -39.0)이 "어둡다"인데 59번(-41.0)은
+"나쁘지 않다"라 모순이 남아 있다. **밝은 쪽만 경계로 쓴다.**
+
+###### 같은 프롬프트에서 고역이 15dB를 오간다
+
+59·60·61이 모두 A22에서 나왔다면 고역이 **-20.7 ~ -36.1**로 15dB, 중역이 **-8.2 ~ -17.5**로
+9dB 벌어진 것이다. **문장으로 만들 수 있는 차이가 아니다.** 프롬프트 수정을 멈추고 테이크를
+늘리라는 판단이 여기서 다시 지지된다.
+
+###### 그래도 채택 근거는 아니다
+
+**측정이 이 큐에서 사람 판단을 빗나간 것이 세 번이다** — city 채택본이 다이내믹 최하위였고,
+59번이 대역 목표에서 10dB 벗어났는데 긍정 평가를 받았다. 60번이 숫자로 최선인 것은
+**후보로 올릴 근거이지 채택할 근거가 아니다.** 방침대로 두 사람이 듣고 정한다.
+
+#### A23 — 악기 서열을 명시한다 (지금 쓸 것)
+
+62번에서 **하프가 사라지고 비올라가 메인이 됐다.** 원인은 A22에 내가 쓴 문장이다.
+
+```
+a thick block of divided violas sustaining that chord in their
+middle register, full bodied and warm
+```
+
+**`thick block`과 `full bodied`는 프롬프트 전체에서 무게가 가장 센 표현이다.** 반면 하프는
+`ostinato`라고만 적혀 있고 오스티나토는 정의상 반주다. **한쪽에 "두껍게 꽉 채워라", 다른
+쪽에 "받쳐라"라고 적었으니 앞뒤가 뒤집힌 것이 당연하다.**
+
+**마스킹도 겹쳤다.** 비올라를 하프와 같은 중음역에 놓고 같은 화음을 지속시키면 하프의 16분이
+그대로 가려진다.
+
+측정이 이를 뒷받침한다 — 62번의 중역 -8.5는 **"웅장/밝다" 실패 구간(-8.2 ~ -9.5)에 정확히
+들어간다.** 비올라가 없던 58번이 -18.6이었으므로 **노브를 절반이 아니라 끝까지 돌린 셈이다.**
+
+##### 고칠 것은 비올라의 양이 아니라 서열이다
+
+| | A22 | A23 |
+| --- | --- | --- |
+| 하프 | `a fast sixteenth note harp ostinato` | **`in front, clear and present and the loudest thing in the mix`** |
+| 비올라 | `a thick block of divided violas ... full bodied and warm` | **`quietly behind the harp, warm and soft and always sitting under it`** |
+
+`every note the same weight as every other`도 뺀다. **악기 간 서열을 세우는 지시와 정면으로
+부딪힌다.** 기계적 균일함은 `mechanical and unvarying`이 이미 담당한다.
+
+```
+mechanical orchestral, driving and indifferent, a machine that runs the same
+way forever, recorded in an enormous white facility of marble and glass with
+hard bright reflections, a fast sixteenth note harp ostinato in front, clear
+and present and the loudest thing in the mix, turning continuously over a
+single D major chord held for the whole two minutes, violas sustaining that
+chord quietly behind the harp, warm and soft and always sitting under it,
+cellos and double basses in octaves holding one low D beneath them, a glass
+armonica above repeating a short figure of three notes a semitone apart,
+souring against the chord each time it turns, a faint high electronic whine
+under everything, a hymn as a machine would play it, continuous from the first
+second to the last, every ten seconds the same as every other ten seconds,
+purely instrumental, two minutes long, 132 BPM, D major
+```
+
+**볼 지점은 중역이 -12 ~ -14로 내려오는가와 하프가 앞에 있는가 둘이다.** 60번이 그 창
+안(-12.2)에 있었으므로 A23은 그 지점을 겨냥해 서열만 정리한 버전이다.
+
+##### 63번 — 서열 지시가 작동했다
+
+**중역이 -8.5(62번)에서 -11.9로 내려와 목표 창에 들어왔다.** 평가는 "40초대부터 괜찮다"이고,
+비올라가 하프를 덮는다는 지적은 나오지 않았다. **A23의 서열 명시가 의도대로 작동한 것으로
+본다.** 템포도 131.00으로 지시값에 붙었다.
+
+윤곽이 구간을 명확히 나눈다.
+
+```
+  0~20s   -14.0 ~ -14.8   인트로
+ 24~96s   -11.6 ~ -12.9   플래토, 편차 1.3dB
+100s~     -13.8 ~ -14.7   후반 하강
+```
+
+**사람이 좋다고 한 40초대가 플래토 한복판이다.** 측정과 귀가 같은 곳을 가리켰다.
+
+###### 이음매는 38.00s → 100.74s
+
+30~50초를 2초 간격으로 훑은 결과다.
+
+| 시작점 | 주기 | 상관 | 레벨차 | 판정 |
+| --- | --- | --- | --- | --- |
+| **38.00s** | **62.7초** | **0.244** | **+0.39dB** | **채택 후보** |
+| 36.00s | 56.9초 | 0.186 | -0.52dB | 규격 미달 |
+| 32.00s | 67.7초 | 0.132 | +0.31dB | 상관 낮음 |
+| 23.60s (도구 기본) | 50.0초 | 0.300 | -0.36dB | **규격 미달 · 인트로 포함** |
+
+기본값이 상관은 높지만 **주기가 50초로 60초 하한에 미달**하고, 시작점이 인트로 안이라 사람이
+별로라고 한 앞부분이 들어간다. **38초가 규격·레벨·구간을 모두 만족하는 유일한 지점이다.**
+
+##### 64번 — 같은 A23에서 구조가 가장 좋은 테이크가 나왔다
+
+63번과 글자 하나 다르지 않은 프롬프트다. 평가는 "좀 괜찮다"이고 **구조 지표가 이 라운드
+전체에서 가장 좋다.**
+
+| | 63 (A23) | **64 (A23)** |
+| --- | --- | --- |
+| 빌드 | +0.5 | **-0.4** |
+| 플래토 | 24~96초 (72초) | **12~100초 (88초)** |
+| 이음매 | 0.244 @ 62.7초 | **0.409 @ 80.0초** |
+| 중 1~4k | -11.9 | -15.1 |
+| 템포 | 131 | **87** |
+
+**플래토 88초는 지금까지 중 가장 길다.** 인트로가 8초로 짧고 후반 하강도 104초부터라
+쓸 수 있는 구간이 넓다.
+
+###### 이음매는 16.00s → 96.00s
+
+| 시작점 | 주기 | 상관 | 레벨차 | 판정 |
+| --- | --- | --- | --- | --- |
+| **16.00s** | **80.0초** | **0.409** | -0.71dB | **채택 후보** |
+| 40.00s | 60.0초 | 0.321 | **-0.18dB** | 차선 |
+| 23.56s (도구 기본) | 60.0초 | 0.280 | -0.41dB | |
+
+16초는 플래토(12초 시작) 안에 완전히 들어가고 **주기 80초라 체류 2~3분 동안 두 바퀴가 채
+돌지 않는다.** 레벨차 -0.71dB는 게이트(±1.5dB) 안이므로 크로스페이드로 덮인다.
+
+###### 체감 속도는 BPM이 아니라 트랜지언트가 정한다
+
+**64번의 템포가 87.00으로 지시값 132에서 크게 벗어났는데도 평가가 긍정이다.** 반대로 49번
+`Gold Glass Ritual`은 159.25로 측정됐는데 "너무 느리다"였다.
+
+| take | 측정 템포 | 평가 |
+| --- | --- | --- |
+| 49 `Gold Glass Ritual` | 159.25 | **너무 느리다** |
+| 64 `Marble Ritual` | **87.00** | 좀 괜찮다 |
+
+49번은 `dissolving into the reverb`로 어택을 뭉갠 테이크였다. **사건 수가 아무리 많아도
+트랜지언트가 죽으면 느리게 들리고, 어택이 살아 있으면 87 BPM도 느리게 들리지 않는다.**
+따라서 **템포 숫자로 이 큐를 판정하지 않는다.**
+
+##### 65번 — 대역은 목표에 가장 가까운데 빌드로 실격이다
+
+| | 65 `Surgical Alignment` | 목표: 30 `Marble Hall` |
+| --- | --- | --- |
+| 중 1~4k | **-12.0** | -7.4 |
+| 고 4~8k | **-26.5** | -25.4 |
+| 공기감 8~16k | **-34.5** | -35.4 |
+| 박 | **0.838** (전체 최고) | — |
+| **빌드** | **+7.8** | — |
+| 루프 | **0.020** | — |
+
+**대역 세 축이 모두 목표에 가장 가깝고 박도 전체 최고인데 빌드가 +7.8dB다.** 윤곽이 -19.7에서
+-9.7까지 2분 내내 단조 상승하는 크레셴도 곡이다.
+
+절차대로 창을 잘라 봤으나 살아나지 않는다.
+
+| 창 | 빌드 |
+| --- | --- |
+| 52 ~ 112초 | +3.3 |
+| 64 ~ 112초 | +1.8 |
+| 76 ~ 112초 | +1.6 |
+| 60 ~ 92초 (32초, 규격 미달) | +0.6 |
+
+**60초 이상인 어떤 창도 기준 1.5dB를 넘긴다.** 16번(합창, 전체 +4.3 / 창 +2.4)이 탈락한 것과
+같은 유형이고, 빌드는 편집으로 못 고치는 항목이라는 원칙이 그대로 적용된다.
+
+**후보 폴더에는 남긴다.** 대역과 박이 좋으므로 들어볼 값어치가 있고, 이 프롬프트가 어떤 분포를
+내는지 보여주는 표본이기도 하다. **다만 이대로는 루프로 쓸 수 없다.**
+
 #### 지금 쓸 프롬프트
 
 여덟 테이크를 뽑고 나서 정리된 상태다. **아래 셋만 쓴다.** 나머지는 왜 쓰지 않는지가
@@ -1754,7 +2496,7 @@ level, loopable background bed, two minutes long, 132 BPM, D major
 | --- | --- | --- | --- |
 | `underground` | **B2** | A | 루프가 어느 구간에서도 0.37이 천장 (11번) |
 | `inferno` | **A3** | B | 현악을 앞세우면 분노가 아니라 애도가 된다 (14번) |
-| `return` | **A10** | A ~ A9 | 밝음을 형용사로 조절한 아홉 번이 실패했다. 화성은 감7 경과화음, 편성은 8월 4일 24테이크 기록을 따른다 |
+| `return` | **A23** | A ~ A22 | 밝음을 형용사로 조절한 열한 번이 실패했고 원인은 **현악 음역**이었다. **"웅장하다"와 "가볍다"는 중역이라는 한 축의 양 끝**이므로 중 -12 ~ -14를 겨냥하고, 하프와 비올라의 **서열을 명시**한다 |
 
 셋에 공통으로 들어간 것이 **초 단위 반복 지시**다. `the same eight bars`는 세 곡 모두에서
 무시당했고, `a single one minute passage that returns to its exact starting point`은
