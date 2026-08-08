@@ -16,6 +16,10 @@ const DESCENT_SIEGE_PIPE_OFFSETS = [220, 480];
 const SIEGE_REVEAL_INTERVAL = 200;
 /** 5스테이지 종료에서 재현한 포위 대형을 유지하는 시간. */
 const ASCENSION_FORMATION_HOLD_MS = 2200;
+/** 5스테이지 보스 처치 화면이 완전히 하얘지는 시간. */
+const ASCENSION_WHITEOUT_MS = 2200;
+/** 완전히 하얀 화면으로 엔딩 방 교체를 가리는 시간. */
+const ASCENSION_WHITE_HOLD_MS = 700;
 /** 포위 잡몹이 플레이어 반대편으로 떠나는 시간. */
 const ASCENSION_DEPARTURE_MS = 1200;
 /** 지하 엔딩 방에서 플레이어를 강조하는 최종 카메라 배율. */
@@ -81,14 +85,15 @@ export class StageEndEventDirector {
 
     // 화면이 점점 하얘진다.
     const white = this.scene.add
-      .rectangle(centerX, centerY, screenWidth, screenHeight, 0xffffff, 0)
+      .rectangle(centerX, centerY, screenWidth, screenHeight, 0xffffff)
+      .setAlpha(0)
       .setDepth(90)
       .setScrollFactor(0);
     this.scene.tweens.add({
       targets: white,
       alpha: 1,
-      duration: 900,
-      ease: 'Sine.easeIn',
+      duration: ASCENSION_WHITEOUT_MS,
+      ease: 'Linear',
       onComplete: () => {
         // 완전히 하얀 순간 3스테이지 지하 착지 방으로 교체(교체를 흰빛으로 감춤).
         onEnterRoom();
@@ -97,11 +102,16 @@ export class StageEndEventDirector {
         const enemies = this.spawnUndergroundSiege(worldCenterX, true);
 
         // 흰빛을 옅게 내려 지하 포위 방과 잡몹 대형을 드러낸다.
-        this.scene.tweens.add({ targets: white, alpha: 0.2, duration: 700 });
+        this.scene.tweens.add({
+          targets: white,
+          alpha: 0.2,
+          duration: 700,
+          delay: ASCENSION_WHITE_HOLD_MS,
+        });
 
         // 대형을 잠시 보여준 뒤 모두 플레이어 반대 방향인 화면 바깥으로 떠난다.
         this.scene.time.delayedCall(
-          ASCENSION_FORMATION_HOLD_MS,
+          ASCENSION_WHITE_HOLD_MS + ASCENSION_FORMATION_HOLD_MS,
           () => {
             let remainingDepartures = enemies.length;
             enemies.forEach(({ moveAnimation, sprite }) => {
