@@ -34,6 +34,14 @@ export type SfxKey =
   | 'sfx-stage1-boss-laser-single'
   | 'sfx-stage1-boss-laser-double-first'
   | 'sfx-stage1-boss-laser-double-second'
+  | 'sfx-stage2-boss-scan-start'
+  | 'sfx-stage2-boss-scan-loop'
+  | 'sfx-stage2-boss-scan-end'
+  | 'sfx-stage2-boss-target-lock'
+  | 'sfx-stage2-boss-orb-shot-01'
+  | 'sfx-stage2-boss-orb-shot-02'
+  | 'sfx-stage2-boss-orb-shot-03'
+  | 'sfx-stage2-boss-orb-shot-04'
   | 'sfx-stage1-footstep-01'
   | 'sfx-stage1-footstep-02'
   | 'sfx-stage1-footstep-03'
@@ -134,6 +142,14 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-stage1-boss-laser-single': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
   'sfx-stage1-boss-laser-double-first': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
   'sfx-stage1-boss-laser-double-second': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
+  'sfx-stage2-boss-scan-start': { volume: 0.7 },
+  'sfx-stage2-boss-scan-loop': { volume: 0.5 },
+  'sfx-stage2-boss-scan-end': { volume: 0.7 },
+  'sfx-stage2-boss-target-lock': { volume: 0.8 },
+  'sfx-stage2-boss-orb-shot-01': { volume: 0.75 },
+  'sfx-stage2-boss-orb-shot-02': { volume: 0.75 },
+  'sfx-stage2-boss-orb-shot-03': { volume: 0.75 },
+  'sfx-stage2-boss-orb-shot-04': { volume: 0.75 },
   'sfx-stage1-footstep-01': { volume: 1, rateJitter: 0.03 },
   'sfx-stage1-footstep-02': { volume: 1, rateJitter: 0.03 },
   'sfx-stage1-footstep-03': { volume: 1, rateJitter: 0.03 },
@@ -175,6 +191,23 @@ export const STAGE_ONE_BOSS_LASER_SFX_BY_CUE = {
   'single' | 'double-first' | 'double-second',
   SfxKey
 >;
+
+export const STAGE_TWO_BOSS_SCAN_SFX_BY_CUE = {
+  start: 'sfx-stage2-boss-scan-start',
+  loop: 'sfx-stage2-boss-scan-loop',
+  end: 'sfx-stage2-boss-scan-end',
+  'target-lock': 'sfx-stage2-boss-target-lock',
+} as const satisfies Record<
+  'start' | 'loop' | 'end' | 'target-lock',
+  SfxKey
+>;
+
+export const STAGE_TWO_BOSS_ORB_SHOT_SFX = [
+  'sfx-stage2-boss-orb-shot-01',
+  'sfx-stage2-boss-orb-shot-02',
+  'sfx-stage2-boss-orb-shot-03',
+  'sfx-stage2-boss-orb-shot-04',
+] as const satisfies readonly SfxKey[];
 
 export type FootstepStageId =
   | 'stage-01'

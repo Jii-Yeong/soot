@@ -46,6 +46,8 @@ type GameEventMap = {
   'boss-laser-fired': [
     cue: 'single' | 'double-first' | 'double-second',
   ];
+  'boss-scan-cue': [cue: 'start' | 'target-lock' | 'end'];
+  'boss-orb-fired': [];
   'weapon-changed': [id: string, label: string];
   'weapon-inventory-changed': [
     slots: readonly (string | null)[],

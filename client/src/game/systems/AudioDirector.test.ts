@@ -7,6 +7,8 @@ import {
   FOOTSTEP_SFX_BY_STAGE,
   PROJECTILE_BLOCK_SFX_BY_KIND,
   STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
+  STAGE_TWO_BOSS_ORB_SHOT_SFX,
+  STAGE_TWO_BOSS_SCAN_SFX_BY_CUE,
   type AudioAssetKey,
 } from '@/game/config/audioConfig';
 import { STAGES } from '@/game/config/stageConfig';
@@ -35,6 +37,7 @@ type AddedMusic = {
   playCount: number;
   stopped: boolean;
   volumeUpdates: number[];
+  complete?: () => void;
 };
 
 function createFakeGame(
@@ -82,6 +85,10 @@ function createFakeGame(
           setVolume: (volume: number) => {
             music.volumeUpdates.push(volume);
             return true;
+          },
+          once: (_event: string, listener: () => void) => {
+            music.complete = listener;
+            return sound;
           },
           destroy: () => {},
         };
@@ -289,6 +296,49 @@ describe('AudioDirector', () => {
       'sfx-stage1-boss-laser-single',
       'sfx-stage1-boss-laser-double-first',
       'sfx-stage1-boss-laser-double-second',
+    ]);
+  });
+
+  it('joins the stage two boss scan intro, loop, lock and end cues', () => {
+    const { game, added, played } = createFakeGame({
+      loaded: Object.values(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE),
+    });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('boss-scan-cue', 'start');
+    expect(added[0]).toMatchObject({
+      key: 'sfx-stage2-boss-scan-start',
+      playCount: 1,
+    });
+
+    added[0].complete?.();
+    expect(added[1]).toMatchObject({
+      key: 'sfx-stage2-boss-scan-loop',
+      playCount: 1,
+    });
+    expect(added[1].config.loop).toBe(true);
+
+    gameEvents.emit('boss-scan-cue', 'target-lock');
+    gameEvents.emit('boss-scan-cue', 'end');
+
+    expect(added[1].stopped).toBe(true);
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage2-boss-target-lock',
+      'sfx-stage2-boss-scan-end',
+    ]);
+  });
+
+  it('randomises the stage two boss orb shot cue', () => {
+    const { game, played } = createFakeGame({
+      loaded: [...STAGE_TWO_BOSS_ORB_SHOT_SFX],
+    });
+    director = new AudioDirector(game);
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+
+    gameEvents.emit('boss-orb-fired');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage2-boss-orb-shot-04',
     ]);
   });
 

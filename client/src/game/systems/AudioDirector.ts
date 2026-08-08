@@ -8,6 +8,8 @@ import {
   PROJECTILE_BLOCK_SFX_BY_KIND,
   SFX_CONFIG,
   STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
+  STAGE_TWO_BOSS_ORB_SHOT_SFX,
+  STAGE_TWO_BOSS_SCAN_SFX_BY_CUE,
   WEAPON_FIRE_SFX,
   type AudioAssetKey,
   type AudioMix,
@@ -52,6 +54,9 @@ export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
   private readonly playedAt = new Map<string, number>();
   private music?: VolumeControlledSound;
+  private scanStartSound?: VolumeControlledSound;
+  private scanLoopSound?: VolumeControlledSound;
+  private scanActive = false;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
   private currentStageId?: string;
@@ -74,6 +79,8 @@ export class AudioDirector {
     gameEvents.on('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.on('enemy-defeated', this.handleEnemyDefeated);
     gameEvents.on('boss-laser-fired', this.handleBossLaserFired);
+    gameEvents.on('boss-scan-cue', this.handleBossScanCue);
+    gameEvents.on('boss-orb-fired', this.handleBossOrbFired);
   }
 
   destroy() {
@@ -90,7 +97,10 @@ export class AudioDirector {
     gameEvents.off('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
     gameEvents.off('boss-laser-fired', this.handleBossLaserFired);
+    gameEvents.off('boss-scan-cue', this.handleBossScanCue);
+    gameEvents.off('boss-orb-fired', this.handleBossOrbFired);
     this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
+    this.stopBossScan();
     this.stopMusic();
     this.playedAt.clear();
   }
@@ -167,6 +177,7 @@ export class AudioDirector {
       return;
     }
 
+    this.stopBossScan();
     this.requestMusic('bgm-title');
     // The title is where the player reads and presses ENTER, which is the only
     // free moment stage one's track ever gets.
@@ -175,6 +186,7 @@ export class AudioDirector {
   };
 
   private readonly handleStageChanged = (stageId: string) => {
+    this.stopBossScan();
     const index = STAGES.findIndex((candidate) => candidate.id === stageId);
 
     if (index < 0) {
@@ -217,6 +229,13 @@ export class AudioDirector {
     if (this.music && this.wantedMusic) {
       this.music.setVolume(this.musicVolume(this.wantedMusic));
     }
+
+    this.scanStartSound?.setVolume(
+      this.sfxVolume(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.start),
+    );
+    this.scanLoopSound?.setVolume(
+      this.sfxVolume(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.loop),
+    );
   }
 
   private readonly handleWeaponFired = (weaponId: string) => {
@@ -272,6 +291,80 @@ export class AudioDirector {
   ) => {
     this.playSfx(STAGE_ONE_BOSS_LASER_SFX_BY_CUE[cue]);
   };
+
+  private readonly handleBossOrbFired = () => {
+    const index = Math.floor(Math.random() * STAGE_TWO_BOSS_ORB_SHOT_SFX.length);
+    this.playSfx(STAGE_TWO_BOSS_ORB_SHOT_SFX[index]);
+  };
+
+  private readonly handleBossScanCue = (
+    cue: 'start' | 'target-lock' | 'end',
+  ) => {
+    if (cue === 'start') {
+      this.startBossScan();
+      return;
+    }
+
+    if (cue === 'target-lock') {
+      this.playSfx(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE['target-lock']);
+      return;
+    }
+
+    this.stopBossScan();
+    this.playSfx(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.end);
+  };
+
+  /** 시작음을 끝까지 재생한 뒤 스캔 반복음을 잇는다. */
+  private startBossScan() {
+    this.stopBossScan();
+    this.scanActive = true;
+
+    const key = STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.start;
+    if (!this.isLoaded(key) || this.game.sound.locked) {
+      return;
+    }
+
+    const sound = this.game.sound.add(key, {
+      volume: this.sfxVolume(key),
+    }) as VolumeControlledSound;
+    this.scanStartSound = sound;
+    sound.once(Phaser.Sound.Events.COMPLETE, () => {
+      if (this.scanStartSound !== sound) {
+        return;
+      }
+
+      this.scanStartSound = undefined;
+      sound.destroy();
+      this.startBossScanLoop();
+    });
+    sound.play();
+  }
+
+  private startBossScanLoop() {
+    const key = STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.loop;
+    if (!this.scanActive || !this.isLoaded(key) || this.game.sound.locked) {
+      return;
+    }
+
+    this.scanLoopSound = this.game.sound.add(key, {
+      loop: true,
+      volume: this.sfxVolume(key),
+    }) as VolumeControlledSound;
+    this.scanLoopSound.play();
+  }
+
+  private stopBossScan() {
+    this.scanActive = false;
+    const startSound = this.scanStartSound;
+    this.scanStartSound = undefined;
+    startSound?.stop();
+    startSound?.destroy();
+
+    const loopSound = this.scanLoopSound;
+    this.scanLoopSound = undefined;
+    loopSound?.stop();
+    loopSound?.destroy();
+  }
 
   private playSfx(key: SfxKey, volumeScale = 1, intervalKey: string = key) {
     const config = SFX_CONFIG[key];
@@ -352,6 +445,10 @@ export class AudioDirector {
 
   private musicVolume(key: MusicKey) {
     return MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master;
+  }
+
+  private sfxVolume(key: SfxKey) {
+    return SFX_CONFIG[key].volume * this.mix.sfx * this.mix.master;
   }
 
   private jitteredRate(rateJitter = 0) {
