@@ -19,6 +19,7 @@ type EnemyCombatDirectorOptions = {
   canDamageEnemy: () => boolean;
   isPlayerInvulnerable: () => boolean;
   damagePlayer: (damage: number) => void;
+  isOverPit: (x: number) => boolean;
   notifyEnemyDefeated: (enemy: Enemy) => void;
   dropBossReward: (enemy: BossEnemy) => void;
   clearEnemyRanges: () => void;
@@ -117,7 +118,7 @@ export class EnemyCombatDirector {
     }
   }
 
-  /** 적이 바닥 아래로 완전히 이탈하면 교전 수에서 제외하고 제거한다. */
+  /** 적이 구덩이에 들어서면 충돌을 끊고, 화면 아래로 이탈하면 제거한다. */
   handlePitFalls() {
     for (const enemy of this.options.enemies) {
       if (!enemy.active || enemy instanceof BossEnemy) {
@@ -137,7 +138,9 @@ export class EnemyCombatDirector {
         continue;
       }
 
-      if (body.top <= FLOOR_SURFACE_Y) {
+      const enteredPit =
+        body.bottom >= FLOOR_SURFACE_Y && this.options.isOverPit(body.center.x);
+      if (!enteredPit && body.top <= FLOOR_SURFACE_Y) {
         continue;
       }
 

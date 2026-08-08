@@ -705,6 +705,7 @@ export class GameScene extends Phaser.Scene {
         this.phase === 'playing' && this.roomState === 'locked',
       isPlayerInvulnerable: () => this.playerController.isInvulnerable,
       damagePlayer: (damage) => this.applyPlayerDamage(damage),
+      isOverPit: (x) => this.floorBuilder.isOverPit(x),
       notifyEnemyDefeated: (enemy) =>
         this.roomDirector.notifyEnemyDefeated(enemy),
       dropBossReward: (enemy) =>
