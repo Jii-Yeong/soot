@@ -237,9 +237,15 @@
         arcSpreadDb: 3,
         /** Last third louder than the first third means it builds to a climax. */
         arcBuildDb: 1.5,
-        /** Air, relative to the track's own level. Below this reads as dull. */
+        /*
+         * Reporting thresholds, not pass marks. Air only says how bright a
+         * take came out, and each cue wants a different amount — the stage 3
+         * basement is supposed to sit far below this line. The mid figure is
+         * kept for the detail table because the number is still worth seeing,
+         * but the rule it came from was retired: real gunfire measured out at
+         * 250Hz~1kHz, not 1~4kHz, so the band was never the one to keep clear.
+         */
         airRelDb: -24,
-        /** Where gunfire lives. Above this and the music crowds the shots. */
         midRelDb: -8,
       };
 
@@ -773,19 +779,15 @@
         add(
           '공기감 8~16kHz',
           formatDb(m.air),
-          m.air >= SPEC.airRelDb ? 'ok' : 'warn',
-          m.air >= SPEC.airRelDb
-            ? '밝은 도시 배경에 어울리는 고역량'
-            : `기준 ${SPEC.airRelDb}dB보다 아래다. 어둡고 답답하게 들린다`,
+          'ok',
+          `참고값. 합격선이 아니라 큐마다 목표가 다르다 — 1스테이지는 밝은 유리 도시, 3스테이지는 초록 안개 낀 지하라 ${SPEC.airRelDb}dB보다 한참 아래가 정상이다`,
         );
 
         add(
           '중역 1~4kHz',
           formatDb(m.mid),
-          m.mid <= SPEC.midRelDb ? 'ok' : 'warn',
-          m.mid <= SPEC.midRelDb
-            ? '총소리가 들어갈 자리가 비어 있다'
-            : `기준 ${SPEC.midRelDb}dB보다 위다. 연사 중 총소리를 덮을 수 있다`,
+          'ok',
+          '참고값. 총소리가 실제로 앉는 대역은 250Hz~1kHz로 확인돼 이 대역 기준은 폐기했다. 실제로 묻히면 곡을 바꾸지 말고 music 볼륨을 낮춘다',
         );
 
         add(
@@ -803,16 +805,21 @@
 
       /**
        * Turns the measurements into plain words. The people choosing a track
-       * are not mixing engineers, and "-22.8 dB" tells them nothing about
-       * whether the piece suits a bright city.
+       * are not mixing engineers, and "-22.8 dB" tells them nothing on its own.
        */
       function describe(metrics) {
+        /*
+         * Brightness is reported, never judged. Each cue wants a different
+         * amount of it: stage 1 is a bright glass city, stage 3 is a basement
+         * under green fog and is meant to be the darkest thing here. A single
+         * pass mark would fail the underground takes for sounding correct.
+         */
         const brightness =
           metrics.air >= -22
             ? { text: '밝음', tone: 'ok' }
             : metrics.air >= SPEC.airRelDb
               ? { text: '보통', tone: 'ok' }
-              : { text: '어두움', tone: 'warn' };
+              : { text: '어두움', tone: 'ok' };
 
         const motion =
           metrics.build > SPEC.arcBuildDb
@@ -822,13 +829,6 @@
               : metrics.spread <= 1.5
                 ? { text: '거의 일정', tone: 'ok' }
                 : { text: '조금 움직임', tone: 'ok' };
-
-        const gunfire =
-          metrics.mid <= SPEC.midRelDb
-            ? { text: '잘 비켜줌', tone: 'ok' }
-            : metrics.mid <= -6
-              ? { text: '보통', tone: 'ok' }
-              : { text: '총소리와 겹침', tone: 'warn' };
 
         const fixes = [];
         if (metrics.headFade > SPEC.fadeSeconds) {
@@ -844,13 +844,15 @@
         return {
           brightness,
           motion,
-          gunfire,
           fixes,
-          // Fades and level are always fixable, so they do not decide anything.
-          verdict:
-            motion.tone === 'warn' || brightness.tone === 'warn'
-              ? 'warn'
-              : 'ok',
+          /*
+           * Only the arc decides. Fades and level are trimmed or turned down
+           * later, brightness is a per-cue target rather than a standard, and
+           * the old 1~4kHz gunfire rule was retired once real gunfire was
+           * measured sitting at 250Hz~1kHz instead. A track that builds or
+           * swings cannot be repaired by editing, so that is what is left.
+           */
+          verdict: motion.tone,
         };
       }
 
@@ -898,7 +900,6 @@
         const columns = [
           ['밝기', (d) => d.brightness.text, (d) => d.brightness.tone],
           ['곡의 변화', (d) => d.motion.text, (d) => d.motion.tone],
-          ['총소리와 궁합', (d) => d.gunfire.text, (d) => d.gunfire.tone],
           [
             '손볼 것',
             (d) => (d.fixes.length > 0 ? d.fixes.join(', ') : '없음'),
@@ -1053,7 +1054,6 @@
           for (const [label, item] of [
             ['밝기', summary.brightness],
             ['곡의 변화', summary.motion],
-            ['총소리와 궁합', summary.gunfire],
           ]) {
             const chip = document.createElement('span');
             chip.className = `chip ${item.tone}`;
