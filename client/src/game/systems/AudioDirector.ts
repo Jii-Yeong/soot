@@ -54,7 +54,7 @@ export class AudioDirector {
   private wantedMusic?: MusicKey;
   /** Tracks already fetched, so a revisited stage does not download twice. */
   private readonly requested = new Set<MusicKey>();
-  /** Which stage is running, for cues that only some stages should hear. */
+  /** 지금 진행 중인 스테이지. 일부 스테이지에서만 울리는 큐를 가르는 데 쓴다. */
   private stageId?: string;
 
   constructor(private readonly game: Phaser.Game) {
@@ -160,8 +160,8 @@ export class AudioDirector {
       return;
     }
 
-    // Returning to the title ends whatever stage was running, so a stage-gated
-    // layer must not survive into the next run.
+    // 타이틀로 돌아가면 진행 중이던 스테이지가 끝난 것이므로, 스테이지가
+    // 걸린 레이어가 다음 판까지 살아남으면 안 된다.
     this.stageId = undefined;
     this.requestMusic('bgm-title');
     // The title is where the player reads and presses ENTER, which is the only
@@ -239,10 +239,10 @@ export class AudioDirector {
   };
 
   /**
-   * Sounds a cue and, if it actually sounded, whatever layer it carries. The
-   * layer is played through the same path so it obeys its own volume and
-   * throttle, but it never gets a layer of its own — one level keeps a config
-   * that points at itself from recursing forever.
+   * 큐를 울리고, 실제로 울렸을 때만 그 큐가 달고 있는 레이어를 함께 울린다.
+   * 레이어도 같은 경로를 지나므로 자기 볼륨과 스로틀을 그대로 따르지만,
+   * 레이어가 또 레이어를 갖지는 못한다 — 한 겹으로 묶어 두면 설정이 자기를
+   * 가리켜도 무한 재귀가 되지 않는다.
    */
   private playSfx(key: SfxKey) {
     if (!this.emitSfx(key)) {
@@ -256,12 +256,12 @@ export class AudioDirector {
     }
   }
 
-  /** True when the current stage is one the layer was written for. */
+  /** 지금 스테이지가 이 레이어를 위해 적어 둔 스테이지인지. */
   private hearsLayer(layer: SfxLayerConfig) {
     return !layer.stages || layer.stages.includes(this.stageId ?? '');
   }
 
-  /** Returns whether the cue reached the sound manager. */
+  /** 큐가 사운드 매니저까지 도달했는지 돌려준다. */
   private emitSfx(key: SfxKey) {
     const config = SFX_CONFIG[key];
     const now = Date.now();

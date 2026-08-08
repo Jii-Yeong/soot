@@ -252,40 +252,16 @@
         airDarkDb: -40,
       };
 
+      /**
+       * 상세 표에 대역 분포를 적을 때 쓰는 이름표. 대역을 실제로 잘라 내는
+       * 일은 tools/measure-track.mjs가 하므로 여기에는 필터가 없다.
+       */
       const BANDS = [
-        { key: 'low', label: '저역 <250Hz', chain: [['lowpass', 250]] },
-        {
-          key: 'lowMid',
-          label: '중저역 250Hz~1kHz',
-          chain: [
-            ['highpass', 250],
-            ['lowpass', 1000],
-          ],
-        },
-        {
-          key: 'mid',
-          label: '중역 1~4kHz',
-          chain: [
-            ['highpass', 1000],
-            ['lowpass', 4000],
-          ],
-        },
-        {
-          key: 'high',
-          label: '고역 4~8kHz',
-          chain: [
-            ['highpass', 4000],
-            ['lowpass', 8000],
-          ],
-        },
-        {
-          key: 'air',
-          label: '공기감 8~16kHz',
-          chain: [
-            ['highpass', 8000],
-            ['lowpass', 16000],
-          ],
-        },
+        { key: 'low', label: '저역 <250Hz' },
+        { key: 'lowMid', label: '중저역 250Hz~1kHz' },
+        { key: 'mid', label: '중역 1~4kHz' },
+        { key: 'high', label: '고역 4~8kHz' },
+        { key: 'air', label: '공기감 8~16kHz' },
       ];
 
       const compare = document.getElementById('compare');
@@ -454,15 +430,15 @@
       }
 
       /**
-       * Turns the measurements into plain words. The people choosing a track
-       * are not mixing engineers, and "-22.8 dB" tells them nothing on its own.
+       * 측정값을 말로 옮긴다. 곡을 고르는 사람이 믹싱 엔지니어일 필요는 없고,
+       * "-22.8 dB"만으로는 아무것도 알 수 없다.
        */
       function describe(metrics) {
         /*
-         * Brightness is reported, never judged. Each cue wants a different
-         * amount of it: stage 1 is a bright glass city, stage 3 is a basement
-         * under green fog and is meant to be the darkest thing here. A single
-         * pass mark would fail the underground takes for sounding correct.
+         * 밝기는 보여주기만 하고 판정하지 않는다. 큐마다 원하는 양이 다르다 —
+         * 1스테이지는 밝은 유리 도시이고, 3스테이지는 초록 안개 낀 지하라
+         * 여기서 가장 어두운 것이 정상이다. 합격선을 하나로 두면 의도대로 나온
+         * 지하도시 테이크가 전부 떨어진다.
          */
         const brightness =
           metrics.air >= SPEC.airBrightDb
@@ -496,20 +472,19 @@
           motion,
           fixes,
           /*
-           * Only the arc decides. Fades and level are trimmed or turned down
-           * later, brightness is a per-cue target rather than a standard, and
-           * the old 1~4kHz gunfire rule was retired once real gunfire was
-           * measured sitting at 250Hz~1kHz instead. A track that builds or
-           * swings cannot be repaired by editing, so that is what is left.
+           * 판정은 기승전결 하나로만 한다. 페이드와 음량은 나중에 자르거나
+           * 낮추면 되고, 밝기는 기준이 아니라 큐별 목표이며, 1~4kHz 총소리
+           * 기준은 실제 총소리가 250Hz~1kHz에 앉는 것이 확인되면서 폐기됐다.
+           * 커지거나 출렁이는 곡만은 편집으로 못 고치므로 그것만 남는다.
            */
           verdict: motion.tone,
         };
       }
 
       /**
-       * Every cue's takes share one table, so each row has to say which stage
-       * it is a candidate for. A file name alone does not: `take13` means
-       * nothing without the generation record open beside it.
+       * 모든 큐의 테이크가 한 표를 같이 쓰므로 행마다 어느 스테이지 후보인지
+       * 적혀 있어야 한다. 파일명만으로는 알 수 없다 — `take13`은 생성 기록을
+       * 옆에 펴 두지 않으면 아무 의미가 없다.
        */
       const STAGE_LABELS = {
         title: '타이틀',
@@ -745,8 +720,8 @@
       }
 
       /**
-       * Takes that were already measured. They appear the moment the page
-       * opens; playback needs no permission, only reading the bytes does.
+       * 이미 재어 둔 테이크들. 페이지가 열리는 즉시 나타난다. 재생에는 권한이
+       * 필요 없고 바이트를 읽는 것만 막히기 때문이다.
        */
       if (window.AUDIO_CANDIDATES) {
         for (const group of window.AUDIO_CANDIDATES) {

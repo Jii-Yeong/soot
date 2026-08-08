@@ -337,7 +337,7 @@ describe('AudioDirector', () => {
       'sfx-player-hit',
       'sfx-monitor-beep',
     ]);
-    // The hint has to stay under the hit or it stops reading as a hint.
+    // 복선은 타격음 아래에 있어야 복선으로 들린다.
     expect(played[1].config.volume).toBeLessThan(played[0].config.volume!);
   });
 
