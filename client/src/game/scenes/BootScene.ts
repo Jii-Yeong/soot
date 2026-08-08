@@ -424,6 +424,16 @@ export class BootScene extends Phaser.Scene {
           duration: 400,
         });
       }
+      if (sprite.aliveFrames) {
+        this.anims.create({
+          key: sprite.animations.alive,
+          frames: sprite.aliveFrames.map((frame) => ({
+            key: sprite.texture,
+            frame,
+          })),
+          duration: 1200,
+        });
+      }
     }
     this.anims.create({
       key: STAGE_FIVE_PLAYER_HALO.animation,

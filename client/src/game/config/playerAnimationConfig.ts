@@ -10,6 +10,7 @@ export const PLAYER_ANIMATIONS = {
   flyMove: 'player_fly_move',
   flyDash: 'player_fly_dash',
   death: 'player-death',
+  alive: 'player-alive',
 } as const;
 
 export type PlayerAnimationSet = {
@@ -23,6 +24,7 @@ export type PlayerSpriteConfig = {
   animations: PlayerAnimationSet;
   flyFrames?: readonly string[];
   deathFrames?: readonly string[];
+  aliveFrames?: readonly string[];
 };
 
 export const PLAYER_SPRITE_CONFIG: PlayerSpriteConfig = {
@@ -54,8 +56,10 @@ export const STAGE_THREE_PLAYER_SPRITE: PlayerSpriteConfig = {
     idle: 'stage-3-player-idle',
     run: 'stage-3-player-run',
     death: 'stage-3-player-death',
+    alive: 'stage-3-player-alive',
   },
   deathFrames: [13, 14].map(frameName),
+  aliveFrames: [15, 16, 17].map(frameName),
 };
 
 export const STAGE_FOUR_PLAYER_SPRITE: PlayerSpriteConfig = {

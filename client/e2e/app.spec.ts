@@ -1516,7 +1516,7 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
     )
     .toEqual({
       cameraCenterOffset: 0,
-      cameraZoom: 1.35,
+      cameraZoom: 1,
       roomId: 'underground-landing',
       siegeTextureKeys: expect.arrayContaining([
         'stage-3-neared',
@@ -1536,15 +1536,20 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
       () =>
         page.evaluate(() => {
           type RuntimeScene = {
+            cameras: { main: { zoom: number } };
             children: {
               list: Array<{ active: boolean; texture?: { key: string } }>;
             };
             combatUi: { victoryOverlay: { visible: boolean } };
+            player: {
+              anims: { currentAnim?: { frames: unknown[]; key: string } };
+            };
           };
           type DebugGame = { scene: { getScene: (key: string) => unknown } };
           const game = (window as unknown as { __game?: DebugGame }).__game!;
           const scene = game.scene.getScene('game') as RuntimeScene;
           return {
+            cameraZoom: scene.cameras.main.zoom,
             siegeEnemies: scene.children.list.filter(
               ({ active, texture }) =>
                 active &&
@@ -1553,12 +1558,21 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
                   texture.key,
                 ),
             ).length,
+            playerAnimation: scene.player.anims.currentAnim?.key,
+            playerAnimationFrames:
+              scene.player.anims.currentAnim?.frames.length,
             victoryVisible: scene.combatUi.victoryOverlay.visible,
           };
         }),
-      { timeout: 8_000 },
+      { timeout: 12_000 },
     )
-    .toEqual({ siegeEnemies: 0, victoryVisible: true });
+    .toEqual({
+      cameraZoom: 1.35,
+      playerAnimation: 'stage-3-player-alive',
+      playerAnimationFrames: 3,
+      siegeEnemies: 0,
+      victoryVisible: true,
+    });
 });
 
 test('stage three pipe crawler stays aligned above its floor segment', async ({

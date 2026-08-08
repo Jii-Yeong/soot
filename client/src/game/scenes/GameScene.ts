@@ -92,6 +92,7 @@ const UNDERGROUND_LANDING_BACKDROP = {
 };
 const STAGE_THREE_ENDING_FRAME =
   STAGE_THREE_PLAYER_SPRITE.deathFrames?.at(-1) ?? PLAYER_INITIAL_FRAME;
+const ASCENSION_VICTORY_DELAY_MS = 2000;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -175,6 +176,8 @@ export class GameScene extends Phaser.Scene {
       enterCurrentRoom: () => this.enterCurrentRoom(),
       enterLandingRoom: (mode) => this.enterTransitionLandingRoom(mode),
       setAscensionPose: () => this.showAscensionPlayerPose(),
+      playAscensionAlive: (onComplete) =>
+        this.playAscensionAlive(onComplete),
       completeStageExit: (nextStageIndex) =>
         this.completeStageExit(nextStageIndex),
       finish: (outcome) => {
@@ -620,6 +623,13 @@ export class GameScene extends Phaser.Scene {
       STAGE_THREE_ENDING_FRAME,
     );
     this.playerHalo.setVisible(false);
+  }
+
+  private playAscensionAlive(onComplete: () => void) {
+    this.player.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
+      this.time.delayedCall(ASCENSION_VICTORY_DELAY_MS, onComplete),
+    );
+    this.player.play(STAGE_THREE_PLAYER_SPRITE.animations.alive, true);
   }
 
   private emitStageLocation() {

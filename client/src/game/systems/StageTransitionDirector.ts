@@ -22,6 +22,7 @@ type StageTransitionDirectorOptions = {
   enterCurrentRoom: () => void;
   enterLandingRoom: (mode: 'descent' | 'ascension') => void;
   setAscensionPose: () => void;
+  playAscensionAlive: (onComplete: () => void) => void;
   completeStageExit: (nextStageIndex: number | null) => void;
   finish: (outcome: 'victory' | 'stage-end') => void;
   idleAnimation: () => string;
@@ -113,7 +114,10 @@ export class StageTransitionDirector {
           this.placePlayer(FLOOR_SURFACE_Y - 40);
           this.options.setAscensionPose();
         },
-        () => this.options.finish('victory'),
+        () =>
+          this.options.playAscensionAlive(() =>
+            this.options.finish('victory'),
+          ),
       );
     });
   }

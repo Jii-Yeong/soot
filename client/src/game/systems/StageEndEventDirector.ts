@@ -20,6 +20,8 @@ const ASCENSION_FORMATION_HOLD_MS = 2200;
 const ASCENSION_DEPARTURE_MS = 1200;
 /** 지하 엔딩 방에서 플레이어를 강조하는 최종 카메라 배율. */
 const ASCENSION_PLAYER_ZOOM = 1.35;
+/** 포위 잡몹이 모두 떠난 뒤 플레이어를 천천히 확대하는 시간. */
+const ASCENSION_PLAYER_ZOOM_MS = 1400;
 /** 싱킹 연출에 쓰는 검은 선/점 개수. */
 const SINK_STREAK_COUNT = 14;
 const SHATTER_SNAPSHOT_KEY = 'stage-shatter-snapshot';
@@ -64,9 +66,10 @@ export class StageEndEventDirector {
   /**
    * 5스테이지 종료 연출: 화면이 점점 하얘진 뒤, 그 하얀 화면 뒤에서 3스테이지
    * 종료 포위 방으로 복귀(`onEnterRoom`)한다. 3스테이지 포위 장면을 다시
-   * 보여준 뒤 적들이 플레이어 반대편으로 떠나면 클리어 화면으로 넘어간다.
+   * 보여준 뒤 적들이 플레이어 반대편으로 떠나면 카메라 확대 후 회복 연출을
+   * 시작한다.
    */
-  playAscension(onEnterRoom: () => void, onComplete: () => void) {
+  playAscension(onEnterRoom: () => void, onEnemiesDeparted: () => void) {
     // 화면 스케일이 EXPAND라 넓은 화면에서는 카메라 폭이 GAME_WIDTH보다 크다.
     // scrollFactor 0 오버레이는 실제 카메라 크기를 기준으로 배치해야 흰 화면이
     // 넓어진 뷰포트 양옆까지 덮는다.
@@ -89,7 +92,6 @@ export class StageEndEventDirector {
       onComplete: () => {
         // 완전히 하얀 순간 3스테이지 지하 착지 방으로 교체(교체를 흰빛으로 감춤).
         onEnterRoom();
-        camera.setZoom(ASCENSION_PLAYER_ZOOM);
 
         const worldCenterX = this.scene.physics.world.bounds.centerX;
         const enemies = this.spawnUndergroundSiege(worldCenterX, true);
@@ -120,7 +122,15 @@ export class StageEndEventDirector {
                     return;
                   }
 
-                  onComplete();
+                  camera.once(
+                    Phaser.Cameras.Scene2D.Events.ZOOM_COMPLETE,
+                    onEnemiesDeparted,
+                  );
+                  camera.zoomTo(
+                    ASCENSION_PLAYER_ZOOM,
+                    ASCENSION_PLAYER_ZOOM_MS,
+                    'Sine.easeInOut',
+                  );
                   this.scene.tweens.add({
                     targets: white,
                     alpha: 0,
