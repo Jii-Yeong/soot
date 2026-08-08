@@ -1,0 +1,97 @@
+{ "frames": {
+   "0": {
+    "frame": { "x": 1, "y": 1, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 180
+   },
+   "1": {
+    "frame": { "x": 121, "y": 1, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 180
+   },
+   "2": {
+    "frame": { "x": 241, "y": 1, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 100
+   },
+   "3": {
+    "frame": { "x": 1, "y": 106, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 180
+   },
+   "4": {
+    "frame": { "x": 121, "y": 106, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 180
+   },
+   "5": {
+    "frame": { "x": 241, "y": 106, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 100
+   },
+   "6": {
+    "frame": { "x": 1, "y": 211, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 100
+   },
+   "7": {
+    "frame": { "x": 121, "y": 211, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 180
+   },
+   "8": {
+    "frame": { "x": 241, "y": 211, "w": 119, "h": 104 },
+    "rotated": false,
+    "trimmed": true,
+    "spriteSourceSize": { "x": 3, "y": 17, "w": 117, "h": 102 },
+    "sourceSize": { "w": 120, "h": 120 },
+    "duration": 100
+   }
+ },
+ "meta": {
+  "app": "https://www.aseprite.org/",
+  "version": "1.3.18.1-arm64",
+  "image": "stage-3-ranged.png",
+  "format": "RGBA8888",
+  "size": { "w": 361, "h": 316 },
+  "scale": "1",
+  "frameTags": [
+   { "name": "idle", "from": 0, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "pull", "from": 2, "to": 2, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk", "from": 3, "to": 4, "direction": "forward", "color": "#000000ff" },
+   { "name": "attack", "from": 5, "to": 6, "direction": "forward", "color": "#000000ff" },
+   { "name": "death", "from": 7, "to": 8, "direction": "forward", "color": "#000000ff" }
+  ],
+  "layers": [
+   { "name": "Layer 1", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 2", "opacity": 255, "blendMode": "normal" },
+   { "name": "Layer 3", "opacity": 255, "blendMode": "normal" }
+  ],
+  "slices": [
+  ]
+ }
+}

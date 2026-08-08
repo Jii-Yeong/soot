@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type {
   PurifierBossPatternConfig,
   PurifierBossCombatConfig,
+  PurifierBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 import { getSlamLeapVelocity } from '@/game/combat/slamLeap';
 import { BossEnemy } from '@/game/entities/BossEnemy';
@@ -12,9 +13,6 @@ import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type PurifierState =
   | 'recover'
-  | 'grab-warn'
-  | 'grab-strike'
-  | 'grab-hold'
   | 'slam-warn'
   | 'slam-leap'
   | 'slam-strike'
@@ -22,22 +20,19 @@ type PurifierState =
   | 'vacuum-active';
 
 type PlayerDamageHandler = (damage: number) => void;
-/** Drags the player until it overlaps the boss; see PlayerController.applyGrab. */
-type PlayerGrabHandler = (bossX: number, bossHalfWidth: number) => void;
 type PlayerPullHandler = (bossX: number, pullSpeed: number) => void;
 
 const TELEGRAPH_DEPTH = 7;
 const SHOCKWAVE_DEPTH = 6;
 const MARKER_HEIGHT = 74;
 const LANDING_GRACE_DURATION = 400;
+/** 죽음 포즈를 보여주는 시간과, 그 뒤 페이드아웃에 걸리는 시간. */
+const DEATH_POSE_HOLD_MS = 1600;
+const DEATH_FADE_MS = 600;
 
 /**
- * Stage-3 boss (the purification enforcer). v1 of the capture/crush kit:
+ * Stage-3 boss (the purification enforcer). Two-pattern kit:
  *
- * - Impurity collection: warns on the player's ground spot, then the claw
- *   strikes it. A grounded player caught there takes a hit and is dragged into
- *   the boss — where its own contact damage 'collects' them (moderate, on a
- *   cooldown, and escapable with a dash, so never a one-shot stunlock).
  * - Waste compaction: marks the player's position, leaps toward it, then sends
  *   two green pressure waves along the floor on landing; move off the marker
  *   and jump the waves.
@@ -50,14 +45,14 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   private attackState: PurifierState = 'recover';
   private stateStartedAt = 0;
   private stateEndsAt: number;
-  private grabTargetX = 0;
-  private grabResolved = false;
-  private grabHit = false;
   private slamTargetX = 0;
   private slamHasLeftGround = false;
-  // Open with the clearly marked leap before introducing grab and vacuum.
+  private slamLandingAt = 0;
+  // Alternate the two patterns, opening with the clearly marked leap.
   private attackIndex = 1;
   private playerTarget?: Phaser.Physics.Arcade.Sprite;
+  private activeSpriteAnimation?: string;
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -66,13 +61,62 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     texture: string,
     config: PurifierBossCombatConfig,
     private readonly damagePlayer: PlayerDamageHandler,
-    private readonly grabPlayer: PlayerGrabHandler,
     private readonly pullPlayer: PlayerPullHandler,
+    private readonly sprite?: PurifierBossSpriteConfig,
   ) {
     super(scene, x, y, texture, config);
 
     this.stateEndsAt = scene.time.now + config.pattern.firstAttackDelay;
     this.telegraph = scene.add.graphics().setDepth(TELEGRAPH_DEPTH);
+    this.applyBossSprite();
+  }
+
+  override get playsOwnDeathAnimation(): boolean {
+    return Boolean(this.sprite);
+  }
+
+  /**
+   * 실제 아틀라스 프레임에는 여백이 있어, 물리 바디를 메카 크기에 맞추고
+   * 발이 바닥에 닿도록 하단 정렬함. 제공된 Aseprite 태그가 포즈를 구동함.
+   */
+  private applyBossSprite() {
+    if (!this.sprite) {
+      return;
+    }
+
+    this.setScale(this.sprite.scale);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(this.sprite.bodyWidth, this.sprite.bodyHeight);
+    if (
+      this.sprite.bodyOffsetX !== undefined &&
+      this.sprite.bodyOffsetY !== undefined
+    ) {
+      body.setOffset(this.sprite.bodyOffsetX, this.sprite.bodyOffsetY);
+    }
+    this.playSpriteAnimation(this.sprite.animations.idle);
+  }
+
+  /** 애니메이션을 중복 재생하지 않도록 dedup. */
+  private playSpriteAnimation(animation: string) {
+    if (!this.sprite || this.activeSpriteAnimation === animation) {
+      return;
+    }
+
+    this.activeSpriteAnimation = animation;
+    this.play(animation, true);
+  }
+
+  /** 이동 중이면 walk, 멈춰 있으면 idle. */
+  private updateLocomotionAnimation() {
+    if (!this.sprite) {
+      return;
+    }
+
+    const moving =
+      Math.abs((this.body as Phaser.Physics.Arcade.Body).velocity.x) > 1;
+    this.playSpriteAnimation(
+      moving ? this.sprite.animations.walk : this.sprite.animations.idle,
+    );
   }
 
   updateCombat(
@@ -82,7 +126,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
   ) {
     this.playerTarget = target;
 
-    if (!this.active) {
+    if (!this.active || this.dying) {
       this.telegraph.clear();
       return false;
     }
@@ -100,20 +144,11 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
       case 'recover':
         this.updateRecover(time, target);
         break;
-      case 'grab-warn':
-        this.updateGrabWarn(time);
-        break;
-      case 'grab-strike':
-        this.updateGrabStrike(time, target);
-        break;
-      case 'grab-hold':
-        this.updateGrabHold(time);
-        break;
       case 'slam-warn':
         this.updateSlamWarn(time, target);
         break;
       case 'slam-leap':
-        this.updateSlamLeap(time);
+        this.updateSlamLeap(time, target);
         break;
       case 'slam-strike':
         this.updateSlamStrike(time);
@@ -136,6 +171,42 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.waveCleanups.clear();
   }
 
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+
+    if (!this.sprite) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.clearTint().setAlpha(1);
+    this.setVelocity(0);
+    this.playSpriteAnimation(this.sprite.animations.death);
+
+    // 전투/충돌을 즉시 멈추되, 페이드아웃 전에 마지막 death 프레임(무너진
+    // 모습)을 읽을 수 있을 만큼 보여줌. death 애니메이션이 진행되도록
+    // GameObject는 active로 유지함.
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.enable = false;
+    this.scene.time.delayedCall(DEATH_POSE_HOLD_MS, () => {
+      if (!this.scene || !this.visible) {
+        return;
+      }
+
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        duration: DEATH_FADE_MS,
+        ease: 'Sine.easeIn',
+        onComplete: () => this.disableBody(true, true),
+      });
+    });
+  }
+
   override destroy(fromScene?: boolean) {
     this.telegraph.destroy();
     this.waveCleanups.clear();
@@ -146,90 +217,17 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.telegraph.clear();
     this.clearTint();
     this.moveToPreferredDistance(time, target);
+    this.updateLocomotionAnimation();
 
     if (time >= this.stateEndsAt) {
-      // Rotate all three patterns so the same one never runs back to back.
-      switch (this.attackIndex % 3) {
-        case 0:
-          this.beginGrabWarn(time, target);
-          break;
-        case 1:
-          this.beginSlamWarn(time, target);
-          break;
-        case 2:
-          this.beginVacuumWarn(time);
-          break;
+      // Alternate the two patterns so the same one never runs back to back.
+      if (this.attackIndex % 2 === 1) {
+        this.beginSlamWarn(time, target);
+      } else {
+        this.beginVacuumWarn(time);
       }
       this.attackIndex += 1;
     }
-  }
-
-  private beginGrabWarn(time: number, target: Phaser.Physics.Arcade.Sprite) {
-    this.attackState = 'grab-warn';
-    this.stateStartedAt = time;
-    this.stateEndsAt = time + this.pattern.grab.warnDuration;
-    // Mark where the player stands now — moving off the spot dodges it.
-    this.grabTargetX = target.x;
-    this.setFlipX(target.x < this.x);
-  }
-
-  private updateGrabWarn(time: number) {
-    this.setVelocityX(0);
-    this.drawGroundMarker(
-      this.grabTargetX,
-      this.pattern.grab.reach,
-      this.stateProgress(time),
-    );
-
-    if (time >= this.stateEndsAt) {
-      this.attackState = 'grab-strike';
-      this.stateStartedAt = time;
-      this.stateEndsAt = time + this.pattern.grab.strikeDuration;
-      this.grabResolved = false;
-    }
-  }
-
-  private updateGrabStrike(time: number, target: Phaser.Physics.Arcade.Sprite) {
-    this.setVelocityX(0);
-    this.drawGroundMarker(this.grabTargetX, this.pattern.grab.reach, 1);
-
-    if (!this.grabResolved) {
-      this.grabResolved = true;
-      this.grabHit = this.tryGrab(target);
-    }
-
-    if (time >= this.stateEndsAt) {
-      if (this.grabHit) {
-        this.attackState = 'grab-hold';
-        this.stateStartedAt = time;
-        this.stateEndsAt = time + this.pattern.grab.holdDuration;
-        this.telegraph.clear();
-      } else {
-        this.beginRecover(time);
-      }
-    }
-  }
-
-  /** Holds still while the caught player is dragged in, so they actually reach us. */
-  private updateGrabHold(time: number) {
-    this.setVelocityX(0);
-    if (time >= this.stateEndsAt) {
-      this.beginRecover(time);
-    }
-  }
-
-  private tryGrab(target: Phaser.Physics.Arcade.Sprite) {
-    const body = target.body as Phaser.Physics.Arcade.Body | null;
-    const grounded = body?.blocked.down ?? false;
-    const halfReach = this.pattern.grab.reach / 2 + (body ? body.width / 2 : 20);
-
-    // Airborne players slip the claw; only a grounded target in the zone is caught.
-    if (grounded && Math.abs(target.x - this.grabTargetX) <= halfReach) {
-      this.damagePlayer(this.pattern.grab.damage);
-      this.grabPlayer(this.x, this.displayWidth / 2);
-      return true;
-    }
-    return false;
   }
 
   private beginSlamWarn(
@@ -240,6 +238,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.slam.warnDuration;
     this.slamTargetX = target.x;
+    this.playSpriteAnimation(this.sprite?.animations.slamWindup ?? '');
   }
 
   private updateSlamWarn(
@@ -249,7 +248,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.setVelocityX(0);
     // Track the player during the warning, then lock this spot at takeoff.
     this.slamTargetX = target.x;
-    this.setTint(this.pattern.telegraphColor);
     this.drawGroundMarker(
       this.slamTargetX,
       this.pattern.slam.landingRadius * 2,
@@ -272,19 +270,34 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
 
     this.attackState = 'slam-leap';
     this.stateStartedAt = time;
-    this.stateEndsAt =
-      time + leap.flightDurationMs + LANDING_GRACE_DURATION;
+    this.slamLandingAt = time + leap.flightDurationMs;
+    this.stateEndsAt = this.slamLandingAt + LANDING_GRACE_DURATION;
     this.slamHasLeftGround = false;
     this.setFlipX(leap.velocityX < 0);
     this.setVelocity(leap.velocityX, leap.velocityY);
+    this.playSpriteAnimation(this.sprite?.animations.slamAir ?? '');
   }
 
-  private updateSlamLeap(time: number) {
+  private updateSlamLeap(time: number, target: Phaser.Physics.Arcade.Sprite) {
     const body = this.body as Phaser.Physics.Arcade.Body;
     this.drawGroundMarker(
       this.slamTargetX,
       this.pattern.slam.landingRadius * 2,
       1,
+    );
+
+    // Home onto the player while they stay inside the warned box, so standing
+    // in it gets punished; once they dash out, commit to the marked spot.
+    const insideBox =
+      Math.abs(target.x - this.slamTargetX) <= this.pattern.slam.landingRadius;
+    const landingX = insideBox ? target.x : this.slamTargetX;
+    const remainingSeconds = Math.max(0.06, (this.slamLandingAt - time) / 1000);
+    this.setVelocityX(
+      Phaser.Math.Clamp(
+        (landingX - this.x) / remainingSeconds,
+        -this.pattern.slam.maxTravelSpeedX,
+        this.pattern.slam.maxTravelSpeedX,
+      ),
     );
 
     if (!body.blocked.down) {
@@ -310,8 +323,8 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.slam.strikeDuration;
     this.setVelocity(0);
-    this.clearTint();
     this.telegraph.clear();
+    this.playSpriteAnimation(this.sprite?.animations.slamStrike ?? '');
     this.scene.cameras.main.shake(180, 0.012);
     this.spawnShockwave(-1);
     this.spawnShockwave(1);
@@ -329,6 +342,7 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     this.stateStartedAt = time;
     this.stateEndsAt = time + this.pattern.vacuum.warnDuration;
     this.setVelocityX(0);
+    this.playSpriteAnimation(this.sprite?.animations.suction ?? '');
   }
 
   private updateVacuumWarn(
@@ -336,7 +350,6 @@ export class PurifierBossEnemy extends BossEnemy<PurifierBossPatternConfig> {
     target: Phaser.Physics.Arcade.Sprite,
   ) {
     this.setVelocityX(0);
-    this.setTint(this.pattern.telegraphColor);
     this.drawVacuumFlow(time, target, this.stateProgress(time) * 0.45);
 
     if (time >= this.stateEndsAt) {

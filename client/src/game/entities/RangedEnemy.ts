@@ -160,6 +160,10 @@ export class RangedEnemy extends Enemy {
     return Boolean(this.sprite);
   }
 
+  override refreshAtlasSprite() {
+    this.rig?.refresh();
+  }
+
   override defeat() {
     if (!this.active || !this.rig) {
       super.defeat();

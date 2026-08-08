@@ -31,8 +31,22 @@ export function useGameUiEvents() {
     const handleRoomStateChanged = (roomState: RoomState) => {
       useGameUiStore.getState().setRoomState(roomState);
     };
+    const handleStageLocationChanged = (
+      stageLabel: string,
+      roomNumber: number,
+    ) => {
+      useGameUiStore.getState().setStageLocation(stageLabel, roomNumber);
+    };
     const handleWeaponChanged = (id: string, label: string) => {
       useGameUiStore.getState().setWeapon(id, label);
+    };
+    const handleWeaponInventoryChanged = (
+      slots: readonly (string | null)[],
+      activeSlotIndex: number,
+    ) => {
+      useGameUiStore
+        .getState()
+        .setWeaponInventory(slots, activeSlotIndex);
     };
     const handleNearbyWeaponChanged = (id: string | null) => {
       useGameUiStore.getState().setNearbyWeapon(id);
@@ -40,13 +54,14 @@ export function useGameUiEvents() {
     const handlePauseChanged = (paused: boolean) => {
       useGameUiStore.getState().setPaused(paused);
     };
-    /**
-     * Listened for on the window rather than through Phaser's keyboard plugin:
-     * that plugin pauses along with the scene, so a key bound through it could
-     * pause the game and then never be heard again to unpause it.
-     */
+    /** Phaser 입력도 씬과 함께 멈추므로, 일시정지 해제용 ESC는 window에서 받는다. */
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.repeat) {
+        return;
+      }
+
+      const guide = document.getElementById('control-guide');
+      if (guide instanceof HTMLDialogElement && guide.open) {
         return;
       }
 
@@ -66,8 +81,10 @@ export function useGameUiEvents() {
     gameEvents.on('boss-phase-changed', handleBossPhaseChanged);
     gameEvents.on('phase-changed', handlePhaseChanged);
     gameEvents.on('room-state-changed', handleRoomStateChanged);
+    gameEvents.on('stage-location-changed', handleStageLocationChanged);
     gameEvents.on('scene-changed', handleSceneChanged);
     gameEvents.on('weapon-changed', handleWeaponChanged);
+    gameEvents.on('weapon-inventory-changed', handleWeaponInventoryChanged);
     gameEvents.on('nearby-weapon-changed', handleNearbyWeaponChanged);
     gameEvents.on('pause-changed', handlePauseChanged);
 
@@ -79,8 +96,13 @@ export function useGameUiEvents() {
       gameEvents.off('boss-phase-changed', handleBossPhaseChanged);
       gameEvents.off('phase-changed', handlePhaseChanged);
       gameEvents.off('room-state-changed', handleRoomStateChanged);
+      gameEvents.off('stage-location-changed', handleStageLocationChanged);
       gameEvents.off('scene-changed', handleSceneChanged);
       gameEvents.off('weapon-changed', handleWeaponChanged);
+      gameEvents.off(
+        'weapon-inventory-changed',
+        handleWeaponInventoryChanged,
+      );
       gameEvents.off('nearby-weapon-changed', handleNearbyWeaponChanged);
     };
   }, []);

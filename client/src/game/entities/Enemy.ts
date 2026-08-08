@@ -1,5 +1,15 @@
 import Phaser from 'phaser';
 
+/** 격추된 공중 적이 떨어지는 속도(px/s). */
+const AERIAL_DEATH_FALL_SPEED = 720;
+/** 착지한 잔해가 사라지기 전에 머무는 시간. */
+const AERIAL_DEATH_HOLD_MS = 400;
+/** 잔해 페이드아웃 시간. */
+const AERIAL_DEATH_FADE_MS = 350;
+
+const aerialDeathFallDuration = (fallDistance: number) =>
+  Phaser.Math.Clamp((fallDistance / AERIAL_DEATH_FALL_SPEED) * 1_000, 120, 900);
+
 export type EnemyProjectileAttack = (
   enemy: Enemy,
   target: Phaser.Physics.Arcade.Sprite,
@@ -18,6 +28,11 @@ export type EnemyProjectileProfile = {
   muzzleOffset: number;
 };
 
+export type ProjectileDamageResult = {
+  applied: boolean;
+  defeated: boolean;
+};
+
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   abstract readonly aggroRadius: number;
   abstract readonly aggroIndicatorColor: number;
@@ -32,6 +47,17 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   get playsOwnDeathAnimation(): boolean {
     return false;
   }
+
+  /** 방 클리어를 알리기 전에 죽음 연출이 끝나길 기다리는 시간. */
+  get deathAnimationDuration(): number {
+    return 0;
+  }
+
+  /**
+   * 스테이지 아트가 스폰보다 늦게 로드된(콜드) 경우, 로드 완료 후 스프라이트를
+   * 다시 적용하도록 GameScene이 호출한다. 실제 아틀라스를 쓰는 적만 재정의한다.
+   */
+  refreshAtlasSprite(): void {}
   readonly maxHealth: number;
   /** Set by ranged-style subclasses so GameScene can route fire without an instanceof check. */
   readonly projectile: EnemyProjectileProfile | null = null;
@@ -58,6 +84,16 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Lets a knockback impulse decay to rest instead of sliding forever;
     // enemies that drive their own velocity each frame overwrite it anyway.
     this.setDragX(520);
+  }
+
+  /**
+   * 방 전환·재시작 등으로 적이 파괴될 때, 이 적을 대상으로 남아 있는 트윈을
+   * 함께 정리한다. 죽음 연출 트윈이 파괴 뒤 완료돼 이미 사라진 body를 만지며
+   * 터지는 것(예: `disableBody`)을 막는다.
+   */
+  destroy(fromScene?: boolean) {
+    this.scene?.tweens.killTweensOf(this);
+    super.destroy(fromScene);
   }
 
   /**
@@ -101,6 +137,52 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.setVelocity(0);
   }
 
+  /** 현재 높이부터 착지·유지·페이드까지 필요한 전체 공중 사망 연출 시간. */
+  protected getAerialDeathDuration(restY: number, landAnimation: string) {
+    const fallDistance = Math.max(0, restY - this.y);
+    const landDuration = this.scene.anims.get(landAnimation)?.duration ?? 0;
+    return (
+      aerialDeathFallDuration(fallDistance) +
+      landDuration +
+      AERIAL_DEATH_HOLD_MS +
+      AERIAL_DEATH_FADE_MS
+    );
+  }
+
+  /** 공중 적이 첫 자세로 추락한 뒤 착지 자세를 보이고 사라지는 공용 연출. */
+  protected playAerialDeath(
+    fallAnimation: string,
+    landAnimation: string,
+    restY: number,
+  ) {
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.play(fallAnimation, true);
+    const fallDistance = Math.max(0, restY - this.y);
+    this.scene.tweens.add({
+      targets: this,
+      y: this.y + fallDistance,
+      duration: aerialDeathFallDuration(fallDistance),
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.play(landAnimation, true);
+        this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          this.scene.time.delayedCall(AERIAL_DEATH_HOLD_MS, () => {
+            if (!this.active) {
+              return;
+            }
+            this.scene.tweens.add({
+              targets: this,
+              alpha: 0,
+              duration: AERIAL_DEATH_FADE_MS,
+              ease: 'Sine.easeIn',
+              onComplete: () => this.disableBody(true, true),
+            });
+          });
+        });
+      },
+    });
+  }
+
   /**
    * Shared 'face the target, fire on cooldown when in range' behavior for
    * ranged-style enemies. Returns whether the target is within aggro range.
@@ -136,6 +218,20 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.health = Math.max(0, this.health - amount);
     return this.health === 0;
+  }
+
+  /** 다음 체력 페이즈를 시작할 때 체력을 최대치로 복구함. */
+  protected restoreHealth() {
+    this.health = this.maxHealth;
+  }
+
+  /** 투사체 충돌 좌표를 쓰지 않는 적의 기본 피격 처리. */
+  takeProjectileDamage(
+    amount: number,
+    _hitX: number,
+    _hitY: number,
+  ): ProjectileDamageResult {
+    return { applied: true, defeated: this.takeDamage(amount) };
   }
 
   get currentHealth() {

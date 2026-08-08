@@ -8,54 +8,20 @@ const UI_EFFECT_DEPTH = 24;
 export class ArchitectBossView {
   private readonly telegraph: Phaser.GameObjects.Graphics;
   private readonly phaseOverlay: Phaser.GameObjects.Graphics;
-  private readonly haloGlow: Phaser.GameObjects.Ellipse;
-  private readonly eyeGlow: Phaser.GameObjects.Arc;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly pattern: ArchitectBossPatternConfig,
-    x: number,
-    y: number,
   ) {
     this.telegraph = scene.add.graphics().setDepth(EFFECT_DEPTH);
     this.phaseOverlay = scene.add
       .graphics()
       .setDepth(UI_EFFECT_DEPTH)
       .setScrollFactor(0);
-    this.haloGlow = scene.add
-      .ellipse(x, y - 68, 118, 34, pattern.goldColor, 0.16)
-      .setStrokeStyle(4, pattern.goldColor, 0.85)
-      .setDepth(EFFECT_DEPTH);
-    this.eyeGlow = scene.add
-      .circle(x, y, 16, pattern.skyColor, 0.82)
-      .setStrokeStyle(3, 0xffffff, 0.75)
-      .setDepth(EFFECT_DEPTH + 1);
-  }
-
-  sync(x: number, y: number, time: number, phaseTwo: boolean) {
-    this.haloGlow
-      .setPosition(x, y - 68)
-      .setRotation(
-        phaseTwo ? -0.14 + Math.sin(time * 0.001) * 0.05 : time * 0.0004,
-      );
-    this.eyeGlow.setPosition(x, y);
   }
 
   clearTelegraph() {
     this.telegraph.clear();
-  }
-
-  showRecovery(phaseTwo: boolean) {
-    this.telegraph.clear();
-    this.haloGlow.setAlpha(0.8).setScale(1);
-    this.eyeGlow.setAlpha(phaseTwo ? 0.95 : 0.82);
-  }
-
-  beginPhaseTwo() {
-    this.haloGlow
-      .setFillStyle(this.pattern.corruptionColor, 0.35)
-      .setStrokeStyle(4, this.pattern.goldColor, 0.7)
-      .setRotation(-0.14);
   }
 
   drawPhaseTransition(time: number) {
@@ -71,13 +37,9 @@ export class ArchitectBossView {
       .lineBetween(width * 0.34, height * 0.48, width * 0.22, height * 0.82)
       .lineBetween(width, height * 0.22, width * 0.66, height * 0.46)
       .lineBetween(width * 0.66, height * 0.46, width * 0.78, height * 0.86);
-    this.eyeGlow
-      .setFillStyle(this.pattern.skyColor, 1)
-      .setScale(1 + Math.sin(time * 0.025) * 0.2);
   }
 
   endPhaseTransition() {
-    this.eyeGlow.setScale(1);
     this.phaseOverlay.clear();
   }
 
@@ -85,14 +47,13 @@ export class ArchitectBossView {
     x: number,
     y: number,
     gapAngle: number,
-    time: number,
     progress: number,
   ) {
     const pulse = 0.45 + progress * 0.5;
-    this.haloGlow.setAlpha(pulse).setScale(1 + Math.sin(time * 0.02) * 0.06);
     this.telegraph
       .lineStyle(4, this.pattern.goldColor, pulse)
-      .strokeCircle(x, y - 64, 72 + progress * 12)
+      .lineBetween(x - 52, y - 64, x - 22, y - 64)
+      .lineBetween(x + 22, y - 64, x + 52, y - 64)
       .lineStyle(5, this.pattern.skyColor, 0.9)
       .lineBetween(
         x,
@@ -100,10 +61,6 @@ export class ArchitectBossView {
         x + Math.cos(gapAngle) * 92,
         y - 64 + Math.sin(gapAngle) * 92,
       );
-  }
-
-  endHalo() {
-    this.haloGlow.setScale(1);
   }
 
   drawWingWarning(x: number, y: number, time: number, step: number) {
@@ -132,26 +89,33 @@ export class ArchitectBossView {
   }
 
   drawEyeTracking(
+    sourceX: number,
+    sourceY: number,
     targetX: number,
     targetY: number,
     time: number,
     progress: number,
   ) {
     const pulse = 0.55 + Math.sin(time * 0.03) * 0.2;
+    const radius = 46 - progress * 18;
     this.telegraph
       .lineStyle(3, this.pattern.skyColor, pulse)
-      .strokeCircle(targetX, targetY, 46 - progress * 18)
+      .lineBetween(targetX, targetY - radius, targetX + radius, targetY)
+      .lineBetween(targetX + radius, targetY, targetX, targetY + radius)
+      .lineBetween(targetX, targetY + radius, targetX - radius, targetY)
+      .lineBetween(targetX - radius, targetY, targetX, targetY - radius)
       .lineStyle(1, 0xffffff, 0.65)
-      .lineBetween(this.eyeGlow.x, this.eyeGlow.y, targetX, targetY);
+      .lineBetween(sourceX, sourceY, targetX, targetY);
   }
 
   drawEyeLocked(targetX: number, targetY: number, time: number) {
     const pulse = 0.65 + Math.sin(time * 0.045) * 0.25;
+    const radius = this.pattern.eye.orbRadius;
     this.telegraph
       .fillStyle(this.pattern.goldColor, 0.12)
-      .fillCircle(targetX, targetY, this.pattern.eye.orbRadius)
+      .fillRect(targetX - radius, targetY - radius, radius * 2, radius * 2)
       .lineStyle(4, this.pattern.goldColor, pulse)
-      .strokeCircle(targetX, targetY, this.pattern.eye.orbRadius);
+      .strokeRect(targetX - radius, targetY - radius, radius * 2, radius * 2);
   }
 
   beginSalvation() {
@@ -172,40 +136,33 @@ export class ArchitectBossView {
         this.scene.cameras.main.width,
         this.scene.cameras.main.height,
       );
+    const radius = 70 + progress * 170;
     this.telegraph
       .lineStyle(5, this.pattern.goldColor, 0.8)
-      .strokeCircle(centerX, centerY, 70 + progress * 170);
+      .lineBetween(centerX, centerY - radius, centerX + radius, centerY)
+      .lineBetween(centerX + radius, centerY, centerX, centerY + radius)
+      .lineBetween(centerX, centerY + radius, centerX - radius, centerY)
+      .lineBetween(centerX - radius, centerY, centerX, centerY - radius);
   }
 
   clearOverlay() {
     this.phaseOverlay.clear();
   }
 
-  exposeCore() {
-    this.eyeGlow
-      .setFillStyle(0xffffff, 1)
-      .setStrokeStyle(5, this.pattern.skyColor, 1)
-      .setScale(1.55);
-    this.haloGlow
-      .setFillStyle(this.pattern.corruptionColor, 0.5)
-      .setStrokeStyle(3, this.pattern.skyColor, 0.5)
-      .setRotation(-0.28);
-  }
-
   drawExposedCore(x: number, y: number, time: number) {
     const pulse = 0.65 + Math.sin(time * 0.035) * 0.25;
+    const outer = 52 + pulse * 12;
+    const inner = 34 + pulse * 10;
     this.telegraph
       .lineStyle(5, this.pattern.skyColor, pulse)
-      .strokeCircle(x, y, 34 + pulse * 10)
+      .strokeRect(x - inner, y - inner, inner * 2, inner * 2)
       .lineStyle(2, 0xffffff, pulse)
-      .strokeCircle(x, y, 52 + pulse * 12);
+      .strokeRect(x - outer, y - outer, outer * 2, outer * 2);
   }
 
   defeat(x: number, y: number) {
     this.telegraph.clear();
     this.phaseOverlay.clear();
-    this.haloGlow.setVisible(false);
-    this.eyeGlow.setVisible(false);
 
     for (let index = 0; index < 14; index += 1) {
       const angle = (index / 14) * Math.PI * 2;
@@ -236,7 +193,5 @@ export class ArchitectBossView {
   destroy() {
     this.telegraph.destroy();
     this.phaseOverlay.destroy();
-    this.haloGlow.destroy();
-    this.eyeGlow.destroy();
   }
 }

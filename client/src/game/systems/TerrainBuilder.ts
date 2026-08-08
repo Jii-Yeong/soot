@@ -1,14 +1,34 @@
 import Phaser from 'phaser';
-import type { TerrainPiece } from '@/game/config/roomConfig';
+import type {
+  CeilingPipe,
+  TerrainPiece,
+} from '@/game/config/roomConfig';
 import type { SliceSkinConfig } from '@/game/config/terrainSkinConfig';
 import { drawSliceSkin } from '@/game/systems/SliceSkin';
 
 const TERRAIN_DEPTH = 5;
+const PIPE_DEPTH = 4;
 const TERRAIN_TYPE_DATA_KEY = 'terrain-type';
 
 const TERRAIN_STYLE = {
   platform: { fill: 0x9aa4ab, edge: 0xe8eef1 },
   wall: { fill: 0x707a81, edge: 0xc4ccd0 },
+  pipe: {
+    fill: 0x182326,
+    edge: 0x536468,
+    seam: 0x26383a,
+    bracket: 0x6a7c7e,
+    light: 0x9bcc78,
+    height: 26,
+    radius: 8,
+    seamY: 17,
+    bracketStartX: 80,
+    bracketSpacing: 180,
+    bracketWidth: 14,
+    bracketHeight: 36,
+    bracketY: -5,
+    lightRadius: 3,
+  },
 } as const;
 
 /**
@@ -52,16 +72,23 @@ export class TerrainBuilder {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
   readonly projectileGroup: Phaser.Physics.Arcade.StaticGroup;
   private skinObjects: Phaser.GameObjects.GameObject[] = [];
+  private pipeObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.physics.add.staticGroup();
     this.projectileGroup = scene.physics.add.staticGroup();
   }
 
-  build(pieces: readonly TerrainPiece[] = [], stoolSkin?: SliceSkinConfig) {
+  build(
+    pieces: readonly TerrainPiece[] = [],
+    stoolSkin?: SliceSkinConfig,
+    ceilingPipes: readonly CeilingPipe[] = [],
+    pipeSkin?: SliceSkinConfig,
+  ) {
     this.group.clear(true, true);
     this.projectileGroup.clear(true, true);
     this.clearSkin();
+    this.clearPipes();
 
     for (const piece of pieces) {
       const style = TERRAIN_STYLE[piece.type];
@@ -124,6 +151,58 @@ export class TerrainBuilder {
         );
       }
     }
+
+    for (const pipe of ceilingPipes) {
+      if (pipeSkin) {
+        this.pipeObjects.push(
+          ...drawSliceSkin(
+            this.scene,
+            pipeSkin,
+            pipe.x,
+            pipe.x + pipe.width,
+            pipe.y,
+            PIPE_DEPTH,
+          ),
+        );
+      } else {
+        this.drawCeilingPipe(pipe);
+      }
+    }
+  }
+
+  /** 산업용 배관과 자석 발이 붙는 하부 레일을 한 오브젝트로 그림. */
+  private drawCeilingPipe(pipe: CeilingPipe) {
+    const style = TERRAIN_STYLE.pipe;
+    const graphics = this.scene.add
+      .graphics({ x: pipe.x, y: pipe.y })
+      .setDepth(PIPE_DEPTH);
+    graphics.fillStyle(style.fill, 1);
+    graphics.fillRoundedRect(0, 0, pipe.width, style.height, style.radius);
+    graphics.lineStyle(3, style.edge, 1);
+    graphics.strokeRoundedRect(0, 0, pipe.width, style.height, style.radius);
+    graphics.lineStyle(2, style.seam, 1);
+    graphics.lineBetween(0, style.seamY, pipe.width, style.seamY);
+    graphics.fillStyle(style.bracket, 1);
+    for (
+      let x = style.bracketStartX;
+      x < pipe.width;
+      x += style.bracketSpacing
+    ) {
+      graphics.fillRect(
+        x,
+        style.bracketY,
+        style.bracketWidth,
+        style.bracketHeight,
+      );
+      graphics.fillStyle(style.light, 0.75);
+      graphics.fillCircle(
+        x + style.bracketWidth / 2,
+        style.height / 2,
+        style.lightRadius,
+      );
+      graphics.fillStyle(style.bracket, 1);
+    }
+    this.pipeObjects.push(graphics);
   }
 
   private clearSkin() {
@@ -131,5 +210,12 @@ export class TerrainBuilder {
       obj.destroy();
     }
     this.skinObjects = [];
+  }
+
+  private clearPipes() {
+    for (const obj of this.pipeObjects) {
+      obj.destroy();
+    }
+    this.pipeObjects = [];
   }
 }

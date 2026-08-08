@@ -1,7 +1,11 @@
 import Phaser from 'phaser';
 import {
+  ARCHITECT_BOSS_SPRITES,
   BOSS_COMBAT_CONFIGS,
-  BOSS_SPRITES,
+  HOUND_BOSS_SPRITES,
+  INFERNAL_BOSS_SPRITES,
+  LASER_BOSS_SPRITES,
+  PURIFIER_BOSS_SPRITES,
   hasBossPattern,
 } from '@/game/config/bossConfig';
 import type { BossArenaBounds } from '@/game/config/bossArena';
@@ -14,18 +18,31 @@ import {
 import type { FlyingSpriteConfig } from '@/game/config/flyingEnemyAnimationConfig';
 import type { MeleeSpriteConfig } from '@/game/config/meleeEnemyAnimationConfig';
 import type { RangedSpriteConfig } from '@/game/config/rangedEnemyAnimationConfig';
-import type { EnemySpawnConfig } from '@/game/config/roomConfig';
+import type {
+  CeilingPipe,
+  EnemySpawnConfig,
+} from '@/game/config/roomConfig';
 import { ArchitectBossEnemy } from '@/game/entities/ArchitectBossEnemy';
+import { BlockerEnemy } from '@/game/entities/BlockerEnemy';
+import { CaptorEnemy } from '@/game/entities/CaptorEnemy';
+import { CelestialOracleEnemy } from '@/game/entities/CelestialOracleEnemy';
+import { CeilingMaintainerEnemy } from '@/game/entities/CeilingMaintainerEnemy';
+import { ChoirSupporterEnemy } from '@/game/entities/ChoirSupporterEnemy';
 import type { Enemy } from '@/game/entities/Enemy';
+import { ExecutionerDollEnemy } from '@/game/entities/ExecutionerDollEnemy';
 import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
+import { InfernalHoundEnemy } from '@/game/entities/InfernalHoundEnemy';
 import type { PatrolBounds } from '@/game/systems/patrolSpan';
 import { HoundBossEnemy } from '@/game/entities/HoundBossEnemy';
 import { InfernalBossEnemy } from '@/game/entities/InfernalBossEnemy';
 import { LaserBossEnemy } from '@/game/entities/LaserBossEnemy';
 import { MeleeEnemy } from '@/game/entities/MeleeEnemy';
 import { PurifierBossEnemy } from '@/game/entities/PurifierBossEnemy';
+import { JudgmentEyeEnemy } from '@/game/entities/JudgmentEyeEnemy';
 import { RangedEnemy } from '@/game/entities/RangedEnemy';
+import { SanctumEnforcerEnemy } from '@/game/entities/SanctumEnforcerEnemy';
 import type { BossPhase } from '@/game/state/bossPhase';
+import { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
 import {
   connectEnemyToRoomGeometry,
   type EnemyCollisionOptions,
@@ -36,36 +53,74 @@ type SpawnOf<Type extends EnemySpawnConfig['type']> = Extract<
   { type: Type }
 >;
 
+type EnemyFactoryOptions = {
+  scene: Phaser.Scene;
+  floor: Phaser.Physics.Arcade.StaticGroup;
+  terrain: Phaser.Physics.Arcade.StaticGroup;
+  enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup;
+  intensity?: number;
+  damagePlayer: (damage: number) => void;
+  tetherPlayer: (
+    sourceX: number,
+    slowFactor: number,
+    pullSpeed: number,
+  ) => void;
+  isPlayerDashing: () => boolean;
+  pullPlayer: (bossX: number, pullSpeed: number) => void;
+  ceilingPipes: readonly CeilingPipe[];
+  bossArena: BossArenaBounds;
+  onBossPhaseChanged: (phase: BossPhase) => void;
+  /** 방의 구덩이와 가장자리에 맞춰 잘라낸 순찰 범위를 반환함. */
+  patrolBoundsFor: (spawnX: number) => PatrolBounds | null;
+  flyingSprite?: FlyingSpriteConfig;
+  meleeSwing?: MeleeSwingConfig;
+  rangedSprite?: RangedSpriteConfig;
+  meleeSprite?: MeleeSpriteConfig;
+};
+
 const assertUnhandledBossConfig = (_config: never): never => {
   throw new Error('Unsupported boss pattern');
 };
 
 export class EnemyFactory {
+  private readonly scene: Phaser.Scene;
+  private readonly floor: Phaser.Physics.Arcade.StaticGroup;
+  private readonly terrain: Phaser.Physics.Arcade.StaticGroup;
+  private readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup;
   private readonly intensity: number;
+  private readonly damagePlayer: (damage: number) => void;
+  private readonly tetherPlayer: EnemyFactoryOptions['tetherPlayer'];
+  private readonly isPlayerDashing: () => boolean;
+  private readonly pullPlayer: EnemyFactoryOptions['pullPlayer'];
+  private readonly ceilingPipes: readonly CeilingPipe[];
+  private readonly bossArena: BossArenaBounds;
+  private readonly onBossPhaseChanged: EnemyFactoryOptions['onBossPhaseChanged'];
+  private readonly patrolBoundsFor: EnemyFactoryOptions['patrolBoundsFor'];
+  private readonly flyingSprite?: FlyingSpriteConfig;
+  private readonly meleeSwing?: MeleeSwingConfig;
+  private readonly rangedSprite?: RangedSpriteConfig;
+  private readonly meleeSprite?: MeleeSpriteConfig;
+  private readonly stageFourAttackCoordinator = new EnemyAttackCoordinator(2);
+  private readonly stageFiveAttackCoordinator = new EnemyAttackCoordinator(2);
 
-  constructor(
-    private readonly scene: Phaser.Scene,
-    private readonly floor: Phaser.Physics.Arcade.StaticGroup,
-    private readonly terrain: Phaser.Physics.Arcade.StaticGroup,
-    private readonly enemyPitBarriers: Phaser.Physics.Arcade.StaticGroup,
-    intensity: number | undefined,
-    private readonly damagePlayer: (damage: number) => void,
-    private readonly grabPlayer: (bossX: number, bossHalfWidth: number) => void,
-    private readonly pullPlayer: (bossX: number, pullSpeed: number) => void,
-    private readonly bossArena: BossArenaBounds,
-    private readonly onBossPhaseChanged: (phase: BossPhase) => void,
-    /**
-     * 이 위치의 적이 순찰할 수 있도록 방의 구덩이와 가장자리에 맞춰 잘라낸
-     * 바닥 구간. 팩토리는 방의 형태를 모르고 배치 시점에 범위가 고정되므로,
-     * 장면에서 계산해 전달한다.
-     */
-    private readonly patrolBoundsFor: (spawnX: number) => PatrolBounds | null,
-    private readonly flyingSprite?: FlyingSpriteConfig,
-    private readonly meleeSwing?: MeleeSwingConfig,
-    private readonly rangedSprite?: RangedSpriteConfig,
-    private readonly meleeSprite?: MeleeSpriteConfig,
-  ) {
-    this.intensity = intensity ?? 1;
+  constructor(options: EnemyFactoryOptions) {
+    this.scene = options.scene;
+    this.floor = options.floor;
+    this.terrain = options.terrain;
+    this.enemyPitBarriers = options.enemyPitBarriers;
+    this.intensity = options.intensity ?? 1;
+    this.damagePlayer = options.damagePlayer;
+    this.tetherPlayer = options.tetherPlayer;
+    this.isPlayerDashing = options.isPlayerDashing;
+    this.pullPlayer = options.pullPlayer;
+    this.ceilingPipes = options.ceilingPipes;
+    this.bossArena = options.bossArena;
+    this.onBossPhaseChanged = options.onBossPhaseChanged;
+    this.patrolBoundsFor = options.patrolBoundsFor;
+    this.flyingSprite = options.flyingSprite;
+    this.meleeSwing = options.meleeSwing;
+    this.rangedSprite = options.rangedSprite;
+    this.meleeSprite = options.meleeSprite;
   }
 
   private patrolFor(spawnX: number) {
@@ -83,9 +138,147 @@ export class EnemyFactory {
         return this.createRangedEnemy(spawn);
       case 'flying':
         return this.createFlyingEnemy(spawn);
+      case 'ceiling-maintainer':
+        return this.createCeilingMaintainer(spawn);
+      case 'captor':
+        return this.createCaptor(spawn);
+      case 'blocker':
+        return this.createBlocker(spawn);
+      case 'infernal-hound':
+        return this.createInfernalHound(spawn);
+      case 'executioner-doll':
+        return this.createExecutionerDoll(spawn);
+      case 'judgment-eye':
+        return this.createJudgmentEye(spawn);
+      case 'choir-supporter':
+        return this.createChoirSupporter(spawn);
+      case 'sanctum-enforcer':
+        return this.createSanctumEnforcer(spawn);
+      case 'celestial-oracle':
+        return this.createCelestialOracle(spawn);
       case 'boss':
         return this.createBossEnemy(spawn);
     }
+  }
+
+  private createCeilingMaintainer(spawn: SpawnOf<'ceiling-maintainer'>) {
+    const pipe = this.ceilingPipes.find(({ id }) => id === spawn.pipeId);
+    if (!pipe) {
+      throw new Error(`Missing ceiling pipe: ${spawn.pipeId}`);
+    }
+
+    // 발판(2층)에 걸리지 않고 천장에서 1층 바닥까지 떨어지도록 지형 충돌은 끈다.
+    // 구덩이 가장자리 장벽도 무시해, 지상 돌진 중 구덩이를 만나면 그대로 추락한다.
+    return this.finishSpawn(
+      new CeilingMaintainerEnemy(
+        this.scene,
+        spawn.x,
+        pipe,
+        this.damagePlayer,
+      ),
+      { collidesWithTerrain: false, collidesWithPitBarriers: false },
+    );
+  }
+
+  private createCaptor(spawn: SpawnOf<'captor'>) {
+    return this.finishSpawn(
+      new CaptorEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.damagePlayer,
+        this.tetherPlayer,
+        this.isPlayerDashing,
+      ),
+    );
+  }
+
+  private createBlocker(spawn: SpawnOf<'blocker'>) {
+    return this.finishSpawn(
+      new BlockerEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.damagePlayer,
+      ),
+    );
+  }
+
+  private createInfernalHound(spawn: SpawnOf<'infernal-hound'>) {
+    return this.finishSpawn(
+      new InfernalHoundEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+    );
+  }
+
+  private createExecutionerDoll(spawn: SpawnOf<'executioner-doll'>) {
+    return this.finishSpawn(
+      new ExecutionerDollEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createJudgmentEye(spawn: SpawnOf<'judgment-eye'>) {
+    return this.finishSpawn(
+      new JudgmentEyeEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFourAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createChoirSupporter(spawn: SpawnOf<'choir-supporter'>) {
+    return this.finishSpawn(
+      new ChoirSupporterEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFiveAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createSanctumEnforcer(spawn: SpawnOf<'sanctum-enforcer'>) {
+    return this.finishSpawn(
+      new SanctumEnforcerEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFiveAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
+  }
+
+  private createCelestialOracle(spawn: SpawnOf<'celestial-oracle'>) {
+    return this.finishSpawn(
+      new CelestialOracleEnemy(
+        this.scene,
+        spawn.x,
+        spawn.y,
+        this.stageFiveAttackCoordinator,
+        this.damagePlayer,
+      ),
+      { collidesWithFloor: false, collidesWithTerrain: false },
+    );
   }
 
   private createMeleeEnemy(spawn: SpawnOf<'melee'>) {
@@ -163,7 +356,7 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
-          BOSS_SPRITES[spawn.variant],
+          LASER_BOSS_SPRITES[spawn.variant],
         ),
       );
     }
@@ -177,6 +370,7 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
+          HOUND_BOSS_SPRITES[spawn.variant],
         ),
       );
     }
@@ -190,8 +384,8 @@ export class EnemyFactory {
           config.texture,
           config,
           this.damagePlayer,
-          this.grabPlayer,
           this.pullPlayer,
+          PURIFIER_BOSS_SPRITES[spawn.variant],
         ),
       );
     }
@@ -207,6 +401,7 @@ export class EnemyFactory {
           this.damagePlayer,
           this.bossArena,
           this.onBossPhaseChanged,
+          INFERNAL_BOSS_SPRITES[spawn.variant],
         ),
       );
     }
@@ -222,6 +417,7 @@ export class EnemyFactory {
           this.damagePlayer,
           this.bossArena,
           this.onBossPhaseChanged,
+          ARCHITECT_BOSS_SPRITES[spawn.variant],
         ),
         { collidesWithFloor: false },
       );

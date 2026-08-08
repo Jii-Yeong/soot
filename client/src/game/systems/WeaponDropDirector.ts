@@ -24,11 +24,11 @@ export class WeaponDropDirector {
   dropBossReward(
     x: number,
     y: number,
-    activeWeaponId: string,
+    ownedWeaponIds: readonly string[],
   ): WeaponPickup | null {
     const weapon = selectBossWeaponDrop(
       this.weapons,
-      activeWeaponId,
+      ownedWeaponIds,
       this.random,
     );
     if (!weapon) {
@@ -52,18 +52,18 @@ export class WeaponDropDirector {
     nearest?.setHighlighted(true, activeWeapon);
   }
 
+  /** 인벤토리가 수락한 경우에만 바닥의 무기를 소비함. */
   takeNearest(
     player: Phaser.Physics.Arcade.Sprite,
-    previousWeapon: WeaponConfig,
+    tryCollect: (weapon: WeaponConfig) => boolean,
   ): WeaponConfig | null {
     const pickup = this.findNearestPickup(player.x, player.y);
-    if (!pickup) {
+    if (!pickup || !tryCollect(pickup.weapon)) {
       return null;
     }
 
-    const { weapon, x, y } = pickup;
+    const { weapon } = pickup;
     this.removePickup(pickup);
-    this.spawnPickup(previousWeapon, x, y - 6);
     return weapon;
   }
 

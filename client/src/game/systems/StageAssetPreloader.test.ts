@@ -1,6 +1,9 @@
 import type Phaser from 'phaser';
 import { describe, expect, it, vi } from 'vitest';
-import { STAGE_TWO_CONFIG } from '@/game/config/stageConfig';
+import {
+  STAGE_THREE_CONFIG,
+  STAGE_TWO_CONFIG,
+} from '@/game/config/stageConfig';
 import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
 
 type LoaderListener = (...args: never[]) => void;
@@ -51,6 +54,44 @@ describe('StageAssetPreloader', () => {
     expect(load.start).toHaveBeenCalledOnce();
   });
 
+  it('queues the stage three enemy atlases and terrain art', () => {
+    const { load, scene } = createScene();
+
+    expect(new StageAssetPreloader(scene).preload(STAGE_THREE_CONFIG)).toBe(
+      true,
+    );
+    expect(load.atlas).toHaveBeenCalledTimes(3);
+    expect(load.atlas).toHaveBeenCalledWith(
+      'stage-3-flying',
+      '/assets/enemies/stage-3-flying.png',
+      '/assets/enemies/stage-3-flying.json',
+    );
+    expect(load.atlas).toHaveBeenCalledWith(
+      'stage-3-ranged',
+      '/assets/enemies/stage-3-ranged.png',
+      '/assets/enemies/stage-3-ranged.json',
+    );
+    expect(load.atlas).toHaveBeenCalledWith(
+      'stage-3-neared',
+      '/assets/enemies/stage-3-neared.png',
+      '/assets/enemies/stage-3-neared.json',
+    );
+    expect(load.image).toHaveBeenCalledTimes(9);
+    expect(load.image).toHaveBeenCalledWith(
+      'stage-3-floor-left',
+      '/assets/terrain/stage-3-floor-left.png',
+    );
+    expect(load.image).toHaveBeenCalledWith(
+      'stage-3-stool-right',
+      '/assets/terrain/stage-3-stool-right.png',
+    );
+    expect(load.image).toHaveBeenCalledWith(
+      'stage-3-pipe-middle',
+      '/assets/terrain/stage-3-pipe-middle.png',
+    );
+    expect(load.start).toHaveBeenCalledOnce();
+  });
+
   it('creates atlas animations on arrival and never recreates cached ones', () => {
     const pending = createScene();
     new StageAssetPreloader(pending.scene).preload(STAGE_TWO_CONFIG);
@@ -86,8 +127,13 @@ describe('StageAssetPreloader', () => {
   });
 
   it('runs onReady once every awaited texture has arrived', () => {
-    const { listeners, scene } = createScene();
-    const onReady = vi.fn();
+    const { anims, listeners, scene } = createScene();
+    const finalKey = 'stage-2-neared';
+    const onReady = vi.fn(() => {
+      expect(anims.create).toHaveBeenCalledWith(
+        expect.objectContaining({ key: 'stage-2-neared-attack' }),
+      );
+    });
 
     new StageAssetPreloader(scene).preload(STAGE_TWO_CONFIG, onReady);
 
@@ -102,16 +148,20 @@ describe('StageAssetPreloader', () => {
       'stage-2-stool-middle',
       'stage-2-stool-right',
     ];
-    const complete = listeners.get('filecomplete') ?? [];
-    for (const key of awaited.slice(0, -1)) {
-      for (const listener of complete) {
-        listener(key as never);
+    for (const key of awaited.filter((key) => key !== finalKey)) {
+      const type = key.includes('floor') || key.includes('stool')
+        ? 'image'
+        : 'atlasjson';
+      for (const listener of
+        listeners.get(`filecomplete-${type}-${key}`) ?? []) {
+        listener();
       }
     }
     expect(onReady).not.toHaveBeenCalled();
 
-    for (const listener of complete) {
-      listener(awaited.at(-1) as never);
+    for (const listener of
+      listeners.get(`filecomplete-atlasjson-${finalKey}`) ?? []) {
+      listener();
     }
     expect(onReady).toHaveBeenCalledOnce();
   });
@@ -134,7 +184,7 @@ describe('StageAssetPreloader', () => {
     new StageAssetPreloader(warm.scene).preload(STAGE_TWO_CONFIG, onReady);
 
     expect(onReady).not.toHaveBeenCalled();
-    expect(warm.listeners.get('filecomplete') ?? []).toHaveLength(0);
+    expect(warm.listeners.size).toBe(0);
   });
 
   it('deduplicates pending files and permits retry after a failure', () => {

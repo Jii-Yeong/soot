@@ -2,12 +2,14 @@ import Phaser from 'phaser';
 import {
   PLAYER_ANIMATIONS,
   PLAYER_JUMP_FRAMES,
+  type PlayerAnimationSet,
 } from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
   PLAYER_FLIGHT_BOUNDS,
   writeNormalizedVelocity,
 } from '@/game/config/playerMovementConfig';
+import { getTetheredVelocityX } from '@/game/combat/stageThreeEnemyCombat';
 import { getVacuumVelocityX } from '@/game/combat/vacuumPull';
 import { gameEvents } from '@/game/events/gameEvents';
 import {
@@ -41,13 +43,6 @@ const COYOTE_TIME = 90;
 const JUMP_BUFFER_TIME = 110;
 /** 포탈 진입 후 점프 입력을 무시하는 시간(위/W 키를 공유하므로). */
 const JUMP_SUPPRESS_AFTER_PORTAL = 200;
-/** How fast a boss grab drags the player toward it. */
-const GRAB_PULL_SPEED = 700;
-/**
- * Safety cap on the grab drag + i-frames; normally the pull ends earlier, the
- * moment the player overlaps the boss. A dash within it breaks free.
- */
-const GRAB_DURATION = 800;
 /** 중앙 착지 후 비행 조작을 열기 전의 착지 자세 시간. */
 const FLIGHT_ENTRY_LANDING_DURATION = 180;
 /** 비행 밴드 중앙보다 높게 잡는 포탈 진입 점프의 정점. */
@@ -68,11 +63,7 @@ export class PlayerController {
   private wasGrounded = true;
   private landingPoseUntil = 0;
   private currentPose: string | null = null;
-  private grabbed = false;
-  private grabEndsAt = 0;
-  private grabVelocityX = 0;
-  private grabTargetX = 0;
-  private grabStopDistance = 0;
+  private animations: PlayerAnimationSet = PLAYER_ANIMATIONS;
   private movementMode = MovementMode.GROUND;
   private flightEntryLift?: {
     startY: number;
@@ -103,28 +94,6 @@ export class PlayerController {
   }
 
   update(time: number) {
-    if (this.grabbed) {
-      // A dash within the window breaks free; otherwise the drag stops once the
-      // player overlaps the boss (or the window runs out). All cases fall
-      // through to normal control below.
-      const reachedBoss =
-        Math.abs(this.player.x - this.grabTargetX) <= this.grabStopDistance;
-      if (
-        Phaser.Input.Keyboard.JustDown(this.movementKeys.dash) &&
-        this.tryDash(time)
-      ) {
-        this.grabbed = false;
-      } else if (reachedBoss || time >= this.grabEndsAt) {
-        this.grabbed = false;
-        this.invulnerable = false;
-        this.player.setVelocityX(0);
-      } else {
-        this.player.setVelocityX(this.grabVelocityX);
-        this.updateAnimation(time);
-        return;
-      }
-    }
-
     if (this.updateFlightEntryLift(time)) {
       return;
     }
@@ -164,7 +133,6 @@ export class PlayerController {
 
     this.finishDash();
     this.movementMode = mode;
-    this.grabbed = false;
     this.invulnerable = false;
     this.lastGroundedAt = 0;
     this.jumpBufferedUntil = 0;
@@ -181,13 +149,23 @@ export class PlayerController {
     if (mode === MovementMode.FLIGHT) {
       this.clampFlightPosition();
       this.playAnimationWithFallback(
-        PLAYER_ANIMATIONS.flyIdle,
-        PLAYER_ANIMATIONS.idle,
+        this.animations.flyIdle,
+        this.animations.idle,
       );
       return;
     }
 
-    this.playAnimation(PLAYER_ANIMATIONS.idle);
+    this.playAnimation(this.animations.idle);
+  }
+
+  setAnimations(animations: PlayerAnimationSet) {
+    this.animations = animations;
+    this.currentPose = null;
+    if (this.movementMode === MovementMode.FLIGHT) {
+      this.playAnimationWithFallback(animations.flyIdle, animations.idle);
+      return;
+    }
+    this.playAnimation(animations.idle);
   }
 
   private updateGroundMovement(time: number) {
@@ -286,7 +264,7 @@ export class PlayerController {
 
     const isRunning = Math.abs(body?.velocity.x ?? 0) > 1;
     this.playAnimation(
-      isRunning ? PLAYER_ANIMATIONS.run : PLAYER_ANIMATIONS.idle,
+      isRunning ? this.animations.run : this.animations.idle,
     );
   }
 
@@ -320,12 +298,12 @@ export class PlayerController {
       Math.abs(this.movementVelocity.x) > 1 ||
       Math.abs(this.movementVelocity.y) > 1;
     const desiredAnimation = dashing
-      ? PLAYER_ANIMATIONS.flyDash
+      ? this.animations.flyDash
       : moving
-        ? PLAYER_ANIMATIONS.flyMove
-        : PLAYER_ANIMATIONS.flyIdle;
+        ? this.animations.flyMove
+        : this.animations.flyIdle;
     const fallbackAnimation =
-      dashing || moving ? PLAYER_ANIMATIONS.run : PLAYER_ANIMATIONS.idle;
+      dashing || moving ? this.animations.run : this.animations.idle;
     this.playAnimationWithFallback(desiredAnimation, fallbackAnimation);
   }
 
@@ -358,6 +336,11 @@ export class PlayerController {
   stop() {
     this.finishDash();
     this.flightEntryLift = undefined;
+    // 방 전환 시 중력을 스테이지 모드에 맞춰 강제 복원한다. 보스 그랩·포박·대시
+    // 등으로 중력이 꺼진 채 다음 방으로 넘어가 플레이어가 공중에 멈추는 것을 막는다.
+    (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(
+      this.movementMode === MovementMode.GROUND,
+    );
     this.player.setVelocity(0);
   }
 
@@ -391,27 +374,12 @@ export class PlayerController {
     return this.invulnerable;
   }
 
-  get isFlightMode() {
-    return this.movementMode === MovementMode.FLIGHT;
+  get isDashing() {
+    return this.dashing;
   }
 
-  /**
-   * A boss claw yanks the player toward the boss at (`bossX`), stopping once
-   * the two overlap (`bossHalfWidth` + the player's own half). The pull locks
-   * input and grants brief invulnerability, but a dash within the window breaks
-   * free — so it displaces without becoming an unescapable stunlock.
-   */
-  applyGrab(bossX: number, bossHalfWidth: number) {
-    if (this.dashing) {
-      return;
-    }
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    this.grabbed = true;
-    this.invulnerable = true;
-    this.grabEndsAt = this.scene.time.now + GRAB_DURATION;
-    this.grabVelocityX = (bossX >= this.player.x ? 1 : -1) * GRAB_PULL_SPEED;
-    this.grabTargetX = bossX;
-    this.grabStopDistance = bossHalfWidth + body.width / 2;
+  get isFlightMode() {
+    return this.movementMode === MovementMode.FLIGHT;
   }
 
   /**
@@ -428,6 +396,24 @@ export class PlayerController {
         currentVelocityX: body.velocity.x,
         pullSpeed,
       }),
+    );
+  }
+
+  /** 포획 케이블이 입력 속도를 낮추고 포획기 쪽으로 조금씩 끌어당김. */
+  applyTether(sourceX: number, slowFactor: number, pullSpeed: number) {
+    if (this.dashing) {
+      return;
+    }
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    this.player.setVelocityX(
+      getTetheredVelocityX(
+        this.player.x,
+        sourceX,
+        body.velocity.x,
+        slowFactor,
+        pullSpeed,
+      ),
     );
   }
 
@@ -454,6 +440,20 @@ export class PlayerController {
       return false;
     }
 
+    // 진입 연출은 짧은 연출일 뿐이다. 플레이어가 이동 입력을 시작하면 즉시
+    // 끝내고 제어를 넘겨, 연출이 어떤 이유로든 끝나지 않아 플레이어가 제자리에서
+    // 파닥이며 움직이지 못하는 상태에 갇히지 않게 한다. 시간 상한도 함께 둔다.
+    const completesAt =
+      FLIGHT_ENTRY_JUMP_RISE_DURATION +
+      FLIGHT_ENTRY_JUMP_FALL_DURATION +
+      FLIGHT_ENTRY_LANDING_DURATION;
+    if (this.hasFlightMovementInput() || time - lift.startsAt >= completesAt) {
+      this.flightEntryLift = undefined;
+      this.currentPose = null;
+      this.updateFlightAnimation(false);
+      return false;
+    }
+
     const elapsed = time - lift.startsAt;
     const apexY = Phaser.Math.Clamp(
       lift.targetY - FLIGHT_ENTRY_JUMP_APEX_HEIGHT,
@@ -462,7 +462,6 @@ export class PlayerController {
     );
     const fallStartsAt = FLIGHT_ENTRY_JUMP_RISE_DURATION;
     const landingStartsAt = fallStartsAt + FLIGHT_ENTRY_JUMP_FALL_DURATION;
-    const completesAt = landingStartsAt + FLIGHT_ENTRY_LANDING_DURATION;
 
     if (elapsed < fallStartsAt) {
       this.moveFlightEntryBodyTo(
@@ -493,12 +492,6 @@ export class PlayerController {
     }
     this.player.setVelocity(0);
 
-    if (elapsed >= completesAt) {
-      this.flightEntryLift = undefined;
-      this.currentPose = null;
-      this.updateFlightAnimation(false);
-    }
-
     return true;
   }
 
@@ -519,6 +512,16 @@ export class PlayerController {
       }
     }
 
+    // 지상 대시 방향: 좌/우 방향키를 누르고 있으면 그 방향으로 대시한다. 좌우를
+    // 동시에 눌러 서로 상쇄되면(horizontal === 0) 방향키 미입력과 똑같이 취급해
+    // 쳐다보는 방향(flipX)으로 대시한다.
+    const horizontal = Number(this.isMovingRight()) - Number(this.isMovingLeft());
+    if (horizontal !== 0) {
+      this.dashVelocity.x = horizontal;
+      this.dashVelocity.y = 0;
+      return;
+    }
+
     this.dashVelocity.x = this.player.flipX ? -1 : 1;
     this.dashVelocity.y = 0;
   }
@@ -531,14 +534,26 @@ export class PlayerController {
     this.player.setPosition(
       Phaser.Math.Clamp(
         this.player.x,
-        viewportLeft + PLAYER_FLIGHT_BOUNDS.minScreenX,
-        viewportLeft + PLAYER_FLIGHT_BOUNDS.maxScreenX,
+        viewportLeft + PLAYER_FLIGHT_BOUNDS.horizontalScreenInset,
+        viewportLeft +
+          camera.width -
+          PLAYER_FLIGHT_BOUNDS.horizontalScreenInset,
       ),
       Phaser.Math.Clamp(
         this.player.y,
         PLAYER_FLIGHT_BOUNDS.minY,
         PLAYER_FLIGHT_BOUNDS.maxY,
       ),
+    );
+  }
+
+  /** 비행 중 어느 방향으로든 이동 입력이 있는지. */
+  private hasFlightMovementInput() {
+    return (
+      this.isMovingLeft() ||
+      this.isMovingRight() ||
+      this.isMovingUp() ||
+      this.isMovingDown()
     );
   }
 

@@ -13,9 +13,11 @@ type SlamLeapOptions = {
 };
 
 /**
- * Calculates a symmetric ballistic leap that returns to its launch height.
- * Horizontal speed is capped so an unusually distant target cannot make the
- * boss cross the whole arena at an unreadable speed.
+ * Calculates a symmetric ballistic leap that returns to its launch height and
+ * always lands on the marked spot. Horizontal speed stays capped at
+ * `maxTravelSpeedX` so the leap reads clearly; a target too far to reach within
+ * the base arc extends the flight time (a higher, longer jump) instead of
+ * falling short of the warned landing spot.
  */
 export function getSlamLeapVelocity({
   originX,
@@ -24,16 +26,18 @@ export function getSlamLeapVelocity({
   gravityY,
   maxTravelSpeedX,
 }: SlamLeapOptions): SlamLeapVelocity {
-  const flightDurationSeconds = (launchSpeedY * 2) / gravityY;
-  const desiredVelocityX =
-    (targetX - originX) / flightDurationSeconds;
+  const baseFlightSeconds = (launchSpeedY * 2) / gravityY;
+  const distance = Math.abs(targetX - originX);
+  // Stretch the arc when the capped horizontal speed can't cover the distance
+  // in the base flight time, so the boss reaches the marker rather than
+  // landing short.
+  const requiredSeconds =
+    maxTravelSpeedX > 0 ? distance / maxTravelSpeedX : baseFlightSeconds;
+  const flightSeconds = Math.max(baseFlightSeconds, requiredSeconds);
 
   return {
-    velocityX: Math.max(
-      -maxTravelSpeedX,
-      Math.min(maxTravelSpeedX, desiredVelocityX),
-    ),
-    velocityY: -launchSpeedY,
-    flightDurationMs: flightDurationSeconds * 1000,
+    velocityX: (targetX - originX) / flightSeconds,
+    velocityY: -(gravityY * flightSeconds) / 2,
+    flightDurationMs: flightSeconds * 1000,
   };
 }

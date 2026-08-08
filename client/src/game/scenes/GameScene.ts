@@ -1,37 +1,39 @@
 import Phaser from 'phaser';
 import {
-  FLYING_ENEMY_COMBAT_CONFIG,
   MELEE_ENEMY_COMBAT_CONFIG,
   PLAYER_COMBAT_CONFIG,
-  RANGED_ENEMY_COMBAT_CONFIG,
 } from '@/game/config/combatConfig';
-import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameDimensions';
+import { GAME_HEIGHT } from '@/game/config/gameDimensions';
 import {
-  PLAYER_ANIMATIONS,
-  PLAYER_ATLAS_KEY,
   PLAYER_INITIAL_FRAME,
+  PLAYER_SPRITE_CONFIG,
+  STAGE_FIVE_PLAYER_HALO,
+  STAGE_FIVE_PLAYER_SPRITE,
+  STAGE_THREE_PLAYER_SPRITE,
 } from '@/game/config/playerAnimationConfig';
 import {
   MovementMode,
   PLAYER_FLIGHT_BOUNDS,
 } from '@/game/config/playerMovementConfig';
 import type { RoomConfig } from '@/game/config/roomConfig';
+import { UNDERGROUND_LANDING_ROOM } from '@/game/config/rooms/stageThreeRooms';
 import {
+  STAGE_THREE_CONFIG,
   STARTING_STAGE_INDEX,
   STAGES,
-  type StageEndEvent,
 } from '@/game/config/stageConfig';
+import { formatStageLabel } from '@/game/config/stageLabel';
 import { getStageExitPlan } from '@/game/config/stageProgression';
 import { PLAYER_STACK_DEPTH } from '@/game/config/renderDepth';
 import { ROOM_CAMERA_FOLLOW_LERP_X } from '@/game/config/worldConfig';
 import {
   STARTING_WEAPON_ID,
   WEAPON_CONFIGS,
+  WEAPON_INVENTORY_SIZE,
   type WeaponConfig,
 } from '@/game/config/weaponConfig';
 import { PlayerController } from '@/game/controllers/PlayerController';
-import { BossEnemy } from '@/game/entities/BossEnemy';
-import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
+import { Enemy } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import {
   canPlayerFireInPhase,
@@ -40,7 +42,10 @@ import {
 } from '@/game/state/gamePhase';
 import { PlayerHealthState } from '@/game/state/playerHealthState';
 import type { RoomState } from '@/game/state/roomState';
+import { AdminStageNavigator } from '@/game/systems/AdminStageNavigator';
 import { BackdropDirector } from '@/game/systems/BackdropDirector';
+import { CombatUi } from '@/game/systems/CombatUi';
+import { EnemyCombatDirector } from '@/game/systems/EnemyCombatDirector';
 import { EnemyFactory } from '@/game/systems/EnemyFactory';
 import {
   FLOOR_SURFACE_Y,
@@ -48,10 +53,11 @@ import {
   FloorBuilder,
 } from '@/game/systems/FloorBuilder';
 import { patrolSpan } from '@/game/systems/patrolSpan';
-import { ProjectilePool } from '@/game/systems/ProjectilePool';
+import { bindGameInput } from '@/game/systems/GameInputBindings';
 import { RoomDirector } from '@/game/systems/RoomDirector';
 import { StageAssetPreloader } from '@/game/systems/StageAssetPreloader';
 import { StageEndEventDirector } from '@/game/systems/StageEndEventDirector';
+import { StageTransitionDirector } from '@/game/systems/StageTransitionDirector';
 import {
   isProjectileBlocker,
   TerrainBuilder,
@@ -61,9 +67,14 @@ import { WeaponSystem } from '@/game/systems/WeaponSystem';
 import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
+const PLAYER_DEATH_PROMPT_DELAY = 1000;
 
-/** How far the feet must sink past the floor surface to count as a pit fall. */
-const PIT_FALL_TRIGGER_DEPTH = 22;
+/**
+ * 구덩이 추락 판정 깊이. 발이 이만큼 바닥선 아래로 내려가야 추락으로 친다.
+ * 구덩이 바닥(월드 하단)까지 떨어지는 추락 모션을 다 보여준 뒤 부활시키려고
+ * 얕게 잡지 않고 바닥 근처까지 크게 잡는다.
+ */
+const PIT_FALL_TRIGGER_DEPTH = 56;
 const PIT_FALL_DAMAGE = 12;
 /** Height above the floor the player is placed at after climbing out of a pit. */
 const PIT_RESPAWN_LIFT = 60;
@@ -71,41 +82,39 @@ const PLAYER_START_Y = GAME_HEIGHT - 120;
 const ROOM_ENTRY_OFFSET_X = 116;
 /** 지상 스테이지에서 플레이어가 포탈에서 나오듯 이 높이에서 떨어져 진입함. */
 const PORTAL_DROP_HEIGHT = 170;
+const UNDERGROUND_LANDING_BACKDROP = {
+  ...STAGE_THREE_CONFIG,
+  id: 'stage-03-underground-landing',
+  background: {
+    key: 'stage-03-underground-landing-bg',
+    path: '/assets/backgrounds/stage-03-underground-landing.webp',
+  },
+};
+const STAGE_THREE_ENDING_FRAME =
+  STAGE_THREE_PLAYER_SPRITE.deathFrames?.at(-1) ?? PLAYER_INITIAL_FRAME;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
+  private playerHalo!: Phaser.GameObjects.Sprite;
   private roomWorldWidth = 0;
   private enemies: Enemy[] = [];
   private floorBuilder!: FloorBuilder;
   private terrainBuilder!: TerrainBuilder;
   private currentStageIndex = STARTING_STAGE_INDEX;
-  private requestedStartingStageIndex?: number;
-  private requestedStartingRoomIndex?: number;
-  private requestedImmediateEncounter = false;
   private startCurrentRoomImmediately = false;
   private startFlightEntryLift = false;
   private currentRoomIndex = 0;
   private activeRoomConfig!: RoomConfig;
   private roomDirector!: RoomDirector;
+  private adminStageNavigator!: AdminStageNavigator;
   private playerController!: PlayerController;
   private weaponDropDirector!: WeaponDropDirector;
   private weaponSystem!: WeaponSystem;
-  private stageEndEventDirector!: StageEndEventDirector;
+  private stageTransitionDirector!: StageTransitionDirector;
   private stageAssetPreloader!: StageAssetPreloader;
-  private equipKey!: Phaser.Input.Keyboard.Key;
-  private enemyProjectiles!: ProjectilePool;
-  private flyingEnemyProjectiles!: ProjectilePool;
-  private enemyProjectilePools!: Record<EnemyProjectileKind, ProjectilePool>;
-  private aimGraphics!: Phaser.GameObjects.Graphics;
-  private enemyRangeGraphics!: Phaser.GameObjects.Graphics;
+  private enemyCombatDirector!: EnemyCombatDirector;
   private backdropDirector!: BackdropDirector;
-  private deathOverlay!: Phaser.GameObjects.Container;
-  private victoryOverlay!: Phaser.GameObjects.Container;
-  private stageEndOverlay!: Phaser.GameObjects.Container;
-  private weaponLabelText!: Phaser.GameObjects.Text;
-  private weaponEquippedText!: Phaser.GameObjects.Text;
-  private stageLabelText!: Phaser.GameObjects.Text;
-  private controlHintText?: Phaser.GameObjects.Text;
+  private combatUi!: CombatUi;
   private playerDamageFlashTimer?: Phaser.Time.TimerEvent;
   private readonly playerHealth = new PlayerHealthState(
     (currentHealth, maxHealth) =>
@@ -113,10 +122,9 @@ export class GameScene extends Phaser.Scene {
   );
   private phase: GamePhase = 'boot';
   private roomState: RoomState = 'idle';
-  /** 바닥선을 지나 레벨 밖으로 추락 중인 적. */
-  private readonly fallingEnemies = new Set<Enemy>();
   private paused = false;
   private roomExitRequested = false;
+  private restartEnabled = false;
 
   constructor() {
     super('game');
@@ -127,10 +135,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private get currentRoomConfig() {
-    return this.stage.rooms[this.currentRoomIndex];
+    return (
+      this.stageTransitionDirector?.roomOverride ??
+      this.stage.rooms[this.currentRoomIndex]
+    );
+  }
+
+  private get playerSprite() {
+    return this.stage.playerSprite ?? PLAYER_SPRITE_CONFIG;
   }
 
   create() {
+    this.adminStageNavigator ??= new AdminStageNavigator(this, () =>
+      this.setPaused(false),
+    );
     this.resetRunState();
     gameEvents.emit('scene-changed', 'game');
     gameEvents.emit('stage-changed', this.stage.id);
@@ -147,15 +165,54 @@ export class GameScene extends Phaser.Scene {
     this.terrainBuilder = new TerrainBuilder(this);
     this.physics.add.collider(this.player, this.terrainBuilder.group);
     this.configureCamera();
-    this.createRoom();
     this.createCombatSystems();
+    this.combatUi = new CombatUi(this);
+    this.stageTransitionDirector = new StageTransitionDirector({
+      scene: this,
+      player: this.player,
+      eventDirector: new StageEndEventDirector(this),
+      prepare: () => this.prepareStageTransition(),
+      enterCurrentRoom: () => this.enterCurrentRoom(),
+      enterLandingRoom: (mode) => this.enterTransitionLandingRoom(mode),
+      setAscensionPose: () => this.showAscensionPlayerPose(),
+      completeStageExit: (nextStageIndex) =>
+        this.completeStageExit(nextStageIndex),
+      finish: (outcome) => {
+        if (outcome === 'victory') {
+          this.handleRunCleared();
+          return;
+        }
+        this.setPhase('ending');
+        this.combatUi.showStageEnd();
+      },
+      idleAnimation: () => this.playerSprite.animations.idle,
+      aimWeapon: (aimPoint) => this.weaponSystem.update(16, aimPoint),
+    });
+    this.createRoom();
     if (this.startFlightEntryLift) {
       this.startFlightEntryLift = false;
       this.beginFlightEntryLift(this.previousStagePortalY());
     }
-    this.stageEndEventDirector = new StageEndEventDirector(this);
-    this.createCombatUi();
-    this.bindInputHandlers();
+    this.emitStageLocation();
+    this.syncWeaponUi();
+    bindGameInput(this, {
+      context: this,
+      equip: this.tryEquipNearbyWeapon,
+      pointerDown: this.handlePointerDown,
+      restart: this.handleRestartInput,
+      enterPortal: this.handlePortalEnter,
+      selectWeaponSlot: this.handleWeaponSlotInput,
+      requestStage: this.adminStageNavigator.requestStage,
+      requestStageBoss: this.adminStageNavigator.requestStageBoss,
+      requestWeapon: this.handleAdminWeaponRequested,
+      togglePause: this.handlePauseToggleRequested,
+      postUpdate: this.updateAiming,
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.combatUi.destroy();
+      // 일시정지 상태로 종료된 Scene의 오버레이를 다음 Scene에 남기지 않는다.
+      this.setPaused(false);
+    });
 
     if (this.startCurrentRoomImmediately) {
       this.startCurrentRoomImmediately = false;
@@ -173,7 +230,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.handlePitFall();
-    this.handleEnemyPitFalls();
+    this.enemyCombatDirector.handlePitFalls();
     this.roomDirector.update();
 
     if (this.phase === 'room-cleared' && this.roomExitRequested) {
@@ -203,6 +260,11 @@ export class GameScene extends Phaser.Scene {
    * against a position the body had already left.
    */
   private updateAiming(time: number, delta: number) {
+    const pointer = this.input.activePointer;
+    const aimPoint = pointer.positionToCamera(
+      this.cameras.main,
+    ) as Phaser.Math.Vector2;
+    this.syncPlayerHalo(aimPoint.x);
     if (
       this.phase === 'dead' ||
       this.phase === 'ending' ||
@@ -211,18 +273,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const pointer = this.input.activePointer;
-    const aimPoint = pointer.positionToCamera(
-      this.cameras.main,
-    ) as Phaser.Math.Vector2;
     this.weaponSystem.update(delta, aimPoint);
-    this.drawAimGuide(aimPoint);
+    this.combatUi.drawAimGuide(aimPoint);
 
     if (canPlayerFireInPhase(this.phase) && pointer.leftButtonDown()) {
       this.weaponSystem.tryFire(aimPoint, time);
     }
     if (this.phase === 'playing' && this.roomState === 'locked') {
-      this.updateEnemyCombat(time);
+      this.enemyCombatDirector.update(time);
     }
   }
 
@@ -239,17 +297,36 @@ export class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(
       this.getStartingPlayerX(),
       this.getStartingPlayerY(),
-      PLAYER_ATLAS_KEY,
+      this.playerSprite.texture,
       PLAYER_INITIAL_FRAME,
     );
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(36, 76, true);
-    this.player.play(PLAYER_ANIMATIONS.idle);
+    this.player.play(this.playerSprite.animations.idle);
     this.player.setCollideWorldBounds(true);
     // Enemies default to the same depth (0) and are added to the display
     // list after the player, so without this they render on top of the
     // player whenever a melee enemy closes to contact range.
     this.player.setDepth(PLAYER_STACK_DEPTH.body);
+    this.playerHalo = this.add
+      .sprite(
+        this.player.x,
+        this.player.y + STAGE_FIVE_PLAYER_HALO.offsetY,
+        STAGE_FIVE_PLAYER_HALO.texture,
+      )
+      .setDepth(PLAYER_STACK_DEPTH.halo)
+      .setVisible(false)
+      .play(STAGE_FIVE_PLAYER_HALO.animation);
     this.physics.add.collider(this.player, this.floorBuilder.group);
+  }
+
+  private syncPlayerHalo(pointerX: number) {
+    this.playerHalo.setPosition(
+      this.player.x +
+        (pointerX < this.player.x
+          ? STAGE_FIVE_PLAYER_HALO.offsetX
+          : -STAGE_FIVE_PLAYER_HALO.offsetX),
+      this.player.y + STAGE_FIVE_PLAYER_HALO.offsetY,
+    );
   }
 
   private configureRoomWorld() {
@@ -270,6 +347,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetCameraToRoomEntrance() {
+    // 컷신(강하·화면 파괴 연출)이 카메라에 남긴 스크롤 트윈·흔들림·플래시가
+    // 다음 방까지 이어져 화면을 밀거나 흔들지 않도록 모두 정리한다.
+    this.tweens.killTweensOf(this.cameras.main);
+    this.cameras.main.shakeEffect.reset();
+    this.cameras.main.resetFX();
     this.cameras.main.stopFollow();
     this.cameras.main.setScroll(0, 0);
     this.configureCamera();
@@ -290,21 +372,29 @@ export class GameScene extends Phaser.Scene {
       scene: this,
       player: this.player,
       config: roomConfig,
+      portalTint: this.stage.palette.accentSecondary,
       onStateChanged: (state) => this.handleRoomStateChanged(state),
       onExitRequested: () => {
         this.roomExitRequested = true;
       },
     });
 
-    for (const enemy of this.enemies) {
-      enemy.destroy();
-    }
-    this.replaceEnemies([]);
+    this.enemyCombatDirector.destroyEnemies();
     this.roomState = 'idle';
     gameEvents.emit('room-state-changed', this.roomState);
-    this.emitEnemyHealth();
+    this.enemyCombatDirector.emitEnemyHealth();
 
-    this.terrainBuilder.build(roomConfig.terrain, this.stage.terrainSkin);
+    this.terrainBuilder.build(
+      roomConfig.terrain,
+      this.stage.terrainSkin,
+      roomConfig.ceilingPipes,
+      this.stage.pipeSkin,
+    );
+
+    // 연출용 강하 방은 교전 없이 자유 이동만 한다.
+    if (roomConfig.kind === 'descent') {
+      return;
+    }
 
     // 모든 방은 활성 교전으로 시작한다. 방이 열릴 때부터 적이 존재하므로
     // 스테이지 진입 후 보이지 않는 전투 트리거가 따로 생기지 않는다.
@@ -315,22 +405,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnRoomEnemies() {
-    const enemyFactory = new EnemyFactory(
-      this,
-      this.floorBuilder.group,
-      this.terrainBuilder.group,
-      this.floorBuilder.enemyPitBarriers,
-      this.activeRoomConfig.intensity,
-      (damage) => this.applyPlayerDamage(damage),
-      (bossX, bossHalfWidth) =>
-        this.playerController.applyGrab(bossX, bossHalfWidth),
-      (bossX, pullSpeed) => this.playerController.applyVacuum(bossX, pullSpeed),
-      {
+    const enemyFactory = new EnemyFactory({
+      scene: this,
+      floor: this.floorBuilder.group,
+      terrain: this.terrainBuilder.group,
+      enemyPitBarriers: this.floorBuilder.enemyPitBarriers,
+      intensity: this.activeRoomConfig.intensity,
+      damagePlayer: (damage) => this.applyPlayerDamage(damage),
+      tetherPlayer: (sourceX, slowFactor, pullSpeed) =>
+        this.playerController.applyTether(sourceX, slowFactor, pullSpeed),
+      isPlayerDashing: () => this.playerController.isDashing,
+      pullPlayer: (bossX, pullSpeed) =>
+        this.playerController.applyVacuum(bossX, pullSpeed),
+      ceilingPipes: this.activeRoomConfig.ceilingPipes ?? [],
+      bossArena: {
         left: this.activeRoomConfig.entranceX,
         right: this.activeRoomConfig.exitX,
       },
-      (phase) => gameEvents.emit('boss-phase-changed', phase),
-      (spawnX) =>
+      onBossPhaseChanged: (phase) =>
+        gameEvents.emit('boss-phase-changed', phase),
+      patrolBoundsFor: (spawnX) =>
         patrolSpan({
           spawnX,
           range: MELEE_ENEMY_COMBAT_CONFIG.patrolRange,
@@ -340,26 +434,15 @@ export class GameScene extends Phaser.Scene {
           edgeMargin: MELEE_ENEMY_COMBAT_CONFIG.patrolEdgeMargin,
           minimumSpan: MELEE_ENEMY_COMBAT_CONFIG.patrolMinimumSpan,
         }),
-      this.stage.flyingSprite,
-      this.stage.meleeSwing,
-      this.stage.rangedSprite,
-      this.stage.meleeSprite,
-    );
+      flyingSprite: this.stage.flyingSprite,
+      meleeSwing: this.stage.meleeSwing,
+      rangedSprite: this.stage.rangedSprite,
+      meleeSprite: this.stage.meleeSprite,
+    });
     const spawned = this.activeRoomConfig.enemySpawns.map((spawn) =>
       enemyFactory.create(spawn),
     );
-    this.replaceEnemies(spawned);
-  }
-
-  /**
-   * Mutates `this.enemies` in place instead of reassigning it: the physics
-   * overlaps set up in createCombatSystems() were registered against this
-   * exact array reference, so reassigning it here would silently stop
-   * player bullets and contact damage from hitting the next room's enemies.
-   */
-  private replaceEnemies(spawned: Enemy[]) {
-    this.fallingEnemies.clear();
-    this.enemies.splice(0, this.enemies.length, ...spawned);
+    this.enemyCombatDirector.replaceEnemies(spawned);
   }
 
   private startRoomEncounter() {
@@ -384,7 +467,13 @@ export class GameScene extends Phaser.Scene {
       // 무겁고 동기적인 방 재구성 '이후'에만 플래시함. 그래야 효과가 깨끗한
       // 프레임에 걸쳐 애니메이션되고, 재구성 프레임 내내 풀 불투명으로
       // 멈춰(민트 화면이 멈춘 것처럼 보이던) 있지 않음.
-      this.cameras.main.flash(180, 182, 255, 228);
+      //
+      // resetFX로 이전에 남아 멈춰 있을 수 있는 플래시(예: 일시정지 중 얼어붙은
+      // 효과)를 먼저 지운다. 그러지 않으면 force 없는 flash는 아직 실행 중으로
+      // 표시된 옛 효과 때문에 무시되어, 민트 오버레이가 화면에 그대로 남는다.
+      // force=true로 항상 새로 시작해 반드시 끝까지 재생(소멸)되게 한다.
+      this.cameras.main.resetFX();
+      this.cameras.main.flash(180, 182, 255, 228, true);
       return;
     }
 
@@ -392,14 +481,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceToNextStage() {
-    const plan = getStageExitPlan(STAGES, this.currentStageIndex);
-
-    if (plan.event) {
-      this.playStageEndEvent(plan.event, plan.nextStageIndex);
-      return;
-    }
-
-    this.completeStageExit(plan.nextStageIndex);
+    this.stageTransitionDirector.advance(
+      getStageExitPlan(STAGES, this.currentStageIndex),
+      this.scale.width,
+    );
   }
 
   private completeStageExit(nextStageIndex: number | null) {
@@ -448,48 +533,88 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.buildRoom(this.currentRoomConfig);
-    this.updateStageLabel();
+    this.emitStageLocation();
     this.setPhase('playing');
   }
 
   private handleRunCleared() {
     this.setPhase('ending');
     this.weaponSystem.hide();
-    this.enemyRangeGraphics.clear();
+    this.combatUi.clearEnemyRanges();
     // Beating the final stage ('The Return') is the true victory — wash the
     // screen to warm light (waking up) before the ending card resolves.
     this.cameras.main.flash(700, 255, 240, 210);
-    this.victoryOverlay.setVisible(true);
+    this.combatUi.showVictory();
   }
 
-  private playStageEndEvent(
-    event: StageEndEvent,
-    nextStageIndex: number | null,
-  ) {
+  /** 전환 연출이 시작되기 전 플레이어와 전투 객체를 공통 정리한다. */
+  private prepareStageTransition() {
     this.setPhase('transitioning');
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
     this.player.setVelocity(0);
     this.weaponSystem.hide();
     this.weaponDropDirector.clear();
-    this.aimGraphics.clear();
-    this.enemyRangeGraphics.clear();
-    this.stageEndEventDirector.play(event, () => {
-      if (nextStageIndex === null) {
-        this.setPhase('ending');
-        this.stageEndOverlay.setVisible(true);
-        return;
-      }
-
-      this.completeStageExit(nextStageIndex);
-    });
+    this.combatUi.clearGuides();
   }
 
-  private updateStageLabel() {
-    this.stageLabelText.setText(
-      `${this.stage.label}  //  ROOM ${this.currentRoomIndex + 1}/${
-        this.stage.rooms.length
-      }`,
+  /** 강하·승천 연출이 공유하는 지하 착지 방을 해당 연출의 스킨으로 구성한다. */
+  private enterTransitionLandingRoom(mode: 'descent' | 'ascension') {
+    this.activeRoomConfig = UNDERGROUND_LANDING_ROOM;
+    this.configureRoomWorld();
+    if (mode === 'descent') {
+      this.rebuildFloorForRoom();
+      this.showUndergroundLandingBackdrop();
+      this.resetCameraToRoomEntrance();
+      return;
+    }
+
+    this.enemyCombatDirector.destroyEnemies();
+    // 어드민으로 5스테이지 보스에 직행하면 3스테이지 지형은 아직 캐시에 없다.
+    // 도착 뒤 다시 그려 콜드 로드에서도 바닥 스킨이 placeholder로 굳지 않게 한다.
+    this.stageAssetPreloader.preload(STAGE_THREE_CONFIG, () => {
+      if (this.activeRoomConfig === UNDERGROUND_LANDING_ROOM) {
+        this.drawAscensionRoom();
+      }
+    });
+    this.drawAscensionRoom();
+    this.resetCameraToRoomEntrance();
+    this.playerController.setMovementMode(MovementMode.GROUND);
+  }
+
+  /** 5스테이지 엔딩의 지하 포위 방 배경과 바닥을 다시 그림. */
+  private drawAscensionRoom() {
+    this.floorBuilder.build(
+      UNDERGROUND_LANDING_ROOM,
+      Boolean(STAGE_THREE_CONFIG.background),
+      STAGE_THREE_CONFIG.showFloor,
+      STAGE_THREE_CONFIG.floorSkin,
+    );
+    this.showUndergroundLandingBackdrop();
+  }
+
+  private showUndergroundLandingBackdrop() {
+    this.backdropDirector.show(
+      UNDERGROUND_LANDING_BACKDROP,
+      this.roomWorldWidth,
+      undefined,
+    );
+  }
+
+  private showAscensionPlayerPose() {
+    this.player.anims.stop();
+    this.player.setTexture(
+      STAGE_THREE_PLAYER_SPRITE.texture,
+      STAGE_THREE_ENDING_FRAME,
+    );
+    this.playerHalo.setVisible(false);
+  }
+
+  private emitStageLocation() {
+    gameEvents.emit(
+      'stage-location-changed',
+      formatStageLabel(this.stage.label),
+      this.currentRoomIndex + 1,
     );
   }
 
@@ -512,7 +637,12 @@ export class GameScene extends Phaser.Scene {
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
   }
 
-  /** 콜드 스테이지의 픽셀 스킨 로드가 끝나면 바닥과 지형을 다시 그림. */
+  /**
+   * 콜드 스테이지의 아트 로드가 끝나면 바닥·지형을 다시 그리고, 아틀라스보다
+   * 먼저 스폰돼 __MISSING이던 적 스프라이트를 제자리에서 갱신한다(적을 파괴/
+   * 재스폰하지 않아 전투 상태를 유지함). 워밍된 스테이지에서는 onReady가
+   * 호출되지 않아 no-op.
+   */
   private reskinCurrentRoom() {
     if (!this.floorBuilder || !this.terrainBuilder) {
       return;
@@ -522,7 +652,12 @@ export class GameScene extends Phaser.Scene {
     this.terrainBuilder.build(
       this.activeRoomConfig.terrain,
       this.stage.terrainSkin,
+      this.activeRoomConfig.ceilingPipes,
+      this.stage.pipeSkin,
     );
+    for (const enemy of this.enemies) {
+      enemy.refreshAtlasSprite();
+    }
   }
 
   private createCombatSystems() {
@@ -532,6 +667,30 @@ export class GameScene extends Phaser.Scene {
       PLAYER_COMBAT_CONFIG,
     );
     this.applyStageMovementMode();
+    this.enemyCombatDirector = new EnemyCombatDirector({
+      scene: this,
+      player: this.player,
+      enemies: this.enemies,
+      projectileBlockers: this.terrainBuilder.projectileGroup,
+      canDamageEnemy: () =>
+        this.phase === 'playing' && this.roomState === 'locked',
+      isPlayerInvulnerable: () => this.playerController.isInvulnerable,
+      damagePlayer: (damage) => this.applyPlayerDamage(damage),
+      notifyEnemyDefeated: (enemy) =>
+        this.roomDirector.notifyEnemyDefeated(enemy),
+      dropBossReward: (enemy) =>
+        this.weaponDropDirector.dropBossReward(
+          enemy.x,
+          enemy.y,
+          this.weaponSystem.ownedWeaponIds,
+        ),
+      clearEnemyRanges: () => this.combatUi?.clearEnemyRanges(),
+      drawEnemyRange: (enemy, targetInRange) => {
+        if (useGameSettingsStore.getState().showEnemyRanges) {
+          this.combatUi?.drawEnemyRange(enemy, targetInRange);
+        }
+      },
+    });
     this.weaponSystem = new WeaponSystem(
       this,
       this.player,
@@ -539,7 +698,8 @@ export class GameScene extends Phaser.Scene {
       WEAPON_CONFIGS,
       STARTING_WEAPON_ID,
       () => canPlayerFireInPhase(this.phase),
-      (enemy, defeated) => this.handleEnemyHit(enemy, defeated),
+      (enemy, defeated) =>
+        this.enemyCombatDirector.handleEnemyHit(enemy, defeated),
       () => canPlayerFireInRoom(this.phase, this.roomState),
     );
     this.weaponSystem.blockProjectilesWith(
@@ -552,174 +712,6 @@ export class GameScene extends Phaser.Scene {
       WEAPON_CONFIGS,
       (weapon) => gameEvents.emit('nearby-weapon-changed', weapon?.id ?? null),
     );
-    this.enemyProjectiles = new ProjectilePool(
-      this,
-      RANGED_ENEMY_COMBAT_CONFIG.projectile,
-    );
-    this.flyingEnemyProjectiles = new ProjectilePool(
-      this,
-      FLYING_ENEMY_COMBAT_CONFIG.projectile,
-    );
-    this.enemyProjectilePools = {
-      ranged: this.enemyProjectiles,
-      flying: this.flyingEnemyProjectiles,
-    };
-    this.enemyProjectiles.collideWith(
-      this.terrainBuilder.projectileGroup,
-      isProjectileBlocker,
-    );
-    this.flyingEnemyProjectiles.collideWith(
-      this.terrainBuilder.projectileGroup,
-      isProjectileBlocker,
-    );
-    this.physics.add.overlap(
-      this.enemyProjectiles.group,
-      this.player,
-      this.createPlayerHitHandler(RANGED_ENEMY_COMBAT_CONFIG.projectile.damage),
-      undefined,
-      this,
-    );
-    this.physics.add.overlap(
-      this.flyingEnemyProjectiles.group,
-      this.player,
-      this.createPlayerHitHandler(FLYING_ENEMY_COMBAT_CONFIG.projectile.damage),
-      undefined,
-      this,
-    );
-    this.physics.add.overlap(
-      this.player,
-      this.enemies,
-      this.handleEnemyContact,
-      undefined,
-      this,
-    );
-  }
-
-  private createCombatUi() {
-    this.aimGraphics = this.add.graphics().setDepth(10);
-    this.enemyRangeGraphics = this.add.graphics().setDepth(2);
-    this.deathOverlay = this.createOverlay(
-      0xe45d68,
-      '#ff7180',
-      'SYSTEM FAILURE',
-      'PRESS R OR ENTER TO RESTART',
-    );
-    this.victoryOverlay = this.createOverlay(
-      0xffe1a8,
-      '#ffe9c4',
-      'RETURN COMPLETE',
-      'YOU\'RE AWAKE  //  PRESS R OR ENTER TO REPLAY',
-    );
-    this.stageEndOverlay = this.createOverlay(
-      0xe45d68,
-      '#ff7180',
-      'SURROUNDED',
-      'SIGNAL LOST  //  PRESS R OR ENTER TO REPLAY',
-    );
-
-    this.stageLabelText = this.add
-      .text(GAME_WIDTH / 2, 96, '', {
-        color: '#d8dfdc',
-        backgroundColor: '#070a0bbd',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        padding: { x: 10, y: 5 },
-      })
-      .setOrigin(0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateStageLabel();
-
-    this.weaponLabelText = this.add
-      .text(32, GAME_HEIGHT - 96, '', {
-        color: '#d8ffec',
-        backgroundColor: '#070a0bd9',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        fontStyle: 'bold',
-        padding: { x: 10, y: 6 },
-      })
-      .setOrigin(0, 0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateWeaponLabel();
-
-    this.weaponEquippedText = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 128, '', {
-        color: '#ffffff',
-        backgroundColor: '#070a0be8',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        fontStyle: 'bold',
-        padding: { x: 12, y: 7 },
-      })
-      .setOrigin(0.5)
-      .setDepth(30)
-      .setScrollFactor(0)
-      .setVisible(false);
-
-    this.controlHintText = this.add
-      .text(GAME_WIDTH - 32, GAME_HEIGHT - 96, '', {
-        color: '#d8dfdc',
-        backgroundColor: '#070a0bd9',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '15px',
-        padding: { x: 10, y: 6 },
-      })
-      .setOrigin(1, 0.5)
-      .setDepth(20)
-      .setScrollFactor(0);
-    this.updateControlHint();
-  }
-
-  private bindInputHandlers() {
-    const keyboard = this.input.keyboard;
-    if (!keyboard) {
-      throw new Error('Keyboard input is required for weapon pickup');
-    }
-
-    this.equipKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-    this.equipKey.on('down', this.tryEquipNearbyWeapon, this);
-    this.input.on('pointerdown', this.handlePointerDown, this);
-    keyboard.on('keydown-R', this.handleRestartInput, this);
-    keyboard.on('keydown-ENTER', this.handleRestartInput, this);
-    keyboard.on('keydown-UP', this.handlePortalEnter, this);
-    keyboard.on('keydown-W', this.handlePortalEnter, this);
-    gameEvents.on('admin-stage-requested', this.handleAdminStageRequested);
-    gameEvents.on(
-      'admin-stage-boss-requested',
-      this.handleAdminStageBossRequested,
-    );
-    gameEvents.on('admin-weapon-requested', this.handleAdminWeaponRequested);
-    gameEvents.on('pause-toggle-requested', this.handlePauseToggleRequested);
-
-    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.updateAiming, this);
-
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      // This one is `on`, and the scene restarts onto the same emitter, so it
-      // has to come off or every restart adds another rig update.
-      this.events.off(
-        Phaser.Scenes.Events.POST_UPDATE,
-        this.updateAiming,
-        this,
-      );
-      this.input.off('pointerdown', this.handlePointerDown, this);
-      keyboard.off('keydown-R', this.handleRestartInput, this);
-      keyboard.off('keydown-ENTER', this.handleRestartInput, this);
-      keyboard.off('keydown-UP', this.handlePortalEnter, this);
-      keyboard.off('keydown-W', this.handlePortalEnter, this);
-      this.equipKey.off('down', this.tryEquipNearbyWeapon, this);
-      gameEvents.off('admin-stage-requested', this.handleAdminStageRequested);
-      gameEvents.off(
-        'admin-stage-boss-requested',
-        this.handleAdminStageBossRequested,
-      );
-      gameEvents.off('admin-weapon-requested', this.handleAdminWeaponRequested);
-      gameEvents.off('pause-toggle-requested', this.handlePauseToggleRequested);
-      // A scene that shuts down while paused would leave the overlay up over
-      // whatever replaces it.
-      this.setPaused(false);
-    });
   }
 
   private tryEquipNearbyWeapon() {
@@ -729,67 +721,86 @@ export class GameScene extends Phaser.Scene {
 
     const weapon = this.weaponDropDirector.takeNearest(
       this.player,
-      this.weaponSystem.activeConfig,
+      ({ id }) => this.weaponSystem.collect(id),
     );
-    if (!weapon || !this.weaponSystem.equip(weapon.id)) {
+    if (!weapon) {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
     this.showWeaponEquipped(weapon);
   }
 
-  private updateWeaponLabel() {
+  private syncWeaponUi() {
     const weapon = this.weaponSystem.activeConfig;
-    this.weaponLabelText.setText(`WEAPON // ${weapon.label}`);
+    const inventory = this.weaponSystem.inventorySnapshot;
     gameEvents.emit('weapon-changed', weapon.id, weapon.label);
+    gameEvents.emit(
+      'weapon-inventory-changed',
+      inventory.slots,
+      inventory.activeSlotIndex,
+    );
+  }
+
+  private handleWeaponSlotInput(event: KeyboardEvent) {
+    if (
+      event.repeat ||
+      (this.phase !== 'playing' && this.phase !== 'room-cleared')
+    ) {
+      return;
+    }
+
+    const slotIndex = Number(event.key) - 1;
+    if (
+      !Number.isInteger(slotIndex) ||
+      slotIndex < 0 ||
+      slotIndex >= WEAPON_INVENTORY_SIZE
+    ) {
+      return;
+    }
+    event.preventDefault();
+    const { activeSlotIndex } = this.weaponSystem.inventorySnapshot;
+    if (
+      slotIndex === activeSlotIndex ||
+      !this.weaponSystem.equipSlot(slotIndex)
+    ) {
+      return;
+    }
+
+    this.syncWeaponUi();
+    this.showWeaponEquipped(this.weaponSystem.activeConfig);
   }
 
   private showWeaponEquipped(weapon: WeaponConfig) {
-    this.tweens.killTweensOf(this.weaponEquippedText);
-    this.weaponEquippedText
-      .setText(`EQUIPPED // ${weapon.label}`)
-      .setColor(`#${weapon.pickupColor.toString(16).padStart(6, '0')}`)
-      .setAlpha(1)
-      .setVisible(true);
-    this.tweens.add({
-      targets: this.weaponEquippedText,
-      alpha: 0,
-      delay: 850,
-      duration: 260,
-      onComplete: () => this.weaponEquippedText.setVisible(false),
-    });
+    this.combatUi.showWeaponEquipped(weapon);
     this.weaponSystem.playEquipFeedback();
   }
 
   private resetRunState() {
-    // 관리자 스테이지 이동에 사용하는 장면 재시작은 이 인스턴스를 재사용하므로,
-    // 각 필드가 이미 파괴된 이전 실행의 게임 객체를 계속 가리킨다. 특히
-    // applyStageMovementMode는 createCombatSystems 안에서 실행되어 createCombatUi가
-    // 다시 만들기 전의 안내 텍스트에 접근하므로, 파괴된 Text의 setText가 없는
-    // 캔버스를 참조하지 않도록 초기화한다.
-    this.controlHintText = undefined;
     // Phaser는 재시작 시 Scene 인스턴스를 재사용하지만 이전 물리 그룹은 파괴한다.
     // createCombatSystems가 필드를 교체하기 전에 buildRoom이 실행되므로, 선택적
     // 정리 과정이 오래된 풀이나 디렉터를 참조하지 않게 비워 둔다.
     this.weaponDropDirector = undefined!;
     this.weaponSystem = undefined!;
     this.roomDirector = undefined!;
-    this.startCurrentRoomImmediately = this.requestedImmediateEncounter;
-    this.requestedImmediateEncounter = false;
-    const requestedStageIndex = this.requestedStartingStageIndex;
+    this.enemies.splice(0, this.enemies.length);
+    this.enemyCombatDirector?.replaceEnemies([]);
+    // Scene 인스턴스 재사용 시 이전 연출 방과 컷신 가드를 함께 초기화한다.
+    this.stageTransitionDirector?.reset();
+    const request = this.adminStageNavigator.consumeRequest();
+    this.startCurrentRoomImmediately = request.immediateEncounter;
+    const requestedStageIndex = request.stageIndex;
     this.currentStageIndex = requestedStageIndex ?? STARTING_STAGE_INDEX;
-    this.requestedStartingStageIndex = undefined;
     this.currentRoomIndex = Phaser.Math.Clamp(
-      this.requestedStartingRoomIndex ?? 0,
+      request.roomIndex ?? 0,
       0,
       this.stage.rooms.length - 1,
     );
-    this.requestedStartingRoomIndex = undefined;
     this.startFlightEntryLift =
       requestedStageIndex !== undefined &&
       this.stage.movementMode === MovementMode.FLIGHT;
     this.restorePlayerHealthForStage();
+    this.restartEnabled = false;
     this.roomState = 'idle';
     gameEvents.emit('room-state-changed', this.roomState);
   }
@@ -824,14 +835,10 @@ export class GameScene extends Phaser.Scene {
 
   private applyStageMovementMode() {
     this.playerController.setMovementMode(this.stage.movementMode);
-    this.updateControlHint();
-  }
-
-  private updateControlHint() {
-    this.controlHintText?.setText(
-      this.playerController.isFlightMode
-        ? 'W/SPACE  UP    S  DOWN    A/D  MOVE    SHIFT/RMB  DASH    LMB  FIRE'
-        : 'A/D  MOVE    SPACE/W  JUMP    SHIFT/RMB  DASH    LMB  FIRE    E  EQUIP',
+    this.player.setTexture(this.playerSprite.texture, PLAYER_INITIAL_FRAME);
+    this.playerController.setAnimations(this.playerSprite.animations);
+    this.playerHalo.setVisible(
+      this.playerSprite.texture === STAGE_FIVE_PLAYER_SPRITE.texture,
     );
   }
 
@@ -847,20 +854,40 @@ export class GameScene extends Phaser.Scene {
     if (state === 'locked') {
       // 이번 교전이 시작되기 전에 이전 방의 탄환을 정리한다.
       this.weaponSystem?.clearProjectiles();
-      this.emitEnemyHealth();
+      this.enemyCombatDirector.emitEnemyHealth();
       return;
     }
 
     if (state === 'cleared') {
       this.setPhase('room-cleared');
-      this.enemyProjectiles.clear();
-      this.flyingEnemyProjectiles.clear();
-      this.enemyRangeGraphics.clear();
+      this.enemyCombatDirector.clearProjectiles();
+      this.combatUi.clearEnemyRanges();
+
+      // 4스테이지: 보스가 사라진 직후 포탈을 거치지 않고 바로 화면 파괴 연출.
+      if (
+        this.stage.endEvent === 'shatter' &&
+        !this.stageTransitionDirector.hasRoomOverride &&
+        this.currentRoomIndex === this.stage.rooms.length - 1
+      ) {
+        this.advanceToNextStage();
+      }
+
+      // 5스테이지: 보스 처치 3초 뒤 포탈 없이 종료 연출을 시작한다.
+      if (
+        this.stage.endEvent === 'ascension' &&
+        !this.stageTransitionDirector.hasRoomOverride &&
+        this.currentRoomIndex === this.stage.rooms.length - 1
+      ) {
+        this.stageTransitionDirector.beginAscension();
+      }
     }
   }
 
   private handleRestartInput() {
-    if (this.phase === 'dead' || this.phase === 'ending') {
+    if (
+      this.phase === 'ending' ||
+      (this.phase === 'dead' && this.restartEnabled)
+    ) {
       this.scene.restart();
     }
   }
@@ -871,30 +898,6 @@ export class GameScene extends Phaser.Scene {
       this.roomDirector.tryExit();
     }
   }
-
-  private handleAdminStageRequested = (stageIndex: number) => {
-    if (!Number.isInteger(stageIndex) || !STAGES[stageIndex]) {
-      return;
-    }
-
-    this.requestedStartingStageIndex = stageIndex;
-    this.requestedStartingRoomIndex = 0;
-    this.requestedImmediateEncounter = false;
-    this.setPaused(false);
-    this.scene.restart();
-  };
-
-  private handleAdminStageBossRequested = (stageIndex: number) => {
-    if (!Number.isInteger(stageIndex) || !STAGES[stageIndex]) {
-      return;
-    }
-
-    this.requestedStartingStageIndex = stageIndex;
-    this.requestedStartingRoomIndex = STAGES[stageIndex].rooms.length - 1;
-    this.requestedImmediateEncounter = true;
-    this.setPaused(false);
-    this.scene.restart();
-  };
 
   /**
    * Death and the ending already hold the screen with their own prompts, and
@@ -941,11 +944,11 @@ export class GameScene extends Phaser.Scene {
    * the alternative, and the drop tables do not guarantee it appears at all.
    */
   private handleAdminWeaponRequested = (weaponId: string) => {
-    if (!this.weaponSystem.equip(weaponId)) {
+    if (!this.weaponSystem.collect(weaponId)) {
       return;
     }
 
-    this.updateWeaponLabel();
+    this.syncWeaponUi();
 
     // The equip flourish is a camera flash and two tweens, and neither advances
     // while the scene is paused — asked for from the pause menu they would sit
@@ -980,230 +983,6 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.tryFire(aimPoint, this.time.now);
   }
 
-  private updateEnemyCombat(time: number) {
-    this.enemyRangeGraphics.clear();
-
-    for (const enemy of this.enemies) {
-      // 레벨 밖으로 추락 중인 적은 더 이상 사격하지 않는다.
-      if (!enemy.active || this.fallingEnemies.has(enemy)) {
-        continue;
-      }
-
-      const targetInRange = enemy.updateCombat(
-        time,
-        this.player,
-        this.fireEnemyProjectile,
-      );
-
-      this.enemyRangeGraphics.lineStyle(
-        targetInRange ? 2 : 1,
-        targetInRange ? enemy.aggroIndicatorColor : 0x6d7b80,
-        targetInRange ? 0.28 : 0.12,
-      );
-      this.enemyRangeGraphics.strokeCircle(enemy.x, enemy.y, enemy.aggroRadius);
-    }
-  }
-
-  private fireEnemyProjectile = (
-    enemy: Enemy,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) => {
-    if (!enemy.projectile) {
-      return;
-    }
-
-    const pool = this.enemyProjectilePools[enemy.projectile.kind];
-    const angle = Phaser.Math.Angle.Between(
-      enemy.x,
-      enemy.y,
-      target.x,
-      target.y,
-    );
-    const { x, y } = this.muzzlePosition(
-      enemy.x,
-      enemy.y,
-      angle,
-      enemy.projectile.muzzleOffset,
-    );
-    pool.fire(x, y, angle, { owner: enemy });
-  };
-
-  private muzzlePosition(
-    originX: number,
-    originY: number,
-    angle: number,
-    offset: number,
-  ) {
-    return {
-      x: originX + Math.cos(angle) * offset,
-      y: originY + Math.sin(angle) * offset,
-    };
-  }
-
-  private handleEnemyHit(enemy: Enemy, defeated: boolean) {
-    // 현재 방의 교전이 활성화된 동안에만 피해를 적용한다.
-    if (this.phase !== 'playing' || this.roomState !== 'locked') {
-      return;
-    }
-
-    this.emitEnemyHealth();
-    gameEvents.emit('enemy-damaged', enemy.x, enemy.y);
-
-    if (!defeated) {
-      return;
-    }
-
-    this.defeatEnemy(enemy);
-  }
-
-  private defeatEnemy(enemy: Enemy) {
-    gameEvents.emit('enemy-defeated', enemy.x, enemy.y);
-    if (enemy instanceof BossEnemy) {
-      this.weaponDropDirector.dropBossReward(
-        enemy.x,
-        enemy.y,
-        this.weaponSystem.activeConfig.id,
-      );
-    } else {
-      if (!enemy.playsOwnDeathAnimation) {
-        this.spawnDeathPop(enemy);
-      }
-      // 이미 발사된 탄환은 사수보다 오래 남으므로, 적이 사라진 뒤 맞으면 게임이
-      // 공짜로 공격하는 것처럼 느껴진다. 보스 탄환은 패턴 자체가 전투이므로 유지해,
-      // 마지막 타격 순간 화면을 비워 전투의 마무리 흐름을 지우지 않는다.
-      if (enemy.projectile) {
-        this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
-      }
-    }
-    enemy.defeat();
-    this.roomDirector.notifyEnemyDefeated(enemy);
-  }
-
-  /**
-   * 적은 플레이어가 뛰어넘는 가장자리에서 걸어 나가며, 기존에는 월드 경계가
-   * 화면 바닥에서 적을 붙잡았다. 전투와 공격 범위에서는 벗어났지만 수에는 남아
-   * 방을 영원히 열 수 없었다. 플레이어 추락은 handlePitFall로 복귀하는 위험이지만
-   * 적에게는 돌아올 방법이 없다.
-   *
-   * 적은 착지 지점에서 죽지 않고 화면 밖으로 떨어진다. 월드 바닥에서 처치하면
-   * 화면 아래쪽에 사망 폭발이 생겨 추락이 아니라 지상 폭발처럼 보였다. 따라서
-   * 바닥선을 넘으면 교전 대상과 탄환을 정리하고 충돌을 해제한 뒤, 완전히 화면을
-   * 벗어났을 때 표시 객체를 제거한다.
-   */
-  private handleEnemyPitFalls() {
-    for (const enemy of this.enemies) {
-      if (!enemy.active || enemy instanceof BossEnemy) {
-        continue;
-      }
-
-      const body = enemy.body as Phaser.Physics.Arcade.Body | null;
-      if (!body) {
-        continue;
-      }
-
-      if (this.fallingEnemies.has(enemy)) {
-        if (body.top > GAME_HEIGHT) {
-          this.fallingEnemies.delete(enemy);
-          enemy.defeat();
-        }
-        continue;
-      }
-
-      // 몸체의 위쪽 가장자리를 기준으로 전체가 바닥 아래에 있어야 판정하므로,
-      // 구덩이 가장자리에 선 적을 추락 중인 적으로 오인하지 않는다.
-      if (body.top <= FLOOR_SURFACE_Y) {
-        continue;
-      }
-
-      this.fallingEnemies.add(enemy);
-      body.setCollideWorldBounds(false);
-      body.checkCollision.none = true;
-      if (enemy.projectile) {
-        this.enemyProjectilePools[enemy.projectile.kind].clearFrom(enemy);
-      }
-      this.roomDirector.notifyEnemyDefeated(enemy);
-    }
-  }
-
-  /** A fading, expanding ghost of the enemy so a kill has a beat of weight. */
-  private spawnDeathPop(enemy: Enemy) {
-    const pop = this.add
-      .image(enemy.x, enemy.y, enemy.texture.key, enemy.frame.name)
-      .setFlipX(enemy.flipX)
-      .setScale(enemy.scaleX, enemy.scaleY)
-      .setDepth(enemy.depth)
-      .setTint(0xffffff)
-      .setTintMode(Phaser.TintModes.FILL);
-    this.tweens.add({
-      targets: pop,
-      scaleX: enemy.scaleX * 1.6,
-      scaleY: enemy.scaleY * 1.6,
-      alpha: 0,
-      duration: 180,
-      ease: 'Quad.easeOut',
-      onComplete: () => pop.destroy(),
-    });
-  }
-
-  private handleEnemyContact: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback =
-    (firstObject, secondObject) => {
-      const enemy = this.findEnemy(firstObject, secondObject);
-
-      if (
-        !enemy ||
-        this.phase !== 'playing' ||
-        this.roomState !== 'locked' ||
-        this.playerController.isInvulnerable
-      ) {
-        return;
-      }
-
-      const damage = enemy.tryContactAttack(this.time.now);
-
-      if (damage !== null) {
-        this.applyPlayerDamage(damage);
-      }
-    };
-
-  private findEnemy(firstObject: unknown, secondObject: unknown) {
-    if (firstObject instanceof Enemy) {
-      return firstObject;
-    }
-
-    return secondObject instanceof Enemy ? secondObject : null;
-  }
-
-  private emitEnemyHealth() {
-    const current = this.enemies.reduce(
-      (total, enemy) => total + enemy.currentHealth,
-      0,
-    );
-    const max = this.enemies.reduce(
-      (total, enemy) => total + enemy.maxHealth,
-      0,
-    );
-    const isBoss = this.enemies.some((enemy) => enemy instanceof BossEnemy);
-    gameEvents.emit('enemy-health-changed', current, max, isBoss);
-  }
-
-  private createPlayerHitHandler(
-    damage: number,
-  ): Phaser.Types.Physics.Arcade.ArcadePhysicsCallback {
-    return (firstObject, secondObject) => {
-      const bullet =
-        firstObject === this.player
-          ? (secondObject as Phaser.Physics.Arcade.Image)
-          : (firstObject as Phaser.Physics.Arcade.Image);
-
-      if (!bullet.active) {
-        return;
-      }
-
-      bullet.disableBody(true, true);
-      this.applyPlayerDamage(damage);
-    };
-  }
-
   /**
    * When the player's feet sink past the floor surface they have dropped into a
    * pit (the floor collider stops them everywhere else). Lift them out onto the
@@ -1219,8 +998,23 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // 강하 방에서는 구멍에 떨어지는 것이 목적이다. 되살리지 않고 강하 컷신 시작.
+    if (this.activeRoomConfig.kind === 'descent') {
+      this.stageTransitionDirector.beginDescentCutscene();
+      return;
+    }
+
+    // 추락한 쪽에서 가까운 가장자리 위로 되살린다(구덩이를 공짜로 건너지 않도록).
     const pit = this.floorBuilder.findPitAt(this.player.x, FLOOR_TILE);
-    const targetX = pit ? pit.end + FLOOR_TILE / 2 : this.player.x;
+    let targetX = this.player.x;
+    if (pit) {
+      const nearStart =
+        Math.abs(this.player.x - pit.start) <=
+        Math.abs(this.player.x - pit.end);
+      targetX = nearStart
+        ? pit.start - FLOOR_TILE / 2
+        : pit.end + FLOOR_TILE / 2;
+    }
     this.player.setPosition(targetX, FLOOR_SURFACE_Y - PIT_RESPAWN_LIFT);
     body.setVelocity(0, 0);
 
@@ -1272,73 +1066,30 @@ export class GameScene extends Phaser.Scene {
     this.cancelPlayerDamageFlash();
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
-    for (const enemy of this.enemies) {
-      enemy.setVelocity(0);
-    }
+    this.enemyCombatDirector.stopEnemies();
     this.setPhase('dead');
-    this.player.setVelocity(0).setTint(0xe45d68).setAlpha(0.6);
+    this.restartEnabled = false;
+    this.player.setVelocity(0).clearTint().setAlpha(1);
+    const deathAnimation = this.playerSprite.animations.death;
+    if (this.anims.exists(deathAnimation)) {
+      this.player.play(deathAnimation, true);
+    } else {
+      this.player.anims.stop();
+    }
     this.weaponSystem.hide();
     this.weaponDropDirector.clear();
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.weaponSystem.clearProjectiles();
-    this.enemyProjectiles.clear();
-    this.flyingEnemyProjectiles.clear();
-    this.aimGraphics.clear();
-    this.enemyRangeGraphics.clear();
-    this.deathOverlay.setVisible(true);
+    this.enemyCombatDirector.clearProjectiles();
+    this.combatUi.clearGuides();
+    this.time.delayedCall(PLAYER_DEATH_PROMPT_DELAY, () => {
+      if (this.phase !== 'dead') {
+        return;
+      }
+      this.restartEnabled = true;
+      this.combatUi.showDeath();
+    });
     this.cameras.main.shake(180, 0.008);
   }
 
-  private createOverlay(
-    strokeColor: number,
-    titleColor: string,
-    titleText: string,
-    promptText: string,
-  ) {
-    const panel = this.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 470, 150, 0x070a0b, 0.92)
-      .setStrokeStyle(2, strokeColor);
-    const title = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 28, titleText, {
-        color: titleColor,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '32px',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    const prompt = this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 34, promptText, {
-        color: '#e8ece9',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-      })
-      .setOrigin(0.5);
-
-    return this.add
-      .container(0, 0, [panel, title, prompt])
-      .setDepth(100)
-      .setScrollFactor(0)
-      .setVisible(false);
-  }
-
-  private drawAimGuide(aimPoint: Phaser.Math.Vector2) {
-    // Only the crosshair. The 58px stub that used to run from the player is
-    // redundant now that the weapon sprite points where the shot goes, and it
-    // drew straight over the barrel.
-    this.aimGraphics.clear();
-    this.aimGraphics.lineStyle(1, 0xb6ffe4, 0.75);
-    this.aimGraphics.strokeCircle(aimPoint.x, aimPoint.y, 8);
-    this.aimGraphics.lineBetween(
-      aimPoint.x - 12,
-      aimPoint.y,
-      aimPoint.x + 12,
-      aimPoint.y,
-    );
-    this.aimGraphics.lineBetween(
-      aimPoint.x,
-      aimPoint.y - 12,
-      aimPoint.x,
-      aimPoint.y + 12,
-    );
-  }
 }

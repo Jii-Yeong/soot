@@ -4,9 +4,12 @@ import { STAGES } from '@/game/config/stageConfig';
 const EXPECTED_COMBAT_ROOM_COUNTS = [
   [6, 6],
   [8, 9],
-  [9, 11],
-  [11, 13],
+  // 스테이지 3는 잡몹 대신 소수의 제어형 적(천장 정비병·포박형·방어형)을 씀.
   [6, 7],
+  // 스테이지 4는 개체 수보다 큰 공격 세 번과 최대 2기 동시 공격으로 압박함.
+  [8, 8],
+  // 스테이지 5는 탄막 편대 수를 줄이고 각 패턴의 빈틈을 읽게 함.
+  [5, 5],
 ];
 
 const EXPECTED_COMBAT_ROOM_WIDTHS = [3657, 4000, 5200, 6000, 4200];

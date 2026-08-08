@@ -2,7 +2,6 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import type { Enemy } from '@/game/entities/Enemy';
-import { FlyingEnemy } from '@/game/entities/FlyingEnemy';
 import { GameScene } from '@/game/scenes/GameScene';
 
 vi.hoisted(() => {
@@ -14,31 +13,26 @@ vi.hoisted(() => {
   })) as unknown as HTMLCanvasElement['getContext'];
 });
 
-describe('GameScene enemy defeat cleanup', () => {
-  it('clears a flying enemy\'s projectiles when its own death animation plays', () => {
-    const scene = new GameScene();
-    const clearFrom = vi.fn();
-    const enemy = Object.assign(Object.create(FlyingEnemy.prototype), {
-      x: 320,
-      y: 240,
-      projectile: { kind: 'flying', muzzleOffset: 18 },
-      defeat: vi.fn(),
-    }) as Enemy;
-    Object.defineProperty(enemy, 'playsOwnDeathAnimation', { value: true });
-    Object.assign(scene, {
-      enemyProjectilePools: {
-        flying: { clearFrom },
-        ranged: { clearFrom: vi.fn() },
+describe('GameScene run reset', () => {
+  it('clears enemies and descent cutscene state before a restarted run', () => {
+    const gameScene = new GameScene();
+    const staleEnemy = {} as Enemy;
+    const runState = gameScene as unknown as { enemies: Enemy[] };
+    runState.enemies.push(staleEnemy);
+    const resetTransition = vi.fn();
+    const replaceEnemies = vi.fn();
+    Object.assign(gameScene, {
+      stageTransitionDirector: { reset: resetTransition },
+      enemyCombatDirector: { replaceEnemies },
+      adminStageNavigator: {
+        consumeRequest: () => ({ immediateEncounter: false }),
       },
-      roomDirector: { notifyEnemyDefeated: vi.fn() },
-      weaponDropDirector: { dropBossReward: vi.fn() },
-      weaponSystem: { activeConfig: { id: 'smg' } },
     });
 
-    (
-      scene as unknown as { defeatEnemy(defeatedEnemy: Enemy): void }
-    ).defeatEnemy(enemy);
+    (gameScene as unknown as { resetRunState(): void }).resetRunState();
 
-    expect(clearFrom).toHaveBeenCalledWith(enemy);
+    expect(runState.enemies).toEqual([]);
+    expect(replaceEnemies).toHaveBeenCalledWith([]);
+    expect(resetTransition).toHaveBeenCalledOnce();
   });
 });
