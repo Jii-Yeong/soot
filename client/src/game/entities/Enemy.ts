@@ -7,6 +7,9 @@ const AERIAL_DEATH_HOLD_MS = 400;
 /** 잔해 페이드아웃 시간. */
 const AERIAL_DEATH_FADE_MS = 350;
 
+const aerialDeathFallDuration = (fallDistance: number) =>
+  Phaser.Math.Clamp((fallDistance / AERIAL_DEATH_FALL_SPEED) * 1_000, 120, 900);
+
 export type EnemyProjectileAttack = (
   enemy: Enemy,
   target: Phaser.Physics.Arcade.Sprite,
@@ -134,6 +137,18 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.setVelocity(0);
   }
 
+  /** 현재 높이부터 착지·유지·페이드까지 필요한 전체 공중 사망 연출 시간. */
+  protected getAerialDeathDuration(restY: number, landAnimation: string) {
+    const fallDistance = Math.max(0, restY - this.y);
+    const landDuration = this.scene.anims.get(landAnimation)?.duration ?? 0;
+    return (
+      aerialDeathFallDuration(fallDistance) +
+      landDuration +
+      AERIAL_DEATH_HOLD_MS +
+      AERIAL_DEATH_FADE_MS
+    );
+  }
+
   /** 공중 적이 첫 자세로 추락한 뒤 착지 자세를 보이고 사라지는 공용 연출. */
   protected playAerialDeath(
     fallAnimation: string,
@@ -146,11 +161,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.scene.tweens.add({
       targets: this,
       y: this.y + fallDistance,
-      duration: Phaser.Math.Clamp(
-        (fallDistance / AERIAL_DEATH_FALL_SPEED) * 1_000,
-        120,
-        900,
-      ),
+      duration: aerialDeathFallDuration(fallDistance),
       ease: 'Quad.easeIn',
       onComplete: () => {
         this.play(landAnimation, true);

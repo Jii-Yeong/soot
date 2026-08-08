@@ -2,10 +2,9 @@ import Phaser from 'phaser';
 import { PLAYER_FLIGHT_BOUNDS } from '@/game/config/playerMovementConfig';
 import { CELESTIAL_ORACLE_CONFIG } from '@/game/config/stageFiveEnemyConfig';
 import { CoordinatedAerialEnemy } from '@/game/entities/CoordinatedAerialEnemy';
-import { ENEMY_DEPTH, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
 import { CelestialProjectileField } from '@/game/systems/CelestialProjectileField';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
-import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type OraclePattern = 'semicircle' | 'walls' | 'spiral' | 'books';
 const POSE = CELESTIAL_ORACLE_CONFIG.animations;
@@ -20,7 +19,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
   private patternIndex = 0;
   private attackEndsAt = 0;
   private nextAttackAt = 0;
-  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -29,16 +27,8 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     attackCoordinator: EnemyAttackCoordinator,
     damagePlayer: (damage: number) => void,
   ) {
-    super(
-      scene,
-      x,
-      y,
-      CELESTIAL_ORACLE_CONFIG.texture,
-      CELESTIAL_ORACLE_CONFIG.maxHealth,
-      attackCoordinator,
-    );
-    this.applySprite(POSE.idle);
-    this.setDepth(ENEMY_DEPTH).setFlipX(true);
+    super(scene, x, y, CELESTIAL_ORACLE_CONFIG, attackCoordinator);
+    this.setFlipX(true);
     this.projectileField = new CelestialProjectileField(scene, {
       texture: CELESTIAL_ORACLE_CONFIG.bulletTexture,
       damage: CELESTIAL_ORACLE_CONFIG.bulletDamage,
@@ -47,40 +37,12 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     });
   }
 
-  override get playsOwnDeathAnimation() {
-    return true;
-  }
-
-  override refreshAtlasSprite() {
-    const pose = this.activePattern
+  protected currentSpritePose() {
+    return this.activePattern
       ? this.patternPose(this.activePattern)
       : (this.body as Phaser.Physics.Arcade.Body).speed > 0
         ? POSE.fly
         : POSE.idle;
-    this.applySprite(pose);
-  }
-
-  override defeat() {
-    if (!this.active || this.dying) {
-      return;
-    }
-    if (
-      !this.scene.anims.exists(POSE.deathFall) ||
-      !this.scene.anims.exists(POSE.deathLand)
-    ) {
-      super.defeat();
-      return;
-    }
-
-    this.dying = true;
-    this.onDefeated();
-    this.playAerialDeath(
-      POSE.deathFall,
-      POSE.deathLand,
-      FLOOR_SURFACE_Y -
-        this.displayHeight / 2 +
-        CELESTIAL_ORACLE_CONFIG.deathLandOffsetY,
-    );
   }
 
   updateCombat(
@@ -262,12 +224,7 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     );
     const desiredY =
       (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2;
-    this.moveToward(
-      desiredX,
-      desiredY,
-      CELESTIAL_ORACLE_CONFIG.moveSpeed,
-      10,
-    );
+    this.moveToward(desiredX, desiredY, CELESTIAL_ORACLE_CONFIG.moveSpeed, 10);
   }
 
   private endAttack(time: number) {
@@ -291,16 +248,6 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
     this.clearBookMarkers();
   }
 
-  private applySprite(pose: string) {
-    this.setScale(CELESTIAL_ORACLE_CONFIG.scale);
-    (this.body as Phaser.Physics.Arcade.Body).setCircle(
-      CELESTIAL_ORACLE_CONFIG.bodyWidth / 2,
-      CELESTIAL_ORACLE_CONFIG.bodyOffset,
-      CELESTIAL_ORACLE_CONFIG.bodyOffset,
-    );
-    this.playPose(pose);
-  }
-
   private patternPose(pattern: OraclePattern) {
     if (pattern === 'walls') {
       return POSE.walls;
@@ -309,11 +256,5 @@ export class CelestialOracleEnemy extends CoordinatedAerialEnemy {
       return POSE.books;
     }
     return POSE.spiral;
-  }
-
-  private playPose(pose: string) {
-    if (this.scene.anims.exists(pose)) {
-      this.play(pose, true);
-    }
   }
 }

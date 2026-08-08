@@ -2,10 +2,9 @@ import Phaser from 'phaser';
 import { PLAYER_FLIGHT_BOUNDS } from '@/game/config/playerMovementConfig';
 import { CHOIR_SUPPORTER_CONFIG } from '@/game/config/stageFiveEnemyConfig';
 import { CoordinatedAerialEnemy } from '@/game/entities/CoordinatedAerialEnemy';
-import { ENEMY_DEPTH, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
 import { CelestialProjectileField } from '@/game/systems/CelestialProjectileField';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
-import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type SupporterPattern = 'cross' | 'notes' | 'homing';
 const POSE = CHOIR_SUPPORTER_CONFIG.animations;
@@ -23,7 +22,6 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
   private nextNoteAt = 0;
   private noteEndsAt = 0;
   private noteDirection = 1;
-  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -32,16 +30,7 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     attackCoordinator: EnemyAttackCoordinator,
     damagePlayer: (damage: number) => void,
   ) {
-    super(
-      scene,
-      x,
-      y,
-      CHOIR_SUPPORTER_CONFIG.texture,
-      CHOIR_SUPPORTER_CONFIG.maxHealth,
-      attackCoordinator,
-    );
-    this.applySprite(POSE.idle);
-    this.setDepth(ENEMY_DEPTH);
+    super(scene, x, y, CHOIR_SUPPORTER_CONFIG, attackCoordinator);
     this.homeAbove =
       y < (PLAYER_FLIGHT_BOUNDS.minY + PLAYER_FLIGHT_BOUNDS.maxY) / 2;
     this.projectileField = new CelestialProjectileField(scene, {
@@ -52,40 +41,12 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     });
   }
 
-  override get playsOwnDeathAnimation() {
-    return true;
-  }
-
-  override refreshAtlasSprite() {
-    const pose = this.activePattern
+  protected currentSpritePose() {
+    return this.activePattern
       ? this.patternPose(this.activePattern)
       : (this.body as Phaser.Physics.Arcade.Body).speed > 0
         ? POSE.fly
         : POSE.idle;
-    this.applySprite(pose);
-  }
-
-  override defeat() {
-    if (!this.active || this.dying) {
-      return;
-    }
-    if (
-      !this.scene.anims.exists(POSE.deathFall) ||
-      !this.scene.anims.exists(POSE.deathLand)
-    ) {
-      super.defeat();
-      return;
-    }
-
-    this.dying = true;
-    this.onDefeated();
-    this.playAerialDeath(
-      POSE.deathFall,
-      POSE.deathLand,
-      FLOOR_SURFACE_Y -
-        this.displayHeight / 2 +
-        CHOIR_SUPPORTER_CONFIG.deathLandOffsetY,
-    );
   }
 
   updateCombat(
@@ -252,26 +213,10 @@ export class ChoirSupporterEnemy extends CoordinatedAerialEnemy {
     this.projectileField.clear();
   }
 
-  private applySprite(pose: string) {
-    this.setScale(CHOIR_SUPPORTER_CONFIG.scale);
-    (this.body as Phaser.Physics.Arcade.Body).setCircle(
-      CHOIR_SUPPORTER_CONFIG.bodyWidth / 2,
-      CHOIR_SUPPORTER_CONFIG.bodyOffset,
-      CHOIR_SUPPORTER_CONFIG.bodyOffset,
-    );
-    this.playPose(pose);
-  }
-
   private patternPose(pattern: SupporterPattern) {
     if (pattern === 'cross') {
       return POSE.crossShot;
     }
     return pattern === 'notes' ? POSE.noteWave : POSE.homingPair;
-  }
-
-  private playPose(pose: string) {
-    if (this.scene.anims.exists(pose)) {
-      this.play(pose, true);
-    }
   }
 }

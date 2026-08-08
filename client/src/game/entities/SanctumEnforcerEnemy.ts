@@ -5,10 +5,9 @@ import {
   SANCTUM_ENFORCER_CONFIG,
 } from '@/game/config/stageFiveEnemyConfig';
 import { CoordinatedAerialEnemy } from '@/game/entities/CoordinatedAerialEnemy';
-import { ENEMY_DEPTH, type EnemyProjectileAttack } from '@/game/entities/Enemy';
+import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
 import { CelestialProjectileField } from '@/game/systems/CelestialProjectileField';
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
-import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type EnforcerPattern = 'triple' | 'fan' | 'cross';
 type EnforcerState = 'ready' | 'warning' | 'firing';
@@ -27,7 +26,6 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
   private nextAttackAt = 0;
   private lockedX = 0;
   private lockedY = 0;
-  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -36,16 +34,8 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     attackCoordinator: EnemyAttackCoordinator,
     damagePlayer: (damage: number) => void,
   ) {
-    super(
-      scene,
-      x,
-      y,
-      SANCTUM_ENFORCER_CONFIG.texture,
-      SANCTUM_ENFORCER_CONFIG.maxHealth,
-      attackCoordinator,
-    );
-    this.applySprite(POSE.idle);
-    this.setDepth(ENEMY_DEPTH).setFlipX(true);
+    super(scene, x, y, SANCTUM_ENFORCER_CONFIG, attackCoordinator);
+    this.setFlipX(true);
     this.warningLine = scene.add.graphics().setDepth(8);
     this.projectileField = new CelestialProjectileField(scene, {
       texture: SANCTUM_ENFORCER_CONFIG.spearTexture,
@@ -55,41 +45,12 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     });
   }
 
-  override get playsOwnDeathAnimation() {
-    return true;
-  }
-
-  override refreshAtlasSprite() {
-    const pose =
-      this.enforcerState === 'ready'
-        ? (this.body as Phaser.Physics.Arcade.Body).speed > 0
-          ? POSE.fly
-          : POSE.idle
-        : this.patternPose(this.activePattern);
-    this.applySprite(pose);
-  }
-
-  override defeat() {
-    if (!this.active || this.dying) {
-      return;
-    }
-    if (
-      !this.scene.anims.exists(POSE.deathFall) ||
-      !this.scene.anims.exists(POSE.deathLand)
-    ) {
-      super.defeat();
-      return;
-    }
-
-    this.dying = true;
-    this.onDefeated();
-    this.playAerialDeath(
-      POSE.deathFall,
-      POSE.deathLand,
-      FLOOR_SURFACE_Y -
-        this.displayHeight / 2 +
-        SANCTUM_ENFORCER_CONFIG.deathLandOffsetY,
-    );
+  protected currentSpritePose() {
+    return this.enforcerState === 'ready'
+      ? (this.body as Phaser.Physics.Arcade.Body).speed > 0
+        ? POSE.fly
+        : POSE.idle
+      : this.patternPose(this.activePattern);
   }
 
   updateCombat(
@@ -141,20 +102,13 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     super.destroy(fromScene);
   }
 
-  private beginNextPattern(
-    time: number,
-    target: Phaser.Physics.Arcade.Sprite,
-  ) {
+  private beginNextPattern(time: number, target: Phaser.Physics.Arcade.Sprite) {
     const patterns = ['triple', 'fan', 'cross'] as const;
     this.activePattern = patterns[this.patternIndex % patterns.length];
     this.patternIndex += 1;
     this.playPose(this.patternPose(this.activePattern));
     const view = this.scene.cameras.main.worldView;
-    this.lockedX = Phaser.Math.Clamp(
-      target.x,
-      view.left + 96,
-      this.x - 96,
-    );
+    this.lockedX = Phaser.Math.Clamp(target.x, view.left + 96, this.x - 96);
     this.lockedY = Phaser.Math.Clamp(
       target.y,
       PLAYER_FLIGHT_BOUNDS.minY,
@@ -286,26 +240,10 @@ export class SanctumEnforcerEnemy extends CoordinatedAerialEnemy {
     this.projectileField.clear();
   }
 
-  private applySprite(pose: string) {
-    this.setScale(SANCTUM_ENFORCER_CONFIG.scale);
-    (this.body as Phaser.Physics.Arcade.Body).setSize(
-      SANCTUM_ENFORCER_CONFIG.bodyWidth,
-      SANCTUM_ENFORCER_CONFIG.bodyHeight,
-      true,
-    );
-    this.playPose(pose);
-  }
-
   private patternPose(pattern: EnforcerPattern) {
     if (pattern === 'fan') {
       return POSE.fanShot;
     }
     return pattern === 'cross' ? POSE.crossShot : POSE.spearThrow;
-  }
-
-  private playPose(pose: string) {
-    if (this.scene.anims.exists(pose)) {
-      this.play(pose, true);
-    }
   }
 }
