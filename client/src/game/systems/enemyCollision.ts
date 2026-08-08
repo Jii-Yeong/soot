@@ -4,6 +4,9 @@ import type { Enemy } from '@/game/entities/Enemy';
 export type EnemyCollisionOptions = {
   collidesWithFloor?: boolean;
   collidesWithTerrain?: boolean;
+  /** 바닥과는 충돌하되 피트 가장자리 장벽은 무시할지. 천장 정비병처럼
+   *  구덩이에 그대로 추락해야 하는 적에 사용. 기본값 true. */
+  collidesWithPitBarriers?: boolean;
 };
 
 /**
@@ -23,7 +26,7 @@ export function connectEnemyToRoomGeometry(
 ) {
   if (options.collidesWithFloor ?? true) {
     scene.physics.add.collider(enemy, floor);
-    if (enemyPitBarriers) {
+    if (enemyPitBarriers && (options.collidesWithPitBarriers ?? true)) {
       scene.physics.add.collider(enemy, enemyPitBarriers);
     }
   }

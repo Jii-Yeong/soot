@@ -5,12 +5,18 @@ import {
   STAGE_TWO_BOSS_ATLAS_KEY,
   STAGE_THREE_BOSS_ANIMATIONS,
   STAGE_THREE_BOSS_ATLAS_KEY,
+  STAGE_FOUR_BOSS_ANIMATIONS,
+  STAGE_FOUR_BOSS_ATLAS_KEY,
+  STAGE_FIVE_BOSS_ANIMATIONS,
+  STAGE_FIVE_BOSS_ATLAS_KEY,
 } from '@/game/config/bossAnimationConfig';
 import type {
+  ArchitectBossSpriteConfig,
   BossCombatConfig,
   BossPatternConfig,
   BossSpriteConfig,
   HoundBossSpriteConfig,
+  InfernalBossSpriteConfig,
   PurifierBossSpriteConfig,
 } from '@/game/config/bossConfigTypes';
 
@@ -147,7 +153,7 @@ export const BOSS_COMBAT_CONFIGS = {
     },
   },
   'infernal-executioner': {
-    texture: 'infernal-executioner-placeholder',
+    texture: STAGE_FOUR_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x7d1f16,
       accentColor: 0xff6a3d,
@@ -199,7 +205,7 @@ export const BOSS_COMBAT_CONFIGS = {
     },
   },
   'returning-architect': {
-    texture: 'returning-architect-placeholder',
+    texture: STAGE_FIVE_BOSS_ATLAS_KEY,
     placeholder: {
       bodyColor: 0x46306f,
       accentColor: 0xf0c8ff,
@@ -325,5 +331,31 @@ export const PURIFIER_BOSS_SPRITES: Partial<
     bodyHeight: 132,
     bodyOffsetX: 28,
     bodyOffsetY: 103,
+  },
+};
+
+export const INFERNAL_BOSS_SPRITES: Partial<
+  Record<BossVariant, InfernalBossSpriteConfig>
+> = {
+  'infernal-executioner': {
+    animations: STAGE_FOUR_BOSS_ANIMATIONS,
+    scale: 0.86,
+    bodyWidth: 150,
+    bodyHeight: 200,
+    bodyOffsetX: 53,
+    bodyOffsetY: 49,
+    facesLeft: true,
+  },
+};
+
+export const ARCHITECT_BOSS_SPRITES: Partial<
+  Record<BossVariant, ArchitectBossSpriteConfig>
+> = {
+  'returning-architect': {
+    animations: STAGE_FIVE_BOSS_ANIMATIONS,
+    // 원본 불투명 높이 267px를 게임 내 보스 높이 220px로 표시함.
+    scale: 220 / 267,
+    bodyWidth: 110,
+    bodyHeight: 190,
   },
 };

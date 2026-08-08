@@ -35,7 +35,7 @@ const CAPTOR_ATLAS_SET = defineEnemyAtlasSet({
   sprite: {
     scale: 1,
     bodyWidth: 48,
-    bodyHeight: 88,
+    bodyHeight: 74,
     bodyOffsetX: 37,
     bodyOffsetY: 28,
   },

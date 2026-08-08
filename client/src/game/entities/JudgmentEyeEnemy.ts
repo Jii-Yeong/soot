@@ -9,6 +9,7 @@ import { HallucinatedAndroidEnemy } from '@/game/entities/HallucinatedAndroidEne
 import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinator';
 
 type EyeState = 'ready' | 'tracking' | 'orb' | 'repositioning';
+const POSE = JUDGMENT_EYE_CONFIG.animations;
 
 type EyeBullet = {
   sprite: Phaser.Physics.Arcade.Image;
@@ -31,6 +32,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
   private readonly bullets: EyeBullet[] = [];
   /** 방사 탄막을 매번 새로 만들지 않고 재사용하는 탄환 풀(비활성 스프라이트). */
   private readonly bulletPool: Phaser.Physics.Arcade.Image[] = [];
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -47,11 +49,51 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
       JUDGMENT_EYE_CONFIG.maxHealth,
       attackCoordinator,
     );
+    this.setScale(JUDGMENT_EYE_CONFIG.scale);
+    this.playPose(POSE.idle);
     (this.body as Phaser.Physics.Arcade.Body)
       .setAllowGravity(false)
-      .setCircle(JUDGMENT_EYE_CONFIG.bodySize / 2);
+      .setCircle(
+        JUDGMENT_EYE_CONFIG.bodyWidth / 2,
+        JUDGMENT_EYE_CONFIG.bodyOffsetX,
+        JUDGMENT_EYE_CONFIG.bodyOffsetY,
+      );
     this.setDepth(ENEMY_DEPTH);
     this.reticle = scene.add.graphics().setDepth(8);
+  }
+
+  override get playsOwnDeathAnimation() {
+    return true;
+  }
+
+  override refreshAtlasSprite() {
+    this.setScale(JUDGMENT_EYE_CONFIG.scale);
+    this.playPose(
+      this.eyeState === 'tracking' || this.eyeState === 'orb'
+        ? POSE.attack
+        : POSE.idle,
+    );
+  }
+
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+    if (
+      !this.scene.anims.exists(POSE.deathFall) ||
+      !this.scene.anims.exists(POSE.deathLand)
+    ) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    this.playFallingDeath(
+      POSE.deathFall,
+      POSE.deathLand,
+      JUDGMENT_EYE_CONFIG.deathLandOffsetY,
+    );
   }
 
   updateCombat(
@@ -59,6 +101,10 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
+    if (!this.active || this.dying) {
+      return false;
+    }
+
     this.updateBullets(time, target);
     const targetInRange =
       Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
@@ -107,6 +153,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
       ) {
         this.eyeState = 'ready';
         this.setVelocity(0);
+        this.playPose(POSE.idle);
       }
       return targetInRange;
     }
@@ -118,6 +165,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
       this.tryBeginAttack()
     ) {
       this.eyeState = 'tracking';
+      this.playPose(POSE.attack);
       this.stateEndsAt = time + JUDGMENT_EYE_CONFIG.trackingDuration;
       this.lockedTarget.set(target.x, target.y);
       this.setVelocity(0);
@@ -214,6 +262,7 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
 
   private beginReposition(time: number, targetX: number) {
     this.eyeState = 'repositioning';
+    this.playPose(POSE.idle);
     this.stateEndsAt = time + JUDGMENT_EYE_CONFIG.repositionDuration;
     this.nextAttackAt = time + JUDGMENT_EYE_CONFIG.attackCooldown;
     const worldWidth = this.scene.physics.world.bounds.width;
@@ -280,5 +329,11 @@ export class JudgmentEyeEnemy extends HallucinatedAndroidEnemy {
       sprite.destroy();
     }
     this.bulletPool.length = 0;
+  }
+
+  private playPose(pose: string) {
+    if (this.scene.anims.exists(pose)) {
+      this.play(pose, true);
+    }
   }
 }

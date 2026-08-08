@@ -9,6 +9,7 @@ import type { EnemyAttackCoordinator } from '@/game/systems/EnemyAttackCoordinat
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 
 type HoundState = 'ready' | 'warning' | 'charging' | 'stunned';
+const POSE = INFERNAL_HOUND_CONFIG.animations;
 
 type MagmaTrail = {
   marker: Phaser.GameObjects.Rectangle;
@@ -28,6 +29,7 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
   private nextTrailAt = 0;
   private readonly warningLine: Phaser.GameObjects.Graphics;
   private readonly trails: MagmaTrail[] = [];
+  private dying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -44,13 +46,50 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
       INFERNAL_HOUND_CONFIG.maxHealth,
       attackCoordinator,
     );
-    (this.body as Phaser.Physics.Arcade.Body).setSize(
-      INFERNAL_HOUND_CONFIG.bodyWidth,
-      INFERNAL_HOUND_CONFIG.bodyHeight,
-      true,
-    );
+    this.setScale(INFERNAL_HOUND_CONFIG.scale);
+    this.playPose(POSE.idle);
+    (this.body as Phaser.Physics.Arcade.Body)
+      .setSize(
+        INFERNAL_HOUND_CONFIG.bodyWidth,
+        INFERNAL_HOUND_CONFIG.bodyHeight,
+      )
+      .setOffset(
+        INFERNAL_HOUND_CONFIG.bodyOffsetX,
+        INFERNAL_HOUND_CONFIG.bodyOffsetY,
+      );
     this.setDepth(ENEMY_DEPTH);
     this.warningLine = scene.add.graphics().setDepth(7);
+  }
+
+  override get playsOwnDeathAnimation() {
+    return true;
+  }
+
+  override refreshAtlasSprite() {
+    this.setScale(INFERNAL_HOUND_CONFIG.scale);
+    this.playPose(
+      this.houndState === 'warning' || this.houndState === 'charging'
+        ? POSE.attack
+        : POSE.idle,
+    );
+  }
+
+  override defeat() {
+    if (!this.active || this.dying) {
+      return;
+    }
+    if (!this.scene.anims.exists(POSE.death)) {
+      super.defeat();
+      return;
+    }
+
+    this.dying = true;
+    this.onDefeated();
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
+    this.play(POSE.death, true);
+    this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
+      this.disableBody(true, true),
+    );
   }
 
   updateCombat(
@@ -58,6 +97,10 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
     target: Phaser.Physics.Arcade.Sprite,
     _fireProjectile: EnemyProjectileAttack,
   ) {
+    if (!this.active || this.dying) {
+      return false;
+    }
+
     this.updateMagmaTrails(time, target);
     const targetInRange =
       Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y) <=
@@ -93,6 +136,7 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
       this.setVelocityX(0);
       if (time >= this.stateEndsAt) {
         this.houndState = 'ready';
+        this.playPose(POSE.idle);
         this.finishAttack();
         this.nextAttackAt = time + INFERNAL_HOUND_CONFIG.attackCooldown;
       }
@@ -101,10 +145,11 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
 
     if (!targetInRange || this.isStaggered(time)) {
       this.setVelocityX(0);
+      this.playPose(POSE.idle);
       return targetInRange;
     }
 
-    this.setFlipX(target.x < this.x);
+    this.setFlipX(target.x > this.x);
     if (time >= this.nextAttackAt && this.tryBeginAttack()) {
       this.beginWarning(time, target.x);
       return true;
@@ -112,6 +157,7 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
 
     const direction = Math.sign(target.x - this.x) || 1;
     this.setVelocityX(direction * INFERNAL_HOUND_CONFIG.prowlSpeed);
+    this.playPose(POSE.walk);
     return true;
   }
 
@@ -136,7 +182,8 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
   private beginWarning(time: number, targetX: number) {
     this.houndState = 'warning';
     this.chargeDirection = Math.sign(targetX - this.x) || 1;
-    this.setFlipX(this.chargeDirection < 0);
+    this.setFlipX(this.chargeDirection > 0);
+    this.playPose(POSE.attack);
     this.stateEndsAt = time + INFERNAL_HOUND_CONFIG.warningDuration;
     const worldBounds = this.scene.physics.world.bounds;
     const endX =
@@ -168,6 +215,7 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
 
   private beginStun(time: number) {
     this.houndState = 'stunned';
+    this.playPose(POSE.idle);
     this.stateEndsAt = time + INFERNAL_HOUND_CONFIG.stunDuration;
     this.setVelocityX(0);
     this.setAngle(this.chargeDirection * 7);
@@ -224,5 +272,11 @@ export class InfernalHoundEnemy extends HallucinatedAndroidEnemy {
       trail.marker.destroy();
     }
     this.trails.length = 0;
+  }
+
+  private playPose(pose: string) {
+    if (this.scene.anims.exists(pose)) {
+      this.play(pose, true);
+    }
   }
 }
