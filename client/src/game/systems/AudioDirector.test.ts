@@ -2,7 +2,15 @@
 // Phaser touches `window` on import, so only this file pays for a DOM.
 import type Phaser from 'phaser';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AudioAssetKey } from '@/game/config/audioConfig';
+import {
+  AUDIO_MIX_CONFIG,
+  FOOTSTEP_SFX_BY_STAGE,
+  PROJECTILE_BLOCK_SFX_BY_KIND,
+  STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
+  STAGE_TWO_BOSS_ORB_SHOT_SFX,
+  STAGE_TWO_BOSS_SCAN_SFX_BY_CUE,
+  type AudioAssetKey,
+} from '@/game/config/audioConfig';
 import { STAGES } from '@/game/config/stageConfig';
 import { gameEvents } from '@/game/events/gameEvents';
 import { AudioDirector } from '@/game/systems/AudioDirector';
@@ -29,6 +37,7 @@ type AddedMusic = {
   playCount: number;
   stopped: boolean;
   volumeUpdates: number[];
+  complete?: () => void;
 };
 
 function createFakeGame(
@@ -76,6 +85,10 @@ function createFakeGame(
           setVolume: (volume: number) => {
             music.volumeUpdates.push(volume);
             return true;
+          },
+          once: (_event: string, listener: () => void) => {
+            music.complete = listener;
+            return sound;
           },
           destroy: () => {},
         };
@@ -200,6 +213,42 @@ describe('AudioDirector', () => {
     );
   });
 
+  it('randomises footsteps inside each ground stage sound set', () => {
+    const loaded = Object.values(FOOTSTEP_SFX_BY_STAGE).flat();
+    const { game, played } = createFakeGame({ loaded });
+    director = new AudioDirector(game);
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+
+    for (const stageId of [
+      'stage-01',
+      'stage-02',
+      'stage-03',
+      'stage-04',
+    ]) {
+      gameEvents.emit('stage-changed', stageId);
+      gameEvents.emit('player-stepped');
+    }
+    gameEvents.emit('stage-changed', 'stage-05');
+    gameEvents.emit('player-stepped');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage1-footstep-04',
+      'sfx-stage2-footstep-04',
+      'sfx-stage3-footstep-04',
+      'sfx-stage4-footstep-04',
+    ]);
+    expect(
+      played.every(
+        ({ config }) =>
+          config.volume! >=
+            0.9 * AUDIO_MIX_CONFIG.sfx * AUDIO_MIX_CONFIG.master &&
+          config.volume! <= AUDIO_MIX_CONFIG.sfx * AUDIO_MIX_CONFIG.master &&
+          config.rate! >= 0.97 &&
+          config.rate! <= 1.03,
+      ),
+    ).toBe(true);
+  });
+
   it('drops repeated hit cues that land inside the same throttle window', () => {
     const { game, played } = createFakeGame({ loaded: ['sfx-enemy-hit'] });
     director = new AudioDirector(game);
@@ -209,6 +258,88 @@ describe('AudioDirector', () => {
     }
 
     expect(played).toHaveLength(1);
+  });
+
+  it('randomises shield and boss block cues above the damage hit rate', () => {
+    const loaded = [
+      'sfx-enemy-hit',
+      ...Object.values(PROJECTILE_BLOCK_SFX_BY_KIND).flat(),
+    ] as AudioAssetKey[];
+    const { game, played } = createFakeGame({ loaded });
+    director = new AudioDirector(game);
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    gameEvents.emit('enemy-damaged', 0, 0);
+    gameEvents.emit('enemy-projectile-blocked', 'shield');
+    gameEvents.emit('enemy-projectile-blocked', 'boss');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-enemy-hit',
+      'sfx-shield-block-03',
+      'sfx-boss-invulnerable-03',
+    ]);
+    expect(played[1].config.rate).toBeGreaterThan(played[0].config.rate!);
+    expect(played[2].config.rate).toBeGreaterThan(played[0].config.rate!);
+  });
+
+  it('plays the matching stage one boss laser cue for each shot', () => {
+    const { game, played } = createFakeGame({
+      loaded: Object.values(STAGE_ONE_BOSS_LASER_SFX_BY_CUE),
+    });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('boss-laser-fired', 'single');
+    gameEvents.emit('boss-laser-fired', 'double-first');
+    gameEvents.emit('boss-laser-fired', 'double-second');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage1-boss-laser-single',
+      'sfx-stage1-boss-laser-double-first',
+      'sfx-stage1-boss-laser-double-second',
+    ]);
+  });
+
+  it('joins the stage two boss scan intro, loop, lock and end cues', () => {
+    const { game, added, played } = createFakeGame({
+      loaded: Object.values(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE),
+    });
+    director = new AudioDirector(game);
+
+    gameEvents.emit('boss-scan-cue', 'start');
+    expect(added[0]).toMatchObject({
+      key: 'sfx-stage2-boss-scan-start',
+      playCount: 1,
+    });
+
+    added[0].complete?.();
+    expect(added[1]).toMatchObject({
+      key: 'sfx-stage2-boss-scan-loop',
+      playCount: 1,
+    });
+    expect(added[1].config.loop).toBe(true);
+
+    gameEvents.emit('boss-scan-cue', 'target-lock');
+    gameEvents.emit('boss-scan-cue', 'end');
+
+    expect(added[1].stopped).toBe(true);
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage2-boss-target-lock',
+      'sfx-stage2-boss-scan-end',
+    ]);
+  });
+
+  it('randomises the stage two boss orb shot cue', () => {
+    const { game, played } = createFakeGame({
+      loaded: [...STAGE_TWO_BOSS_ORB_SHOT_SFX],
+    });
+    director = new AudioDirector(game);
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+
+    gameEvents.emit('boss-orb-fired');
+
+    expect(played.map(({ key }) => key)).toEqual([
+      'sfx-stage2-boss-orb-shot-04',
+    ]);
   });
 
   it('loops stage music once and keeps it across repeated stage events', () => {

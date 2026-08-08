@@ -39,8 +39,15 @@ type GameEventMap = {
   'weapon-fired': [weaponId: string, x: number, y: number];
   'player-damaged': [x: number, y: number];
   'player-dashed': [x: number, y: number];
+  'player-stepped': [];
   'enemy-damaged': [x: number, y: number];
+  'enemy-projectile-blocked': [kind: 'shield' | 'boss'];
   'enemy-defeated': [x: number, y: number];
+  'boss-laser-fired': [
+    cue: 'single' | 'double-first' | 'double-second',
+  ];
+  'boss-scan-cue': [cue: 'start' | 'target-lock' | 'end'];
+  'boss-orb-fired': [];
   'weapon-changed': [id: string, label: string];
   'weapon-inventory-changed': [
     slots: readonly (string | null)[],

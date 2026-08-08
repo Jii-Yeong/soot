@@ -4,6 +4,7 @@ import type {
   BossPatternConfig,
 } from '@/game/config/bossConfigTypes';
 import { Enemy, type ProjectileDamageResult } from '@/game/entities/Enemy';
+import { gameEvents } from '@/game/events/gameEvents';
 
 export abstract class BossEnemy<
   Pattern extends BossPatternConfig = BossPatternConfig,
@@ -49,9 +50,12 @@ export abstract class BossEnemy<
     hitX: number,
     hitY: number,
   ): ProjectileDamageResult {
-    return this.isInvulnerable
-      ? { applied: false, defeated: false }
-      : super.takeProjectileDamage(amount, hitX, hitY);
+    if (this.isInvulnerable) {
+      this.showProjectileBlockedImpact(hitX, hitY);
+      gameEvents.emit('enemy-projectile-blocked', 'boss');
+      return { applied: false, defeated: false };
+    }
+    return super.takeProjectileDamage(amount, hitX, hitY);
   }
 
   override applyKnockback(

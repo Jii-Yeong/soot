@@ -34,6 +34,19 @@ const PLAYER_SPRITES = [
   STAGE_FIVE_PLAYER_SPRITE,
 ];
 
+const CELESTIAL_PROJECTILE_COLORS = {
+  shadow: 0x123f3a,
+  midtone: 0x58d6b3,
+  highlight: 0xd8fff4,
+  orbHighlight: 0xffe38a,
+} as const;
+
+const BOSS_PROJECTILE_TONES = {
+  shadow: 0x999999,
+  midtone: 0xeeeeee,
+  highlight: 0xffffff,
+} as const;
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('boot');
@@ -281,16 +294,20 @@ export class BootScene extends Phaser.Scene {
     graphics.generateTexture('celestial-oracle-placeholder', 96, 96);
 
     graphics.clear();
-    graphics.fillStyle(0xffe9a6);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.shadow);
     graphics.fillCircle(6, 6, 6);
-    graphics.fillStyle(0xffffff);
-    graphics.fillCircle(6, 6, 2);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.midtone);
+    graphics.fillCircle(6, 6, 4);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.orbHighlight);
+    graphics.fillCircle(5, 5, 2);
     graphics.generateTexture('celestial-bullet-placeholder', 12, 12);
 
     graphics.clear();
-    graphics.fillStyle(0xffe79a);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.shadow);
     graphics.fillTriangle(0, 4, 25, 0, 25, 8);
-    graphics.fillStyle(0xffffff);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.midtone);
+    graphics.fillTriangle(3, 4, 24, 1, 24, 7);
+    graphics.fillStyle(CELESTIAL_PROJECTILE_COLORS.highlight);
     graphics.fillRect(8, 3, 22, 2);
     graphics.generateTexture('celestial-spear-placeholder', 30, 8);
 
@@ -309,10 +326,12 @@ export class BootScene extends Phaser.Scene {
     graphics.generateTexture('flying-enemy-bullet-placeholder', 10, 10);
 
     graphics.clear();
-    graphics.fillStyle(0xffffff);
+    graphics.fillStyle(BOSS_PROJECTILE_TONES.shadow);
     graphics.fillCircle(7, 7, 7);
-    graphics.fillStyle(0xfff4c7);
-    graphics.fillCircle(7, 7, 3);
+    graphics.fillStyle(BOSS_PROJECTILE_TONES.midtone);
+    graphics.fillCircle(7, 7, 6);
+    graphics.fillStyle(BOSS_PROJECTILE_TONES.highlight);
+    graphics.fillCircle(6, 5, 2);
     graphics.generateTexture('architect-bullet-placeholder', 14, 14);
 
     const createBossPlaceholder = (
@@ -411,6 +430,16 @@ export class BootScene extends Phaser.Scene {
             frame,
           })),
           duration: 400,
+        });
+      }
+      if (sprite.aliveFrames) {
+        this.anims.create({
+          key: sprite.animations.alive,
+          frames: sprite.aliveFrames.map((frame) => ({
+            key: sprite.texture,
+            frame,
+          })),
+          duration: 1200,
         });
       }
     }

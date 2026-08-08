@@ -57,25 +57,7 @@ describe('enemy collision with room geometry', () => {
     expect(collider).toHaveBeenCalledWith(enemy, terrain);
   });
 
-  it('drops enemies that ignore pit barriers into pits while keeping floor', () => {
-    const { collider, enemy, enemyPitBarriers, floor, scene, terrain } =
-      createFixture();
-
-    connectEnemyToRoomGeometry(
-      scene,
-      enemy,
-      floor,
-      terrain,
-      { collidesWithTerrain: false, collidesWithPitBarriers: false },
-      enemyPitBarriers,
-    );
-
-    expect(collider).toHaveBeenCalledWith(enemy, floor);
-    expect(collider).not.toHaveBeenCalledWith(enemy, enemyPitBarriers);
-    expect(collider).not.toHaveBeenCalledWith(enemy, terrain);
-  });
-
-  it('keeps pit barriers when an enemy ignores raised terrain', () => {
+  it('can ignore raised terrain while keeping floor collision', () => {
     const { collider, enemy, enemyPitBarriers, floor, scene, terrain } =
       createFixture();
 

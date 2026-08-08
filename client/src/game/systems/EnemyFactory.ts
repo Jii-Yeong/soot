@@ -168,7 +168,6 @@ export class EnemyFactory {
     }
 
     // 발판(2층)에 걸리지 않고 천장에서 1층 바닥까지 떨어지도록 지형 충돌은 끈다.
-    // 구덩이 가장자리 장벽도 무시해, 지상 돌진 중 구덩이를 만나면 그대로 추락한다.
     return this.finishSpawn(
       new CeilingMaintainerEnemy(
         this.scene,
@@ -176,7 +175,7 @@ export class EnemyFactory {
         pipe,
         this.damagePlayer,
       ),
-      { collidesWithTerrain: false, collidesWithPitBarriers: false },
+      { collidesWithTerrain: false },
     );
   }
 

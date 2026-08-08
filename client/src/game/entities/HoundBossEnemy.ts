@@ -7,6 +7,7 @@ import type {
 import { isPointInsideCone } from '@/game/combat/coneGeometry';
 import { BossEnemy } from '@/game/entities/BossEnemy';
 import type { EnemyProjectileAttack } from '@/game/entities/Enemy';
+import { gameEvents } from '@/game/events/gameEvents';
 import { destroyCollider } from '@/game/systems/arcadePhysicsCleanup';
 import { CleanupRegistry } from '@/game/systems/CleanupRegistry';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
@@ -46,6 +47,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
   private activeSpriteAnimation?: string;
   private attackPoseUntil = 0;
   private dying = false;
+  private scanAudioActive = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -153,6 +155,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
 
   protected override onDefeated() {
     super.onDefeated();
+    this.endScanAudio();
     this.cone.hide();
     this.orbCleanups.clear();
   }
@@ -206,6 +209,8 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
 
     if (time >= this.stateEndsAt) {
       this.attackState = 'scanning';
+      this.scanAudioActive = true;
+      gameEvents.emit('boss-scan-cue', 'start');
     }
   }
 
@@ -226,6 +231,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
       this.attackState = 'locking';
       this.stateStartedAt = time;
       this.stateEndsAt = time + this.lockDuration;
+      gameEvents.emit('boss-scan-cue', 'target-lock');
     }
   }
 
@@ -250,6 +256,7 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
   }
 
   private beginRecover(time: number) {
+    this.endScanAudio();
     this.attackState = 'recover';
     this.stateEndsAt =
       time +
@@ -259,7 +266,17 @@ export class HoundBossEnemy extends BossEnemy<HoundBossPatternConfig> {
     this.cone.hide();
   }
 
+  private endScanAudio() {
+    if (!this.scanAudioActive) {
+      return;
+    }
+
+    this.scanAudioActive = false;
+    gameEvents.emit('boss-scan-cue', 'end');
+  }
+
   private fireOrb(target: Phaser.Physics.Arcade.Sprite) {
+    gameEvents.emit('boss-orb-fired');
     this.attackPoseUntil = this.scene.time.now + ATTACK_POSE_HOLD_MS;
     this.playSpriteAnimation(this.sprite?.animations.attack ?? '');
 

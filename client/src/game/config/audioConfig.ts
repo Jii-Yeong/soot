@@ -22,13 +22,50 @@ export type SfxKey =
   | 'sfx-player-dash'
   | 'sfx-player-death'
   | 'sfx-room-locked'
-  | 'sfx-room-cleared';
+  | 'sfx-room-cleared'
+  | 'sfx-shield-block-01'
+  | 'sfx-shield-block-02'
+  | 'sfx-shield-block-03'
+  | 'sfx-shield-block-04'
+  | 'sfx-boss-invulnerable-01'
+  | 'sfx-boss-invulnerable-02'
+  | 'sfx-boss-invulnerable-03'
+  | 'sfx-boss-invulnerable-04'
+  | 'sfx-stage1-boss-laser-single'
+  | 'sfx-stage1-boss-laser-double-first'
+  | 'sfx-stage1-boss-laser-double-second'
+  | 'sfx-stage2-boss-scan-start'
+  | 'sfx-stage2-boss-scan-loop'
+  | 'sfx-stage2-boss-scan-end'
+  | 'sfx-stage2-boss-target-lock'
+  | 'sfx-stage2-boss-orb-shot-01'
+  | 'sfx-stage2-boss-orb-shot-02'
+  | 'sfx-stage2-boss-orb-shot-03'
+  | 'sfx-stage2-boss-orb-shot-04'
+  | 'sfx-stage1-footstep-01'
+  | 'sfx-stage1-footstep-02'
+  | 'sfx-stage1-footstep-03'
+  | 'sfx-stage1-footstep-04'
+  | 'sfx-stage2-footstep-01'
+  | 'sfx-stage2-footstep-02'
+  | 'sfx-stage2-footstep-03'
+  | 'sfx-stage2-footstep-04'
+  | 'sfx-stage3-footstep-01'
+  | 'sfx-stage3-footstep-02'
+  | 'sfx-stage3-footstep-03'
+  | 'sfx-stage3-footstep-04'
+  | 'sfx-stage4-footstep-01'
+  | 'sfx-stage4-footstep-02'
+  | 'sfx-stage4-footstep-03'
+  | 'sfx-stage4-footstep-04';
 
 export type AudioAssetKey = MusicKey | SfxKey;
 
 export type SfxConfig = {
   /** Trim relative to the sfx bus. Cues that repeat fastest sit lowest. */
   volume: number;
+  /** 원본보다 높고 짧게 들려줄 기준 재생률. */
+  rate?: number;
   /** Playback rate is randomised by +/- this much so repeats do not phase. */
   rateJitter?: number;
   /** Drops repeats fired inside this window, e.g. shotgun pellets landing together. */
@@ -67,6 +104,17 @@ export const MUSIC_CONFIG: Record<MusicKey, MusicConfig> = {
   'bgm-return': { volume: 0.6 },
 };
 
+const PROJECTILE_BLOCK_SFX_CONFIG: SfxConfig = {
+  volume: 0.45,
+  rate: 1.1,
+  rateJitter: 0.02,
+  minInterval: 45,
+};
+
+const STAGE_ONE_BOSS_LASER_SFX_CONFIG: SfxConfig = {
+  volume: 0.7,
+};
+
 export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   'sfx-smg-fire': { volume: 0.35, rateJitter: 0.08 },
   'sfx-shotgun-fire': { volume: 0.6, rateJitter: 0.04 },
@@ -83,6 +131,117 @@ export const SFX_CONFIG: Record<SfxKey, SfxConfig> = {
   // sound heard on every transition wears out faster than one heard mid-fight.
   'sfx-room-locked': { volume: 0.6 },
   'sfx-room-cleared': { volume: 0.45 },
+  'sfx-shield-block-01': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-shield-block-02': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-shield-block-03': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-shield-block-04': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-01': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-02': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-03': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-boss-invulnerable-04': PROJECTILE_BLOCK_SFX_CONFIG,
+  'sfx-stage1-boss-laser-single': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
+  'sfx-stage1-boss-laser-double-first': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
+  'sfx-stage1-boss-laser-double-second': STAGE_ONE_BOSS_LASER_SFX_CONFIG,
+  'sfx-stage2-boss-scan-start': { volume: 0.7 },
+  'sfx-stage2-boss-scan-loop': { volume: 0.5 },
+  'sfx-stage2-boss-scan-end': { volume: 0.7 },
+  'sfx-stage2-boss-target-lock': { volume: 0.8 },
+  'sfx-stage2-boss-orb-shot-01': { volume: 0.75 },
+  'sfx-stage2-boss-orb-shot-02': { volume: 0.75 },
+  'sfx-stage2-boss-orb-shot-03': { volume: 0.75 },
+  'sfx-stage2-boss-orb-shot-04': { volume: 0.75 },
+  'sfx-stage1-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage1-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage1-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage1-footstep-04': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage2-footstep-04': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage3-footstep-04': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-01': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-02': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-03': { volume: 1, rateJitter: 0.03 },
+  'sfx-stage4-footstep-04': { volume: 1, rateJitter: 0.03 },
+};
+
+export const PROJECTILE_BLOCK_SFX_BY_KIND = {
+  shield: [
+    'sfx-shield-block-01',
+    'sfx-shield-block-02',
+    'sfx-shield-block-03',
+    'sfx-shield-block-04',
+  ],
+  boss: [
+    'sfx-boss-invulnerable-01',
+    'sfx-boss-invulnerable-02',
+    'sfx-boss-invulnerable-03',
+    'sfx-boss-invulnerable-04',
+  ],
+} as const satisfies Record<'shield' | 'boss', readonly SfxKey[]>;
+
+export const STAGE_ONE_BOSS_LASER_SFX_BY_CUE = {
+  single: 'sfx-stage1-boss-laser-single',
+  'double-first': 'sfx-stage1-boss-laser-double-first',
+  'double-second': 'sfx-stage1-boss-laser-double-second',
+} as const satisfies Record<
+  'single' | 'double-first' | 'double-second',
+  SfxKey
+>;
+
+export const STAGE_TWO_BOSS_SCAN_SFX_BY_CUE = {
+  start: 'sfx-stage2-boss-scan-start',
+  loop: 'sfx-stage2-boss-scan-loop',
+  end: 'sfx-stage2-boss-scan-end',
+  'target-lock': 'sfx-stage2-boss-target-lock',
+} as const satisfies Record<
+  'start' | 'loop' | 'end' | 'target-lock',
+  SfxKey
+>;
+
+export const STAGE_TWO_BOSS_ORB_SHOT_SFX = [
+  'sfx-stage2-boss-orb-shot-01',
+  'sfx-stage2-boss-orb-shot-02',
+  'sfx-stage2-boss-orb-shot-03',
+  'sfx-stage2-boss-orb-shot-04',
+] as const satisfies readonly SfxKey[];
+
+export type FootstepStageId =
+  | 'stage-01'
+  | 'stage-02'
+  | 'stage-03'
+  | 'stage-04';
+
+export const FOOTSTEP_SFX_BY_STAGE: Readonly<
+  Record<FootstepStageId, readonly SfxKey[]>
+> = {
+  'stage-01': [
+    'sfx-stage1-footstep-01',
+    'sfx-stage1-footstep-02',
+    'sfx-stage1-footstep-03',
+    'sfx-stage1-footstep-04',
+  ],
+  'stage-02': [
+    'sfx-stage2-footstep-01',
+    'sfx-stage2-footstep-02',
+    'sfx-stage2-footstep-03',
+    'sfx-stage2-footstep-04',
+  ],
+  'stage-03': [
+    'sfx-stage3-footstep-01',
+    'sfx-stage3-footstep-02',
+    'sfx-stage3-footstep-03',
+    'sfx-stage3-footstep-04',
+  ],
+  'stage-04': [
+    'sfx-stage4-footstep-01',
+    'sfx-stage4-footstep-02',
+    'sfx-stage4-footstep-03',
+    'sfx-stage4-footstep-04',
+  ],
 };
 
 /**

@@ -68,6 +68,8 @@ import { useGameSettingsStore } from '@/stores/gameSettingsStore';
 
 const PLAYER_DAMAGE_FLASH_DURATION = 80;
 const PLAYER_DEATH_PROMPT_DELAY = 1000;
+/** 공중 사망 시 1층 바닥으로 떨어지는 속도(px/s). */
+const PLAYER_DEATH_FALL_SPEED = 720;
 
 /**
  * 구덩이 추락 판정 깊이. 발이 이만큼 바닥선 아래로 내려가야 추락으로 친다.
@@ -92,6 +94,7 @@ const UNDERGROUND_LANDING_BACKDROP = {
 };
 const STAGE_THREE_ENDING_FRAME =
   STAGE_THREE_PLAYER_SPRITE.deathFrames?.at(-1) ?? PLAYER_INITIAL_FRAME;
+const ASCENSION_VICTORY_DELAY_MS = 2000;
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -175,6 +178,8 @@ export class GameScene extends Phaser.Scene {
       enterCurrentRoom: () => this.enterCurrentRoom(),
       enterLandingRoom: (mode) => this.enterTransitionLandingRoom(mode),
       setAscensionPose: () => this.showAscensionPlayerPose(),
+      playAscensionAlive: (onComplete) =>
+        this.playAscensionAlive(onComplete),
       completeStageExit: (nextStageIndex) =>
         this.completeStageExit(nextStageIndex),
       finish: (outcome) => {
@@ -353,7 +358,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shakeEffect.reset();
     this.cameras.main.resetFX();
     this.cameras.main.stopFollow();
-    this.cameras.main.setScroll(0, 0);
+    this.cameras.main.setScroll(0, 0).setZoom(1);
     this.configureCamera();
   }
 
@@ -553,7 +558,10 @@ export class GameScene extends Phaser.Scene {
     this.weaponSystem.cancelHitStop();
     this.playerController.stop();
     this.player.setVelocity(0);
-    this.weaponSystem.hide();
+    // 5스테이지 엔딩은 흰 화면이 방 교체를 가릴 때까지 무기를 든 자세를 유지한다.
+    if (this.stage.endEvent !== 'ascension') {
+      this.weaponSystem.hide();
+    }
     this.weaponDropDirector.clear();
     this.combatUi.clearGuides();
   }
@@ -564,11 +572,18 @@ export class GameScene extends Phaser.Scene {
     this.configureRoomWorld();
     if (mode === 'descent') {
       this.rebuildFloorForRoom();
+      this.terrainBuilder.build(
+        this.activeRoomConfig.terrain,
+        this.stage.terrainSkin,
+        this.activeRoomConfig.ceilingPipes,
+        this.stage.pipeSkin,
+      );
       this.showUndergroundLandingBackdrop();
       this.resetCameraToRoomEntrance();
       return;
     }
 
+    this.weaponSystem.hide();
     this.enemyCombatDirector.destroyEnemies();
     // 어드민으로 5스테이지 보스에 직행하면 3스테이지 지형은 아직 캐시에 없다.
     // 도착 뒤 다시 그려 콜드 로드에서도 바닥 스킨이 placeholder로 굳지 않게 한다.
@@ -590,6 +605,12 @@ export class GameScene extends Phaser.Scene {
       STAGE_THREE_CONFIG.showFloor,
       STAGE_THREE_CONFIG.floorSkin,
     );
+    this.terrainBuilder.build(
+      UNDERGROUND_LANDING_ROOM.terrain,
+      STAGE_THREE_CONFIG.terrainSkin,
+      UNDERGROUND_LANDING_ROOM.ceilingPipes,
+      STAGE_THREE_CONFIG.pipeSkin,
+    );
     this.showUndergroundLandingBackdrop();
   }
 
@@ -608,6 +629,13 @@ export class GameScene extends Phaser.Scene {
       STAGE_THREE_ENDING_FRAME,
     );
     this.playerHalo.setVisible(false);
+  }
+
+  private playAscensionAlive(onComplete: () => void) {
+    this.player.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () =>
+      this.time.delayedCall(ASCENSION_VICTORY_DELAY_MS, onComplete),
+    );
+    this.player.play(STAGE_THREE_PLAYER_SPRITE.animations.alive, true);
   }
 
   private emitStageLocation() {
@@ -635,6 +663,9 @@ export class GameScene extends Phaser.Scene {
       this.reskinCurrentRoom(),
     );
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
+    if (this.stage.endEvent === 'ascension') {
+      this.stageAssetPreloader.preload(STAGE_THREE_CONFIG);
+    }
   }
 
   /**
@@ -672,10 +703,12 @@ export class GameScene extends Phaser.Scene {
       player: this.player,
       enemies: this.enemies,
       projectileBlockers: this.terrainBuilder.projectileGroup,
+      projectileFloor: this.floorBuilder.group,
       canDamageEnemy: () =>
         this.phase === 'playing' && this.roomState === 'locked',
       isPlayerInvulnerable: () => this.playerController.isInvulnerable,
       damagePlayer: (damage) => this.applyPlayerDamage(damage),
+      isOverPit: (x) => this.floorBuilder.isOverPit(x),
       notifyEnemyDefeated: (enemy) =>
         this.roomDirector.notifyEnemyDefeated(enemy),
       dropBossReward: (enemy) =>
@@ -1070,12 +1103,7 @@ export class GameScene extends Phaser.Scene {
     this.setPhase('dead');
     this.restartEnabled = false;
     this.player.setVelocity(0).clearTint().setAlpha(1);
-    const deathAnimation = this.playerSprite.animations.death;
-    if (this.anims.exists(deathAnimation)) {
-      this.player.play(deathAnimation, true);
-    } else {
-      this.player.anims.stop();
-    }
+    this.playPlayerDeathAnimation();
     this.weaponSystem.hide();
     this.weaponDropDirector.clear();
     (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
@@ -1090,6 +1118,38 @@ export class GameScene extends Phaser.Scene {
       this.combatUi.showDeath();
     });
     this.cameras.main.shake(180, 0.008);
+  }
+
+  /** 공중에서는 첫 death 자세로 1층까지 추락한 뒤 두 번째 자세로 전환한다. */
+  private playPlayerDeathAnimation() {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const [fallFrame, landFrame] = this.playerSprite.deathFrames ?? [];
+    const fallDistance = Math.max(0, FLOOR_SURFACE_Y - body.bottom);
+
+    if (!body.blocked.down && fallDistance > 1 && fallFrame && landFrame) {
+      body.enable = false;
+      this.player.anims.stop();
+      this.player.setFrame(fallFrame);
+      this.tweens.add({
+        targets: this.player,
+        y: this.player.y + fallDistance,
+        duration: Phaser.Math.Clamp(
+          (fallDistance / PLAYER_DEATH_FALL_SPEED) * 1000,
+          120,
+          900,
+        ),
+        ease: 'Quad.easeIn',
+        onComplete: () => this.player.setFrame(landFrame),
+      });
+      return;
+    }
+
+    const deathAnimation = this.playerSprite.animations.death;
+    if (this.anims.exists(deathAnimation)) {
+      this.player.play(deathAnimation, true);
+    } else {
+      this.player.anims.stop();
+    }
   }
 
 }

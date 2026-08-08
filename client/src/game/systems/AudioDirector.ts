@@ -3,8 +3,13 @@ import { resolveAudioAssets } from '@/game/config/audioAssets';
 import {
   AUDIO_MIX_CONFIG,
   clampAudioMixValue,
+  FOOTSTEP_SFX_BY_STAGE,
   MUSIC_CONFIG,
+  PROJECTILE_BLOCK_SFX_BY_KIND,
   SFX_CONFIG,
+  STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
+  STAGE_TWO_BOSS_ORB_SHOT_SFX,
+  STAGE_TWO_BOSS_SCAN_SFX_BY_CUE,
   WEAPON_FIRE_SFX,
   type AudioAssetKey,
   type AudioMix,
@@ -47,10 +52,14 @@ function canDecode(
  */
 export class AudioDirector {
   private readonly mix: AudioMix = { ...AUDIO_MIX_CONFIG };
-  private readonly playedAt = new Map<SfxKey, number>();
+  private readonly playedAt = new Map<string, number>();
   private music?: VolumeControlledSound;
+  private scanStartSound?: VolumeControlledSound;
+  private scanLoopSound?: VolumeControlledSound;
+  private scanActive = false;
   /** What should be playing, whether or not its file has arrived yet. */
   private wantedMusic?: MusicKey;
+  private currentStageId?: string;
   /** Tracks already fetched, so a revisited stage does not download twice. */
   private readonly requested = new Set<MusicKey>();
 
@@ -65,8 +74,13 @@ export class AudioDirector {
     gameEvents.on('weapon-fired', this.handleWeaponFired);
     gameEvents.on('player-damaged', this.handlePlayerDamaged);
     gameEvents.on('player-dashed', this.handlePlayerDashed);
+    gameEvents.on('player-stepped', this.handlePlayerStepped);
     gameEvents.on('enemy-damaged', this.handleEnemyDamaged);
+    gameEvents.on('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.on('enemy-defeated', this.handleEnemyDefeated);
+    gameEvents.on('boss-laser-fired', this.handleBossLaserFired);
+    gameEvents.on('boss-scan-cue', this.handleBossScanCue);
+    gameEvents.on('boss-orb-fired', this.handleBossOrbFired);
   }
 
   destroy() {
@@ -78,9 +92,15 @@ export class AudioDirector {
     gameEvents.off('weapon-fired', this.handleWeaponFired);
     gameEvents.off('player-damaged', this.handlePlayerDamaged);
     gameEvents.off('player-dashed', this.handlePlayerDashed);
+    gameEvents.off('player-stepped', this.handlePlayerStepped);
     gameEvents.off('enemy-damaged', this.handleEnemyDamaged);
+    gameEvents.off('enemy-projectile-blocked', this.handleProjectileBlocked);
     gameEvents.off('enemy-defeated', this.handleEnemyDefeated);
+    gameEvents.off('boss-laser-fired', this.handleBossLaserFired);
+    gameEvents.off('boss-scan-cue', this.handleBossScanCue);
+    gameEvents.off('boss-orb-fired', this.handleBossOrbFired);
     this.game.sound.off(Phaser.Sound.Events.DECODED, this.handleDecoded);
+    this.stopBossScan();
     this.stopMusic();
     this.playedAt.clear();
   }
@@ -103,7 +123,7 @@ export class AudioDirector {
   /**
    * 스테이지 음악은 부팅 중이 아니라 이후에 가져온다. 타이틀 곡은 예외로,
    * BootScene에서 미리 불러와 플레이어가 브라우저 시작 안내를 통과하는 즉시
-   * 재생을 시도할 수 있게 한다. 효과음 전체는 113KB지만 음악 한 곡은 1MB가 넘는다.
+   * 재생을 시도할 수 있게 한다. 작은 효과음 묶음과 달리 음악 한 곡은 1MB가 넘는다.
    *
    * Only the track that is about to be needed is fetched, plus the one for the
    * stage after it. Fetching every track up front would mean a player who
@@ -157,6 +177,7 @@ export class AudioDirector {
       return;
     }
 
+    this.stopBossScan();
     this.requestMusic('bgm-title');
     // The title is where the player reads and presses ENTER, which is the only
     // free moment stage one's track ever gets.
@@ -165,11 +186,14 @@ export class AudioDirector {
   };
 
   private readonly handleStageChanged = (stageId: string) => {
+    this.stopBossScan();
     const index = STAGES.findIndex((candidate) => candidate.id === stageId);
 
     if (index < 0) {
       return;
     }
+
+    this.currentStageId = stageId;
 
     this.requestMusic(STAGES[index].music);
     this.requestMusic(STAGES[index + 1]?.music);
@@ -205,6 +229,13 @@ export class AudioDirector {
     if (this.music && this.wantedMusic) {
       this.music.setVolume(this.musicVolume(this.wantedMusic));
     }
+
+    this.scanStartSound?.setVolume(
+      this.sfxVolume(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.start),
+    );
+    this.scanLoopSound?.setVolume(
+      this.sfxVolume(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.loop),
+    );
   }
 
   private readonly handleWeaponFired = (weaponId: string) => {
@@ -223,18 +254,118 @@ export class AudioDirector {
     this.playSfx('sfx-player-dash');
   };
 
+  private readonly handlePlayerStepped = () => {
+    if (
+      !this.currentStageId ||
+      !Object.hasOwn(FOOTSTEP_SFX_BY_STAGE, this.currentStageId)
+    ) {
+      return;
+    }
+
+    const footsteps =
+      FOOTSTEP_SFX_BY_STAGE[
+        this.currentStageId as keyof typeof FOOTSTEP_SFX_BY_STAGE
+      ];
+    this.playSfx(this.pickRandom(footsteps), 0.9 + Math.random() * 0.1);
+  };
+
   private readonly handleEnemyDamaged = () => {
     this.playSfx('sfx-enemy-hit');
+  };
+
+  private readonly handleProjectileBlocked = (
+    kind: keyof typeof PROJECTILE_BLOCK_SFX_BY_KIND,
+  ) => {
+    this.playSfx(this.pickRandom(PROJECTILE_BLOCK_SFX_BY_KIND[kind]), 1, kind);
   };
 
   private readonly handleEnemyDefeated = () => {
     this.playSfx('sfx-enemy-down');
   };
 
-  private playSfx(key: SfxKey) {
+  private readonly handleBossLaserFired = (
+    cue: keyof typeof STAGE_ONE_BOSS_LASER_SFX_BY_CUE,
+  ) => {
+    this.playSfx(STAGE_ONE_BOSS_LASER_SFX_BY_CUE[cue]);
+  };
+
+  private readonly handleBossOrbFired = () => {
+    this.playSfx(this.pickRandom(STAGE_TWO_BOSS_ORB_SHOT_SFX));
+  };
+
+  private readonly handleBossScanCue = (
+    cue: 'start' | 'target-lock' | 'end',
+  ) => {
+    if (cue === 'start') {
+      this.startBossScan();
+      return;
+    }
+
+    if (cue === 'target-lock') {
+      this.playSfx(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE['target-lock']);
+      return;
+    }
+
+    this.stopBossScan();
+    this.playSfx(STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.end);
+  };
+
+  /** 시작음을 끝까지 재생한 뒤 스캔 반복음을 잇는다. */
+  private startBossScan() {
+    this.stopBossScan();
+    this.scanActive = true;
+
+    const key = STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.start;
+    if (!this.isLoaded(key) || this.game.sound.locked) {
+      return;
+    }
+
+    const sound = this.game.sound.add(key, {
+      volume: this.sfxVolume(key),
+    }) as VolumeControlledSound;
+    this.scanStartSound = sound;
+    sound.once(Phaser.Sound.Events.COMPLETE, () => {
+      if (this.scanStartSound !== sound) {
+        return;
+      }
+
+      this.scanStartSound = undefined;
+      sound.destroy();
+      this.startBossScanLoop();
+    });
+    sound.play();
+  }
+
+  private startBossScanLoop() {
+    const key = STAGE_TWO_BOSS_SCAN_SFX_BY_CUE.loop;
+    if (!this.scanActive || !this.isLoaded(key) || this.game.sound.locked) {
+      return;
+    }
+
+    this.scanLoopSound = this.game.sound.add(key, {
+      loop: true,
+      volume: this.sfxVolume(key),
+    }) as VolumeControlledSound;
+    this.scanLoopSound.play();
+  }
+
+  private stopBossScan() {
+    this.scanActive = false;
+    const startSound = this.scanStartSound;
+    this.scanStartSound = undefined;
+    startSound?.stop();
+    startSound?.destroy();
+
+    const loopSound = this.scanLoopSound;
+    this.scanLoopSound = undefined;
+    loopSound?.stop();
+    loopSound?.destroy();
+  }
+
+  private playSfx(key: SfxKey, volumeScale = 1, intervalKey: string = key) {
     const config = SFX_CONFIG[key];
     const now = Date.now();
-    const playedAt = this.playedAt.get(key);
+    const playedAt = this.playedAt.get(intervalKey);
 
     if (
       config.minInterval !== undefined &&
@@ -250,10 +381,10 @@ export class AudioDirector {
       return;
     }
 
-    this.playedAt.set(key, now);
+    this.playedAt.set(intervalKey, now);
     this.game.sound.play(key, {
-      volume: config.volume * this.mix.sfx * this.mix.master,
-      rate: this.jitteredRate(config.rateJitter),
+      volume: config.volume * volumeScale * this.mix.sfx * this.mix.master,
+      rate: (config.rate ?? 1) * this.jitteredRate(config.rateJitter),
     });
   }
 
@@ -312,7 +443,16 @@ export class AudioDirector {
     return MUSIC_CONFIG[key].volume * this.mix.music * this.mix.master;
   }
 
+  private sfxVolume(key: SfxKey) {
+    return SFX_CONFIG[key].volume * this.mix.sfx * this.mix.master;
+  }
+
   private jitteredRate(rateJitter = 0) {
     return rateJitter === 0 ? 1 : 1 + (Math.random() * 2 - 1) * rateJitter;
+  }
+
+  /** 여러 변형 중 하나를 무작위로 골라 같은 효과음이 반복되지 않게 한다. */
+  private pickRandom<T>(items: readonly T[]): T {
+    return items[Math.floor(Math.random() * items.length)]!;
   }
 }

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isPointInsideLaser } from '@/game/combat/laserGeometry';
+import {
+  getLaserMuzzlePosition,
+  isPointInsideLaser,
+} from '@/game/combat/laserGeometry';
 
 const start = { x: 100, y: 200 };
 
@@ -20,5 +23,18 @@ describe('isPointInsideLaser', () => {
     expect(
       isPointInsideLaser(start, 0, 600, 30, { x: 750, y: 200 }, 8),
     ).toBe(false);
+  });
+});
+
+describe('getLaserMuzzlePosition', () => {
+  it('keeps the muzzle height fixed when the boss changes direction', () => {
+    expect(getLaserMuzzlePosition(start, false, 64, 10)).toEqual({
+      x: 164,
+      y: 210,
+    });
+    expect(getLaserMuzzlePosition(start, true, 64, 10)).toEqual({
+      x: 36,
+      y: 210,
+    });
   });
 });
