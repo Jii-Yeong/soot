@@ -9,13 +9,17 @@ import { Enemy, type EnemyProjectileKind } from '@/game/entities/Enemy';
 import { gameEvents } from '@/game/events/gameEvents';
 import { FLOOR_SURFACE_Y } from '@/game/systems/FloorBuilder';
 import { ProjectilePool } from '@/game/systems/ProjectilePool';
-import { isProjectileBlocker } from '@/game/systems/TerrainBuilder';
+import {
+  isFlyingProjectileBlocker,
+  isProjectileBlocker,
+} from '@/game/systems/TerrainBuilder';
 
 type EnemyCombatDirectorOptions = {
   scene: Phaser.Scene;
   player: Phaser.Physics.Arcade.Sprite;
   enemies: Enemy[];
   projectileBlockers: Phaser.Physics.Arcade.StaticGroup;
+  projectileFloor: Phaser.Physics.Arcade.StaticGroup;
   canDamageEnemy: () => boolean;
   isPlayerInvulnerable: () => boolean;
   damagePlayer: (damage: number) => void;
@@ -42,7 +46,8 @@ export class EnemyCombatDirector {
     this.projectilePools = { ranged, flying };
 
     ranged.collideWith(options.projectileBlockers, isProjectileBlocker);
-    flying.collideWith(options.projectileBlockers, isProjectileBlocker);
+    flying.collideWith(options.projectileBlockers, isFlyingProjectileBlocker);
+    flying.collideWith(options.projectileFloor);
     options.scene.physics.add.overlap(
       ranged.group,
       options.player,

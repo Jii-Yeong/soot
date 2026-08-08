@@ -701,6 +701,7 @@ export class GameScene extends Phaser.Scene {
       player: this.player,
       enemies: this.enemies,
       projectileBlockers: this.terrainBuilder.projectileGroup,
+      projectileFloor: this.floorBuilder.group,
       canDamageEnemy: () =>
         this.phase === 'playing' && this.roomState === 'locked',
       isPlayerInvulnerable: () => this.playerController.isInvulnerable,
