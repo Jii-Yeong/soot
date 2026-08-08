@@ -1472,6 +1472,10 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
         page.evaluate(() => {
           type RuntimeScene = {
             activeRoomConfig: { id: string };
+            children: {
+              list: Array<{ active: boolean; texture?: { key: string } }>;
+            };
+            combatUi: { victoryOverlay: { visible: boolean } };
             floorBuilder: {
               skinObjects: Array<{ texture?: { key: string } }>;
             };
@@ -1481,21 +1485,67 @@ test('stage five boss direct jump loads the ascension room floor skin', async ({
           const scene = game.scene.getScene('game') as RuntimeScene;
           return {
             roomId: scene.activeRoomConfig.id,
+            siegeTextureKeys: scene.children.list.flatMap(
+              ({ active, texture }) =>
+                active &&
+                texture &&
+                ['stage-3-neared', 'stage-3-ranged', 'stage-3-flying'].includes(
+                  texture.key,
+                )
+                  ? [texture.key]
+                  : [],
+            ),
             textureKeys: scene.floorBuilder.skinObjects.flatMap(({ texture }) =>
               texture ? [texture.key] : [],
             ),
+            victoryVisible: scene.combatUi.victoryOverlay.visible,
           };
         }),
       { timeout: 10_000 },
     )
     .toEqual({
       roomId: 'underground-landing',
+      siegeTextureKeys: expect.arrayContaining([
+        'stage-3-neared',
+        'stage-3-ranged',
+        'stage-3-flying',
+      ]),
       textureKeys: expect.arrayContaining([
         'stage-3-floor-left',
         'stage-3-floor-middle',
         'stage-3-floor-right',
       ]),
+      victoryVisible: false,
     });
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          type RuntimeScene = {
+            children: {
+              list: Array<{ active: boolean; texture?: { key: string } }>;
+            };
+            combatUi: { victoryOverlay: { visible: boolean } };
+          };
+          type DebugGame = { scene: { getScene: (key: string) => unknown } };
+          const game = (window as unknown as { __game?: DebugGame }).__game!;
+          const scene = game.scene.getScene('game') as RuntimeScene;
+          return {
+            siegeEnemies: scene.children.list.filter(
+              ({ active, texture }) =>
+                active &&
+                texture &&
+                ['stage-3-neared', 'stage-3-ranged', 'stage-3-flying'].includes(
+                  texture.key,
+                ),
+            ).length,
+            victoryVisible: scene.combatUi.victoryOverlay.visible,
+          };
+        }),
+      { timeout: 8_000 },
+    )
+    .toEqual({ siegeEnemies: 0, victoryVisible: true });
 });
 
 test('stage three pipe crawler stays aligned above its floor segment', async ({

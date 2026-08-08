@@ -596,6 +596,12 @@ export class GameScene extends Phaser.Scene {
       STAGE_THREE_CONFIG.showFloor,
       STAGE_THREE_CONFIG.floorSkin,
     );
+    this.terrainBuilder.build(
+      UNDERGROUND_LANDING_ROOM.terrain,
+      STAGE_THREE_CONFIG.terrainSkin,
+      UNDERGROUND_LANDING_ROOM.ceilingPipes,
+      STAGE_THREE_CONFIG.pipeSkin,
+    );
     this.showUndergroundLandingBackdrop();
   }
 
@@ -641,6 +647,9 @@ export class GameScene extends Phaser.Scene {
       this.reskinCurrentRoom(),
     );
     this.stageAssetPreloader.preload(STAGES[this.currentStageIndex + 1]);
+    if (this.stage.endEvent === 'ascension') {
+      this.stageAssetPreloader.preload(STAGE_THREE_CONFIG);
+    }
   }
 
   /**
